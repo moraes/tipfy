@@ -1,27 +1,25 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.main
-    ~~~~~~~~~~
+    main
+    ~~~~
 
     Run Tipfy apps.
 
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE for more details.
 """
-import os, sys
+import sys
 if 'lib' not in sys.path:
     sys.path.insert(0, 'lib')
 
-import config
-
 # Get the application factory and runner.
-from tipfy.app import make_wsgi_app, run_wsgi_app
+from tipfy.app import config, make_wsgi_app, run_wsgi_app
 
 # Initialize the application.
 application = make_wsgi_app()
 
 # Issue 772 - http://code.google.com/p/googleappengine/issues/detail?id=772.
-# We must keep fix_sys_path() here until it is fixed for the dev server.
+# We must keep fix_sys_path() here until it is fixed in the dev server.
 ultimate_sys_path = None
 def fix_sys_path():
     global ultimate_sys_path

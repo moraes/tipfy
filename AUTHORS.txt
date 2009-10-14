@@ -1,4 +1,4 @@
-Tipfy is developed by Rodrigo Moraes <rodrigo.moraesgmail.com>.
+Tipfy is developed by Rodrigo Moraes <rodrigo.moraes@gmail.com>.
 
 Tipfy includes open source libraries or code from the following projects:
 

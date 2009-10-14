@@ -63,6 +63,9 @@ from tipfy.i18n import Translations, format_date, format_datetime, format_time
 ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
     'trace'])
 
+# Store application debugger in development.
+_debugged_app = None
+
 
 class RequestHandler(object):
     """Base request handler. Only implements the minimal interface required by
@@ -194,6 +197,15 @@ class Rule(WerkzeugRule):
                     self.redirect_to, handler=self.handler)
 
 
+class PatchedCGIHandler(CGIHandler):
+    """wsgiref.handlers.CGIHandler holds os.environ when imported. This class
+    override this behaviour. Thanks to Kay framework for this patch.
+    """
+    def __init__(self):
+        self.os_environ = {}
+        CGIHandler.__init__(self)
+
+
 def get_urls():
     """Returns the url rules for the app. Rules are cached in production only,
     and are updated when new versions are deployed.
@@ -212,12 +224,15 @@ def get_urls():
 
 def set_debugger(app):
     """Adds Werkzeug's pretty debugger screen, via monkeypatch. This only works
-    in the dev server.
+    in the development server.
     """
+    global _debugged_app
     import tipfy.utils.debug
     sys.modules['werkzeug.debug.utils'] = tipfy.utils.debug
     from werkzeug import DebuggedApplication
-    return DebuggedApplication(app, evalex=True)
+    if _debugged_app is None:
+        _debugged_app = DebuggedApplication(app, evalex=True)
+    return _debugged_app
 
 
 def make_wsgi_app():
@@ -237,7 +252,7 @@ def make_wsgi_app():
 
 def run_wsgi_app(app):
     """Executes the WSGIApplication as a CGI script."""
-    CGIHandler().run(app)
+    PatchedCGIHandler().run(app)
 
 
 def get_wsgi_app():

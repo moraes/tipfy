@@ -32,6 +32,12 @@ class HTMLStringO(object):
     def close(self):
         pass
 
+    def flush(self):
+        pass
+
+    def seek(self, n, mode=0):
+        pass
+
     def reset(self):
         val = ''.join(self._buffer)
         del self._buffer[:]
@@ -48,12 +54,19 @@ class HTMLStringO(object):
     def writelines(self, x):
         self._write(escape(''.join(x)))
 
+    def readline(self):
+        if len(self._buffer) == 0:
+            return ''
+        ret = self._buffer[0]
+        del self._buffer[0]
+        return ret
+
 
 class ThreadedStream(object):
     """Thread-local wrapper for sys.stdout for the interactive console."""
 
     def push():
-        if sys.stdout is sys.__stdout__:
+        if not isinstance(sys.stdout, ThreadedStream):
             sys.stdout = ThreadedStream()
         _local.stream = HTMLStringO()
     push = staticmethod(push)

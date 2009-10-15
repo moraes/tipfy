@@ -12,7 +12,7 @@
 
       * Flash messages.
 
-      * Internationalization.
+      * Internationalization, as an optional plugin.
 
       * Integrated interactive debugger (from Werkzeug).
 
@@ -31,9 +31,10 @@
 import sys
 import logging
 import traceback
-import simplejson
 from base64 import b64encode, b64decode
 from wsgiref.handlers import CGIHandler
+from collections import deque
+from django.utils import simplejson
 
 from google.appengine.api import memcache
 
@@ -55,9 +56,6 @@ from tipfy.utils.module_loader import ModuleLoader
 
 # Configuration definitions.
 import config
-
-# Internationalization.
-from tipfy.i18n import Translations, format_date, format_datetime, format_time
 
 # Allowed request methods.
 ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
@@ -91,28 +89,29 @@ class WSGIApplication(object):
         # Set an accessor to this instance.
         WSGIApplication.instance = self
 
+        # Start the plugin system.
+        self.plugins = PluginSystem(config.plugins)
+
         # Set the url rules.
         self.url_map = Map(get_urls())
-
-        # Initialize internationalization.
-        self.translations = Translations(locale=config.locale)
 
         # Cache for imported handler classes.
         self.handlers = {}
 
+        # Emit a plugin event.
+        self.plugins.emit_event('post_wsgi_app_init', self)
+
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         try:
-            # Build the request object.
+            # Build the request and response objects.
             local.request = Request(environ)
+            local.response = Response()
 
             # Check requested method.
             method = local.request.method.lower()
             if method not in ALLOWED_METHODS:
                 raise MethodNotAllowed()
-
-            # Set locale for this request.
-            self.translations.set_requested_locale()
 
             # Bind url map to the current request location.
             self.url_adapter = self.url_map.bind_to_environ(environ)
@@ -125,8 +124,8 @@ class WSGIApplication(object):
             if rule.handler not in self.handlers:
                 self.handlers[rule.handler] = import_string(rule.handler)
 
-            # Build the response object and instantiate the handler.
-            local.response = Response()
+            # Instantiate the handler.
+            self.plugins.emit_event('pre_handler_init', self)
             handler = self.handlers[rule.handler]()
 
             # Dispatch, passing method and rule parameters.
@@ -157,19 +156,14 @@ class WSGIApplication(object):
             # In production, use precompiled templates loaded from a module.
             loader = ModuleLoader(config.templates_compiled_dir)
 
-        env = Environment(extensions=['jinja2.ext.i18n'], loader=loader)
-
-        # Set some global template variables.
+        # Initialize the environment and set some global template variables.
+        env = Environment(loader=loader)
         env.globals.update({
             'url_for': url_for,
-            'format_date': format_date,
-            'format_datetime': format_datetime,
-            'format_time': format_time,
             'config': config,
         })
 
-        # Install i18n.
-        env.install_gettext_translations(local.translations)
+        self.plugins.emit_event('post_env_set', env)
         return env
 
 
@@ -195,6 +189,41 @@ class Rule(WerkzeugRule):
         return Rule(self.rule, defaults, self.subdomain, self.methods,
                     self.build_only, self.endpoint, self.strict_slashes,
                     self.redirect_to, handler=self.handler)
+
+
+class Plugin(object):
+    """A lazily imported plugin callable."""
+    def __init__(self, callback_name):
+        self.callback_name = callback_name
+        self.callback = None
+
+    def __call__(self, *args, **kwargs):
+        if self.callback is None:
+            self.callback = import_string(self.callback_name)
+
+        return self.callback(*args, **kwargs)
+
+
+class PluginSystem(object):
+    """Registers listeners to events and emits the events when they occur."""
+    def __init__(self, plugins):
+        self.listeners = {}
+
+        if not plugins:
+            return
+
+        for event, callback_name in plugins:
+            event = intern(event)
+            if event not in self.listeners:
+                self.listeners[event] = deque([Plugin(callback_name)])
+            else:
+                self.listeners[event].append(Plugin(callback_name))
+
+    def emit_event(self, event, *args, **kwargs):
+        if event not in self.listeners:
+            return []
+
+        return [x(*args, **kwargs) for x in iter(self.listeners[event])]
 
 
 class PatchedCGIHandler(CGIHandler):

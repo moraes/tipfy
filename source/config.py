@@ -27,3 +27,6 @@ time_diff = 0
 
 # Secret phrase for session's secure cookies.
 session_secret_key = None
+
+# Plugin events and callbacks. By default, none is installed.
+plugins = []

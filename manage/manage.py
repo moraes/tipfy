@@ -18,7 +18,7 @@ sys.path.insert(0, root_dir)
 import config
 from werkzeug import script
 from jinja2 import Environment
-from tipfy.manage.compiler import compile_dir
+from compiler import compile_dir
 
 
 def clear_dir(path):

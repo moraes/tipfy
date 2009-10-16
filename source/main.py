@@ -12,11 +12,14 @@ import sys
 if 'lib' not in sys.path:
     sys.path.insert(0, 'lib')
 
-# Get the application factory and runner.
-from tipfy.app import config, make_wsgi_app, run_wsgi_app
+import config
+from tipfy import make_wsgi_app, run_wsgi_app
 
-# Initialize the application.
-application = make_wsgi_app()
+if config.dev:
+    import tipfy.ext.debugger
+    application = tipfy.ext.debugger.make_wsgi_app(config)
+else:
+    application = make_wsgi_app(config)
 
 # Issue 772 - http://code.google.com/p/googleappengine/issues/detail?id=772.
 # We must keep fix_sys_path() here until it is fixed in the dev server.

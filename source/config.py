@@ -16,6 +16,9 @@ dev = environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 # Deployment version ID.
 version_id = environ.get('CURRENT_VERSION_ID', '1')
 
+# Directory for templates.
+templates_dir = 'templates'
+
 # Directory for compiled templates. If None, don't use compiled templates.
 templates_compiled_dir = 'templates_compiled'
 
@@ -27,6 +30,3 @@ time_diff = 0
 
 # Secret phrase for session's secure cookies.
 session_secret_key = None
-
-# Plugin events and callbacks. By default, none is installed.
-plugins = []

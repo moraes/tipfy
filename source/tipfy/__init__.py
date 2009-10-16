@@ -50,6 +50,11 @@ from werkzeug.contrib.securecookie import SecureCookie
 # Global variables for a single request.
 local = Local()
 local_manager = LocalManager([local])
+# Proxies to the three special variables set on each request.
+local.app = local.request = local.response = None
+app = local('app')
+request = local('request')
+response = local('response')
 
 # Allowed request methods.
 ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
@@ -77,12 +82,12 @@ class RequestHandler(object):
 
 class WSGIApplication(object):
     def __init__(self, config):
-        # Set an accessor to this instance and the configuration options.
-        WSGIApplication.instance = self
         self.config = config
 
+        # Set an accessor to this instance.
+        local.app = self
+
         # Set the url rules.
-        logging.info('#' * 120)
         self.url_map = Map(get_urls())
 
         # Cache for imported handler classes.
@@ -91,7 +96,8 @@ class WSGIApplication(object):
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         try:
-            # Build the request and response objects.
+            # Populate local with the wsgi app, request and response.
+            local.app = self
             local.request = Request(environ)
             local.response = Response()
 
@@ -167,10 +173,9 @@ def get_urls():
     """Returns the url rules for the app. Rules are cached in production only,
     and are updated when new versions are deployed.
     """
-    config = get_wsgi_app().config
-    key = 'wsgi_app.urls.%s' % config.version_id
+    key = 'wsgi_app.urls.%s' % local.app.config.version_id
     urls = memcache.get(key)
-    if not urls or config.dev:
+    if not urls or local.app.config.dev:
         from urls import urls
         try:
             memcache.set(key, urls)
@@ -192,11 +197,6 @@ def run_wsgi_app(app):
     PatchedCGIHandler().run(app)
 
 
-def get_wsgi_app():
-    """Returns the current WSGIApplication instance."""
-    return WSGIApplication.instance
-
-
 def log_exception():
     """Logs an exception traceback."""
     exc_type, exc_value, tb = sys.exc_info()
@@ -212,7 +212,7 @@ def handle_exception(exception, code):
     :Exception exception: the catched exception.
     :int code: HTTP status code.
     """
-    if get_wsgi_app().config.dev:
+    if local.app.config.dev:
         # Just raise the exception when in development.
         raise
     else:
@@ -252,7 +252,7 @@ def redirect(location, code=302):
 
 def url_for(name, full=False, method=None, **kwargs):
     """Builds a URL. If full is True, returns an absolute url."""
-    return get_wsgi_app().url_adapter.build(name, force_external=full,
+    return local.app.url_adapter.build(name, force_external=full,
         method=method, values=kwargs)
 
 
@@ -264,7 +264,7 @@ def redirect_to(name, method=None, **kwargs):
 def get_session(key='tipfy.session'):
     """Returns a session value stored in a SecureCookie."""
     return SecureCookie.load_cookie(local.request, key=key,
-        secret_key=get_wsgi_app().config.session_secret_key)
+        secret_key=local.app.config.session_secret_key)
 
 
 def set_session(data, key='tipfy.session', **kwargs):
@@ -272,7 +272,7 @@ def set_session(data, key='tipfy.session', **kwargs):
     for possible keyword arguments.
     """
     securecookie = SecureCookie(data=data,
-        secret_key=get_wsgi_app().config.session_secret_key)
+        secret_key=local.app.config.session_secret_key)
     securecookie.save_cookie(local.response, key=key, **kwargs)
 
 

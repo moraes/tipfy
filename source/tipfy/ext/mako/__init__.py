@@ -16,12 +16,12 @@ from mako.template import Template
 from mako.runtime import Context
 from StringIO import StringIO
 
-from tipfy import local
+from tipfy import local, app, response
 
 
 def render_template(filename, **context):
     """Renders a template."""
-    template = Template(filename=path.join('templates', filename))
+    template = Template(filename=path.join(app.config.templates_dir, filename))
     buf = StringIO()
     template.render_context(Context(buf, **context))
     return buf.getvalue()
@@ -29,6 +29,6 @@ def render_template(filename, **context):
 
 def render_response(filename, **context):
     """Renders a template and returns a response object."""
-    local.response.data = render_template(filename, **context)
-    local.response.mimetype = 'text/html'
-    return local.response
+    response.data = render_template(filename, **context)
+    response.mimetype = 'text/html'
+    return response

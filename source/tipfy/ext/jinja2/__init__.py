@@ -11,10 +11,12 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from os import path
-from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound, \
-    i18n
-from tipfy import local, get_wsgi_app
-from tipfy.ext.i18n import format_date, format_datetime, format_time
+from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
+from tipfy import local, app, response
+# TODO: make i18n conditional import.
+from jinja2.ext import i18n
+from tipfy.ext.i18n import set_requested_locale, translations, format_date, \
+    format_datetime, format_time
 
 # Jinja2 Environment, cached in the module.
 _environment = None
@@ -24,13 +26,12 @@ def get_env():
     """Returns the Jinja2 environment."""
     global _environment
     if _environment is None:
-        config = get_wsgi_app().config
-        if config.dev or config.templates_compiled_dir is None:
+        if app.config.dev or app.config.templates_compiled_dir is None:
             # In development, parse templates on every request.
-            loader = FileSystemLoader(config.templates_dir)
+            loader = FileSystemLoader(app.config.templates_dir)
         else:
             # In production, use precompiled templates loaded from a module.
-            loader = ModuleLoader(config.templates_compiled_dir)
+            loader = ModuleLoader(app.config.templates_compiled_dir)
 
         # Initialize the environment.
         _environment = Environment(loader=loader)
@@ -42,8 +43,9 @@ def get_env():
             'format_datetime': format_datetime,
             'format_time': format_time,
         })
-        _environment.extensions[i18n.identifier] = i18n(env)
-        _environment.install_gettext_translations(local.translations)
+        _environment.extensions[i18n.identifier] = i18n(_environment)
+        set_requested_locale()
+        _environment.install_gettext_translations(translations)
 
     return _environment
 
@@ -55,9 +57,9 @@ def render_template(filename, **context):
 
 def render_response(filename, **context):
     """Renders a template and returns a response object."""
-    local.response.data = render_template(filename, **context)
-    local.response.mimetype = 'text/html'
-    return local.response
+    response.data = render_template(filename, **context)
+    response.mimetype = 'text/html'
+    return response
 
 
 class ModuleLoader(object):

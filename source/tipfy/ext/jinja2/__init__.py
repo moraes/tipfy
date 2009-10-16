@@ -13,10 +13,6 @@
 from os import path
 from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
 from tipfy import local, app, response
-# TODO: make i18n conditional import.
-from jinja2.ext import i18n
-from tipfy.ext.i18n import set_requested_locale, translations, format_date, \
-    format_datetime, format_time
 
 # Jinja2 Environment, cached in the module.
 _environment = None
@@ -36,18 +32,29 @@ def get_env():
         # Initialize the environment.
         _environment = Environment(loader=loader)
 
-        # Install i18n.
-        # TODO: how to make this optional? use config setting?
-        _environment.globals.update({
-            'format_date': format_date,
-            'format_datetime': format_datetime,
-            'format_time': format_time,
-        })
-        _environment.extensions[i18n.identifier] = i18n(_environment)
-        set_requested_locale()
-        _environment.install_gettext_translations(translations)
+        try:
+            # Install i18n conditionally.
+            set_i18n(_environment)
+        except:
+            # i18n is not available.
+            pass
 
     return _environment
+
+
+def set_i18n(environment):
+    """Add the internationalization extension to Jinja2 environment."""
+    from jinja2.ext import i18n
+    from tipfy.ext.i18n import set_requested_locale, translations, \
+        format_date, format_datetime, format_time
+    environment.globals.update({
+        'format_date': format_date,
+        'format_datetime': format_datetime,
+        'format_time': format_time,
+    })
+    environment.extensions[i18n.identifier] = i18n(_environment)
+    set_requested_locale()
+    environment.install_gettext_translations(translations)
 
 
 def render_template(filename, **context):

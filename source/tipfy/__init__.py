@@ -250,8 +250,22 @@ def redirect(location, code=302):
     return response
 
 
-def url_for(name, full=False, method=None, **kwargs):
-    """Builds a URL. If full is True, returns an absolute url."""
+def url_for(endpoint, full=False, method=None, **kwargs):
+    """Returns an URL for a named Rule.
+
+    Rule('/downloads/<int:id>', endpoint='downloads/show')
+
+    Additional values are appended to the URL as querystring parameters:
+
+    url_for('index', q='My Searchstring')
+    '/?q=My+Searchstring'
+
+    :param endpoint: The rule endpoint
+    :param full: If True, builds an absolute URL.
+    :param method: The rule request method, in case there are different rules
+        for different request methods.
+    :param kwargs: Keyword arguments to build the Rule..
+    """
     return local.app.url_adapter.build(name, force_external=full,
         method=method, values=kwargs)
 

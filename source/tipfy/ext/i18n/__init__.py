@@ -11,6 +11,7 @@
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
+import datetime
 from babel.support import Translations as BabelTranslations, LazyProxy
 from babel.dates import format_date as babel_format_date, \
     format_datetime as babel_format_datetime, format_time as babel_format_time
@@ -24,6 +25,22 @@ translations = local('translations')
 
 # Translations object cached in the module.
 _translations = None
+
+
+class Translations(object):
+    """Stores Babel Translations instances."""
+    def __init__(self, locale):
+        self._translations = {}
+        self.set_locale(locale)
+
+    def set_locale(self, locale):
+        if locale not in self._translations:
+            options = list(set([locale, app.config.locale]))
+            self._translations[locale] = BabelTranslations.load('locale',
+                options, 'messages')
+
+        local.locale = locale
+        local.translations = self._translations[locale]
 
 
 def get_translations():
@@ -47,22 +64,6 @@ def set_requested_locale():
     if locale != app.config.locale:
         # Persist locale using a cookie when it differs from default.
         response.set_cookie('tipfy.locale', value=locale, max_age=(86400 * 30))
-
-
-class Translations(object):
-    """Stores Babel Translations instances."""
-    def __init__(self, locale):
-        self._translations = {}
-        self.set_locale(locale)
-
-    def set_locale(self, locale):
-        if locale not in self._translations:
-            options = list(set([locale, app.config.locale]))
-            self._translations[locale] = BabelTranslations.load('locale',
-                options, 'messages')
-
-        local.locale = locale
-        local.translations = self._translations[locale]
 
 
 # Some functions borrowed from Zine: http://zine.pocoo.org/.
@@ -89,18 +90,21 @@ def lazy_ngettext(singular, plural, n):
 
 
 def format_date(value=None, format='medium'):
-    return babel_format_date(date=value + app.config.time_diff, format=format,
-        locale=get_locale())
+    time_diff = app.config.time_diff or datetime.timedelta()
+    return babel_format_date(date=value + time_diff, format=format,
+        locale=local.locale)
 
 
 def format_datetime(value=None, format='medium', tzinfo=None):
-    return babel_format_datetime(datetime=value + app.config.time_diff,
-        format=format, tzinfo=tzinfo, locale=get_locale())
+    time_diff = app.config.time_diff or datetime.timedelta()
+    return babel_format_datetime(datetime=value + time_diff, format=format,
+        tzinfo=tzinfo, locale=local.locale)
 
 
 def format_time(value=None, format='medium', tzinfo=None):
-    return babel_format_time(time=value + app.config.time_diff, format=format,
-        tzinfo=tzinfo, locale=get_locale())
+    time_diff = app.config.time_diff or datetime.timedelta()
+    return babel_format_time(time=value + time_diff, format=format,
+        tzinfo=tzinfo, locale=local.locale)
 
 
 _ = gettext

@@ -9,7 +9,6 @@
     :license: BSD, see LICENSE for more details.
 """
 from os import environ
-import datetime
 
 # Are we using the development server?
 dev = environ.get('SERVER_SOFTWARE', '').startswith('Dev')
@@ -26,8 +25,8 @@ templates_compiled_dir = 'templates_compiled'
 # Default locale.
 locale = 'en_US'
 
-# Timezone difference from UTC: a datetime.timedelta object.
-time_diff = datetime.timedelta()
+# Timezone difference from UTC: a datetime.timedelta object or None.
+time_diff = None
 
 # Secret phrase for session's secure cookies.
 session_secret_key = None

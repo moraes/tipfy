@@ -253,13 +253,6 @@ def redirect(location, code=302):
 def url_for(endpoint, full=False, method=None, **kwargs):
     """Returns an URL for a named Rule.
 
-    Rule('/downloads/<int:id>', endpoint='downloads/show')
-
-    Additional values are appended to the URL as querystring parameters:
-
-    url_for('index', q='My Searchstring')
-    '/?q=My+Searchstring'
-
     :param endpoint: The rule endpoint
     :param full: If True, builds an absolute URL.
     :param method: The rule request method, in case there are different rules

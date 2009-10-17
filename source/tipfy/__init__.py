@@ -259,7 +259,7 @@ def url_for(endpoint, full=False, method=None, **kwargs):
         for different request methods.
     :param kwargs: Keyword arguments to build the Rule..
     """
-    return local.app.url_adapter.build(name, force_external=full,
+    return local.app.url_adapter.build(endpoint, force_external=full,
         method=method, values=kwargs)
 
 

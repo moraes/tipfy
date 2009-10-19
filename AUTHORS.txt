@@ -1,27 +1,27 @@
-Tipfy is developed by Rodrigo Moraes <rodrigo.moraes@gmail.com>.
+Tipfy is developed by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
 
 Tipfy includes open source libraries or code from the following projects:
 
 - `Werkzeug <http://werkzeug.pocoo.org/>`_
-  Copyright (c) 2009 by the Werkzeug Team
-  license: BSD
+  Copyright 2009 by the Werkzeug Team.
+  License: BSD
 
 - `Jinja2 <http://jinja.pocoo.org/2/>`_
-  Copyright (c) 2009 by the Jinja Team.
-  license: BSD
+  Copyright 2009 by the Jinja Team.
+  License: BSD
 
 - `Babel <http://babel.edgewall.org/>`_
-  Copyright (c) 2007-2008 Edgewall Software
-  license: BSD
-
-- `simplejson <http://undefined.org/python/#simplejson>`_
-  Copyright (c) 2006 Bob Ippolito
-  license: MIT
+  Copyright 2007-2008 Edgewall Software.
+  License: BSD
 
 - `Kay <http://code.google.com/p/kay-framework/>`_
-  Copyright (c) 2009 Accense Technology, Inc. All rights reserved.
-  license: BSD
+  Copyright 2009 Accense Technology, Inc. All rights reserved.
+  License: BSD
 
 - `Zine <http://zine.pocoo.org/>`_
-  Copyright (c) 2009 by the Zine Team.
-  license: BSD
+  Copyright 2009 by the Zine Team.
+  License: BSD
+
+- `webapp <http://code.google.com/appengine/>`_
+  Copyright 2007 Google Inc.
+  License: Apache 2.0

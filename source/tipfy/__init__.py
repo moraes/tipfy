@@ -37,7 +37,7 @@ from base64 import b64encode, b64decode
 from wsgiref.handlers import CGIHandler
 from django.utils import simplejson
 
-from google.appengine.api import memcache
+from google.appengine.api import lib_config, memcache
 
 # Werkzeug swiss knife.
 from werkzeug import Local, LocalManager, Request, Response, import_string, \
@@ -47,14 +47,13 @@ from werkzeug.exceptions import HTTPException, BadRequest, Unauthorized, \
 from werkzeug.routing import Map, RequestRedirect, Rule as WerkzeugRule
 from werkzeug.contrib.securecookie import SecureCookie
 
-# Global variables for a single request.
+# Variable store for a single request.
 local = Local()
 local_manager = LocalManager([local])
+
 # Proxies to the three special variables set on each request.
 local.app = local.request = local.response = None
-app = local('app')
-request = local('request')
-response = local('response')
+app, request, response = local('app'), local('request'), local('response')
 
 # Allowed request methods.
 ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
@@ -82,13 +81,17 @@ class RequestHandler(object):
 
 class WSGIApplication(object):
     def __init__(self, config):
+        """Initializes the application.
+
+        :param config: An object, usually a module, with application settings.
+        """
         self.config = config
 
         # Set an accessor to this instance.
         local.app = self
 
         # Set the url rules.
-        self.url_map = Map(get_urls())
+        self.url_map = config_handle.get_url_map(self)
 
         # Cache for imported handler classes.
         self.handlers = {}
@@ -98,8 +101,8 @@ class WSGIApplication(object):
         try:
             # Populate local with the wsgi app, request and response.
             local.app = self
-            local.request = Request(environ)
-            local.response = Response()
+            local.request = config_handle.get_request(self, environ)
+            local.response = config_handle.get_response(self)
 
             # Check requested method.
             method = local.request.method.lower()
@@ -107,11 +110,10 @@ class WSGIApplication(object):
                 raise MethodNotAllowed()
 
             # Bind url map to the current request location.
-            self.url_adapter = self.url_map.bind_to_environ(environ)
+            self.url_adapter = config_handle.get_url_adapter(self, environ)
 
             # Match the path against registered rules.
-            rule, kwargs = self.url_adapter.match(local.request.path,
-                return_rule=True)
+            rule, kwargs = config_handle.get_url_match(self, local.request)
 
             # Import handler set in matched rule.
             if rule.handler not in self.handlers:
@@ -169,32 +171,67 @@ class PatchedCGIHandler(CGIHandler):
         CGIHandler.__init__(self)
 
 
-def get_urls():
-    """Returns the url rules for the app. Rules are cached in production only,
-    and are updated when new versions are deployed.
+def get_url_map(app):
+    """Returns a `werkzeug.routing.Map` with the url rules defined for the app.
+    Rules are cached in production only, and are updated when new versions are
+    deployed.
+
+    This implementation can be overriden defining a tipfy_get_url_map(app)
+    function in appengine_config.py.
     """
-    key = 'wsgi_app.urls.%s' % local.app.config.version_id
+    key = 'wsgi_app.urls.%s' % app.config.version_id
     urls = memcache.get(key)
-    if not urls or local.app.config.dev:
+    if not urls or app.config.dev:
         from urls import urls
         try:
             memcache.set(key, urls)
         except:
             logging.info('Failed to save wsgi_app.urls to memcache.')
 
-    return urls
+    return Map(urls)
+
+
+def get_url_adapter(app, environ):
+    """Returns a `werkzeug.routing.MapAdapter` bound to the current request.
+
+    This implementation can be overriden defining a tipfy_get_url_adapter(app,
+    environ) function in appengine_config.py.
+    """
+    return app.url_map.bind_to_environ(environ)
+
+
+def get_url_match(app, request):
+    """Returns a tuple (rule, kwargs) with a `tipfy.Rule` and keyword arguments
+    from the matched rule.
+
+    This implementation can be overriden defining a tipfy_get_url_match(app,
+    request) function in appengine_config.py.
+    """
+    return app.url_adapter.match(request.path, return_rule=True)
 
 
 def make_wsgi_app(config):
-    """Instantiates and wraps the WSGI application so that cleaning up happens
+    """Returns a instance of WSGIApplication, wrapped so that local is cleaned
     after each request.
     """
     return local_manager.make_middleware(WSGIApplication(config))
 
 
-def run_wsgi_app(app):
-    """Executes the WSGIApplication as a CGI script."""
+def add_middleware(app):
+    """Wraps WSGI middleware around a WSGI application object."""
+    return config_handle.add_middleware(app)
+
+
+def run_bare_wsgi_app(app):
+    """Executes the WSGI application as a CGI script."""
     PatchedCGIHandler().run(app)
+
+
+def run_wsgi_app(app):
+    """Executes the WSGI application as a CGI script, wrapping it by custom
+    middlewares.
+    """
+    run_bare_wsgi_app(add_middleware(app))
 
 
 def log_exception():
@@ -263,9 +300,10 @@ def url_for(endpoint, full=False, method=None, **kwargs):
         method=method, values=kwargs)
 
 
-def redirect_to(name, method=None, **kwargs):
+def redirect_to(endpoint, method=None, code=302, **kwargs):
     """Convenience function mixing redirect() and url_for()."""
-    return redirect(url_for(name, full=True, method=method, **kwargs))
+    return redirect(url_for(endpoint, full=True, method=method, **kwargs),
+        code=code)
 
 
 def get_session(key='tipfy.session'):
@@ -274,30 +312,30 @@ def get_session(key='tipfy.session'):
         secret_key=local.app.config.session_secret_key)
 
 
-def set_session(data, key='tipfy.session', **kwargs):
+def set_session(data, key='tipfy.session', force=True, **kwargs):
     """Sets a session value in a SecureCookie. See SecureCookie.save_cookie()
     for possible keyword arguments.
     """
     securecookie = SecureCookie(data=data,
         secret_key=local.app.config.session_secret_key)
-    securecookie.save_cookie(local.response, key=key, **kwargs)
+    securecookie.save_cookie(local.response, key=key, force=force, **kwargs)
 
 
 def get_flash(key='tipfy.flash'):
     """Reads and deletes a flash message. Flash messages are stored in a cookie
-    and automatically read and deleted on the next request.
+    and automatically deleted when read.
     """
     if key in local.request.cookies:
-        msg = simplejson.loads(b64decode(local.request.cookies[key]))
+        data = simplejson.loads(b64decode(local.request.cookies[key]))
         local.response.delete_cookie(key)
-        return msg
+        return data
 
 
-def set_flash(msg, key='tipfy.flash'):
-    """Sets a flash message. Flash messages are stored in a cookie and
-    automatically read and deleted on the next request.
+def set_flash(data, key='tipfy.flash'):
+    """Sets a flash message. Flash messages are stored in a cookie
+    and automatically deleted when read.
     """
-    local.response.set_cookie(key, value=b64encode(simplejson.dumps(msg)))
+    local.response.set_cookie(key, value=b64encode(simplejson.dumps(data)))
 
 
 def render_json_response(obj):
@@ -305,3 +343,18 @@ def render_json_response(obj):
     local.response.data = simplejson.dumps(obj)
     local.response.mimetype = 'application/json'
     return local.response
+
+
+# Application hooks. These are default settings that can be overridden
+# adding tipfy_[config_key] definitions to appengine_config.py.
+# It uses google.appengine.api.lib_config for the trick.
+config_handle = lib_config.register('tipfy', {
+    'make_wsgi_app':   lambda config: make_wsgi_app(config),
+    'run_wsgi_app':    lambda app: run_wsgi_app(app),
+    'add_middleware':  lambda app: app,
+    'get_url_map':     lambda app: get_url_map(app),
+    'get_url_adapter': lambda app, environ: get_url_adapter(app, environ),
+    'get_url_match':   lambda app, request: get_url_match(app, request),
+    'get_request':     lambda app, environ: Request(environ),
+    'get_response':    lambda app: Response(),
+})

@@ -25,7 +25,7 @@
         def tipfy_get_request(app, environ):
             return MyRequestClass(environ)
 
-    Or to use an different strategy to load url rules:
+    Or to load url rules using a different strategy:
 
         from werkzeug.routing import Map
         from somewhere import my_app_rules

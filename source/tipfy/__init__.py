@@ -211,8 +211,8 @@ def get_url_match(app, request):
 
 
 def make_wsgi_app(config):
-    """Returns a instance of WSGIApplication, wrapped so that local is cleaned
-    after each request.
+    """Returns a instance of WSGIApplication, wrapped by local_manager so that
+    local is cleaned after each request.
     """
     return local_manager.make_middleware(WSGIApplication(config))
 
@@ -349,8 +349,6 @@ def render_json_response(obj):
 # adding tipfy_[config_key] definitions to appengine_config.py.
 # It uses google.appengine.api.lib_config for the trick.
 config_handle = lib_config.register('tipfy', {
-    'make_wsgi_app':   lambda config: make_wsgi_app(config),
-    'run_wsgi_app':    lambda app: run_wsgi_app(app),
     'add_middleware':  lambda app: app,
     'get_url_map':     lambda app: get_url_map(app),
     'get_url_adapter': lambda app, environ: get_url_adapter(app, environ),

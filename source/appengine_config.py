@@ -3,8 +3,12 @@
     appengine_config
     ~~~~~~~~~~~~~~~~
 
-    Stores values to override default behaviors in tipfy and extensions.
-    This file is not required and is kept here as a reference.
+    Stores configuration values that can override default behaviors in tipfy
+    and extensions.
+
+    This implements google.appengine.api.lib_config interface: lib_config will
+    look for config replacements in this module. This file is only needed
+    if a replacement is required, so it is just kept here as a reference.
 
     For example, to add middlewares:
 
@@ -24,12 +28,12 @@
     Or to use an different strategy to load url rules:
 
         from werkzeug.routing import Map
-        from my_app import my_app_rules
+        from somewhere import my_app_rules
 
         def tipfy_get_url_map(app):
             return Map(my_app_rules)
 
-    See in tipfy.config_handle the dict of overridable settings.
+    See in tipfy.config_handle the full dictionary of overridable settings.
 
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE for more details.

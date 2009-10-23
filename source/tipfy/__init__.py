@@ -37,8 +37,9 @@ from google.appengine.api import lib_config, memcache
 # Werkzeug swiss knife.
 from werkzeug import Local, LocalManager, Request, Response, import_string, \
     escape
-from werkzeug.exceptions import HTTPException, MethodNotAllowed
-from werkzeug.routing import Map, Rule as WerkzeugRule
+from werkzeug.exceptions import HTTPException, MethodNotAllowed, \
+    InternalServerError
+from werkzeug.routing import Map, RequestRedirect, Rule as WerkzeugRule
 from werkzeug.contrib.securecookie import SecureCookie
 
 # Variable store for a single request.
@@ -96,6 +97,7 @@ class WSGIApplication(object):
         local.app = self
         local.request = config_handle.get_request(self, environ)
         local.response = config_handle.get_response(self)
+        handler = None
 
         try:
             # Check requested method.
@@ -118,10 +120,16 @@ class WSGIApplication(object):
 
             # Dispatch, passing method and rule parameters.
             response = handler.dispatch(method, **kwargs)
-        except HTTPException, e:
-            # Use HTTPException as response. This will also execute redirects
-            # set by the routing system.
+
+        except RequestRedirect, e:
+            # Execute redirects set by the routing system.
             response = e
+        except HTTPException, e:
+            # Handle the exception.
+            response = config_handle.handle_http_exception(handler, e)
+        except Exception, e:
+            # Handle everything else.
+            response = config_handle.handle_exception(handler, e)
 
         # Call the response object as a WSGI application.
         return response(environ, start_response)
@@ -198,6 +206,22 @@ def get_url_match(app, request):
     request) function in appengine_config.py.
     """
     return app.url_adapter.match(request.path, return_rule=True)
+
+
+def handle_exception(handler, e):
+    """Handles a HTTPException or Exception raised by the WSGI application.
+
+    This is just a generic implementation. It can be overriden defining a
+    tipfy_handle_http_exception(e) or tipfy_handle_exception(e) function in
+    appengine_config.py.
+    """
+    if app.config.dev:
+        raise
+
+    if isinstance(e, HTTPException):
+        return e
+
+    return InternalServerError()
 
 
 def make_wsgi_app(config):
@@ -319,4 +343,6 @@ config_handle = lib_config.register('tipfy', {
     'get_url_match':   lambda app, request: get_url_match(app, request),
     'get_request':     lambda app, environ: Request(environ),
     'get_response':    lambda app: Response(),
+    'handle_http_exception': lambda handler, e: handle_exception(handler, e),
+    'handle_exception':      lambda handler, e: handle_exception(handler, e),
 })

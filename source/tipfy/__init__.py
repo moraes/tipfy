@@ -338,11 +338,11 @@ def render_json_response(obj):
 # It uses google.appengine.api.lib_config for the trick.
 config_handle = lib_config.register('tipfy', {
     'add_middleware':  lambda app: app,
-    'get_url_map':     lambda app: get_url_map(app),
-    'get_url_adapter': lambda app, environ: get_url_adapter(app, environ),
-    'get_url_match':   lambda app, request: get_url_match(app, request),
+    'get_url_map':     get_url_map,
+    'get_url_adapter': get_url_adapter,
+    'get_url_match':   get_url_match,
     'get_request':     lambda app, environ: Request(environ),
     'get_response':    lambda app: Response(),
-    'handle_http_exception': lambda handler, e: handle_exception(handler, e),
-    'handle_exception':      lambda handler, e: handle_exception(handler, e),
+    'handle_http_exception': handle_exception,
+    'handle_exception':      handle_exception,
 })

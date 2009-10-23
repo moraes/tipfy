@@ -31,8 +31,7 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from wsgiref.handlers import CGIHandler
-
-from google.appengine.api import lib_config, memcache
+from google.appengine.api import lib_config
 
 # Werkzeug swiss knife.
 from werkzeug import Local, LocalManager, Request, Response, import_string, \
@@ -176,6 +175,7 @@ def get_url_map(app):
     This implementation can be overriden defining a tipfy_get_url_map(app)
     function in appengine_config.py.
     """
+    from google.appengine.api import memcache
     key = 'wsgi_app.urls.%s' % app.config.version_id
     urls = memcache.get(key)
     if not urls or app.config.dev:

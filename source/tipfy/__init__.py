@@ -30,21 +30,15 @@
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-import sys
-import logging
-import traceback
-from base64 import b64encode, b64decode
 from wsgiref.handlers import CGIHandler
-from django.utils import simplejson
 
 from google.appengine.api import lib_config, memcache
 
 # Werkzeug swiss knife.
 from werkzeug import Local, LocalManager, Request, Response, import_string, \
-    cached_property, escape
-from werkzeug.exceptions import HTTPException, BadRequest, Unauthorized, \
-    Forbidden, NotFound, MethodNotAllowed, InternalServerError
-from werkzeug.routing import Map, RequestRedirect, Rule as WerkzeugRule
+    escape
+from werkzeug.exceptions import HTTPException, MethodNotAllowed
+from werkzeug.routing import Map, Rule as WerkzeugRule
 from werkzeug.contrib.securecookie import SecureCookie
 
 # Variable store for a single request.
@@ -98,12 +92,12 @@ class WSGIApplication(object):
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
-        try:
-            # Populate local with the wsgi app, request and response.
-            local.app = self
-            local.request = config_handle.get_request(self, environ)
-            local.response = config_handle.get_response(self)
+        # Populate local with the wsgi app, request and response.
+        local.app = self
+        local.request = config_handle.get_request(self, environ)
+        local.response = config_handle.get_response(self)
 
+        try:
             # Check requested method.
             method = local.request.method.lower()
             if method not in ALLOWED_METHODS:
@@ -124,17 +118,12 @@ class WSGIApplication(object):
 
             # Dispatch, passing method and rule parameters.
             response = handler.dispatch(method, **kwargs)
-
-        except RequestRedirect, e:
-            # Execute automatic redirects set by the routing system.
-            response = e
         except HTTPException, e:
-            # Handle HTTP errors.
-            response = handle_exception(e, e.code)
-        except Exception, e:
-            # Handle everything else as 500.
-            response = handle_exception(e, 500)
+            # Use HTTPException as response. This will also execute redirects
+            # set by the routing system.
+            response = e
 
+        # Call the response object as a WSGI application.
         return response(environ, start_response)
 
 
@@ -186,6 +175,7 @@ def get_url_map(app):
         try:
             memcache.set(key, urls)
         except:
+            import logging
             logging.info('Failed to save wsgi_app.urls to memcache.')
 
     return Map(urls)
@@ -232,35 +222,6 @@ def run_wsgi_app(app):
     middlewares.
     """
     run_bare_wsgi_app(add_middleware(app))
-
-
-def log_exception():
-    """Logs an exception traceback."""
-    exc_type, exc_value, tb = sys.exc_info()
-    buf = traceback.format_exception(exc_type, exc_value, tb, 30)
-    log = ''.join(buf).strip().decode('utf-8', 'replace')
-    logging.error(log)
-
-
-def handle_exception(exception, code):
-    """Renders a friendly page when something wrong occurs. When in
-    development mode, just raise the exception.
-
-    :Exception exception: the catched exception.
-    :int code: HTTP status code.
-    """
-    if local.app.config.dev:
-        # Just raise the exception when in development.
-        raise
-    else:
-        # Log the exception traceback.
-        log_exception()
-
-        # Render a friendly page.
-        # TODO
-        response = local.response
-        response.status_code = code
-        return response
 
 
 def redirect(location, code=302):
@@ -326,6 +287,7 @@ def get_flash(key='tipfy.flash'):
     and automatically deleted when read.
     """
     if key in local.request.cookies:
+        from base64 import b64decode
         data = simplejson.loads(b64decode(local.request.cookies[key]))
         local.response.delete_cookie(key)
         return data
@@ -335,11 +297,13 @@ def set_flash(data, key='tipfy.flash'):
     """Sets a flash message. Flash messages are stored in a cookie
     and automatically deleted when read.
     """
+    from base64 import b64encode
     local.response.set_cookie(key, value=b64encode(simplejson.dumps(data)))
 
 
 def render_json_response(obj):
     """Renders a JSON response, automatically encoding `obj` to JSON."""
+    from django.utils import simplejson
     local.response.data = simplejson.dumps(obj)
     local.response.mimetype = 'application/json'
     return local.response

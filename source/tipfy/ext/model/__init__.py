@@ -47,7 +47,7 @@ def get_key(entity, prop_name):
     """Returns a encoded key from a ReferenceProperty without fetching the
     referenced entity.
     """
-    getattr(entity.__class__, prop_name).get_value_for_datastore(entity)
+    return getattr(entity.__class__, prop_name).get_value_for_datastore(entity)
 
 
 def populate_entity(entity, **kwargs):

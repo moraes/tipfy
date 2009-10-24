@@ -322,6 +322,7 @@ def set_flash(data, key='tipfy.flash'):
     and automatically deleted when read.
     """
     from base64 import b64encode
+    from django.utils import simplejson
     local.response.set_cookie(key, value=b64encode(simplejson.dumps(data)))
 
 

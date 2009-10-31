@@ -66,9 +66,9 @@ class EntityTaskHandler(RequestHandler):
 
     A couple of URL rules with a 'key' argument are required:
 
-        Rule('_tasks/process-mymodel/', endpoint='tasks/mymodel',
+        Rule('/_tasks/process-mymodel/', endpoint='tasks/mymodel',
             handler='somemodule.MyModelTasks')
-        Rule('_tasks/process-mymodel/<string:key>', endpoint='tasks/mymodel',
+        Rule('/_tasks/process-mymodel/<string:key>', endpoint='tasks/mymodel',
             handler='somemodule.MyModelTasks')
     """
     model = None

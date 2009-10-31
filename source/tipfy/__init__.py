@@ -14,8 +14,11 @@ from google.appengine.api import lib_config
 # Werkzeug swiss knife.
 from werkzeug import Local, LocalManager, Request, Response, import_string, \
     escape
-from werkzeug.exceptions import HTTPException, MethodNotAllowed, \
-    InternalServerError
+from werkzeug.exceptions import HTTPException, BadRequest, Unauthorized, \
+    Forbidden, NotFound, MethodNotAllowed, NotAcceptable, RequestTimeout, \
+    Gone, LengthRequired, PreconditionFailed, RequestEntityTooLarge, \
+    RequestURITooLarge, UnsupportedMediaType, InternalServerError, \
+    NotImplemented, BadGateway, ServiceUnavailable
 from werkzeug.routing import Map, RequestRedirect, Rule as WerkzeugRule
 from werkzeug.contrib.securecookie import SecureCookie
 

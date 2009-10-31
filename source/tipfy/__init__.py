@@ -3,29 +3,7 @@
     tipfy
     ~~~~~
 
-    WSGI application and utilities.
-
-    This is much similar and intends to be as simple as App Engine's webapp.
-    Some of the features:
-
-      * Sessions using secure cookies.
-
-      * Flash messages.
-
-      * Interactive debugger.
-
-      * Internationalization, as an optional extension.
-
-      * No template engine enforced: use whatever you prefer.
-
-      * Powerful and easier to use url routing system and url builder.
-
-      * Handlers receive parameters as keyword arguments instead of positional
-        arguments.
-
-      * The requested handler method is dispatched by the handler, instead of
-        the WSGI application, meaning that a handler can intercept an action
-        before it is called.
+    Minimalist WSGI application and utilities.
 
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.

@@ -20,7 +20,7 @@ version_id = environ.get('CURRENT_VERSION_ID', '1')
 templates_dir = 'templates'
 
 # Directory for compiled templates. If None, don't use compiled templates.
-templates_compiled_dir = 'templates_compiled'
+templates_compiled_dir = None
 
 # Default locale.
 locale = 'en_US'

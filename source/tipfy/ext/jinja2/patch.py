@@ -3,7 +3,8 @@
     tipfy.ext.jinja2.patch
     ~~~~~~~~~~~~~~~~~~~~~~
 
-    Monkey patches for Jinja2 to work with precompiled templates
+    Monkey patches for Jinja2 to work with templates precompiled as Python
+    modules.
 
     See http://dev.pocoo.org/projects/jinja/ticket/349
 

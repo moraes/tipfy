@@ -74,6 +74,9 @@ class EntityTaskHandler(RequestHandler):
     model = None
     endpoint = None
 
+    def get(self, **kwargs):
+        return self.post(**kwargs)
+
     def post(self, **kwargs):
         if self.model is None or self.endpoint is None:
             raise ValueError('Model or endpoint is not defined.')
@@ -83,16 +86,17 @@ class EntityTaskHandler(RequestHandler):
             logging.info('Finished all %s entities!' % self.model.__class__)
             return local.response
 
-        # Process current one.
+        # Process current entity.
         logging.info('Processing %s from %s' % (str(entity.key()),
             self.model.__class__))
         retry_count = int(local.request.headers.get(
             'X-AppEngine-TaskRetryCount', 0))
+        current_key = str(entity.key())
         process_next, countdown = self.process_entity(entity, retry_count)
 
         if process_next is True:
-            # Process next one.
-            taskqueue.add(url=url_for(self.endpoint, key=str(entity.key())),
+            # Process next entity.
+            taskqueue.add(url=url_for(self.endpoint, key=current_key),
                 countdown=countdown)
 
         return local.response

@@ -16,6 +16,9 @@ dev = environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 # Deployment version ID.
 version_id = environ.get('CURRENT_VERSION_ID', '1')
 
+# Application ID.
+app_id = environ.get('APPLICATION_ID', None)
+
 # Directory for templates.
 templates_dir = 'templates'
 

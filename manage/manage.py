@@ -19,8 +19,8 @@ import config
 from werkzeug import script
 from jinja2 import Environment
 from compiler import compile_dir
-# Apply jinja2 patches
-from tipfy.ext.jinja2.patch import CodeGenerator, Template
+# Apply jinja2 patches.
+import tipfy.ext.jinja2.patch
 
 
 def clear_dir(path):

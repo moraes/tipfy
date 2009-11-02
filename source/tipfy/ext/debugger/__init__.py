@@ -8,27 +8,12 @@
     :copyright: Copyright 2008 by Armin Ronacher.
     :license: BSD.
 """
-import sys
-from os.path import join, dirname
-from jinja2 import Environment, FileSystemLoader
-
 from tipfy import local_manager, WSGIApplication
-
-import inspect
-inspect.getsourcefile = inspect.getfile
+# Apply debugger patches.
+import tipfy.ext.debugger.patch
 
 # Application wrapped by the debugger. Only set in development.
 _debugged_app = None
-
-env = Environment(loader=FileSystemLoader([join(dirname(__file__),
-    'templates')]))
-
-def get_template(filename):
-    return env.get_template(filename)
-
-
-def render_template(template_filename, **context):
-    return get_template(template_filename).render(**context)
 
 
 def set_debugger(app):
@@ -39,7 +24,6 @@ def set_debugger(app):
     for the debugger templates.
     """
     global _debugged_app
-    sys.modules['werkzeug.debug.utils'] = sys.modules[__name__]
     from werkzeug import DebuggedApplication
     if _debugged_app is None:
         _debugged_app = DebuggedApplication(app, evalex=True)

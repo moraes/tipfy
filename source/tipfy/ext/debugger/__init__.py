@@ -16,26 +16,19 @@ import tipfy.ext.debugger.patch
 _debugged_app = None
 
 
-def set_debugger(app):
-    """Adds Werkzeug's pretty debugger screen, via monkeypatch. This only works
-    in the development server.
-
-    TODO: this won't work if jinja2 is not available in lib, as it is used
-    for the debugger templates.
-    """
-    global _debugged_app
-    from werkzeug import DebuggedApplication
-    if _debugged_app is None:
-        _debugged_app = DebuggedApplication(app, evalex=True)
-    return _debugged_app
-
-
 def make_wsgi_app(config):
     """Creates a new `WSGIApplication` object and applies optional WSGI
     middlewares.
     """
+    global _debugged_app
+
     # Start the WSGI application.
-    app = set_debugger(WSGIApplication(config))
+    app = WSGIApplication(config)
+
+    # Wrap app with the debugger.
+    if _debugged_app is None:
+        from werkzeug import DebuggedApplication
+        _debugged_app = DebuggedApplication(app, evalex=True)
 
     # Wrap the WSGI application so that cleaning up happens after request end.
-    return local_manager.make_middleware(app)
+    return local_manager.make_middleware(_debugged_app)

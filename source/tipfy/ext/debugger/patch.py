@@ -14,12 +14,7 @@
 import sys
 import inspect
 from os.path import join, dirname
-# Patch utils first, to avoid loading Werkzeug's template.
-sys.modules['werkzeug.debug.utils'] = sys.modules[__name__]
-
 from jinja2 import Environment, FileSystemLoader
-from werkzeug.debug.console import HTMLStringO, ThreadedStream
-
 
 env = Environment(loader=FileSystemLoader([join(dirname(__file__),
     'templates')]))
@@ -30,11 +25,11 @@ def get_template(filename):
     return env.get_template(filename)
 
 
-# werkzeug.debug.console.HTMLStringO
 def render_template(template_filename, **context):
     return get_template(template_filename).render(**context)
 
 
+# werkzeug.debug.console.HTMLStringO
 def flush(self):
     pass
 
@@ -53,13 +48,21 @@ def readline(self):
 
 # werkzeug.debug.console.ThreadedStream
 def push():
+    from werkzeug.debug.console import _local
     if not isinstance(sys.stdout, ThreadedStream):
         sys.stdout = ThreadedStream()
     _local.stream = HTMLStringO()
 
 
-# Apply the patches.
+# Patch utils first, to avoid loading Werkzeug's template.
+sys.modules['werkzeug.debug.utils'] = sys.modules[__name__]
+
+# Patch inspect. getsourcefile() is empty on App Engine.
 inspect.getsourcefile = inspect.getfile
+
+from werkzeug.debug.console import HTMLStringO, ThreadedStream
+
+# Apply all other patches.
 HTMLStringO.flush = flush
 HTMLStringO.seek = seek
 HTMLStringO.readline = readline

@@ -19,6 +19,8 @@ import config
 from werkzeug import script
 from jinja2 import Environment
 from compiler import compile_dir
+# Apply jinja2 patches
+from tipfy.ext.jinja2.patch import CodeGenerator, Template
 
 
 def clear_dir(path):
@@ -39,7 +41,7 @@ def action_precompile(basedir=('', '')):
     if not config.templates_compiled_dir:
         raise ValueError('templates_compiled_dir is not defined in config')
 
-    template_dir = os.path.join(basedir, 'templates')
+    template_dir = os.path.join(basedir, config.templates_dir)
     compiled_dir = os.path.join(basedir, config.templates_compiled_dir)
 
     if not os.path.isdir(template_dir):

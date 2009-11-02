@@ -12,7 +12,7 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from jinja2 import Template
-from jinja2.compiler import CodeGenerator
+from jinja2.compiler import CodeGenerator, nodes, Frame, find_undeclared
 
 
 def from_code(cls, environment, code, globals, uptodate=None):

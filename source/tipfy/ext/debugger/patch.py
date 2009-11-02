@@ -60,9 +60,8 @@ sys.modules['werkzeug.debug.utils'] = sys.modules[__name__]
 # Patch inspect. getsourcefile() is empty on App Engine.
 inspect.getsourcefile = inspect.getfile
 
-from werkzeug.debug.console import HTMLStringO, ThreadedStream
-
 # Apply all other patches.
+from werkzeug.debug.console import HTMLStringO, ThreadedStream
 HTMLStringO.flush = flush
 HTMLStringO.seek = seek
 HTMLStringO.readline = readline

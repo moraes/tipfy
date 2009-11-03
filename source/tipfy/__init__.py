@@ -19,7 +19,8 @@ from werkzeug.exceptions import HTTPException, BadRequest, Unauthorized, \
     Gone, LengthRequired, PreconditionFailed, RequestEntityTooLarge, \
     RequestURITooLarge, UnsupportedMediaType, InternalServerError, \
     NotImplemented, BadGateway, ServiceUnavailable
-from werkzeug.routing import Map, RequestRedirect, Rule as WerkzeugRule
+from werkzeug.routing import Map, Rule as WerkzeugRule, Submount, \
+    EndpointPrefix, RuleTemplate, RequestRedirect
 from werkzeug.contrib.securecookie import SecureCookie
 
 # Variable store for a single request.

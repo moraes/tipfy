@@ -19,6 +19,12 @@ version_id = environ.get('CURRENT_VERSION_ID', '1')
 # Application ID.
 app_id = environ.get('APPLICATION_ID', None)
 
+# List of active apps.
+apps_installed = []
+
+# URL entry points for the installed apps.
+apps_entry_points = {}
+
 # Directory for templates.
 templates_dir = 'templates'
 

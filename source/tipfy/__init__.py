@@ -294,6 +294,7 @@ def get_flash(key='tipfy.flash'):
     """
     if key in local.request.cookies:
         from base64 import b64decode
+        from django.utils import simplejson
         data = simplejson.loads(b64decode(local.request.cookies[key]))
         local.response.delete_cookie(key)
         return data

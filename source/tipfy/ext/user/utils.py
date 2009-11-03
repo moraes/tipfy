@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.auth.utils
+    tipfy.ext.user.utils
     ~~~~~~~~~~~~~~~~~~~~
 
     This module implements various cryptographic functions.

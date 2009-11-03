@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.auth
-    ~~~~~~~~~~~~~~
+    tipfy.ext.user.models
+    ~~~~~~~~~~~~~~~~~~~~~
 
     Authentication models.
 
@@ -16,7 +16,7 @@
 from google.appengine.ext import db
 
 from tipfy import app
-from tipfy.ext.auth.utils import gen_pwhash, check_pwhash
+from tipfy.ext.user.utils import gen_pwhash, check_pwhash
 
 
 class User(db.Model):
@@ -36,7 +36,7 @@ class User(db.Model):
 
     @classmethod
     def get_key_name(cls, user_name):
-        return 'u:%s' % user_name
+        return user_name
 
     @classmethod
     def get_by_user_name(cls, user_name):
@@ -144,7 +144,7 @@ class TemporarySession(db.Model):
 
     @classmethod
     def get_key_name(cls, uuid):
-        return 's:%s' % uuid
+        return uuid
 
     @classmethod
     def get_new_session(cls, user):

@@ -17,10 +17,11 @@
 import string
 from random import choice
 from hashlib import sha1, md5
+from uuid import uuid4
 
 from google.appengine.ext import db
 
-from tipfy import app
+from tipfy import app, import_string
 
 SALT_CHARS = string.ascii_lowercase + string.digits
 
@@ -105,6 +106,15 @@ def check_pwhash(pwhash, password):
     return h.hexdigest() == hashval
 
 
+def create_user(user_name, password=None, **kwargs):
+    user_model = import_string(app.config.user_model)
+    kwargs['user_name'] = user_name
+    if password:
+        kwargs['password'] = gen_pwhash(password)
+
+    return user_model.create(**kwargs)
+
+
 class User(db.Model):
     """Basic user type that can be used with other login schemes other than
     Google logins
@@ -119,6 +129,25 @@ class User(db.Model):
     first_name = db.StringProperty(required=False)
     last_name = db.StringProperty(required=False)
     is_admin = db.BooleanProperty(required=True, default=False)
+
+    @classmethod
+    def create(cls, **kwargs):
+        """Creates a new user and returns it. If the user_name already exists,
+        returns None.
+        """
+        key_name = cls.get_key_name(kwargs['user_name'])
+
+        def txn():
+            user = cls.get_by_key_name(key_name)
+            if user:
+                # No user returned indicates that the user_name already exists.
+                return None
+
+            user = cls(key_name=key_name, **kwargs)
+            user.put()
+            return user
+
+        return db.run_in_transaction(txn)
 
     @classmethod
     def get_key_name(cls, user_name):
@@ -153,10 +182,6 @@ class DatastoreUserDBOperationMixin(object):
     def check_password(self, raw_password):
         return check_pwhash(self.password, raw_password)
 
-    def set_password(self, raw_password):
-        self.password = gen_pwhash(raw_password)
-        return self.put()
-
 
 class DatastoreUser(User, DatastoreUserDBOperationMixin):
     """A user with own credentials."""
@@ -172,7 +197,7 @@ class GoogleUser(User):
     user_id = db.IntegerProperty(required=True)
 
     @classmethod
-    def get_by_user(cls, user):
+    def get_by_google_user(cls, user):
         return cls.all().filter('user_id =', user.user_id()).get()
 
     def __eq__(self, obj):
@@ -198,7 +223,7 @@ class AnonymousUser(object):
     is_admin = False
 
     def __unicode__(self):
-        return u"AnonymousUser"
+        return u'AnonymousUser'
 
     def __str__(self):
         return self.__unicode__()
@@ -234,8 +259,6 @@ class TemporarySession(db.Model):
 
     @classmethod
     def get_new_session(cls, user):
-        from uuid import uuid4
-
         def txn():
             session = True
             while session is not None:

@@ -39,3 +39,6 @@ time_diff = None
 
 # Secret phrase for session's secure cookies.
 session_secret_key = None
+
+# Model for user accounts, as a string, e.g.: 'my_app.models:User'.
+user_model = None

@@ -78,7 +78,7 @@ def get_or_insert_with_flag(model, key_name, **kwargs):
     return db.run_in_transaction(txn)
 
 
-# Nice idea borrowed from Kay. See AUTHORS.txt for details.
+# Nice ideas borrowed from Kay. See AUTHORS.txt for details.
 def get_by_key_name_or_404(model, key_name):
     """Returns a model instance by key name or raises a 404 Not Found error."""
     obj = model.get_by_key_name(key_name)
@@ -101,6 +101,33 @@ def get_or_404(model, key):
     if obj:
         return obj
     raise NotFound()
+
+
+def retry_on_timeout(retries=3, secs=1):
+    """A decorator to retry a function that performs datastore operations."""
+    import time
+    import logging
+
+    def _decorator(func):
+        def _wrapper(*args, **kwds):
+            tries = 0
+            while True:
+                try:
+                    tries += 1
+                    return func(*args, **kwds)
+                except db.Timeout, e:
+                    logging.debug(e)
+                    if tries > retries:
+                        raise e
+                    else:
+                        wait_secs = secs * tries ** 2
+                        logging.warning('Retrying function %r in %d secs' %
+                            (func, wait_secs))
+                        time.sleep(wait_secs)
+
+        return _wrapper
+
+    return _decorator
 
 
 def slugify(string, max_length=None, default=None):

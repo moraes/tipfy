@@ -76,8 +76,7 @@ class WSGIApplication(object):
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
-        # Populate local with the wsgi app, request and response.
-        local.app = self
+        # Populate local with the request and response.
         local.request = Request(environ)
         local.response = Response()
 
@@ -97,8 +96,8 @@ class WSGIApplication(object):
     def get_response(self):
         try:
             # Check requested method.
-            method = local.request.method.lower()
-            if method not in ALLOWED_METHODS:
+            request_method = local.request.method.lower()
+            if request_method not in ALLOWED_METHODS:
                 raise MethodNotAllowed()
 
             # Apply request middlewares.
@@ -115,17 +114,20 @@ class WSGIApplication(object):
             if rule.handler not in self.handlers:
                 self.handlers[rule.handler] = import_string(rule.handler)
 
+            # Get the cached handler class.
+            handler_class = self.handlers[rule.handler]
+
             # Apply handler middlewares.
             for method in self.middlewares.get('handler', []):
-                response = method(self.handlers[rule.handler], method, **kwargs)
+                response = method(local.request, handler_class, **kwargs)
                 if response:
                     return response
 
             # Instantiate the handler.
-            handler = self.handlers[rule.handler]()
+            handler = handler_class()
 
             # Dispatch, passing method and rule parameters.
-            response = handler.dispatch(method, **kwargs)
+            response = handler.dispatch(request_method, **kwargs)
 
         except RequestRedirect, e:
             # Execute redirects set by the routing system.
@@ -243,6 +245,9 @@ def make_wsgi_app(config):
 
 def run_wsgi_app(app):
     """Executes the application, optionally wrapping it by middlewares."""
+    # Populate local with the WSGI app.
+    local.app = app
+
     # Set middleware instances, if using middlewares.
     if app.middleware_classes is not None:
         app.middlewares = get_middlewares(app)

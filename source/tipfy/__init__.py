@@ -9,7 +9,6 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from wsgiref.handlers import CGIHandler
-from google.appengine.api import lib_config
 
 # Werkzeug swiss knife.
 from werkzeug import Local, LocalManager, Request, Response, import_string, \
@@ -21,7 +20,6 @@ from werkzeug.exceptions import HTTPException, BadRequest, Unauthorized, \
     NotImplemented, BadGateway, ServiceUnavailable
 from werkzeug.routing import Map, Rule as WerkzeugRule, Submount, \
     EndpointPrefix, RuleTemplate, RequestRedirect
-from werkzeug.contrib.securecookie import SecureCookie
 
 # Variable store for a single request.
 local = Local()
@@ -59,7 +57,7 @@ class WSGIApplication(object):
     def __init__(self, config):
         """Initializes the application.
 
-        :param config: An object, usually a module, with application settings.
+        :param config: Module with application settings.
         """
         self.config = config
 
@@ -67,7 +65,11 @@ class WSGIApplication(object):
         local.app = self
 
         # Set the url rules.
-        self.url_map = config_handle.get_url_map(self)
+        self.url_map = get_url_map(self)
+
+        # Cache for imported middlewares and default middlewares dict.
+        self.middleware_classes = self.middleware_types = None
+        self.middlewares = {}
 
         # Cache for imported handler classes.
         self.handlers = {}
@@ -76,25 +78,48 @@ class WSGIApplication(object):
         """Called by WSGI when a request comes in."""
         # Populate local with the wsgi app, request and response.
         local.app = self
-        local.request = config_handle.get_request(self, environ)
-        local.response = config_handle.get_response(self)
-        handler = None
+        local.request = Request(environ)
+        local.response = Response()
 
+        # Bind url map to the current request location.
+        self.url_adapter = self.url_map.bind_to_environ(environ)
+
+        # Get a response object.
+        response = self.get_response()
+
+        # Apply response middlewares.
+        for method in self.middlewares.get('response', []):
+            response = method(local.request, response)
+
+        # Call the response object as a WSGI application.
+        return response(environ, start_response)
+
+    def get_response(self):
         try:
             # Check requested method.
             method = local.request.method.lower()
             if method not in ALLOWED_METHODS:
                 raise MethodNotAllowed()
 
-            # Bind url map to the current request location.
-            self.url_adapter = config_handle.get_url_adapter(self, environ)
+            # Apply request middlewares.
+            for method in self.middlewares.get('request', []):
+                response = method(local.request)
+                if response:
+                    return response
 
             # Match the path against registered rules.
-            rule, kwargs = config_handle.get_url_match(self, local.request)
+            rule, kwargs = self.url_adapter.match(request.path,
+                return_rule=True)
 
             # Import handler set in matched rule.
             if rule.handler not in self.handlers:
                 self.handlers[rule.handler] = import_string(rule.handler)
+
+            # Apply handler middlewares.
+            for method in self.middlewares.get('handler', []):
+                response = method(self.handlers[rule.handler], method, **kwargs)
+                if response:
+                    return response
 
             # Instantiate the handler.
             handler = self.handlers[rule.handler]()
@@ -105,15 +130,12 @@ class WSGIApplication(object):
         except RequestRedirect, e:
             # Execute redirects set by the routing system.
             response = e
-        except HTTPException, e:
-            # Handle the exception.
-            response = config_handle.handle_http_exception(handler, e)
         except Exception, e:
-            # Handle everything else.
-            response = config_handle.handle_exception(handler, e)
+            # Handle http and uncaught exceptions. This will apply exception
+            # middlewares if they are set.
+            response = handle_exception(self, e)
 
-        # Call the response object as a WSGI application.
-        return response(environ, start_response)
+        return response
 
 
 class Rule(WerkzeugRule):
@@ -158,7 +180,7 @@ def get_url_map(app):
     function in appengine_config.py.
     """
     from google.appengine.api import memcache
-    key = 'wsgi_app.urls.%s' % app.config.version_id
+    key = 'wsgi_app.urls.%s' % getattr(app.config, 'version_id', 1)
     urls = memcache.get(key)
     if not urls or app.config.dev:
         from urls import urls
@@ -171,32 +193,77 @@ def get_url_map(app):
     return Map(urls)
 
 
-def get_url_adapter(app, environ):
-    """Returns a `werkzeug.routing.MapAdapter` bound to the current request.
-
-    This implementation can be overriden defining a tipfy_get_url_adapter(app,
-    environ) function in appengine_config.py.
+def load_middlewares(app):
+    """Imports middleware classes and extracts available middleware types, and
+    sets them in the WSGI app.
     """
-    return app.url_map.bind_to_environ(environ)
+    app.middleware_classes = {}
+    app.middleware_types = {}
+    for class_spec in getattr(app.config, 'middleware_classes', []):
+        app.middleware_classes[class_spec] = import_string(class_spec)
+        for name in ('wsgi_app', 'request', 'response', 'handler', 'exception'):
+            if hasattr(app.middleware_classes[class_spec], 'process_%s' % name):
+                if name not in app.middleware_types:
+                    app.middleware_types[name] = []
+
+                app.middleware_types[name].append(class_spec)
 
 
-def get_url_match(app, request):
-    """Returns a tuple (rule, kwargs) with a `tipfy.Rule` and keyword arguments
-    from the matched rule.
-
-    This implementation can be overriden defining a tipfy_get_url_match(app,
-    request) function in appengine_config.py.
+def get_middlewares(app):
+    """Instantiates middleware classes and returns a dictionary mapping
+    middleware types to a list with the related middleware instance methods.
     """
-    return app.url_adapter.match(request.path, return_rule=True)
+    middlewares = {}
+    instances = {}
+    for name, specs in app.middleware_types.iteritems():
+        for class_spec in specs:
+            if class_spec not in instances:
+                instances[class_spec] = app.middleware_classes[class_spec]()
+
+            if name not in middlewares:
+                middlewares[name] = []
+
+            middlewares[name].append(getattr(instances[class_spec],
+                'process_%s' % name))
+
+    return middlewares
 
 
-def handle_exception(handler, e):
-    """Handles a HTTPException or Exception raised by the WSGI application.
+def make_bare_wsgi_app(config):
+    """Returns a WSGI application instance without loading middlewares."""
+    return WSGIApplication(config)
 
-    This is just a generic implementation. It can be overriden defining a
-    tipfy_handle_http_exception(e) or tipfy_handle_exception(e) function in
-    appengine_config.py.
+
+def make_wsgi_app(config):
+    """Returns a instance of WSGIApplication with loaded middlewares."""
+    app =  make_bare_wsgi_app(config)
+    load_middlewares(app)
+    return app
+
+
+def run_wsgi_app(app):
+    """Executes the application, optionally wrapping it by middlewares."""
+    # Set middleware instances, if using middlewares.
+    if app.middleware_classes is not None:
+        app.middlewares = get_middlewares(app)
+
+        # Apply wsgi_app middlewares.
+        for method in app.middlewares.get('wsgi_app', []):
+            app = method(app)
+
+    # Wrap app by local_manager so that local is cleaned after each request.
+    PatchedCGIHandler().run(local_manager.make_middleware(app))
+
+
+def handle_exception(app, e):
+    """Handles HTTPException or uncaught exceptions raised by the WSGI
+    application, optionally applying exception middlewares.
     """
+    for method in app.middlewares.get('exception', []):
+        response = method(local.request, e)
+        if response:
+            return response
+
     if app.config.dev:
         raise
 
@@ -204,30 +271,6 @@ def handle_exception(handler, e):
         return e
 
     return InternalServerError()
-
-
-def make_wsgi_app(config):
-    """Returns a instance of WSGIApplication, wrapped by local_manager so that
-    local is cleaned after each request.
-    """
-    return local_manager.make_middleware(WSGIApplication(config))
-
-
-def add_middleware(app):
-    """Wraps WSGI middleware around a WSGI application object."""
-    return config_handle.add_middleware(app)
-
-
-def run_bare_wsgi_app(app):
-    """Executes the WSGI application as a CGI script."""
-    PatchedCGIHandler().run(app)
-
-
-def run_wsgi_app(app):
-    """Executes the WSGI application as a CGI script, wrapping it by custom
-    middlewares.
-    """
-    run_bare_wsgi_app(add_middleware(app))
 
 
 def redirect(location, code=302):
@@ -273,60 +316,9 @@ def redirect_to(endpoint, method=None, code=302, **kwargs):
         code=code)
 
 
-def get_session(key='tipfy.session'):
-    """Returns a session value stored in a SecureCookie."""
-    return SecureCookie.load_cookie(local.request, key=key,
-        secret_key=local.app.config.session_secret_key)
-
-
-def set_session(data, key='tipfy.session', force=True, **kwargs):
-    """Sets a session value in a SecureCookie. See SecureCookie.save_cookie()
-    for possible keyword arguments.
-    """
-    securecookie = SecureCookie(data=data,
-        secret_key=local.app.config.session_secret_key)
-    securecookie.save_cookie(local.response, key=key, force=force, **kwargs)
-
-
-def get_flash(key='tipfy.flash'):
-    """Reads and deletes a flash message. Flash messages are stored in a cookie
-    and automatically deleted when read.
-    """
-    if key in local.request.cookies:
-        from base64 import b64decode
-        from django.utils import simplejson
-        data = simplejson.loads(b64decode(local.request.cookies[key]))
-        local.response.delete_cookie(key)
-        return data
-
-
-def set_flash(data, key='tipfy.flash'):
-    """Sets a flash message. Flash messages are stored in a cookie
-    and automatically deleted when read.
-    """
-    from base64 import b64encode
-    from django.utils import simplejson
-    local.response.set_cookie(key, value=b64encode(simplejson.dumps(data)))
-
-
 def render_json_response(obj):
     """Renders a JSON response, automatically encoding `obj` to JSON."""
     from django.utils import simplejson
     local.response.data = simplejson.dumps(obj)
     local.response.mimetype = 'application/json'
     return local.response
-
-
-# Application hooks. These are default settings that can be overridden
-# adding tipfy_[config_key] definitions to appengine_config.py.
-# It uses google.appengine.api.lib_config for the trick.
-config_handle = lib_config.register('tipfy', {
-    'add_middleware':  lambda app: app,
-    'get_url_map':     get_url_map,
-    'get_url_adapter': get_url_adapter,
-    'get_url_match':   get_url_match,
-    'get_request':     lambda app, environ: Request(environ),
-    'get_response':    lambda app: Response(),
-    'handle_http_exception': handle_exception,
-    'handle_exception':      handle_exception,
-})

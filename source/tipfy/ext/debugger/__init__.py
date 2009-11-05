@@ -1,34 +1,28 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.utils.debug
-    ~~~~~~~~~~~~~~~~~
+    tipfy.utils.debugger
+    ~~~~~~~~~~~~~~~~~~~~
 
-    Monkey patch to make Werkeug's debugger work in App Engine.
+    Debugger extension, to be used in development only.
 
     :copyright: Copyright 2008 by Armin Ronacher.
     :license: BSD.
 """
-from tipfy import local_manager, WSGIApplication
-# Apply debugger patches.
+# Apply patches to make the debugger fully work on development server.
 import tipfy.ext.debugger.patch
 
-# Application wrapped by the debugger. Only set in development.
+# Application wrapped by the debugger.
 _debugged_app = None
 
 
-def make_wsgi_app(config):
-    """Creates a new `WSGIApplication` object and applies optional WSGI
-    middlewares.
-    """
-    global _debugged_app
+class DebuggedApp(object):
+    """Middleware to wrap the application by Werkzeug's debugger."""
+    def process_wsgi_app(self, app):
+        global _debugged_app
 
-    # Start the WSGI application.
-    app = WSGIApplication(config)
+        # Wrap app with the debugger.
+        if _debugged_app is None:
+            from werkzeug import DebuggedApplication
+            _debugged_app = DebuggedApplication(app, evalex=True)
 
-    # Wrap app with the debugger.
-    if _debugged_app is None:
-        from werkzeug import DebuggedApplication
-        _debugged_app = DebuggedApplication(app, evalex=True)
-
-    # Wrap the WSGI application so that cleaning up happens after request end.
-    return local_manager.make_middleware(_debugged_app)
+        return _debugged_app

@@ -15,14 +15,11 @@ if 'lib' not in sys.path:
 import config
 from tipfy import make_wsgi_app, run_wsgi_app
 
-if config.dev:
-    import tipfy.ext.debugger
-    application = tipfy.ext.debugger.make_wsgi_app(config)
-else:
-    application = make_wsgi_app(config)
+# Instantiate the application.
+application = make_wsgi_app(config)
 
 # Issue 772 - http://code.google.com/p/googleappengine/issues/detail?id=772.
-# We must keep fix_sys_path() here until it is fixed in the dev server.
+# We must keep this here until it is fixed in the dev server.
 ultimate_sys_path = None
 def fix_sys_path():
     global ultimate_sys_path

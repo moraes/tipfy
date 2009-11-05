@@ -178,7 +178,7 @@ class User(db.Model):
         raise NotImplemented()
 
 
-class DatastoreUserDBOperationMixin(object):
+class DatastoreUserMixin(object):
     def check_password(self, raw_password):
         return check_pwhash(self.password, raw_password)
 
@@ -191,7 +191,7 @@ class DatastoreUserDBOperationMixin(object):
         return url_for('user/logout', redirect=redirect)
 
 
-class DatastoreUser(User, DatastoreUserDBOperationMixin):
+class DatastoreUser(User, DatastoreUserMixin):
     """An user with own authentication credentials."""
     password = db.StringProperty(required=True)
 
@@ -214,7 +214,7 @@ class GoogleUser(User):
         return users.create_logout_url(redirect)
 
 
-class HybridUser(GoogleUser, DatastoreUserDBOperationMixin):
+class HybridUser(GoogleUser, DatastoreUserMixin):
     """GoogleUser/DatastoreUser hybrid model."""
     # Google user ID.
     user_id = db.IntegerProperty(required=False)
@@ -222,11 +222,11 @@ class HybridUser(GoogleUser, DatastoreUserDBOperationMixin):
 
     @classmethod
     def create_login_url(cls, redirect):
-        return DatastoreUserDBOperationMixin.create_login_url(redirect)
+        return DatastoreUserMixin.create_login_url(redirect)
 
     @classmethod
     def create_logout_url(cls, redirect):
-        return DatastoreUserDBOperationMixin.create_logout_url(redirect)
+        return DatastoreUserMixin.create_logout_url(redirect)
 
 
 class AnonymousUser(object):

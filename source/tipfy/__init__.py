@@ -205,10 +205,7 @@ def load_middlewares(app):
         app.middleware_classes[class_spec] = import_string(class_spec)
         for name in ('wsgi_app', 'request', 'response', 'handler', 'exception'):
             if hasattr(app.middleware_classes[class_spec], 'process_%s' % name):
-                if name not in app.middleware_types:
-                    app.middleware_types[name] = []
-
-                app.middleware_types[name].append(class_spec)
+                app.middleware_types.setdefault(name, []).append(class_spec)
 
 
 def get_middlewares(app):
@@ -222,11 +219,8 @@ def get_middlewares(app):
             if class_spec not in instances:
                 instances[class_spec] = app.middleware_classes[class_spec]()
 
-            if name not in middlewares:
-                middlewares[name] = []
-
-            middlewares[name].append(getattr(instances[class_spec],
-                'process_%s' % name))
+            method = getattr(instances[class_spec], 'process_%s' % name)
+            middlewares.setdefault(name, []).append(method)
 
     return middlewares
 

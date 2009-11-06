@@ -45,16 +45,16 @@ class MessagesMiddleware(object):
     def __str__(self):
         return self.__unicode__()
 
-    def add(self, level, body, title=None, life=None):
+    def add(self, level, body, title=None, life=5000):
         """Adds a status message.
 
         :param level: Message level. Common values are "info", "alert", "error"
             and "success".
         :param body: Message contents.
         :param title: Optional message title.
-        :life: message duration in milliseconds. User interface can implement
-            a mechanism to make the message disappear after this time. If not
-            set, the message is permanent.
+        :life: Message life time in milliseconds. User interface can implement
+            a mechanism to make the message disappear after the elapsed time.
+            If not set, the message is permanent.
         """
         self.messages.append({
             'level': level,
@@ -74,7 +74,7 @@ class MessagesMiddleware(object):
 
         self.add('error', body, title=title, life=None)
 
-    def set_flash(self, level, body, title=None, life=None):
+    def set_flash(self, level, body, title=None, life=5000):
         """Sets a flash message."""
         set_flash({
             'level': level,

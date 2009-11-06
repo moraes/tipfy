@@ -13,7 +13,7 @@
 """
 from werkzeug.contrib.securecookie import SecureCookie
 
-from tipfy import local, app
+from tipfy import local
 
 NO_SESSION = 'nosession'
 

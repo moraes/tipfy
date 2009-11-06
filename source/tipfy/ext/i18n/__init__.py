@@ -27,6 +27,28 @@ translations = local('translations')
 _translations = None
 
 
+class I18nMiddleware(object):
+    """Middleware to initialize internationalization on every request."""
+    locale = None
+
+    def process_request(self, request):
+        # Get locale from a 'lang' query parameter, and if not set try to get
+        # from a cookie. As last option, use the locale set in config.
+        self.locale = request.args.get('lang', request.cookies.get(
+            'tipfy.locale', app.config.locale))
+
+        get_translations(self.locale)
+        return None
+
+    def process_response(self, request, response):
+        if self.locale != app.config.locale:
+            # Persist locale using a cookie when it differs from default.
+            response.set_cookie('tipfy.locale', value=self.locale,
+                max_age=(86400 * 30))
+
+        return response
+
+
 class Translations(object):
     """Stores Babel Translations instances."""
     def __init__(self, locale):
@@ -43,27 +65,14 @@ class Translations(object):
         local.translations = self._translations[locale]
 
 
-def get_translations():
+def get_translations(locale=None):
     """Returns the Translations object."""
     global _translations
     if _translations is None:
-        _translations = Translations(app.config.locale)
+        locale = locale or app.config.locale
+        _translations = Translations(locale)
 
     return _translations
-
-
-def set_requested_locale():
-    """Called on pre_handler_init. Sets the locale for a single request."""
-    # Get locale from a 'lang' query parameter, and if not set try to get
-    # from a cookie. As last option, use the locale set in config.
-    locale = request.args.get('lang', request.cookies.get('tipfy.locale',
-        app.config.locale))
-
-    get_translations().set_locale(locale)
-
-    if locale != app.config.locale:
-        # Persist locale using a cookie when it differs from default.
-        response.set_cookie('tipfy.locale', value=locale, max_age=(86400 * 30))
 
 
 # Some functions borrowed from Zine: http://zine.pocoo.org/.

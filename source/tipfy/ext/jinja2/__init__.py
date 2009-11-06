@@ -45,15 +45,14 @@ def get_env():
 def set_i18n(environment):
     """Add the internationalization extension to Jinja2 environment."""
     from jinja2.ext import i18n
-    from tipfy.ext.i18n import set_requested_locale, translations, \
-        format_date, format_datetime, format_time
+    from tipfy.ext.i18n import translations, format_date, format_datetime, \
+        format_time
     environment.globals.update({
         'format_date': format_date,
         'format_datetime': format_datetime,
         'format_time': format_time,
     })
     environment.extensions[i18n.identifier] = i18n(_environment)
-    set_requested_locale()
     environment.install_gettext_translations(translations)
 
 

@@ -12,10 +12,10 @@
     Individual access permissions can then override or extend the role
     permissions.
 
-    This doesn't provide models for roles, to keep it simple and fast. Role
-    definitions are set directly in the Acl class. The strategy to load roles
-    is open to the implementation: for best performance, define them statically
-    in a module.
+    Roles are optional, so this module doesn't define a roles model, to keep
+    things simple and fast. Role definitions are set directly in the Acl class.
+    The strategy to load roles is open to the implementation: for best
+    performance, define them statically in a module.
 
     Usage example:
 
@@ -30,13 +30,13 @@
     }
 
     # Assign users 'user_1' and 'user_2' to the 'admin' role.
-    UserAcl.insert_or_update(area='my_area', user='user_1', roles=['admin'])
-    UserAcl.insert_or_update(area='my_area', user='user_2', roles=['admin'])
+    AclRules.insert_or_update(area='my_area', user='user_1', roles=['admin'])
+    AclRules.insert_or_update(area='my_area', user='user_2', roles=['admin'])
 
     # Restrict 'user_2' from accessing a specific resource, adding a new rule
     # with flag set to False. Now this user has access to everything except this
     # resource.
-    user_acl = UserAcl.get_by_area_and_user('my_area', 'user_2')
+    user_acl = AclRules.get_by_area_and_user('my_area', 'user_2')
     user_acl.rules.append(('UserAdmin', '*', False))
     user_acl.put()
 
@@ -58,23 +58,25 @@ from google.appengine.ext import db
 from google.appengine.api import memcache
 
 from tipfy import app
+from tipfy.ext.model import PickleProperty
 
 # Cache for loaded rules.
 _rules_map = {}
 
 
-def set_entity_tuples(entity, props, tuples):
-    spec = zip(props, zip(*tuples))
-    for prop_name, values in spec:
-        setattr(entity, prop_name, list(values))
+def validate_rules(rules):
+    """Ensures that the list of rule tuples is set correctly."""
+    assert isinstance(rules, list), 'Rules must be a list'
+
+    for rule in rules:
+        assert isinstance(rule, tuple), 'Each rule must be tuple'
+        assert len(rule) == 3, 'Each rule must have three elements'
+        assert isinstance(rule[0], basestring), 'Rule topic must be a string'
+        assert isinstance(rule[1], basestring), 'Rule name must be a string'
+        assert isinstance(rule[2], bool), 'Rule flag must be a bool'
 
 
-def get_entity_tuples(entity, props):
-    return zip(*[getattr(entity, prop_name) for prop_name in props])
-
-
-class UserAcl(db.Model):
-    _rules = None
+class AclRules(db.Model):
     # Creation date.
     created = db.DateTimeProperty(auto_now_add=True)
     # Modification date.
@@ -85,25 +87,18 @@ class UserAcl(db.Model):
     user = db.StringProperty(required=True)
     # List of role names.
     roles = db.StringListProperty()
-    # Lists of rules. Each rule is a tuple (topic, name, flag), stored as three
-    # list properties. These properties should not be set one by one. Instead,
-    # assign a list of rule tuples to the rules property. The tuples will be
-    # expanded on put().
-    topic = db.StringListProperty()
-    name = db.StringListProperty()
-    flag = db.ListProperty(bool)
+    # Lists of rules. Each rule is a tuple (topic, name, flag).
+    rules = PickleProperty(validator=validate_rules)
 
-    def get_rules(self):
-        if self._rules is None:
-            self._rules = get_entity_tuples(self, ['topic', 'name', 'flag'])
+    @classmethod
+    def get_key_name(cls, area, user):
+        """Returns this entity's key name, also used as memcache key."""
+        return '%s:%s' % (str(area), str(user))
 
-        return self._rules
-
-    def set_rules(self, rules):
-        self._rules = rules
-
-    # Keeps topic, name and flag in sync.
-    rules = property(get_rules, set_rules)
+    @classmethod
+    def get_by_area_and_user(cls, area, user):
+        """Returns a role entity with a given role name in a given area."""
+        return cls.get_by_key_name(cls.get_key_name(area, user))
 
     @classmethod
     def insert_or_update(cls, area, user, roles=None, rules=None):
@@ -111,7 +106,8 @@ class UserAcl(db.Model):
         def txn():
             user_acl = cls.get_by_key_name(key_name)
             if not user_acl:
-                user_acl = cls(key_name=key_name, area=area, user=user)
+                user_acl = cls(key_name=key_name, area=area, user=user,
+                    rules=[])
 
             if roles:
                 user_acl.roles = roles
@@ -123,16 +119,6 @@ class UserAcl(db.Model):
             return user_acl
 
         return db.run_in_transaction(txn)
-
-    @classmethod
-    def get_key_name(cls, area, user):
-        """Returns this entity's key name, also used as memcache key."""
-        return '%s:%s' % (str(area), str(user))
-
-    @classmethod
-    def get_by_area_and_user(cls, area, user):
-        """Returns a role entity with a given role name in a given area."""
-        return cls.get_by_key_name(cls.get_key_name(area, user))
 
     @classmethod
     def get_roles_and_rules(cls, area, user, roles_map):
@@ -179,15 +165,13 @@ class UserAcl(db.Model):
 
     def put(self):
         """Saves the entity and cleans the cache."""
-        # Expand rules.
-        set_entity_tuples(self, ['topic', 'name', 'flag'], self.rules)
         self.delete_cache(self.get_key_name(self.area, self.user))
-        super(UserAcl, self).put()
+        super(AclRules, self).put()
 
     def delete(self):
         """Deletes the entity and cleans the cache."""
         self.delete_cache(self.get_key_name(self.area, self.user))
-        super(UserAcl, self).delete()
+        super(AclRules, self).delete()
 
     def is_rule_set(self, topic, name, flag):
         """Checks if a given rule is set."""
@@ -210,7 +194,7 @@ class Acl(object):
     def __init__(self, area, user):
         """Loads access privileges and roles for a given user."""
         if area and user:
-            self._roles, self._rules = UserAcl.get_roles_and_rules(area, user,
+            self._roles, self._rules = AclRules.get_roles_and_rules(area, user,
                 self.roles_map)
         else:
             self.reset()

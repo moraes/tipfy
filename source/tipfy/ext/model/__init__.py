@@ -103,33 +103,6 @@ def get_or_404(model, key):
     raise NotFound()
 
 
-def retry_on_timeout(retries=3, secs=1):
-    """A decorator to retry a function that performs datastore operations."""
-    import time
-    import logging
-
-    def _decorator(func):
-        def _wrapper(*args, **kwds):
-            tries = 0
-            while True:
-                try:
-                    tries += 1
-                    return func(*args, **kwds)
-                except db.Timeout, e:
-                    logging.debug(e)
-                    if tries > retries:
-                        raise e
-                    else:
-                        wait_secs = secs * tries ** 2
-                        logging.warning('Retrying function %r in %d secs' %
-                            (func, wait_secs))
-                        time.sleep(wait_secs)
-
-        return _wrapper
-
-    return _decorator
-
-
 def slugify(string, max_length=None, default=None):
     """Converts a string to slug format."""
     s = unicodedata.normalize('NFKD', string).encode('ascii', 'ignore').lower()
@@ -203,6 +176,8 @@ class PickleProperty(db.Property):
 
     def get_value_for_datastore(self, model_instance):
         value = self.__get__(model_instance, model_instance.__class__)
+        value = self.validate(value)
+
         if value is not None:
             return db.Blob(pickle.dumps(value))
 

@@ -12,7 +12,7 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 import datetime
-from babel.support import Translations as BabelTranslations, LazyProxy
+from babel.support import Translations, LazyProxy
 from babel.dates import format_date as babel_format_date, \
     format_datetime as babel_format_datetime, format_time as babel_format_time
 
@@ -23,8 +23,8 @@ local.locale = local.translations = None
 locale = local('locale')
 translations = local('translations')
 
-# Translations object cached in the module.
-_translations = None
+# Cache loaded translations in the module
+_translations = {}
 
 
 class I18nMiddleware(object):
@@ -37,11 +37,11 @@ class I18nMiddleware(object):
         self.locale = request.args.get('lang', request.cookies.get(
             'tipfy.locale', app.config.locale))
 
-        get_translations(self.locale)
+        set_locale(self.locale)
         return None
 
     def process_response(self, request, response):
-        if self.locale != app.config.locale:
+        if self.locale and self.locale != app.config.locale:
             # Persist locale using a cookie when it differs from default.
             response.set_cookie('tipfy.locale', value=self.locale,
                 max_age=(86400 * 30))
@@ -49,43 +49,27 @@ class I18nMiddleware(object):
         return response
 
 
-class Translations(object):
-    """Stores Babel Translations instances."""
-    def __init__(self, locale):
-        self._translations = {}
-        self.set_locale(locale)
+def set_locale(locale):
+    """Sets translations for the current request."""
+    if locale not in _translations:
+        options = list(set([locale, app.config.locale]))
+        _translations[locale] = Translations.load('locale', options, 'messages')
 
-    def set_locale(self, locale):
-        if locale not in self._translations:
-            options = list(set([locale, app.config.locale]))
-            self._translations[locale] = BabelTranslations.load('locale',
-                options, 'messages')
-
-        local.locale = locale
-        local.translations = self._translations[locale]
-
-
-def get_translations(locale=None):
-    """Returns the Translations object."""
-    global _translations
-    if _translations is None:
-        locale = locale or app.config.locale
-        _translations = Translations(locale)
-
-    return _translations
+    local.locale = locale
+    local.translations = _translations[locale]
 
 
 # Some functions borrowed from Zine: http://zine.pocoo.org/.
 def gettext(string):
     """Translate a given string to the language of the application."""
-    return unicode(translations.gettext(string), 'utf-8')
+    return unicode(local.translations.gettext(string), 'utf-8')
 
 
 def ngettext(singular, plural, n):
     """Translate the possible pluralized string to the language of the
     application.
     """
-    return unicode(translations.ngettext(singular, plural, n), 'utf-8')
+    return unicode(local.translations.ngettext(singular, plural, n), 'utf-8')
 
 
 def lazy_gettext(string):

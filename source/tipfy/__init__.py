@@ -175,7 +175,7 @@ def get_url_map(app):
     Rules are cached in production and renewed on each deployment.
     """
     from google.appengine.api import memcache
-    key = 'wsgi_app.urls.%s' % getattr(app.config, 'version_id', 1)
+    key = 'wsgi_app.urls.%s' % app.config.version_id
     urls = memcache.get(key)
     if not urls or app.config.dev:
         from urls import urls

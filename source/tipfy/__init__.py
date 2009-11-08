@@ -67,11 +67,10 @@ class WSGIApplication(object):
         # Set the url rules.
         self.url_map = get_url_map(self)
 
-        # Cache for imported middlewares and default middlewares dict.
-        self.middleware_classes = self.middleware_types = None
-        self.middlewares = {}
+        # Cache for loaded middlewares.
+        self.middlewares = self.middleware_types = None
 
-        # Cache for imported handler classes.
+        # Cache for loaded handler classes.
         self.handlers = {}
 
     def __call__(self, environ, start_response):
@@ -82,52 +81,16 @@ class WSGIApplication(object):
 
         # Bind url map to the current request location.
         self.url_adapter = self.url_map.bind_to_environ(environ)
+        self.rule = self.rule_args = self.handler_class = None
 
-        # Get a response object.
-        response = self.get_response()
-
-        # Apply response middlewares.
-        for method in self.middlewares.get('response', []):
-            response = method(local.request, response)
-
-        # Call the response object as a WSGI application.
-        return response(environ, start_response)
-
-    def get_response(self):
         try:
-            # Check requested method.
-            request_method = local.request.method.lower()
-            if request_method not in ALLOWED_METHODS:
-                raise MethodNotAllowed()
+            # Get a response object.
+            response = self.get_response()
 
-            # Apply request middlewares.
-            for method in self.middlewares.get('request', []):
-                response = method(local.request)
-                if response:
-                    return response
-
-            # Match the path against registered rules.
-            rule, kwargs = self.url_adapter.match(request.path,
-                return_rule=True)
-
-            # Import handler set in matched rule.
-            if rule.handler not in self.handlers:
-                self.handlers[rule.handler] = import_string(rule.handler)
-
-            # Get the cached handler class.
-            handler_class = self.handlers[rule.handler]
-
-            # Apply handler middlewares.
-            for method in self.middlewares.get('handler', []):
-                response = method(local.request, handler_class, **kwargs)
-                if response:
-                    return response
-
-            # Instantiate the handler.
-            handler = handler_class()
-
-            # Dispatch, passing method and rule parameters.
-            response = handler.dispatch(request_method, **kwargs)
+            # Apply response middlewares.
+            if self.use_middlewares:
+                for method in iter_middleware(self, 'response'):
+                    response = method(local.request, response)
 
         except RequestRedirect, e:
             # Execute redirects set by the routing system.
@@ -137,17 +100,51 @@ class WSGIApplication(object):
             # middlewares if they are set.
             response = handle_exception(self, e)
 
-        return response
+        # Call the response object as a WSGI application.
+        return response(environ, start_response)
+
+    def get_response(self):
+        # Check requested method.
+        request_method = local.request.method.lower()
+        if request_method not in ALLOWED_METHODS:
+            raise MethodNotAllowed()
+
+        # Match the path against registered rules.
+        self.rule, self.rule_args = self.url_adapter.match(request.path,
+            return_rule=True)
+
+        # Import handler set in matched rule.
+        if self.rule.handler not in self.handlers:
+            self.handlers[self.rule.handler] = import_string(
+                self.rule.handler)
+
+        # Set an accessor to the current handler.
+        self.handler_class = self.handlers[self.rule.handler]
+
+        # Allows specific handlers to disable request/response middlewares.
+        self.use_middlewares = getattr(self.handler_class, 'use_middlewares',
+            True)
+
+        # Apply request middlewares.
+        if self.use_middlewares:
+            for method in iter_middleware(self, 'request'):
+                response = method(local.request)
+                if response:
+                    return response
+
+        # Instantiate handler and dispatch, passing method and rule arguments.
+        return self.handler_class().dispatch(request_method, **self.rule_args)
 
 
 class Rule(WerkzeugRule):
-    """Extends Werkzeug routing to support named routes. Names are the url
-    identifiers that don't change, or should not change so often. If the map
-    changes when using names, all url_for() calls remain the same.
+    """Extends Werkzeug routing to support a handler definition for each Rule.
+    Handler is a RequestHandler module and class specification, while endpoint
+    is a friendly name used to build URL's. For example:
 
-    The endpoint in each rule becomes the 'name' and a new keyword argument
-    'handler' defines the class it maps to. To get the handler, set
-    return_rule=True when calling MapAdapter.match(), then access rule.handler.
+        Rule('/users', endpoint='user-list', handler='my_app:UsersHandler')
+
+    Access to the URL '/users' loads `UsersHandler` class from `my_app` module,
+    and to generate an URL to that page we use `url_for('user-list')`.
     """
     def __init__(self, *args, **kwargs):
         self.handler = kwargs.pop('handler', kwargs.get('endpoint', None))
@@ -174,12 +171,8 @@ class PatchedCGIHandler(CGIHandler):
 
 
 def get_url_map(app):
-    """Returns a `werkzeug.routing.Map` with the url rules defined for the app.
-    Rules are cached in production only, and are updated when new versions are
-    deployed.
-
-    This implementation can be overriden defining a tipfy_get_url_map(app)
-    function in appengine_config.py.
+    """Returns a `werkzeug.routing.Map` with the URL rules defined for the app.
+    Rules are cached in production and renewed on each deployment.
     """
     from google.appengine.api import memcache
     key = 'wsgi_app.urls.%s' % getattr(app.config, 'version_id', 1)
@@ -195,34 +188,26 @@ def get_url_map(app):
     return Map(urls)
 
 
-def load_middlewares(app):
-    """Imports middleware classes and extracts available middleware types, and
-    sets them in the WSGI app.
-    """
-    app.middleware_classes = {}
+def load_middleware(app):
+    """Imports middleware classes and extracts available middleware types."""
     app.middleware_types = {}
-    for class_spec in getattr(app.config, 'middleware_classes', []):
-        app.middleware_classes[class_spec] = import_string(class_spec)
-        for name in ('wsgi_app', 'request', 'response', 'handler', 'exception'):
-            if hasattr(app.middleware_classes[class_spec], 'process_%s' % name):
-                app.middleware_types.setdefault(name, []).append(class_spec)
+    for spec in getattr(app.config, 'middleware_classes', []):
+        cls = import_string(spec)
+        for name in ('wsgi_app', 'request', 'response', 'exception'):
+            if hasattr(cls, 'process_%s' % name):
+                app.middleware_types.setdefault(name, []).append((spec, cls))
 
 
-def get_middlewares(app):
-    """Instantiates middleware classes and returns a dictionary mapping
-    middleware types to a list with the related middleware instance methods.
-    """
-    middlewares = {}
-    instances = {}
-    for name, specs in app.middleware_types.iteritems():
-        for class_spec in specs:
-            if class_spec not in instances:
-                instances[class_spec] = app.middleware_classes[class_spec]()
+def iter_middleware(app, middleware_type):
+    """Yields middleware instance methods of a specific type."""
+    if not app.middleware_types:
+        return
 
-            method = getattr(instances[class_spec], 'process_%s' % name)
-            middlewares.setdefault(name, []).append(method)
+    for spec, cls in app.middleware_types.get(middleware_type, []):
+        if spec not in app.middlewares:
+            app.middlewares[spec] = cls()
 
-    return middlewares
+        yield getattr(app.middlewares[spec], 'process_%s' % middleware_type)
 
 
 def make_bare_wsgi_app(config):
@@ -233,7 +218,7 @@ def make_bare_wsgi_app(config):
 def make_wsgi_app(config):
     """Returns a instance of WSGIApplication with loaded middlewares."""
     app =  make_bare_wsgi_app(config)
-    load_middlewares(app)
+    load_middleware(app)
     return app
 
 
@@ -242,13 +227,10 @@ def run_wsgi_app(app):
     # Populate local with the WSGI app.
     local.app = app
 
-    # Set middleware instances, if using middlewares.
-    if app.middleware_classes is not None:
-        app.middlewares = get_middlewares(app)
-
-        # Apply wsgi_app middlewares.
-        for method in app.middlewares.get('wsgi_app', []):
-            app = method(app)
+    # Apply wsgi_app middlewares only if they are loaded.
+    app.middlewares = {}
+    for method in iter_middleware(app, 'wsgi_app'):
+        app = method(app)
 
     # Wrap app by local_manager so that local is cleaned after each request.
     PatchedCGIHandler().run(local_manager.make_middleware(app))
@@ -258,7 +240,7 @@ def handle_exception(app, e):
     """Handles HTTPException or uncaught exceptions raised by the WSGI
     application, optionally applying exception middlewares.
     """
-    for method in app.middlewares.get('exception', []):
+    for method in iter_middleware(app, 'exception'):
         response = method(local.request, e)
         if response:
             return response

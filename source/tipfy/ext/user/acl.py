@@ -105,14 +105,14 @@ class AclRules(db.Model):
         key_name = cls.get_key_name(area, user)
         def txn():
             user_acl = cls.get_by_key_name(key_name)
-            if not user_acl:
+            if user_acl is None:
                 user_acl = cls(key_name=key_name, area=area, user=user,
                     rules=[])
 
-            if roles:
+            if roles is not None:
                 user_acl.roles = roles
 
-            if rules:
+            if rules is not None:
                 user_acl.rules = rules
 
             user_acl.put()
@@ -132,18 +132,22 @@ class AclRules(db.Model):
         else:
             res = memcache.get(cache_key, namespace=cls.__name__)
 
-        if res:
+        if res is not None:
             roles_lock, roles, rules = res
 
-        if not res or roles_lock != Acl.roles_lock or app.config.dev:
+        if res is None or roles_lock != Acl.roles_lock or app.config.dev:
             entity = cls.get_by_key_name(cache_key)
-            if not entity:
+            if entity is None:
                 res = (Acl.roles_lock, [], [])
             else:
                 # Apply role rules.
-                rules = list(entity.rules)
+                rules = []
                 for role in entity.roles:
                     rules.extend(roles_map.get(role, []))
+
+                # Rules override role rules and are checked from last to first.
+                rules.extend(entity.rules)
+                rules.reverse()
 
                 res = (Acl.roles_lock, entity.roles, rules)
 
@@ -231,13 +235,14 @@ class Acl(object):
 
         return False
 
-    def has_access(self, topic='*', name='*'):
-        """Tells whether or not to allow access to a topic/name combination.
-        """
+    def has_access(self, topic, name):
+        """Tells whether or not to allow access to a topic/name combination."""
+        if topic == '*' or name == '*':
+            raise ValueError("has_access() can't be called passing '*'")
+
         for rule_topic, rule_name, rule_flag in self._rules:
-            match1 = (rule_topic == topic or rule_topic == '*')
-            match2 = (rule_name == name or rule_name == '*')
-            if match1 and match2:
+            if (rule_topic == topic or rule_topic == '*') and \
+                (rule_name == name or rule_name == '*'):
                 # Topic and name matched, so return the flag.
                 return rule_flag
 

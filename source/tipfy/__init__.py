@@ -175,17 +175,25 @@ def get_url_map(app):
     Rules are cached in production and renewed on each deployment.
     """
     from google.appengine.api import memcache
-    key = 'wsgi_app.urls.%s' % app.config.version_id
-    urls = memcache.get(key)
-    if not urls or app.config.dev:
-        from urls import urls
+    key = 'wsgi_app.rules.%s' % app.config.version_id
+    rules = memcache.get(key)
+    if not rules or app.config.dev:
+        import urls
         try:
-            memcache.set(key, urls)
+            rules = urls.get_rules()
+        except AttributeError:
+            # Deprecated and kept here for backwards compatibility. Set a
+            # get_rules() function in urls.py returning all rules to avoid
+            # already bound rules being binded when an exception occurs.
+            rules = urls.urls
+
+        try:
+            memcache.set(key, rules)
         except:
             import logging
-            logging.info('Failed to save wsgi_app.urls to memcache.')
+            logging.info('Failed to save wsgi_app.rules to memcache.')
 
-    return Map(urls)
+    return Map(rules)
 
 
 def load_middleware(app):

@@ -27,7 +27,7 @@ if 'lib' not in sys.path:
 def get_app():
     from tipfy import make_wsgi_app
     import config
-    # Need to reload the urls module to unbound rules.
+    # Need to reload the urls module to unbind rules.
     # Better would be to wrap the rules by a function...
     reload(__import__('urls'))
     return make_wsgi_app(config)

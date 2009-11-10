@@ -31,3 +31,23 @@ def get_app():
     # Better would be to wrap the rules by a function...
     reload(__import__('urls'))
     return make_wsgi_app(config)
+
+
+def get_environ(*args, **kwargs):
+    from os import environ
+    from werkzeug.test import create_environ
+    path = kwargs.get('path', '/')
+    if 'base_url' not in kwargs:
+        kwargs['base_url'] = 'http://%s%s' % (environ['HTTP_HOST'], path)
+
+    return create_environ(*args, **kwargs)
+
+
+def get_request(environ):
+    from werkzeug import Request
+    return Request(environ)
+
+
+def get_response():
+    from werkzeug import Response
+    return Response()

@@ -7,12 +7,19 @@ from _setup import get_app
 
 class TestAcl(unittest.TestCase):
     def setUp(self):
-        get_app()
+        self.app = get_app()
+        self.app.config.dev = False
 
         from tipfy.ext.user.acl import Acl, AclRules
         self.Acl = Acl
         self.Acl.roles_map = {}
+        self.Acl.roles_lock = self.app.config.version_id
         self.AclRules = AclRules
+
+    def tearDown(self):
+        self.app.config.dev = True
+        self.Acl.roles_map = {}
+        self.Acl.roles_lock = self.app.config.version_id
 
     def test_set_rules(self):
         """Test setting and appending rules."""
@@ -162,14 +169,15 @@ class TestAcl(unittest.TestCase):
         }
 
         self.AclRules.insert_or_update(area='my_area', user='user_1', roles=['admin'])
-        self.AclRules.insert_or_update(area='my_area', user='user_2', roles=['admin'], rules=[('ManageUsers', '*', False)])
-        self.AclRules.insert_or_update(area='my_area', user='user_3', roles=['editor'])
-        self.AclRules.insert_or_update(area='my_area', user='user_4', roles=['contributor'], rules=[('design', '*', True),])
-
-
         acl1 = self.Acl(area='my_area', user='user_1')
+
+        self.AclRules.insert_or_update(area='my_area', user='user_2', roles=['admin'], rules=[('ManageUsers', '*', False)])
         acl2 = self.Acl(area='my_area', user='user_2')
+
+        self.AclRules.insert_or_update(area='my_area', user='user_3', roles=['editor'])
         acl3 = self.Acl(area='my_area', user='user_3')
+
+        self.AclRules.insert_or_update(area='my_area', user='user_4', roles=['contributor'], rules=[('design', '*', True),])
         acl4 = self.Acl(area='my_area', user='user_4')
 
         self.assertEqual(acl1.has_access('ApproveUsers', 'save'), True)
@@ -197,3 +205,84 @@ class TestAcl(unittest.TestCase):
         self.assertEqual(acl4.has_access('content', 'save'), True)
         self.assertEqual(acl4.has_access('design', 'edit'), True)
         self.assertEqual(acl4.has_access('design', 'delete'), True)
+
+    def test_roles_lock_unchanged(self):
+        roles_map1 = {
+            'editor':      [('content', '*', True),],
+            'contributor': [('content', '*', True), ('content', 'delete', False)],
+        }
+        self.Acl.roles_map = roles_map1
+        self.Acl.roles_lock = 'initial'
+
+        self.AclRules.insert_or_update(area='my_area', user='user_1', roles=['editor'])
+        acl1 = self.Acl(area='my_area', user='user_1')
+
+        self.AclRules.insert_or_update(area='my_area', user='user_2', roles=['contributor'])
+        acl2 = self.Acl(area='my_area', user='user_2')
+
+        self.assertEqual(acl1.has_access('content', 'add'), True)
+        self.assertEqual(acl1.has_access('content', 'edit'), True)
+        self.assertEqual(acl1.has_access('content', 'delete'), True)
+
+        self.assertEqual(acl2.has_access('content', 'add'), True)
+        self.assertEqual(acl2.has_access('content', 'edit'), True)
+        self.assertEqual(acl2.has_access('content', 'delete'), False)
+
+        roles_map2 = {
+            'editor':      [('content', '*', True),],
+            'contributor': [('content', '*', True), ('content', 'delete', False), ('content', 'add', False)],
+        }
+        self.Acl.roles_map = roles_map2
+        # Don't change the lock to check that the cache will be kept.
+        # self.Acl.roles_lock = 'changed'
+
+        acl1 = self.Acl(area='my_area', user='user_1')
+        acl2 = self.Acl(area='my_area', user='user_2')
+
+        self.assertEqual(acl1.has_access('content', 'add'), True)
+        self.assertEqual(acl1.has_access('content', 'edit'), True)
+        self.assertEqual(acl1.has_access('content', 'delete'), True)
+
+        self.assertEqual(acl2.has_access('content', 'add'), True)
+        self.assertEqual(acl2.has_access('content', 'edit'), True)
+        self.assertEqual(acl2.has_access('content', 'delete'), False)
+
+    def test_roles_lock_changed(self):
+        roles_map1 = {
+            'editor':      [('content', '*', True),],
+            'contributor': [('content', '*', True), ('content', 'delete', False)],
+        }
+        self.Acl.roles_map = roles_map1
+        self.Acl.roles_lock = 'initial'
+
+        self.AclRules.insert_or_update(area='my_area', user='user_1', roles=['editor'])
+        acl1 = self.Acl(area='my_area', user='user_1')
+
+        self.AclRules.insert_or_update(area='my_area', user='user_2', roles=['contributor'])
+        acl2 = self.Acl(area='my_area', user='user_2')
+
+        self.assertEqual(acl1.has_access('content', 'add'), True)
+        self.assertEqual(acl1.has_access('content', 'edit'), True)
+        self.assertEqual(acl1.has_access('content', 'delete'), True)
+
+        self.assertEqual(acl2.has_access('content', 'add'), True)
+        self.assertEqual(acl2.has_access('content', 'edit'), True)
+        self.assertEqual(acl2.has_access('content', 'delete'), False)
+
+        roles_map2 = {
+            'editor':      [('content', '*', True),],
+            'contributor': [('content', '*', True), ('content', 'delete', False), ('content', 'add', False)],
+        }
+        self.Acl.roles_map = roles_map2
+        self.Acl.roles_lock = 'changed'
+
+        acl1 = self.Acl(area='my_area', user='user_1')
+        acl2 = self.Acl(area='my_area', user='user_2')
+
+        self.assertEqual(acl1.has_access('content', 'add'), True)
+        self.assertEqual(acl1.has_access('content', 'edit'), True)
+        self.assertEqual(acl1.has_access('content', 'delete'), True)
+
+        self.assertEqual(acl2.has_access('content', 'add'), False)
+        self.assertEqual(acl2.has_access('content', 'edit'), True)
+        self.assertEqual(acl2.has_access('content', 'delete'), False)

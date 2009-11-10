@@ -45,7 +45,7 @@
     assert acl.has_access(topic='UserAdmin', name='save') is False
     assert acl.has_access(topic='AnythingElse', name='put') is True
 
-    The ACL object should be created once after a user is loaded, so that
+    The Acl object should be created once after a user is loaded, so that
     it becomes available for the app to do all necessary permissions checkings.
 
     Based on concept from Solar's Access and Role classes: http://solarphp.com.
@@ -140,15 +140,18 @@ class AclRules(db.Model):
             if entity is None:
                 res = (Acl.roles_lock, [], [])
             else:
-                # Apply role rules.
                 rules = []
+                # Apply role rules.
                 for role in entity.roles:
                     rules.extend(roles_map.get(role, []))
 
-                # Rules override role rules and are checked from last to first.
+                # Extend with rules, eventually overriding some role rules.
                 rules.extend(entity.rules)
+
+                # Reverse everything, as rules are checked from last to first.
                 rules.reverse()
 
+                # Set results for cache, applying current roles_lock.
                 res = (Acl.roles_lock, entity.roles, rules)
 
             cls.set_cache(cache_key, res)

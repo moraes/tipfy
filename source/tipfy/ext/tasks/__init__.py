@@ -33,6 +33,8 @@ class DeferredHandler(RequestHandler):
         Rule('/_ah/queue/deferred', endpoint='tasks/deferred',
             handler='tipfy.ext.tasks:DeferredHandler')
     """
+    use_middlewares = False
+
     def post(self):
         headers = ['%s:%s' % (k, v) for k, v in local.request.headers.items()
                if k.lower().startswith('x-appengine-')]
@@ -71,6 +73,7 @@ class EntityTaskHandler(RequestHandler):
         Rule('/_tasks/process-mymodel/<string:key>', endpoint='tasks/mymodel',
             handler='somemodule.MyModelTasks')
     """
+    use_middlewares = False
     model = None
     endpoint = None
 

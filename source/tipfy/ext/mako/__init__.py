@@ -12,16 +12,19 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from os import path
-from mako.template import Template
+from mako.lookup import TemplateLookup
 from mako.runtime import Context
 from StringIO import StringIO
 
 from tipfy import local, app, response
 
+lookup = TemplateLookup(directories=[path.join(app.config.templates_dir)],
+    output_encoding='utf-8', encoding_errors='replace')
+
 
 def render_template(filename, **context):
     """Renders a template."""
-    template = Template(filename=path.join(app.config.templates_dir, filename))
+    template = lookup.get_template(filename)
     buf = StringIO()
     template.render_context(Context(buf, **context))
     return buf.getvalue()

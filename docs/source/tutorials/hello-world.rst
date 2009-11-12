@@ -29,16 +29,22 @@ Here we extend the base class ``RequestHandler`` and add a method ``get`` to be
 executed on ``GET`` requests. Then we set the response data to display our
 Hello, World! message, and return the response. The key points are:
 
-- ``RequestHandler`` methods receive keyword arguments from the routing system.
+- The handler method that is called corresponds to the current request method.
+  In this case we will only handle ``GET`` requests, so we only defined
+  ``get()`` in the handler. To handle ``POST`` requests, we would need to add a
+  ``post()`` method, and so on.
 
-- The executed method always returns a response object: ``tipfy.response`` is
-  an empty ``werkzeug.Response`` object created on each request and ready to be
+- The handler always returns a response object: ``tipfy.response`` is an empty
+  ``werkzeug.Response`` object created on each request and ready to be
   filled by the application.
 
-.. note:: Three special variables are available to be imported from tipfy on
-   each request: ``app`` (the current ``tipfy.WSGIApplication`` object),
-   ``request`` (the ``werkzeug.Request`` object for the current request) and
-   ``response`` (an empty ``werkzeug.Response`` object ready to be filled by the
+- ``RequestHandler`` methods receive keyword arguments from the routing system.
+
+.. note::
+   Three special variables are available to be imported from tipfy on each
+   request: ``app`` (the current ``tipfy.WSGIApplication`` object), ``request``
+   (the ``werkzeug.Request`` object for the current request) and ``response``
+   (an empty ``werkzeug.Response`` object ready to be filled by the
    application). They also can be accessed as ``local.app``, ``local.request``
    and ``local.response``. The shorter versions are just proxies to the
    ``local`` attributes.

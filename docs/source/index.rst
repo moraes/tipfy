@@ -6,14 +6,25 @@
 Welcome to Tipfy's documentation!
 =================================
 
-.. _Tipfy: http://code.google.com/p/tipfy/
-
-Contents:
+.. note::
+   This a work in progress.
 
 .. toctree::
    :maxdepth: 2
+   :glob:
+   :hidden:
 
-   tutorial.hello-world
+   api
+
+.. _tutorials:
+
+Tutorials
+=========
+.. toctree::
+   :maxdepth: 1
+   :glob:
+
+   tutorials/*
 
 Indices and tables
 ==================

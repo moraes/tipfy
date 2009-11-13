@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+"""
+  easy_install nose
+  easy_install nose-gae
+  easy_install webtest
+  easy_install gaetestbed
+
+  nosetests --with-gae --without-sandbox --gae-application=/path/to/source/
+"""
 import os, sys
 ROOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
     'source'))

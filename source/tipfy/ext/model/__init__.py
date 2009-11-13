@@ -16,7 +16,75 @@ import unicodedata
 from google.appengine.ext import db
 from google.appengine.datastore import entity_pb
 
-from werkzeug.exceptions import NotFound
+from tipfy import NotFound
+
+
+class EtagProperty(db.Property):
+    """Automatically creates an ETag based on the value of another property.
+    Note: the ETag is only set or updated after the entity is saved.
+    """
+    def __init__(self, prop, *args, **kwargs):
+        self.prop = prop
+        super(EtagProperty, self).__init__(*args, **kwargs)
+
+    def get_value_for_datastore(self, model_instance):
+        v = self.prop.__get__(model_instance, type(model_instance))
+        if not v:
+            return None
+
+        if isinstance(v, unicode):
+            v = v.encode('utf-8')
+
+        return hashlib.sha1(v).hexdigest()
+
+
+class PickleProperty(db.Property):
+    """A property for storing complex objects in the datastore in pickled form.
+    From aetycoon: http://github.com/Arachnid/aetycoon/
+
+    Example usage:
+    >>> class PickleModel(db.Model):
+    ... data = PickleProperty()
+
+    >>> model = PickleModel()
+    >>> model.data = {"foo": "bar"}
+    >>> model.data
+    {'foo': 'bar'}
+    >>> model.put() # doctest: +ELLIPSIS
+    datastore_types.Key.from_path(u'PickleModel', ...)
+    >>> model2 = PickleModel.all().get()
+    >>> model2.data
+    {'foo': 'bar'}
+    """
+    data_type = db.Blob
+
+    def get_value_for_datastore(self, model_instance):
+        value = self.__get__(model_instance, model_instance.__class__)
+        value = self.validate(value)
+
+        if value is not None:
+            return db.Blob(pickle.dumps(value))
+
+    def make_value_from_datastore(self, value):
+        if value is not None:
+            return pickle.loads(str(value))
+
+
+class SlugProperty(db.Property):
+    """Automatically creates a slug based on the value of another property.
+    Note: the slug is only set or updated after the entity is saved.
+    """
+    def __init__(self, prop, max_length=None, *args, **kwargs):
+        self.prop = prop
+        self.max_length = max_length
+        super(SlugProperty, self).__init__(*args, **kwargs)
+
+    def get_value_for_datastore(self, model_instance):
+        v = self.prop.__get__(model_instance, type(model_instance))
+        if not v:
+            return self.default
+
+        return slugify(v, max_length=self.max_length, default=self.default)
 
 
 def model_to_protobuf(models):
@@ -79,6 +147,27 @@ def get_or_insert_with_flag(model, key_name, **kwargs):
     return db.run_in_transaction(txn)
 
 
+def slugify(value, max_length=None, default=None):
+    """Converts a string to slug format."""
+    if not isinstance(value, unicode):
+        value = value.decode('utf8')
+
+    s = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').lower()
+    s = re.sub('-+', '-', re.sub('[^a-zA-Z0-9-]+', '-', s)).strip('-')
+    if not s:
+        return default
+
+    if max_length:
+        # Restrict length without breaking words.
+        while len(s) > max_length:
+            if s.find('-') == -1:
+                s = s[:max_length]
+            else:
+                s = s.rsplit('-', 1)[0]
+
+    return s
+
+
 # Nice ideas borrowed from Kay. See AUTHORS.txt for details.
 def get_by_key_name_or_404(model, key_name):
     """Returns a model instance by key name or raises a 404 Not Found error."""
@@ -102,92 +191,3 @@ def get_or_404(model, key):
     if obj:
         return obj
     raise NotFound()
-
-
-def slugify(value, max_length=None, default=None):
-    """Converts a string to slug format."""
-    if not isinstance(value, unicode):
-        value = value.decode('utf8')
-
-    s = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').lower()
-    s = re.sub('-+', '-', re.sub('[^a-zA-Z0-9-]+', '-', s)).strip('-')
-    if not s:
-        return default
-
-    if max_length:
-        # Restrict lenght without breaking words.
-        while len(s) > max_length:
-            if s.find('-') == -1:
-                s = s[:max_length]
-            else:
-                s = s.rsplit('-', 1)[0]
-
-    return s
-
-
-class EtagProperty(db.Property):
-    """Automatically creates an ETag based on the value of another property.
-    Note: the ETag is only set or updated after the entity is saved.
-    """
-    def __init__(self, prop, *args, **kwargs):
-        self.prop = prop
-        super(EtagProperty, self).__init__(*args, **kwargs)
-
-    def get_value_for_datastore(self, model_instance):
-        v = self.prop.__get__(model_instance, type(model_instance))
-        if not v:
-            return None
-
-        if isinstance(v, unicode):
-            v = v.encode('utf-8')
-
-        return hashlib.sha1(v).hexdigest()
-
-
-class SlugProperty(db.Property):
-    """Automatically creates a slug based on the value of another property.
-    Note: the slug is only set or updated after the entity is saved.
-    """
-    def __init__(self, prop, max_length=None, *args, **kwargs):
-        self.prop = prop
-        self.max_length = max_length
-        super(SlugProperty, self).__init__(*args, **kwargs)
-
-    def get_value_for_datastore(self, model_instance):
-        v = self.prop.__get__(model_instance, type(model_instance))
-        if not v:
-            return self.default
-
-        return slugify(v, max_length=self.max_length, default=self.default)
-
-
-class PickleProperty(db.Property):
-    """A property for storing complex objects in the datastore in pickled form.
-    From aetycoon: http://github.com/Arachnid/aetycoon/
-
-    Example usage:
-    >>> class PickleModel(db.Model):
-    ... data = PickleProperty()
-
-    >>> model = PickleModel()
-    >>> model.data = {"foo": "bar"}
-    >>> model.data
-    {'foo': 'bar'}
-    >>> model.put() # doctest: +ELLIPSIS
-    datastore_types.Key.from_path(u'PickleModel', ...)
-    >>> model2 = PickleModel.all().get()
-    >>> model2.data
-    {'foo': 'bar'}
-    """
-    data_type = db.Blob
-
-    def get_value_for_datastore(self, model_instance):
-        value = self.__get__(model_instance, model_instance.__class__)
-        value = self.validate(value)
-
-        if value is not None:
-            return db.Blob(pickle.dumps(value))
-
-    def make_value_from_datastore(self, value):
-        if value is not None:
-            return pickle.loads(str(value))

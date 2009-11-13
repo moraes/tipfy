@@ -6,14 +6,20 @@ import unittest
 from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase
 
+from tipfy import NotFound
 from tipfy.ext.model import model_from_protobuf, model_to_protobuf, \
-    populate_entity
+    populate_entity, get_by_key_name_or_404, get_by_id_or_404, get_or_404, \
+    get_or_insert_with_flag, get_key
 
 
 class FooModel(db.Model):
     name = db.StringProperty(required=True)
     age = db.IntegerProperty(required=True)
     married = db.BooleanProperty(required=True)
+
+
+class BarModel(db.Model):
+    foo = db.ReferenceProperty(FooModel)
 
 
 class TestModel(DataStoreTestCase, unittest.TestCase):
@@ -70,4 +76,59 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(entity_1.age, 20)
         self.assertEqual(entity_1.married, True)
         self.assertRaises(AttributeError, getattr, entity_1, 'city')
+
+    def test_get_by_key_name_or_404(self):
+        entity_1 = FooModel(key_name='foo', name='foo', age=15, married=False)
+        entity_1.put()
+
+        entity = get_by_key_name_or_404(FooModel, 'foo')
+        self.assertEqual(str(entity_1.key()), str(entity.key()))
+
+        self.assertRaises(NotFound, get_by_key_name_or_404, FooModel, 'bar')
+
+    def test_get_by_id_or_404(self):
+        entity_1 = FooModel(name='foo', age=15, married=False)
+        entity_1.put()
+
+        entity = get_by_id_or_404(FooModel, entity_1.key().id())
+        self.assertEqual(str(entity_1.key()), str(entity.key()))
+
+        self.assertRaises(NotFound, get_by_id_or_404, FooModel, -1)
+
+    def test_get_or_404(self):
+        entity_1 = FooModel(name='foo', age=15, married=False)
+        entity_1.put()
+
+        entity = get_or_404(FooModel, entity_1.key())
+        self.assertEqual(str(entity_1.key()), str(entity.key()))
+
+        self.assertRaises(NotFound, get_or_404, FooModel, db.Key.from_path('FooModel', 'bar'))
+
+    def test_get_or_insert_with_flag(self):
+        entity, flag = get_or_insert_with_flag(FooModel, 'foo', name='foo', age=15, married=False)
+        self.assertEqual(flag, True)
+        self.assertEqual(entity.name, 'foo')
+        self.assertEqual(entity.age, 15)
+        self.assertEqual(entity.married, False)
+
+        entity, flag = get_or_insert_with_flag(FooModel, 'foo', name='bar', age=30, married=True)
+        self.assertEqual(flag, False)
+        self.assertEqual(entity.name, 'foo')
+        self.assertEqual(entity.age, 15)
+        self.assertEqual(entity.married, False)
+
+    def test_get_key(self):
+        entity_1 = FooModel(name='foo', age=15, married=False)
+        entity_1.put()
+        entity_1_key = str(entity_1.key())
+
+        entity_2 = BarModel(key_name='first_bar', foo=entity_1)
+        entity_2.put()
+
+        entity_1.delete()
+        entity_3 = BarModel.get_by_key_name('first_bar')
+        # Won't resolve, but we can still get the key value.
+        self.assertRaises(db.Error, getattr, entity_3, 'foo')
+        self.assertEqual(str(get_key(entity_3, 'foo')), entity_1_key)
+
 

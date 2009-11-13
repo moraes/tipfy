@@ -59,8 +59,9 @@ def populate_entity(entity, **kwargs):
 
 
 def get_or_insert_with_flag(model, key_name, **kwargs):
-    """Same as Model.get_or_insert(), but also returns a boolean flag
-    indicating if the entity was inserted.
+    """Same as Model.get_or_insert(), but before doing a transaction tests
+    if the entity exists, and always returns a boolean flag indicating if the
+    entity was inserted.
     """
     entity = model.get_by_key_name(key_name, parent=kwargs.get('parent'))
     if entity:

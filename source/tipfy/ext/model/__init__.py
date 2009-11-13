@@ -174,6 +174,7 @@ def get_by_key_name_or_404(model, key_name):
     obj = model.get_by_key_name(key_name)
     if obj:
         return obj
+
     raise NotFound()
 
 
@@ -182,6 +183,7 @@ def get_by_id_or_404(model, id):
     obj = model.get_by_id(id)
     if obj:
         return obj
+
     raise NotFound()
 
 
@@ -190,4 +192,5 @@ def get_or_404(model, key):
     obj = model.get(key)
     if obj:
         return obj
+
     raise NotFound()

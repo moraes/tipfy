@@ -104,9 +104,12 @@ def get_or_404(model, key):
     raise NotFound()
 
 
-def slugify(string, max_length=None, default=None):
+def slugify(value, max_length=None, default=None):
     """Converts a string to slug format."""
-    s = unicodedata.normalize('NFKD', string).encode('ascii', 'ignore').lower()
+    if not isinstance(value, unicode):
+        value = value.decode('utf8')
+
+    s = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').lower()
     s = re.sub('-+', '-', re.sub('[^a-zA-Z0-9-]+', '-', s)).strip('-')
     if not s:
         return default
@@ -134,6 +137,9 @@ class EtagProperty(db.Property):
         v = self.prop.__get__(model_instance, type(model_instance))
         if not v:
             return None
+
+        if isinstance(v, unicode):
+            v = v.encode('utf-8')
 
         return hashlib.sha1(v).hexdigest()
 

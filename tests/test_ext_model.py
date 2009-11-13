@@ -3,19 +3,25 @@
     Tests for tipfy.ext.model
 """
 import unittest
+import hashlib
+
 from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase
 
 from tipfy import NotFound
 from tipfy.ext.model import model_from_protobuf, model_to_protobuf, \
     populate_entity, get_by_key_name_or_404, get_by_id_or_404, get_or_404, \
-    get_or_insert_with_flag, get_key
+    get_or_insert_with_flag, get_key, PickleProperty, SlugProperty, \
+    EtagProperty
 
 
 class FooModel(db.Model):
     name = db.StringProperty(required=True)
-    age = db.IntegerProperty(required=True)
-    married = db.BooleanProperty(required=True)
+    age = db.IntegerProperty()
+    married = db.BooleanProperty()
+    data = PickleProperty()
+    slug = SlugProperty(name)
+    etag = EtagProperty(name)
 
 
 class BarModel(db.Model):
@@ -131,4 +137,44 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertRaises(db.Error, getattr, entity_3, 'foo')
         self.assertEqual(str(get_key(entity_3, 'foo')), entity_1_key)
 
+    def test_pickle_property(self):
+        data_1 = {'foo': 'bar'}
+        entity_1 = FooModel(key_name='foo', name='foo', data=data_1)
+        entity_1.put()
+
+        data_2 = [1, 2, 3, 'baz']
+        entity_2 = FooModel(key_name='bar', name='bar', data=data_2)
+        entity_2.put()
+
+        entity_1 = FooModel.get_by_key_name('foo')
+        self.assertEqual(data_1, entity_1.data)
+
+        entity_2 = FooModel.get_by_key_name('bar')
+        self.assertEqual(data_2, entity_2.data)
+
+    def test_slug_property(self):
+        entity_1 = FooModel(key_name='foo', name=u'Mary Björk')
+        entity_1.put()
+
+        entity_2 = FooModel(key_name='bar', name=u'Tião Macalé')
+        entity_2.put()
+
+
+        entity_1 = FooModel.get_by_key_name('foo')
+        entity_2 = FooModel.get_by_key_name('bar')
+        self.assertEqual('mary-bjork', entity_1.slug)
+        self.assertEqual('tiao-macale', entity_2.slug)
+
+    def test_etag_property(self):
+        entity_1 = FooModel(key_name='foo', name=u'Mary Björk')
+        entity_1.put()
+
+        entity_2 = FooModel(key_name='bar', name=u'Tião Macalé')
+        entity_2.put()
+
+
+        entity_1 = FooModel.get_by_key_name('foo')
+        entity_2 = FooModel.get_by_key_name('bar')
+        self.assertEqual(hashlib.sha1(entity_1.name.encode('utf8')).hexdigest(), entity_1.etag)
+        self.assertEqual(hashlib.sha1(entity_2.name.encode('utf8')).hexdigest(), entity_2.etag)
 

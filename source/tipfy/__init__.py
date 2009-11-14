@@ -68,7 +68,8 @@ class WSGIApplication(object):
         self.url_map = get_url_map(self)
 
         # Cache for loaded middlewares.
-        self.middlewares = self.middleware_types = None
+        self.middleware_types = None
+        self.middlewares = {}
 
         # Cache for loaded handler classes.
         self.handlers = {}
@@ -236,7 +237,6 @@ def run_wsgi_app(app):
     local.app = app
 
     # Apply wsgi_app middlewares only if they are loaded.
-    app.middlewares = {}
     for method in iter_middleware(app, 'wsgi_app'):
         app = method(app)
 

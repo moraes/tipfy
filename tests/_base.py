@@ -19,6 +19,7 @@ if ROOT_PATH not in sys.path:
 def get_app():
     from tipfy import make_wsgi_app
     import config
+    config.dev = True
     return make_wsgi_app(config)
 
 

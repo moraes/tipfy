@@ -200,7 +200,7 @@ class PickleProperty(db.Property):
         value = self.validate(value)
 
         if value is not None:
-            return db.Blob(pickle.dumps(value))
+            return db.Blob(pickle.dumps(value, pickle.HIGHEST_PROTOCOL))
 
     def make_value_from_datastore(self, value):
         if value is not None:

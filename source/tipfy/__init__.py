@@ -68,7 +68,7 @@ class WSGIApplication(object):
         self.url_map = get_url_map(self)
 
         # Cache for loaded middlewares.
-        self.middleware_types = None
+        self.middleware_types = get_middleware_types(self)
         self.middlewares = {}
 
         # Cache for loaded handler classes.
@@ -197,14 +197,16 @@ def get_url_map(app):
     return Map(rules)
 
 
-def load_middleware(app):
+def get_middleware_types(app):
     """Imports middleware classes and extracts available middleware types."""
-    app.middleware_types = {}
+    middleware_types = {}
     for spec in getattr(app.config, 'middleware_classes', []):
         cls = import_string(spec)
         for name in ('wsgi_app', 'request', 'response', 'exception'):
             if hasattr(cls, 'process_%s' % name):
-                app.middleware_types.setdefault(name, []).append((spec, cls))
+                middleware_types.setdefault(name, []).append((spec, cls))
+
+    return middleware_types
 
 
 def iter_middleware(app, middleware_type):
@@ -219,16 +221,9 @@ def iter_middleware(app, middleware_type):
         yield getattr(app.middlewares[spec], 'process_%s' % middleware_type)
 
 
-def make_bare_wsgi_app(config):
-    """Returns a WSGI application instance without loading middlewares."""
-    return WSGIApplication(config)
-
-
 def make_wsgi_app(config):
     """Returns a instance of WSGIApplication with loaded middlewares."""
-    app =  make_bare_wsgi_app(config)
-    load_middleware(app)
-    return app
+    return WSGIApplication(config)
 
 
 def run_wsgi_app(app):

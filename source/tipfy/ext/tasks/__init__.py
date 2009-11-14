@@ -84,14 +84,14 @@ class EntityTaskHandler(RequestHandler):
         if self.model is None or self.endpoint is None:
             raise ValueError('Model or endpoint is not defined.')
 
+        model_class = self.model.__class__
         entity = self.get_entity(kwargs.get('key', None))
         if not entity:
-            logging.info('Finished all %s entities!' % self.model.__class__)
+            logging.info('Finished all %s entities!' % model_class)
             return local.response
 
         # Process current entity.
-        logging.info('Processing %s from %s' % (str(entity.key()),
-            self.model.__class__))
+        logging.info('Processing %s from %s' % (str(entity.key()), model_class))
         retry_count = int(local.request.headers.get(
             'X-AppEngine-TaskRetryCount', 0))
         current_key = str(entity.key())

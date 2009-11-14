@@ -12,7 +12,7 @@ from tipfy import NotFound
 from tipfy.ext.model import model_from_protobuf, model_to_protobuf, \
     populate_entity, get_by_key_name_or_404, get_by_id_or_404, get_or_404, \
     get_or_insert_with_flag, get_key, PickleProperty, SlugProperty, \
-    EtagProperty
+    EtagProperty, retry_on_timeout
 
 
 class FooModel(db.Model):
@@ -26,6 +26,32 @@ class FooModel(db.Model):
 
 class BarModel(db.Model):
     foo = db.ReferenceProperty(FooModel)
+
+@retry_on_timeout(retries=3, interval=0.1)
+def test_timeout_1(**kwargs):
+    retry_count = kwargs.get('_retry_count')
+    # Let it pass only in the last attempt
+    if retry_count < 3:
+        raise db.Timeout()
+
+    return retry_count
+
+
+@retry_on_timeout(retries=3, interval=0.1)
+def test_timeout_2(**kwargs):
+    retry_count = kwargs.get('_retry_count')
+    # Let it pass only in the last attempt
+    if retry_count < 3:
+        raise db.Timeout()
+
+    raise ValueError()
+
+@retry_on_timeout(retries=3, interval=0.1)
+def test_timeout_3(**kwargs):
+    retry_count = kwargs.get('_retry_count')
+    # Never Let it pass.
+    if retry_count <= 3:
+        raise db.Timeout()
 
 
 class TestModel(DataStoreTestCase, unittest.TestCase):
@@ -177,4 +203,14 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity_2 = FooModel.get_by_key_name('bar')
         self.assertEqual(hashlib.sha1(entity_1.name.encode('utf8')).hexdigest(), entity_1.etag)
         self.assertEqual(hashlib.sha1(entity_2.name.encode('utf8')).hexdigest(), entity_2.etag)
+
+    def test_retry_on_timeout_1(self):
+        retries = test_timeout_1()
+        self.assertEqual(retries, 3)
+
+    def test_retry_on_timeout_2(self):
+        self.assertRaises(ValueError, test_timeout_2)
+
+    def test_retry_on_timeout_3(self):
+        self.assertRaises(db.Timeout, test_timeout_3)
 

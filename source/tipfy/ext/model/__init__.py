@@ -8,83 +8,17 @@
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-import pickle
 import hashlib
+import logging
+import pickle
 import re
+import time
 import unicodedata
 
 from google.appengine.ext import db
 from google.appengine.datastore import entity_pb
 
 from tipfy import NotFound
-
-
-class EtagProperty(db.Property):
-    """Automatically creates an ETag based on the value of another property.
-    Note: the ETag is only set or updated after the entity is saved.
-    """
-    def __init__(self, prop, *args, **kwargs):
-        self.prop = prop
-        super(EtagProperty, self).__init__(*args, **kwargs)
-
-    def get_value_for_datastore(self, model_instance):
-        v = self.prop.__get__(model_instance, type(model_instance))
-        if not v:
-            return None
-
-        if isinstance(v, unicode):
-            v = v.encode('utf-8')
-
-        return hashlib.sha1(v).hexdigest()
-
-
-class PickleProperty(db.Property):
-    """A property for storing complex objects in the datastore in pickled form.
-    From aetycoon: http://github.com/Arachnid/aetycoon/
-
-    Example usage:
-    >>> class PickleModel(db.Model):
-    ... data = PickleProperty()
-
-    >>> model = PickleModel()
-    >>> model.data = {"foo": "bar"}
-    >>> model.data
-    {'foo': 'bar'}
-    >>> model.put() # doctest: +ELLIPSIS
-    datastore_types.Key.from_path(u'PickleModel', ...)
-    >>> model2 = PickleModel.all().get()
-    >>> model2.data
-    {'foo': 'bar'}
-    """
-    data_type = db.Blob
-
-    def get_value_for_datastore(self, model_instance):
-        value = self.__get__(model_instance, model_instance.__class__)
-        value = self.validate(value)
-
-        if value is not None:
-            return db.Blob(pickle.dumps(value))
-
-    def make_value_from_datastore(self, value):
-        if value is not None:
-            return pickle.loads(str(value))
-
-
-class SlugProperty(db.Property):
-    """Automatically creates a slug based on the value of another property.
-    Note: the slug is only set or updated after the entity is saved.
-    """
-    def __init__(self, prop, max_length=None, *args, **kwargs):
-        self.prop = prop
-        self.max_length = max_length
-        super(SlugProperty, self).__init__(*args, **kwargs)
-
-    def get_value_for_datastore(self, model_instance):
-        v = self.prop.__get__(model_instance, type(model_instance))
-        if not v:
-            return self.default
-
-        return slugify(v, max_length=self.max_length, default=self.default)
 
 
 def model_to_protobuf(models):
@@ -169,6 +103,31 @@ def slugify(value, max_length=None, default=None):
 
 
 # Nice ideas borrowed from Kay. See AUTHORS.txt for details.
+def retry_on_timeout(retries=3, interval=1.0, exponent=2.0):
+    """A decorator to retry a given function performing db operations."""
+    def _decorator(func):
+        def _wrapper(*args, **kwargs):
+            count = 0
+            while True:
+                try:
+                    kwargs['_retry_count'] = count
+                    return func(*args, **kwargs)
+                except db.Timeout, e:
+                    count += 1
+                    logging.debug(e)
+                    if count > retries:
+                        raise e
+                    else:
+                        sleep_time = (exponent ** count) * interval
+                        logging.warning("Retrying function %r in %d secs" %
+                            (func, sleep_time))
+                        time.sleep(sleep_time)
+
+        return _wrapper
+
+    return _decorator
+
+
 def get_by_key_name_or_404(model, key_name):
     """Returns a model instance by key name or raises a 404 Not Found error."""
     obj = model.get_by_key_name(key_name)
@@ -194,3 +153,72 @@ def get_or_404(model, key):
         return obj
 
     raise NotFound()
+
+
+# Extra db.Model property classes.
+class EtagProperty(db.Property):
+    """Automatically creates an ETag based on the value of another property.
+    Note: the ETag is only set or updated after the entity is saved.
+    """
+    def __init__(self, prop, *args, **kwargs):
+        self.prop = prop
+        super(EtagProperty, self).__init__(*args, **kwargs)
+
+    def get_value_for_datastore(self, model_instance):
+        v = self.prop.__get__(model_instance, type(model_instance))
+        if not v:
+            return None
+
+        if isinstance(v, unicode):
+            v = v.encode('utf-8')
+
+        return hashlib.sha1(v).hexdigest()
+
+
+class PickleProperty(db.Property):
+    """A property for storing complex objects in the datastore in pickled form.
+    From aetycoon: http://github.com/Arachnid/aetycoon/
+
+    Example usage:
+    >>> class PickleModel(db.Model):
+    ... data = PickleProperty()
+
+    >>> model = PickleModel()
+    >>> model.data = {"foo": "bar"}
+    >>> model.data
+    {'foo': 'bar'}
+    >>> model.put() # doctest: +ELLIPSIS
+    datastore_types.Key.from_path(u'PickleModel', ...)
+    >>> model2 = PickleModel.all().get()
+    >>> model2.data
+    {'foo': 'bar'}
+    """
+    data_type = db.Blob
+
+    def get_value_for_datastore(self, model_instance):
+        value = self.__get__(model_instance, model_instance.__class__)
+        value = self.validate(value)
+
+        if value is not None:
+            return db.Blob(pickle.dumps(value))
+
+    def make_value_from_datastore(self, value):
+        if value is not None:
+            return pickle.loads(str(value))
+
+
+class SlugProperty(db.Property):
+    """Automatically creates a slug based on the value of another property.
+    Note: the slug is only set or updated after the entity is saved.
+    """
+    def __init__(self, prop, max_length=None, *args, **kwargs):
+        self.prop = prop
+        self.max_length = max_length
+        super(SlugProperty, self).__init__(*args, **kwargs)
+
+    def get_value_for_datastore(self, model_instance):
+        v = self.prop.__get__(model_instance, type(model_instance))
+        if not v:
+            return self.default
+
+        return slugify(v, max_length=self.max_length, default=self.default)

@@ -29,9 +29,14 @@ from tipfy import local, InternalServerError
 from tipfy.ext.model import model_from_protobuf, model_to_protobuf, \
     retry_on_timeout, PickleProperty
 
-
+# Characters used to build a session key, and a regex to check for a valid one.
 KEY_CHARS = string.ascii_letters + string.digits
 KEY_RE = re.compile(r'^[a-zA-Z0-9]{64}$')
+
+# Proxies to the session variables set on each request.
+local.session = local.session_id = local.session_store = None
+session, session_id, session_store = local('session'), local('session_id'), \
+    local('session_store')
 
 
 class Session(db.Model):
@@ -41,7 +46,7 @@ class Session(db.Model):
     # Modification date.
     updated = db.DateTimeProperty(auto_now=True)
     # Expiration date.
-    expiration = db.DateTimeProperty(required=True)
+    expires = db.DateTimeProperty(required=True)
     # Session data, pickled.
     data = PickleProperty()
     # User name, in case this session is related to an authenticated user.
@@ -49,6 +54,10 @@ class Session(db.Model):
 
 
 class DatastoreSessionStore(SessionStore):
+    def __init__(self):
+        SessionStore.__init__(self, expires=None)
+        self.expires = expires or local.app.config.session_expiration
+
     def generate_key(self, salt=None):
         """Generates a new session key."""
         return ''.join(choice(KEY_CHARS) for n in xrange(64))
@@ -59,7 +68,7 @@ class DatastoreSessionStore(SessionStore):
 
     def _is_valid_entity(self, entity):
         """Checks if a session data entity fetched from datastore is valid."""
-        if entity.expiration < datetime.now():
+        if entity.expires < datetime.now():
             return False
 
         return True
@@ -87,13 +96,12 @@ class DatastoreSessionStore(SessionStore):
     @retry_on_timeout(retries=3, interval=0.2)
     def save(self, session):
         """Saves a session."""
-        entity = Session(key_name=session.sid, expiration=datetime.now() +
-            timedelta(seconds=local.app.config.session_expiration),
-            data=dict(session))
+        entity = Session(key_name=session.sid, expires=datetime.now() + \
+            timedelta(seconds=self.expires), data=dict(session))
         entity.put()
 
         memcache.set(session.sid, model_to_protobuf(entity),
-            namespace=self.__class__.__name__)
+            time=self.expires, namespace=self.__class__.__name__)
 
     @retry_on_timeout(retries=3, interval=0.2)
     def delete(self, session):
@@ -105,9 +113,10 @@ class DatastoreSessionStore(SessionStore):
 
 class SecureCookieSessionStore(SessionStore):
     """A session store class that stores data in secure cookies."""
-    def __init__(self, cookie_name):
+    def __init__(self, cookie_name, expires=None):
         self.cookie_name = cookie_name
         self.secret_key = local.app.config.session_secret_key
+        self.expires = expires or local.app.config.session_expiration
 
     def new(self):
         return self.get(None)
@@ -117,7 +126,8 @@ class SecureCookieSessionStore(SessionStore):
             secret_key=self.secret_key)
 
     def save(self, session):
-        session.save_cookie(local.response, key=self.cookie_name)
+        session.save_cookie(local.response, key=self.cookie_name, expires=
+            datetime.now() + timedelta(seconds=self.expires))
 
     def delete(self, session):
         for key in session.keys():
@@ -132,11 +142,12 @@ class SecureCookieSessionMiddleware(object):
         self.session_store = SecureCookieSessionStore(cookie_name)
 
     def process_request(self, request):
-        request.session = self.session_store.get(None)
+        local.session_store = self.session_store
+        local.session = self.session_store.get(None)
 
     def process_response(self, request, response):
-        if hasattr(request, 'session'):
-            self.session_store.save_if_modified(request.session)
+        if hasattr(local, 'session'):
+            self.session_store.save_if_modified(local.session)
 
         return response
 
@@ -147,18 +158,18 @@ class DatastoreSessionMiddleware(object):
         # The session id is stored in a secure cookie.
         cookie_name = getattr(local.app.config, 'session_id_cookie_name',
             'tipfy.session_id')
-        self.securecookie_store = SecureCookieSessionStore(cookie_name)
+        self.session_id_store = SecureCookieSessionStore(cookie_name)
         self.session_store = DatastoreSessionStore()
 
     def process_request(self, request):
-        request.session_id = self.securecookie_store.get(None)
-        sid = request.session_id.get('_sid', None)
-        request.session = self.session_store.get(sid)
+        local.session_store = self.session_store
+        local.session_id = self.session_id_store.get(None)
+        local.session = self.session_store.get(local.session_id.get('_sid'))
 
     def process_response(self, request, response):
-        if hasattr(request, 'session'):
-            request.session_id['_sid'] = request.session.sid
-            self.session_store.save_if_modified(request.session)
-            self.securecookie_store.save_if_modified(request.session_id)
+        if hasattr(local, 'session'):
+            local.session_id['_sid'] = local.session.sid
+            self.session_store.save_if_modified(local.session)
+            self.session_id_store.save_if_modified(local.session_id)
 
         return response

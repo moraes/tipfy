@@ -24,8 +24,13 @@ class FooModel(db.Model):
     etag = EtagProperty(name)
 
 
+class FooExpandoModel(db.Expando):
+    pass
+
+
 class BarModel(db.Model):
     foo = db.ReferenceProperty(FooModel)
+
 
 @retry_on_timeout(retries=3, interval=0.1)
 def test_timeout_1(**kwargs):
@@ -100,6 +105,26 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
     def test_populate_entity(self):
         entity_1 = FooModel(name='foo', age=15, married=False)
         entity_1.put()
+
+        self.assertEqual(entity_1.name, 'foo')
+        self.assertEqual(entity_1.age, 15)
+        self.assertEqual(entity_1.married, False)
+
+        populate_entity(entity_1, name='bar', age=20, married=True, city='Yukon')
+        entity_1.put()
+
+        self.assertEqual(entity_1.name, 'bar')
+        self.assertEqual(entity_1.age, 20)
+        self.assertEqual(entity_1.married, True)
+        self.assertRaises(AttributeError, getattr, entity_1, 'city')
+
+    def test_populate_expando_entity(self):
+        entity_1 = FooExpandoModel(name='foo', age=15, married=False)
+        entity_1.put()
+
+        self.assertEqual(entity_1.name, 'foo')
+        self.assertEqual(entity_1.age, 15)
+        self.assertEqual(entity_1.married, False)
 
         populate_entity(entity_1, name='bar', age=20, married=True, city='Yukon')
         entity_1.put()

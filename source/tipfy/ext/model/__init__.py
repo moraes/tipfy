@@ -54,7 +54,7 @@ def get_key(entity, prop_name):
 
 def populate_entity(entity, **kwargs):
     """Sets a batch of property values in an entity."""
-    properties = entity.properties()
+    properties = entity.properties().keys() + entity.dynamic_properties()
     for key, value in kwargs.iteritems():
         if key in properties:
             setattr(entity, key, value)

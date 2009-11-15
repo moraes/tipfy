@@ -34,9 +34,8 @@ KEY_CHARS = string.ascii_letters + string.digits
 KEY_RE = re.compile(r'^[a-zA-Z0-9]{64}$')
 
 # Proxies to the session variables set on each request.
-local.session = local.session_id = local.session_store = None
-session, session_id, session_store = local('session'), local('session_id'), \
-    local('session_store')
+local.session = local.session_store = None
+session, session_store = local('session'), local('session_store')
 
 
 class Session(db.Model):
@@ -54,8 +53,8 @@ class Session(db.Model):
 
 
 class DatastoreSessionStore(SessionStore):
-    def __init__(self):
-        SessionStore.__init__(self, expires=None)
+    def __init__(self, expires=None):
+        SessionStore.__init__(self)
         self.expires = expires or local.app.config.session_expiration
 
     def generate_key(self, salt=None):
@@ -162,14 +161,14 @@ class DatastoreSessionMiddleware(object):
         self.session_store = DatastoreSessionStore()
 
     def process_request(self, request):
+        self.session_id = self.session_id_store.get(None)
         local.session_store = self.session_store
-        local.session_id = self.session_id_store.get(None)
-        local.session = self.session_store.get(local.session_id.get('_sid'))
+        local.session = self.session_store.get(self.session_id.get('_sid'))
 
     def process_response(self, request, response):
         if hasattr(local, 'session'):
-            local.session_id['_sid'] = local.session.sid
+            self.session_id['_sid'] = local.session.sid
             self.session_store.save_if_modified(local.session)
-            self.session_id_store.save_if_modified(local.session_id)
+            self.session_id_store.save_if_modified(self.session_id)
 
         return response

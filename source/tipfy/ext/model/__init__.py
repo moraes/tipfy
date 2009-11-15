@@ -61,14 +61,9 @@ def populate_entity(entity, **kwargs):
 
 
 def get_or_insert_with_flag(model, key_name, **kwargs):
-    """Same as Model.get_or_insert(), but before doing a transaction tests
-    if the entity exists, and always returns a boolean flag indicating if the
-    entity was inserted.
+    """Same as Model.get_or_insert(), but returns a tuple (entity, boolean). If
+    the entity is inserted, the boolean is True, otherwise it is False.
     """
-    entity = model.get_by_key_name(key_name, parent=kwargs.get('parent'))
-    if entity:
-        return (entity, False)
-
     def txn():
         entity = model.get_by_key_name(key_name, parent=kwargs.get('parent'))
         if entity:
@@ -104,24 +99,25 @@ def slugify(value, max_length=None, default=None):
 
 # Nice ideas borrowed from Kay. See AUTHORS.txt for details.
 def retry_on_timeout(retries=3, interval=1.0, exponent=2.0):
-    """A decorator to retry a given function performing db operations."""
+    """A decorator to retry a function that performs db operations in case a
+    db.Timeout exception is raised.
+    """
     def _decorator(func):
         def _wrapper(*args, **kwargs):
             count = 0
             while True:
                 try:
-                    kwargs['_retry_count'] = count
                     return func(*args, **kwargs)
                 except db.Timeout, e:
-                    count += 1
                     logging.debug(e)
-                    if count > retries:
+                    if count >= retries:
                         raise e
                     else:
                         sleep_time = (exponent ** count) * interval
                         logging.warning("Retrying function %r in %d secs" %
                             (func, sleep_time))
                         time.sleep(sleep_time)
+                        count += 1
 
         return _wrapper
 

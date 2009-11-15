@@ -31,45 +31,40 @@ class FooExpandoModel(db.Expando):
 class BarModel(db.Model):
     foo = db.ReferenceProperty(FooModel)
 
-_retry_count = 0
+
+class RetryCounter(object):
+    def __init__(self):
+        self.value = 0
+
 
 @retry_on_timeout(retries=3, interval=0.1)
 def test_timeout_1(**kwargs):
-    global _retry_count
+    counter = kwargs.get('counter')
 
     # Let it pass only in the last attempt
-    if retry_count < 3:
-        _retry_count += 1
+    if counter.value < 3:
+        counter.value += 1
         raise db.Timeout()
 
-    count = _retry_count
-    _retry_count = 0
-    return count
 
-
-@retry_on_timeout(retries=3, interval=0.1)
+@retry_on_timeout(retries=5, interval=0.1)
 def test_timeout_2(**kwargs):
-    global _retry_count
+    counter = kwargs.get('counter')
 
     # Let it pass only in the last attempt
-    if _retry_count < 3:
-        _retry_count += 1
+    if counter.value < 5:
+        counter.value += 1
         raise db.Timeout()
 
-    _retry_count = 0
     raise ValueError()
 
 
-@retry_on_timeout(retries=3, interval=0.1)
+@retry_on_timeout(retries=2, interval=0.1)
 def test_timeout_3(**kwargs):
-    global _retry_count
-
-    # Never Let it pass.
-    if retry_count <= 3:
-        _retry_count += 1
-        if retry_count == 3:
-            retry_count = 0
-        raise db.Timeout()
+    # Never let it pass.
+    counter = kwargs.get('counter')
+    counter.value += 1
+    raise db.Timeout()
 
 
 class TestModel(DataStoreTestCase, unittest.TestCase):
@@ -243,12 +238,17 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(hashlib.sha1(entity_2.name.encode('utf8')).hexdigest(), entity_2.etag)
 
     def test_retry_on_timeout_1(self):
-        retries = test_timeout_1()
-        self.assertEqual(retries, 3)
+        counter = RetryCounter()
+        test_timeout_1(counter=counter)
+        self.assertEqual(counter.value, 3)
 
     def test_retry_on_timeout_2(self):
-        self.assertRaises(ValueError, test_timeout_2)
+        counter = RetryCounter()
+        self.assertRaises(ValueError, test_timeout_2, counter=counter)
+        self.assertEqual(counter.value, 5)
 
     def test_retry_on_timeout_3(self):
-        self.assertRaises(db.Timeout, test_timeout_3)
+        counter = RetryCounter()
+        self.assertRaises(db.Timeout, test_timeout_3, counter=counter)
+        self.assertEqual(counter.value, 3)
 

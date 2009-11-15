@@ -3,7 +3,10 @@
     tipfy.ext.sessions
     ~~~~~~~~~~~~~~~~~~
 
-    Sessions extension.
+    Sessions extension. Enables sessions using secure cookies or the datastore.
+
+    WARNING: the session implementations are still pretty new and untested.
+             Consider this as a work in progress.
 
     Parts of this file derive from Kay.
 

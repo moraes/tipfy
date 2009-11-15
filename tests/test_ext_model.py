@@ -31,31 +31,44 @@ class FooExpandoModel(db.Expando):
 class BarModel(db.Model):
     foo = db.ReferenceProperty(FooModel)
 
+_retry_count = 0
 
 @retry_on_timeout(retries=3, interval=0.1)
 def test_timeout_1(**kwargs):
-    retry_count = kwargs.get('_retry_count')
+    global _retry_count
+
     # Let it pass only in the last attempt
     if retry_count < 3:
+        _retry_count += 1
         raise db.Timeout()
 
-    return retry_count
+    count = _retry_count
+    _retry_count = 0
+    return count
 
 
 @retry_on_timeout(retries=3, interval=0.1)
 def test_timeout_2(**kwargs):
-    retry_count = kwargs.get('_retry_count')
+    global _retry_count
+
     # Let it pass only in the last attempt
-    if retry_count < 3:
+    if _retry_count < 3:
+        _retry_count += 1
         raise db.Timeout()
 
+    _retry_count = 0
     raise ValueError()
+
 
 @retry_on_timeout(retries=3, interval=0.1)
 def test_timeout_3(**kwargs):
-    retry_count = kwargs.get('_retry_count')
+    global _retry_count
+
     # Never Let it pass.
     if retry_count <= 3:
+        _retry_count += 1
+        if retry_count == 3:
+            retry_count = 0
         raise db.Timeout()
 
 

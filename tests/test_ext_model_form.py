@@ -45,6 +45,20 @@ class AllPropertiesModel(db.Model):
     prop_rating = db.RatingProperty()
 
 
+class DateTimeModel(db.Model):
+    prop_date_time_1 = db.DateTimeProperty()
+    prop_date_time_2 = db.DateTimeProperty(auto_now=True)
+    prop_date_time_3 = db.DateTimeProperty(auto_now_add=True)
+
+    prop_date_1 = db.DateProperty()
+    prop_date_2 = db.DateProperty(auto_now=True)
+    prop_date_3 = db.DateProperty(auto_now_add=True)
+
+    prop_time_1 = db.TimeProperty()
+    prop_time_2 = db.TimeProperty(auto_now=True)
+    prop_time_3 = db.TimeProperty(auto_now_add=True)
+
+
 class TestModelForm(DataStoreTestCase, unittest.TestCase):
     def test_model_form_basic(self):
         form_class = model_form(Contact)
@@ -59,6 +73,24 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(isinstance(form.city, f.TextField), True)
         self.assertEqual(isinstance(form.age, f.IntegerField), True)
         self.assertEqual(isinstance(form.is_admin, f.BooleanField), True)
+
+    def test_required_field(self):
+        form_class = model_form(Contact)
+
+        form = form_class()
+        self.assertEqual(form.name.flags.required, True)
+        self.assertEqual(form.city.flags.required, False)
+        self.assertEqual(form.age.flags.required, True)
+        self.assertEqual(form.is_admin.flags.required, False)
+
+    def test_default_value(self):
+        form_class = model_form(Contact)
+
+        form = form_class()
+        self.assertEqual(form.name._default, None)
+        self.assertEqual(form.city._default, None)
+        self.assertEqual(form.age._default, None)
+        self.assertEqual(form.is_admin._default, False)
 
     def test_model_form_only(self):
         form_class = model_form(Contact, only=['name', 'age'])
@@ -85,7 +117,6 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(isinstance(form.city, f.TextField), True)
         self.assertEqual(isinstance(form.age, f.IntegerField), True)
 
-
     def test_not_implemented_properties(self):
         self.assertRaises(NotImplementedError, model_form, AllPropertiesModel)
         self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_list',))
@@ -97,3 +128,19 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
 
         form = model_form(AllPropertiesModel, exclude=('prop_list', 'prop_reference',
             'prop_self_refeference', 'prop_user', 'prop_geo_pt', 'prop_im'))
+
+    def test_datetime_model(self):
+        """Fields marked as auto_add / auto_add_now should not be included."""
+        form_class = model_form(DateTimeModel)
+
+        self.assertEqual(hasattr(form_class, 'prop_date_time_1'), True)
+        self.assertEqual(hasattr(form_class, 'prop_date_time_2'), False)
+        self.assertEqual(hasattr(form_class, 'prop_date_time_3'), False)
+
+        self.assertEqual(hasattr(form_class, 'prop_date_1'), True)
+        self.assertEqual(hasattr(form_class, 'prop_date_2'), False)
+        self.assertEqual(hasattr(form_class, 'prop_date_3'), False)
+
+        self.assertEqual(hasattr(form_class, 'prop_time_1'), True)
+        self.assertEqual(hasattr(form_class, 'prop_time_2'), False)
+        self.assertEqual(hasattr(form_class, 'prop_time_3'), False)

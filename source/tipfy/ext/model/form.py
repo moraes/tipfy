@@ -5,6 +5,13 @@
 
     Form generation utilities for db.Model classes, based on wtforms.
 
+    The goal of model_form() is to provide a clean, explicit and predictable
+    way to generate a form for a ``db.Model`` class. No malabarism or hidden
+    magic should be necessary to generate a form based on one or multiple
+    models, and to add custom non-model related fields: model_form() simply
+    generates a form class that can be used as it is, be extended or be used
+    as base class for a new form classes created using model_form().
+
     Example usage:
 
         from google.appengine.ext import db
@@ -170,7 +177,7 @@ def convert_TimeProperty(model, prop, kwargs):
 
 def convert_ListProperty(model, prop, kwargs):
     """Returns a form field for a ListProperty."""
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 def convert_StringListProperty(model, prop, kwargs):
@@ -180,17 +187,17 @@ def convert_StringListProperty(model, prop, kwargs):
 
 def convert_ReferenceProperty(model, prop, kwargs):
     """Returns a form field for a ReferenceProperty."""
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 def convert_SelfReferenceProperty(model, prop, kwargs):
     """Returns a form field for a SelfReferenceProperty."""
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 def convert_UserProperty(model, prop, kwargs):
     """Returns a form field for a UserProperty."""
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 def convert_BlobProperty(model, prop, kwargs):
@@ -222,12 +229,12 @@ def convert_EmailProperty(model, prop, kwargs):
 
 def convert_GeoPtProperty(model, prop, kwargs):
     """Returns a form field for a GeoPtProperty."""
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 def convert_IMProperty(model, prop, kwargs):
     """Returns a form field for a IMProperty."""
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 def convert_PhoneNumberProperty(model, prop, kwargs):

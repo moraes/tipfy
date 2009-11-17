@@ -375,22 +375,18 @@ class ModelConverter(object):
             kwargs['choices'] = [(v, v) for v in prop.choices]
             return f.SelectField(**kwargs)
         else:
-            method = self.converters.get(type(prop).__name__, None)
-            if method is not None:
-                return method(model, prop, kwargs)
+            converter = self.converters.get(type(prop).__name__, None)
+            if converter is not None:
+                return converter(model, prop, kwargs)
 
 
-def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
+def model_fields(model, only=None, exclude=None, field_args=None,
     converter=None):
-    """Creates and returns a dynamic ``wtforms.Form`` class for a a given
-    ``db.Model`` class. The form class can be used as it is or serve as a base
-    for extended form classes, which can then mix non-model related fields,
-    subforms with other model forms, among other possibilities.
+    """Extracts and returns a dictionary of form fields for a given
+    ``db.Model`` class.
 
     :param model:
-        The ``db.Model`` class to generate a form for.
-    :param base_class:
-        Base form class to extend from. Must be a ``wtforms.Form`` subclass.
+        The ``db.Model`` class to extract fields from.
     :param only:
         An optional iterable with the property names that should be included in
         the form. Only these properties will have fields.
@@ -422,6 +418,36 @@ def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
         field = converter.convert(model, props[name], field_args.get(name))
         if field is not None:
             field_dict[name] = field
+
+    return field_dict
+
+
+def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
+    converter=None):
+    """Creates and returns a dynamic ``wtforms.Form`` class for a given
+    ``db.Model`` class. The form class can be used as it is or serve as a base
+    for extended form classes, which can then mix non-model related fields,
+    subforms with other model forms, among other possibilities.
+
+    :param model:
+        The ``db.Model`` class to generate a form for.
+    :param base_class:
+        Base form class to extend from. Must be a ``wtforms.Form`` subclass.
+    :param only:
+        An optional iterable with the property names that should be included in
+        the form. Only these properties will have fields.
+    :param exclude:
+        An optional iterable with the property names that should be excluded
+        from the form. All other properties will have fields.
+    :param field_args:
+        An optional dictionary of field names mapping to a keyword arguments
+        used to construct each field object.
+    :param converter:
+        A converter to generate the fields based on the model properties. If
+        not set, ``ModelConverter`` is used.
+    """
+    field_dict = model_fields(model, only=only, exclude=exclude,
+        field_args=field_args, converter=converter)
 
     # Return a dynamically created new class, extending from base_class and
     # including the created fields as properties.

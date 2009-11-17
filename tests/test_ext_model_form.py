@@ -8,7 +8,7 @@ from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase
 
 from tipfy import NotFound
-from tipfy.ext.model.form import model_form, ModelConverter, f
+from tipfy.ext.model.form import model_form, ModelConverter, f, validators
 
 
 class Contact(db.Model):
@@ -126,6 +126,7 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
         self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_geo_pt',))
         self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_im',))
 
+        # This should not raise NotImplementedError.
         form = model_form(AllPropertiesModel, exclude=('prop_list', 'prop_reference',
             'prop_self_refeference', 'prop_user', 'prop_geo_pt', 'prop_im'))
 
@@ -144,3 +145,46 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(hasattr(form_class, 'prop_time_1'), True)
         self.assertEqual(hasattr(form_class, 'prop_time_2'), False)
         self.assertEqual(hasattr(form_class, 'prop_time_3'), False)
+
+    def test_populate_form(self):
+        entity = Contact(key_name='test', name='John', city='Yukon', age=25, is_admin=True)
+        entity.put()
+
+        obj = Contact.get_by_key_name('test')
+        form_class = model_form(Contact)
+
+        form = form_class(obj=obj)
+        self.assertEqual(form.name.data, 'John')
+        self.assertEqual(form.city.data, 'Yukon')
+        self.assertEqual(form.age.data, 25)
+        self.assertEqual(form.is_admin.data, True)
+
+    def test_field_attributes(self):
+        form_class = model_form(Contact, field_args={
+            'name': {
+                'label': 'Full name',
+                'description': 'Your name',
+            },
+            'age': {
+                'label': 'Age',
+                'validators': [validators.NumberRange(min=14, max=99)],
+            },
+            'city': {
+                'label': 'City',
+                'description': 'The city in which you live, not the one in which you were born.',
+            },
+            'is_admin': {
+                'label': 'Administrative rights',
+            },
+        })
+        form = form_class()
+
+        self.assertEqual(form.name.label.text, 'Full name')
+        self.assertEqual(form.name.description, 'Your name')
+
+        self.assertEqual(form.age.label.text, 'Age')
+
+        self.assertEqual(form.city.label.text, 'City')
+        self.assertEqual(form.city.description, 'The city in which you live, not the one in which you were born.')
+
+        self.assertEqual(form.is_admin.label.text, 'Administrative rights')

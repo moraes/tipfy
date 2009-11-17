@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.model.forms
-    ~~~~~~~~~~~~~~~~~~~~~
+    tipfy.ext.model.form
+    ~~~~~~~~~~~~~~~~~~~~
 
     Form generation utilities for db.Model classes, based on wtforms.
 
@@ -10,26 +10,52 @@
         from google.appengine.ext import db
         from tipfy.ext.model.form import model_form
 
-        # Define a model and add a record.
-        class MyModel(db.Model):
-            name = db.StringProperty(default='some default value')
+        # Define an example model and add a record.
+        class Contact(db.Model):
+            name = db.StringProperty(required=True)
+            city = db.StringProperty()
             age = db.IntegerProperty(required=True)
+            is_admin = db.BooleanProperty(default=False)
 
-        new_entity = MyModel(key_name='test', name='Test Name', age=17)
+        new_entity = Contact(key_name='test', name='Test Name', age=17)
         new_entity.put()
 
         # Generate a form based on the model.
-        MyModelForm = model_form(MyModel)
+        ContactForm = model_form(Contact)
 
         # Get a form populated with entity data.
-        entity = MyModel.get_by_key_name('test')
-        form = MyModelForm(obj=entity)
+        entity = Contact.get_by_key_name('test')
+        form = ContactForm(obj=entity)
 
-    The form returned by model_form() can be used as a base class for forms
+    Properties from de model can be excluded from the generated form, or it can
+    include just a set of properties. For example:
+
+        # Generate a form based on the model, excluding 'city' and 'is_admin'.
+        ContactForm = model_form(Contact, exclude=('city', 'is_admin'))
+
+        # or...
+
+        # Generate a form based on the model, only including 'name' and 'age'.
+        ContactForm = model_form(Contact, only=('name', 'age'))
+
+    The form can be generated setting field arguments:
+
+        ContactForm = model_form(Contact, only=('name', 'age'), field_args={
+            'name': {
+                'label': 'Full name',
+                'description': 'Your name',
+            },
+            'age': {
+                'label': 'Age',
+                'validators': [validators.NumberRange(min=14, max=99)],
+            }
+        })
+
+    The class returned by model_form() can be used as a base class for forms
     mixing non-model fields and/or other model forms. For example:
 
         # Generate a form based on the model.
-        BaseContactForm = model_form(MyModel)
+        BaseContactForm = model_form(Contact)
 
         # Generate a form based on other model.
         ExtraContactForm = model_form(MyOtherModel)
@@ -40,6 +66,15 @@
 
             # Add the other model form as a subform.
             extra = f.FormField(ExtraContactForm)
+
+    The class returned by model_form() can also extend an existing form class:
+
+        class BaseContactForm(Form):
+            # Add an extra, non-model related field.
+            subscribe_to_news = f.BooleanField()
+
+        # Generate a form based on the model.
+        ContactForm = model_form(Contact, base_class=BaseContactForm)
 
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.

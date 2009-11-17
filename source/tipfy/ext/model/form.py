@@ -9,8 +9,8 @@
     way to generate a form for a ``db.Model`` class. No malabarism or hidden
     magic should be necessary to generate a form based on one or multiple
     models, and to add custom non-model related fields: model_form() simply
-    generates a form class that can be used as it is, be extended or be used
-    as base class for a new form classes created using model_form().
+    generates a form class that can be used as it is, or that can be extended
+    directly or used as base class for new forms created using model_form().
 
     Example usage:
 
@@ -34,7 +34,7 @@
         entity = Contact.get_by_key_name('test')
         form = ContactForm(obj=entity)
 
-    Properties from de model can be excluded from the generated form, or it can
+    Properties from the model can be excluded from the generated form, or it can
     include just a set of properties. For example:
 
         # Generate a form based on the model, excluding 'city' and 'is_admin'.

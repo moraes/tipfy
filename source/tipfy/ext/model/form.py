@@ -158,6 +158,7 @@ def convert_DateTimeProperty(model, prop, kwargs):
     """Returns a form field for a DateTimeProperty."""
     if prop.auto_now or prop.auto_now_add:
         return None
+
     return f.DateTimeField(format='%Y-%m-%d %H-%M-%S', **kwargs)
 
 
@@ -165,6 +166,7 @@ def convert_DateProperty(model, prop, kwargs):
     """Returns a form field for a DateProperty."""
     if prop.auto_now or prop.auto_now_add:
         return None
+
     return f.DateTimeField(format='%Y-%m-%d', **kwargs)
 
 
@@ -172,6 +174,7 @@ def convert_TimeProperty(model, prop, kwargs):
     """Returns a form field for a TimeProperty."""
     if prop.auto_now or prop.auto_now_add:
         return None
+
     return f.DateTimeField(format='%H-%M-%S', **kwargs)
 
 
@@ -360,7 +363,7 @@ class ModelConverter(object):
             Optional keyword arguments to construct the field.
         """
         kwargs = {
-            'label': prop.name,
+            'label': prop.name.replace('_', ' ').title(),
             'default': prop.default_value(),
             'validators': [],
         }
@@ -408,7 +411,7 @@ def model_fields(model, only=None, exclude=None, field_args=None,
     props = model.properties()
     field_names = props.keys()
     if only:
-        field_names = list(f for f in field_names if f in only)
+        field_names = list(f for f in only if f in field_names)
     elif exclude:
         field_names = list(f for f in field_names if f not in exclude)
 
@@ -449,6 +452,6 @@ def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
     # Extract the fields from the model.
     field_dict = model_fields(model, only, exclude, field_args, converter)
 
-    # Return a dynamically created new class, extending from base_class and
+    # Return a dynamically created form class, extending from base_class and
     # including the created fields as properties.
     return type(model.kind() + 'Form', (base_class,), field_dict)

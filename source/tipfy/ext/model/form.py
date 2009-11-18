@@ -10,9 +10,9 @@
     The goal of ``model_form()`` is to provide a clean, explicit and predictable
     way to create forms based on ``db.Model`` classes. No malabarism or black
     magic should be necessary to generate a form for models, and to add custom
-    non-model related fields: ``model_form()`` simply generates a form class that
-    can be used as it is, or that can be extended directly or even be used to
-    create other forms using ``model_form()``.
+    non-model related fields: ``model_form()`` simply generates a form class
+    that can be used as it is, or that can be extended directly or even be used
+    to create other forms using ``model_form()``.
 
     Example usage:
 
@@ -76,7 +76,8 @@
             # Add the other model form as a subform.
             extra = f.FormField(ExtraContactForm)
 
-    The class returned by ``model_form()`` can also extend an existing form class:
+    The class returned by ``model_form()`` can also extend an existing form
+    class:
 
         class BaseContactForm(Form):
             # Add an extra, non-model related field.

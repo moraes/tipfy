@@ -6,7 +6,7 @@
     Form generation utilities for db.Model classes, based on wtforms.
 
     The goal of model_form() is to provide a clean, explicit and predictable
-    way to generate a form for a ``db.Model`` class. No malabarism or hidden
+    way to generate a form for a ``db.Model`` class. No malabarism or black
     magic should be necessary to generate a form based on one or multiple
     models, and to add custom non-model related fields: model_form() simply
     generates a form class that can be used as it is, or that can be extended
@@ -408,7 +408,7 @@ def model_fields(model, only=None, exclude=None, field_args=None,
     props = model.properties()
     field_names = props.keys()
     if only:
-        field_names = list(f for f in only if f in field_names)
+        field_names = list(f for f in field_names if f in only)
     elif exclude:
         field_names = list(f for f in field_names if f not in exclude)
 
@@ -446,8 +446,8 @@ def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
         A converter to generate the fields based on the model properties. If
         not set, ``ModelConverter`` is used.
     """
-    field_dict = model_fields(model, only=only, exclude=exclude,
-        field_args=field_args, converter=converter)
+    # Extract the fields from the model.
+    field_dict = model_fields(model, only, exclude, field_args, converter)
 
     # Return a dynamically created new class, extending from base_class and
     # including the created fields as properties.

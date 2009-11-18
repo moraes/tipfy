@@ -76,7 +76,7 @@ def get_or_insert_with_flag(model, key_name, **kwargs):
     return db.run_in_transaction(txn)
 
 
-def with_entity(model, kwarg_old, kwarg_new, mode='key'):
+def with_entity(model, kwarg_old, kwarg_new, mode=None):
     """A decorator to replace an entity key, key name or id from the request
     handler kwargs by the loaded entity. If not found, a ``NotFound`` error is
     raised.

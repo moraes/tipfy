@@ -59,6 +59,13 @@ class DateTimeModel(db.Model):
     prop_time_3 = db.TimeProperty(auto_now_add=True)
 
 
+class Author(db.Model):
+    name = db.StringProperty(required=True)
+
+class Book(db.Model):
+    author = db.ReferenceProperty(Author)
+
+
 class TestModelForm(DataStoreTestCase, unittest.TestCase):
     def test_model_form_basic(self):
         form_class = model_form(Contact)
@@ -120,15 +127,14 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
     def test_not_implemented_properties(self):
         self.assertRaises(NotImplementedError, model_form, AllPropertiesModel)
         self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_list',))
-        self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_reference',))
-        self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_self_refeference',))
+        #self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_reference',))
+        #self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_self_refeference',))
         self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_user',))
         self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_geo_pt',))
         self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_im',))
 
         # This should not raise NotImplementedError.
-        form = model_form(AllPropertiesModel, exclude=('prop_list', 'prop_reference',
-            'prop_self_refeference', 'prop_user', 'prop_geo_pt', 'prop_im'))
+        form = model_form(AllPropertiesModel, exclude=('prop_list', 'prop_user', 'prop_geo_pt', 'prop_im'))
 
     def test_datetime_model(self):
         """Fields marked as auto_add / auto_add_now should not be included."""
@@ -188,3 +194,19 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(form.city.description, 'The city in which you live, not the one in which you were born.')
 
         self.assertEqual(form.is_admin.label.text, 'Administrative rights')
+
+    def test_reference_property(self):
+        keys = []
+        for name in ['foo', 'bar', 'baz']:
+            author = Author(name=name)
+            author.put()
+            keys.append(str(author.key()))
+
+        form_class = model_form(Book)
+        form = form_class()
+
+        choices = []
+        i = 0
+        for key, name, value in form.author.iter_choices():
+            self.assertEqual(key, keys[i])
+            i += 1

@@ -3,14 +3,16 @@
     tipfy.ext.model.form
     ~~~~~~~~~~~~~~~~~~~~
 
-    Form generation utilities for db.Model classes, based on wtforms.
+    Form generation utilities for db.Model classes, based on WTForms.
 
-    The goal of model_form() is to provide a clean, explicit and predictable
-    way to generate a form for a ``db.Model`` class. No malabarism or black
-    magic should be necessary to generate a form based on one or multiple
-    models, and to add custom non-model related fields: model_form() simply
-    generates a form class that can be used as it is, or that can be extended
-    directly or used as base class for new forms created using model_form().
+    WTForms library is at http://wtforms.simplecodes.com/
+
+    The goal of ``model_form()`` is to provide a clean, explicit and predictable
+    way to create forms based on ``db.Model`` classes. No malabarism or black
+    magic should be necessary to generate a form for models, and to add custom
+    non-model related fields: ``model_form()`` simply generates a form class that
+    can be used as it is, or that can be extended directly or even be used to
+    create other forms using ``model_form()``.
 
     Example usage:
 
@@ -58,7 +60,7 @@
             }
         })
 
-    The class returned by model_form() can be used as a base class for forms
+    The class returned by ``model_form()`` can be used as a base class for forms
     mixing non-model fields and/or other model forms. For example:
 
         # Generate a form based on the model.
@@ -74,7 +76,7 @@
             # Add the other model form as a subform.
             extra = f.FormField(ExtraContactForm)
 
-    The class returned by model_form() can also extend an existing form class:
+    The class returned by ``model_form()`` can also extend an existing form class:
 
         class BaseContactForm(Form):
             # Add an extra, non-model related field.
@@ -126,7 +128,7 @@ def get_IntegerField(kwargs):
 
 
 def convert_StringProperty(model, prop, kwargs):
-    """Returns a form field for a StringProperty."""
+    """Returns a form field for a ``db.StringProperty``."""
     if prop.multiline:
         kwargs['validators'].append(validators.length(max=500))
         return f.TextAreaField(**kwargs)
@@ -135,27 +137,27 @@ def convert_StringProperty(model, prop, kwargs):
 
 
 def convert_ByteStringProperty(model, prop, kwargs):
-    """Returns a form field for a ByteStringProperty."""
+    """Returns a form field for a ``db.ByteStringProperty``."""
     return get_TextField(kwargs)
 
 
 def convert_BooleanProperty(model, prop, kwargs):
-    """Returns a form field for a BooleanProperty."""
+    """Returns a form field for a ``db.BooleanProperty``."""
     return f.BooleanField(**kwargs)
 
 
 def convert_IntegerProperty(model, prop, kwargs):
-    """Returns a form field for a IntegerProperty."""
+    """Returns a form field for a ``db.IntegerProperty``."""
     return get_IntegerField(kwargs)
 
 
 def convert_FloatProperty(model, prop, kwargs):
-    """Returns a form field for a FloatProperty."""
+    """Returns a form field for a ``db.FloatProperty``."""
     return get_TextField(kwargs)
 
 
 def convert_DateTimeProperty(model, prop, kwargs):
-    """Returns a form field for a DateTimeProperty."""
+    """Returns a form field for a ``db.DateTimeProperty``."""
     if prop.auto_now or prop.auto_now_add:
         return None
 
@@ -163,7 +165,7 @@ def convert_DateTimeProperty(model, prop, kwargs):
 
 
 def convert_DateProperty(model, prop, kwargs):
-    """Returns a form field for a DateProperty."""
+    """Returns a form field for a ``db.DateProperty``."""
     if prop.auto_now or prop.auto_now_add:
         return None
 
@@ -171,7 +173,7 @@ def convert_DateProperty(model, prop, kwargs):
 
 
 def convert_TimeProperty(model, prop, kwargs):
-    """Returns a form field for a TimeProperty."""
+    """Returns a form field for a ``db.TimeProperty``."""
     if prop.auto_now or prop.auto_now_add:
         return None
 
@@ -179,79 +181,79 @@ def convert_TimeProperty(model, prop, kwargs):
 
 
 def convert_ListProperty(model, prop, kwargs):
-    """Returns a form field for a ListProperty."""
+    """Returns a form field for a ``db.ListProperty``."""
     raise NotImplementedError()
 
 
 def convert_StringListProperty(model, prop, kwargs):
-    """Returns a form field for a StringListProperty."""
+    """Returns a form field for a ``db.StringListProperty``."""
     return StringListPropertyField(**kwargs)
 
 
 def convert_ReferenceProperty(model, prop, kwargs):
-    """Returns a form field for a ReferenceProperty."""
+    """Returns a form field for a ``db.ReferenceProperty``."""
     raise NotImplementedError()
 
 
 def convert_SelfReferenceProperty(model, prop, kwargs):
-    """Returns a form field for a SelfReferenceProperty."""
+    """Returns a form field for a ``db.SelfReferenceProperty``."""
     raise NotImplementedError()
 
 
 def convert_UserProperty(model, prop, kwargs):
-    """Returns a form field for a UserProperty."""
+    """Returns a form field for a ``db.UserProperty``."""
     raise NotImplementedError()
 
 
 def convert_BlobProperty(model, prop, kwargs):
-    """Returns a form field for a BlobProperty."""
+    """Returns a form field for a ``db.BlobProperty``."""
     return f.FileField(**kwargs)
 
 
 def convert_TextProperty(model, prop, kwargs):
-    """Returns a form field for a TextProperty."""
+    """Returns a form field for a ``db.TextProperty``."""
     return f.TextAreaField(**kwargs)
 
 
 def convert_CategoryProperty(model, prop, kwargs):
-    """Returns a form field for a CategoryProperty."""
+    """Returns a form field for a ``db.CategoryProperty``."""
     return get_TextField(kwargs)
 
 
 def convert_LinkProperty(model, prop, kwargs):
-    """Returns a form field for a LinkProperty."""
+    """Returns a form field for a ``db.LinkProperty``."""
     kwargs['validators'].append(validators.url())
     return get_TextField(kwargs)
 
 
 def convert_EmailProperty(model, prop, kwargs):
-    """Returns a form field for a EmailProperty."""
+    """Returns a form field for a ``db.EmailProperty``."""
     kwargs['validators'].append(validators.email())
     return get_TextField(kwargs)
 
 
 def convert_GeoPtProperty(model, prop, kwargs):
-    """Returns a form field for a GeoPtProperty."""
+    """Returns a form field for a ``db.GeoPtProperty``."""
     raise NotImplementedError()
 
 
 def convert_IMProperty(model, prop, kwargs):
-    """Returns a form field for a IMProperty."""
+    """Returns a form field for a ``db.IMProperty``."""
     raise NotImplementedError()
 
 
 def convert_PhoneNumberProperty(model, prop, kwargs):
-    """Returns a form field for a PhoneNumberProperty."""
+    """Returns a form field for a ``db.PhoneNumberProperty``."""
     return get_TextField(kwargs)
 
 
 def convert_PostalAddressProperty(model, prop, kwargs):
-    """Returns a form field for a PostalAddressProperty."""
+    """Returns a form field for a ``db.PostalAddressProperty``."""
     return get_TextField(kwargs)
 
 
 def convert_RatingProperty(model, prop, kwargs):
-    """Returns a form field for a RatingProperty."""
+    """Returns a form field for a ``db.RatingProperty``."""
     kwargs['validators'].append(validators.NumberRange(min=0, max=100))
     return f.IntegerField(**kwargs)
 

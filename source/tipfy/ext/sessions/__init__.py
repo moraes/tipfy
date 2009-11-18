@@ -14,10 +14,7 @@
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-import re
-import string
 from datetime import datetime, timedelta
-from random import choice
 
 from google.appengine.api import memcache
 from google.appengine.ext import db
@@ -28,10 +25,6 @@ from werkzeug.contrib.sessions import SessionStore
 from tipfy import local, InternalServerError
 from tipfy.ext.model import model_from_protobuf, model_to_protobuf, \
     retry_on_timeout, PickleProperty
-
-# Characters used to build a session key, and a regex to check for a valid one.
-KEY_CHARS = string.ascii_letters + string.digits
-KEY_RE = re.compile(r'^[a-zA-Z0-9]{64}$')
 
 # Proxies to the session variables set on each request.
 local.session = local.session_store = None
@@ -56,14 +49,6 @@ class DatastoreSessionStore(SessionStore):
     def __init__(self, expires=None):
         SessionStore.__init__(self)
         self.expires = expires or local.app.config.session_expiration
-
-    def generate_key(self, salt=None):
-        """Generates a new session key."""
-        return ''.join(choice(KEY_CHARS) for n in xrange(64))
-
-    def is_valid_key(self, key):
-        """Checks if a key has the correct format."""
-        return KEY_RE.match(key) is not None
 
     def _is_valid_entity(self, entity):
         """Checks if a session data entity fetched from datastore is valid."""

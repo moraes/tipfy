@@ -440,7 +440,7 @@ def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
         An optional iterable with the property names that should be excluded
         from the form. All other properties will have fields.
     :param field_args:
-        An optional dictionary of field names mapping to a keyword arguments
+        An optional dictionary of field names mapping to keyword arguments
         used to construct each field object.
     :param converter:
         A converter to generate the fields based on the model properties. If

@@ -18,7 +18,7 @@ import unicodedata
 from google.appengine.ext import db
 from google.appengine.datastore import entity_pb
 
-from tipfy import NotFound
+from tipfy import NotFound, InternalServerError
 
 
 def model_to_protobuf(models):
@@ -76,6 +76,35 @@ def get_or_insert_with_flag(model, key_name, **kwargs):
     return db.run_in_transaction(txn)
 
 
+def with_entity(model, kwarg_old, kwarg_new, mode='key'):
+    """A decorator to replace an entity key, key name or id from the request
+    handler kwargs by the loaded entity. If not found, a ``NotFound`` error is
+    raised.
+    """
+    if mode == 'key':
+        fetcher = get_or_404
+    elif mode == 'id':
+        fetcher = get_by_id_or_404
+    elif mode == 'key_name':
+        fetcher = get_by_key_name_or_404
+    else:
+        raise NotImplementedError()
+
+    def decorator(func):
+        def decorated(*args, **kwargs):
+            entity = None
+            key = kwargs.pop(kwarg_old, None)
+            if key is not None:
+                entity = fetcher(model, key)
+
+            kwargs[kwarg_new] = entity
+            return func(*args, **kwargs)
+
+        return decorated
+
+    return decorator
+
+
 def slugify(value, max_length=None, default=None):
     """Converts a string to slug format."""
     if not isinstance(value, unicode):
@@ -100,10 +129,10 @@ def slugify(value, max_length=None, default=None):
 # Nice ideas borrowed from Kay. See AUTHORS.txt for details.
 def retry_on_timeout(retries=3, interval=1.0, exponent=2.0):
     """A decorator to retry a function that performs db operations in case a
-    db.Timeout exception is raised.
+    ``db.Timeout`` exception is raised.
     """
-    def _decorator(func):
-        def _wrapper(*args, **kwargs):
+    def decorator(func):
+        def decorated(*args, **kwargs):
             count = 0
             while True:
                 try:
@@ -119,9 +148,9 @@ def retry_on_timeout(retries=3, interval=1.0, exponent=2.0):
                         time.sleep(sleep_time)
                         count += 1
 
-        return _wrapper
+        return decorated
 
-    return _decorator
+    return decorator
 
 
 def get_by_key_name_or_404(model, key_name):

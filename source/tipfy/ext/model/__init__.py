@@ -18,7 +18,7 @@ import unicodedata
 from google.appengine.ext import db
 from google.appengine.datastore import entity_pb
 
-from tipfy import NotFound, InternalServerError
+from tipfy import NotFound
 
 
 def model_to_protobuf(models):

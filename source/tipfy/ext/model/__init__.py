@@ -21,15 +21,15 @@ from google.appengine.datastore import entity_pb
 from tipfy import NotFound
 
 
-def get_protobuf_from_entity(models):
+def get_protobuf_from_entity(entities):
     """Converts one or more ``db.Model`` instances to encoded Protocol Buffers.
 
     This is useful to store entities in memcache, and preferable than storing
     the entities directly as it has slightly better performance and avoids
-    crashes when unpickling (when, for example, the entity class moved to a
+    crashes when unpickling (when, for example, the entity class is moved to a
     different module).
 
-    Cached protobufs can be de-serialized using ``get_entity_from_protobuf()``.
+    Cached protobufs can be de-serialized using :func:`get_entity_from_protobuf`.
 
     Example usage:
 
@@ -45,28 +45,27 @@ def get_protobuf_from_entity(models):
        # Cache the protobuf.
        memcache.set('my-cache-key', get_protobuf_from_entity(entity))
 
-    This function derives from
-    http://blog.notdot.net/2009/9/Efficient-model-memcaching
+    This function derives from `Nick's Blog`_.
 
-    :param models:
+    :param entities:
         A single or a list of ``db.Model`` instances to be serialized.
     :return:
         One or more entities serialized to Protocol Buffer (a string or a list).
     """
-    if not models:
+    if not entities:
         return None
-    elif isinstance(models, db.Model):
-        return db.model_to_protobuf(models).Encode()
+    elif isinstance(entities, db.Model):
+        return db.model_to_protobuf(entities).Encode()
     else:
-        return [db.model_to_protobuf(x).Encode() for x in models]
+        return [db.model_to_protobuf(x).Encode() for x in entities]
 
 
 def get_entity_from_protobuf(data):
     """Converts one or more encoded Protocol Buffers to ``db.Model`` instances.
 
-    This is used to de-serialize models previously serialized using
-    ``get_protobuf_from_entity()``. After retrieving an entity protobuf from
-    memcache, this converts it back to a ``db.Model`` instance.
+    This is used to de-serialize entities previously serialized using
+    :func:`get_protobuf_from_entity()`. After retrieving an entity protobuf
+    from memcache, this converts it back to a ``db.Model`` instance.
 
     Example usage:
 
@@ -80,8 +79,7 @@ def get_entity_from_protobuf(data):
        if protobuf:
            entity = get_entity_from_protobuf(protobuf)
 
-    This function derives from
-    http://blog.notdot.net/2009/9/Efficient-model-memcaching
+    This function derives from `Nick's Blog`_.
 
     :param data:
         One or more entities serialized to Protocol Buffer (a string or a list).
@@ -235,7 +233,7 @@ def get_or_404(model, key):
 
                 # ... continue processing contact ...
 
-    This function derives from Kay: http://code.google.com/p/kay-framework/
+    This function derives from `Kay`_.
 
     :param model:
         A ``db.Model`` class to load an entity.
@@ -269,7 +267,7 @@ def get_by_id_or_404(model, id):
 
                 # ... continue processing contact ...
 
-    This function derives from Kay: http://code.google.com/p/kay-framework/
+    This function derives from `Kay`_.
 
     :param model:
         A ``db.Model`` class to load an entity.
@@ -305,7 +303,7 @@ def get_by_key_name_or_404(model, key_name):
 
                 # ... continue processing contact ...
 
-    This function derives from Kay: http://code.google.com/p/kay-framework/
+    This function derives from `Kay`_.
 
     :param model:
         A ``db.Model`` class to load an entity.
@@ -348,7 +346,7 @@ def retry_on_timeout(retries=3, interval=1.0, exponent=2.0):
                 # Save the entity. This will be retried in case of timeouts.
                 entity.put()
 
-    This function derives from Kay: http://code.google.com/p/kay-framework/
+    This function derives from `Kay`_.
 
     :param retries:
         An integer value for the number of retries in case ``db.Timeout`` is
@@ -477,11 +475,11 @@ class EtagProperty(db.Property):
        from google.appengine.ext import db
        from tipfy.ext.model import EtagProperty
 
-       class ImageModel(db.Model):
+       class StaticContent(db.Model):
            data = db.BlobProperty()
            etag = EtagProperty(data)
 
-    This class derives from aetycoon: http://github.com/Arachnid/aetycoon/
+    This class derives from `aetycoon`_.
     """
     def __init__(self, prop, *args, **kwargs):
         self.prop = prop
@@ -515,7 +513,7 @@ class PickleProperty(db.Property):
     >>> model2.data
     {'foo': 'bar'}
 
-    This class derives from aetycoon: http://github.com/Arachnid/aetycoon/
+    This class derives from `aetycoon`_.
     """
     data_type = db.Blob
 
@@ -548,7 +546,7 @@ class SlugProperty(db.Property):
            title = db.StringProperty()
            slug = SlugProperty(title)
 
-    This class derives from aetycoon: http://github.com/Arachnid/aetycoon/
+    This class derives from `aetycoon`_.
     """
     def __init__(self, prop, max_length=None, *args, **kwargs):
         self.prop = prop

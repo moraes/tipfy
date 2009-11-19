@@ -5,6 +5,10 @@ tipfy.ext.model
 .. toctree::
    :maxdepth: 5
 
+.. _Nick's Blog: http://blog.notdot.net/2009/9/Efficient-model-memcaching
+.. _Kay: http://code.google.com/p/kay-framework/
+.. _aetycoon: http://github.com/Arachnid/aetycoon/
+
 This module provides several utilities to work with ``google.appengine.ext.db``,
 including serialization functions, decorators and useful extra ``db.Property``
 classes.

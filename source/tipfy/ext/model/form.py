@@ -184,7 +184,7 @@ def get_IntegerField(kwargs):
     """Returns an ``IntegerField``, applying the ``db.IntegerProperty`` range
     limits.
     """
-    kwargs['validators'].append(validators.NumberRange(min=0x8000000000000000,
+    kwargs['validators'].append(validators.NumberRange(min=-0x8000000000000000,
         max=0x7fffffffffffffff))
     return f.IntegerField(**kwargs)
 

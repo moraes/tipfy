@@ -76,7 +76,7 @@ def get_entity_from_protobuf(data):
        from tipfy.ext.model import get_entity_from_protobuf
 
        # Get the protobuf from cache and de-serialize it.
-       protobuf = memcache.get('my-cache-key'))
+       protobuf = memcache.get('my-cache-key')
        if protobuf:
            entity = get_entity_from_protobuf(protobuf)
 
@@ -338,6 +338,7 @@ def retry_on_timeout(retries=3, interval=1.0, exponent=2.0):
             def get(self, **kwargs):
                 # ... do the get stuff ...
                 # ...
+                pass
 
             @retry_on_timeout()
             def post(self, **kwargs):

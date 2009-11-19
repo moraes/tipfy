@@ -9,12 +9,13 @@ Welcome to Tipfy's documentation!
 .. note::
    This a work in progress.
 
+API Reference
+=============
 .. toctree::
    :maxdepth: 2
    :glob:
-   :hidden:
 
-   api
+   api/*
 
 .. _tutorials:
 
@@ -32,4 +33,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

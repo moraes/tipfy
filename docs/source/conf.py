@@ -16,7 +16,12 @@ import sys, os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.append(os.path.abspath('.'))
+source_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'source'))
+lib_path = os.path.join(source_path, 'lib')
+sys.path.append(source_path)
+sys.path.append(lib_path)
+sys.path.append('/usr/local/google_appengine')
+sys.path.append('/usr/local/google_appengine/lib/yaml/lib')
 
 # -- General configuration -----------------------------------------------------
 

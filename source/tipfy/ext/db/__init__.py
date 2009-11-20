@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.model
+    tipfy.ext.db
     ~~~~~~~~~~~~~~~
 
     Model utilities extension.
@@ -36,7 +36,7 @@ def get_protobuf_from_entity(entities):
     .. code-block:: python
 
        from google.appengine.api import memcache
-       from tipfy.ext.model import get_protobuf_from_entity
+       from tipfy.ext.db import get_protobuf_from_entity
 
        # Inside a handler, given that a MyModel model is dfefined.
        entity = MyModel(key_name='foo')
@@ -72,7 +72,7 @@ def get_entity_from_protobuf(data):
     .. code-block:: python
 
        from google.appengine.api import memcache
-       from tipfy.ext.model import get_entity_from_protobuf
+       from tipfy.ext.db import get_entity_from_protobuf
 
        # Get the protobuf from cache and de-serialize it.
        protobuf = memcache.get('my-cache-key')
@@ -104,7 +104,7 @@ def get_reference_key(entity, prop_name):
     .. code-block:: python
 
        from google.appengine.ext import db
-       from tipfy.ext.model import get_reference_key
+       from tipfy.ext.db import get_reference_key
 
        # Set a book entity with an author reference.
        class Author(db.Model):
@@ -143,7 +143,7 @@ def populate_entity(entity, **kwargs):
     .. code-block:: python
 
        from google.appengine.ext import db
-       from tipfy.ext.model import populate_entity
+       from tipfy.ext.db import populate_entity
 
        class Author(db.Model):
            name = db.StringProperty(required=True)
@@ -185,7 +185,7 @@ def get_or_insert_with_flag(model, key_name, **kwargs):
     .. code-block:: python
 
        from google.appengine.ext import db
-       from tipfy.ext.model import get_or_insert_with_flag
+       from tipfy.ext.db import get_or_insert_with_flag
 
        class Author(db.Model):
            name = db.StringProperty()
@@ -224,7 +224,7 @@ def get_or_404(model, key):
     .. code-block:: python
 
         from tipfy import RequestHandler
-        from tipfy.ext.model import retry_on_timeout
+        from tipfy.ext.db import retry_on_timeout
         from mymodels import Contact
 
         class EditContactHandler(RequestHandler):
@@ -258,7 +258,7 @@ def get_by_id_or_404(model, id):
     .. code-block:: python
 
         from tipfy import RequestHandler
-        from tipfy.ext.model import get_by_id_or_404
+        from tipfy.ext.db import get_by_id_or_404
         from mymodels import Contact
 
         class EditContactHandler(RequestHandler):
@@ -293,7 +293,7 @@ def get_by_key_name_or_404(model, key_name):
     .. code-block:: python
 
         from tipfy import RequestHandler
-        from tipfy.ext.model import get_by_key_name_or_404
+        from tipfy.ext.db import get_by_key_name_or_404
         from mymodels import Contact
 
         class EditContactHandler(RequestHandler):
@@ -329,7 +329,7 @@ def retry_on_timeout(retries=3, interval=1.0, exponent=2.0):
     .. code-block:: python
 
         from tipfy import RequestHandler
-        from tipfy.ext.model import retry_on_timeout
+        from tipfy.ext.db import retry_on_timeout
         from mymodels import Contact
 
         class EditContactHandler(RequestHandler):
@@ -392,7 +392,7 @@ def load_entity(model, kwarg_old, kwarg_new=None, fetch_mode=None):
     .. code-block:: python
 
         from tipfy import RequestHandler
-        from tipfy.ext.model import load_entity
+        from tipfy.ext.db import load_entity
         from mymodels import Contact
 
         class EditContactHandler(RequestHandler):
@@ -473,7 +473,7 @@ class EtagProperty(db.Property):
     .. code-block:: python
 
        from google.appengine.ext import db
-       from tipfy.ext.model import EtagProperty
+       from tipfy.ext.db import EtagProperty
 
        class StaticContent(db.Model):
            data = db.BlobProperty()
@@ -540,7 +540,7 @@ class SlugProperty(db.Property):
     .. code-block:: python
 
        from google.appengine.ext import db
-       from tipfy.ext.model import SlugProperty
+       from tipfy.ext.db import SlugProperty
 
        class BlogPost(db.Model):
            title = db.StringProperty()

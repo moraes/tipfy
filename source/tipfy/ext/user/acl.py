@@ -58,7 +58,7 @@ from google.appengine.ext import db
 from google.appengine.api import memcache
 
 from tipfy import app
-from tipfy.ext.model import PickleProperty
+from tipfy.ext.db import PickleProperty
 
 # Cache for loaded rules.
 _rules_map = {}

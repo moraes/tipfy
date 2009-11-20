@@ -23,7 +23,7 @@ from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import SessionStore
 
 from tipfy import local, InternalServerError
-from tipfy.ext.model import model_from_protobuf, model_to_protobuf, \
+from tipfy.ext.db import get_entity_from_protobuf, get_protobuf_from_entity, \
     retry_on_timeout, PickleProperty
 
 # Proxies to the session variables set on each request.
@@ -60,7 +60,7 @@ class DatastoreSessionStore(SessionStore):
     def _get_from_datastore(self, sid):
         pb = memcache.get(sid, namespace=self.__class__.__name__)
         if pb is not None:
-            entity = model_from_protobuf(pb)
+            entity = get_entity_from_protobuf(pb)
         else:
             entity = Session.get_by_key_name(sid)
 
@@ -84,7 +84,7 @@ class DatastoreSessionStore(SessionStore):
             timedelta(seconds=self.expires), data=dict(session))
         entity.put()
 
-        memcache.set(session.sid, model_to_protobuf(entity),
+        memcache.set(session.sid, get_protobuf_from_entity(entity),
             time=self.expires, namespace=self.__class__.__name__)
 
     @retry_on_timeout(retries=3, interval=0.2)

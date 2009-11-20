@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.ext.tasks
+    Tests for tipfy.ext.taskqueue
 """
 import sys
 import unittest
@@ -12,7 +12,6 @@ from gaetestbed import DataStoreTestCase, TaskQueueTestCase
 
 from _base import get_app, get_environ, get_request
 from tipfy import url_for
-from tipfy.ext.tasks import EntityTaskHandler
 
 
 def get_rules():
@@ -28,18 +27,6 @@ def get_rules():
 
 class FooModel(db.Model):
     number = db.IntegerProperty()
-
-
-class FooModelEntityTaskHandler(EntityTaskHandler):
-    model = FooModel
-    endpoint = 'tasks/mymodel'
-
-    def process_entity(self, entity, retry_count):
-        """Process an entity and returns a tuple (process_next, countdown). If
-        process_next is True, a new task is added to process the next entity.
-        """
-        entity.delete()
-        return (True, 0)
 
 
 class TestTasks(DataStoreTestCase, TaskQueueTestCase, unittest.TestCase):
@@ -66,6 +53,3 @@ class TestTasks(DataStoreTestCase, TaskQueueTestCase, unittest.TestCase):
         url = url_for('tasks/mymodel')
         taskqueue.add(url=url)
         self.assertTasksInQueue(url=url)
-
-
-

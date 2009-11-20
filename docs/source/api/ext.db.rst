@@ -1,6 +1,6 @@
-tipfy.ext.model
-===============
-.. module:: tipfy.ext.model
+tipfy.ext.db
+============
+.. module:: tipfy.ext.db
 
 .. toctree::
    :maxdepth: 5

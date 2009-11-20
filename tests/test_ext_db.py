@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.ext.model
+    Tests for tipfy.ext.db
 """
 import unittest
 import hashlib
@@ -9,7 +9,7 @@ from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase
 
 from tipfy import NotFound
-from tipfy.ext.model import get_entity_from_protobuf, get_protobuf_from_entity, \
+from tipfy.ext.db import get_entity_from_protobuf, get_protobuf_from_entity, \
     populate_entity, get_by_key_name_or_404, get_by_id_or_404, get_or_404, \
     get_or_insert_with_flag, get_reference_key, PickleProperty, SlugProperty, \
     EtagProperty, retry_on_timeout, load_entity

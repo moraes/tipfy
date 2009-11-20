@@ -264,8 +264,12 @@ def redirect(location, code=302):
     redirect and 304 because it's the answer for a request with a request
     with defined If-Modified-Since headers.
 
-    :param location: the location the response should redirect to.
-    :param code: the redirect status code.
+    :param location:
+        The location the response should redirect to.
+    :param code:
+        The redirect status code.
+    :return:
+        A ``werkzeug.Response`` object.
     """
     response = local.response
     assert code in (301, 302, 303, 305, 307), 'invalid code'
@@ -284,11 +288,17 @@ def redirect(location, code=302):
 def url_for(endpoint, full=False, method=None, **kwargs):
     """Returns an URL for a named Rule.
 
-    :param endpoint: The rule endpoint
-    :param full: If True, builds an absolute URL.
-    :param method: The rule request method, in case there are different rules
+    :param endpoint:
+        The rule endpoint.
+    :param full:
+        If True, builds an absolute URL. Otherwise, builds a relative one.
+    :param method:
+        The rule request method, in case there are different rules
         for different request methods.
-    :param kwargs: Keyword arguments to build the Rule..
+    :param kwargs:
+        Keyword arguments to build the Rule.
+    :return:
+        An absolute or relative URL.
     """
     return local.app.url_adapter.build(endpoint, force_external=full,
         method=method, values=kwargs)

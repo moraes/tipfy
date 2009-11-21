@@ -11,3 +11,16 @@ or localize strings and dates.
 
 I18nMiddleware
 --------------
+
+Translation functions
+---------------------
+.. autofunction:: gettext
+.. autofunction:: ngettext
+.. autofunction:: lazy_gettext
+.. autofunction:: lazy_ngettext
+
+Date and time functions
+-----------------------
+.. autofunction:: format_datetime
+.. autofunction:: format_date
+.. autofunction:: format_time

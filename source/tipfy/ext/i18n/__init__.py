@@ -82,7 +82,7 @@ def fetch_jsontime_timezone(tz_name):
         'http://json-time.appspot.com/time.json')
 
     tz = _tzinfo_utc
-    result = urlfetch.fetch('%s?tz=%s' % (url, timezone))
+    result = urlfetch.fetch('%s?tz=%s' % (url, tz_name))
 
     if result.status_code != 200:
         logging.error('Service JsonTime returned unexpected status code: %d'
@@ -95,11 +95,11 @@ def fetch_jsontime_timezone(tz_name):
             logging.error('Service JsonTime returned non-json content')
         else:
             if json['error']:
-                logging.error('Invalid timezone "%s" in config.py. '
-                              'Falling back to UTC.' % timezone)
+                logging.error('Invalid timezone "%s". Falling back to UTC.' %
+                    timezone)
             else:
-                # 'datetime' format is 'Fri, 20 Nov 2009 06:43:17 -0600'
-                # Extract the offset ('-0600').
+                # Returned date format is 'Fri, 20 Nov 2009 06:43:17 -0600'
+                # First, extract the offset '-600'
                 offset = json['datetime'].rsplit(' ', 1)[1]
 
                 # Convert the offset to seconds
@@ -107,45 +107,120 @@ def fetch_jsontime_timezone(tz_name):
                 tz_offset = (int(offset[1:3]) * 3600) + (int(offset[3:]) * 60)
                 if offset[0] == '-':
                     tz_offset *= -1
-                tz = date.tzinfo
+
+                tz = TimezoneOffset(tz_name, tz_offset)
 
     return tz
 
 
 # Some functions borrowed from Zine: http://zine.pocoo.org/.
 def gettext(string):
-    """Translate a given string to the language of the application."""
+    """Translates a given string according to the current locale.
+
+    :param string:
+        The string to be translated.
+    :return:
+        The translated string.
+    """
     return unicode(local.translations.gettext(string), 'utf-8')
 
 
 def ngettext(singular, plural, n):
-    """Translate the possible pluralized string to the language of the
-    application.
+    """Translates a possible pluralized string  according to the current locale.
+
+    :param singular:
+        The singular for of the string to be translated.
+    :param plural:
+        The plural for of the string to be translated.
+    :return:
+        The translated string.
     """
     return unicode(local.translations.ngettext(singular, plural, n), 'utf-8')
 
 
 def lazy_gettext(string):
-    """A lazy version of `gettext`."""
+    """A lazy version of :func:`gettext`.
+
+    :param string:
+        The string to be translated.
+    :return:
+        The translated string.
+    """
     return LazyProxy(gettext, string)
 
 
 def lazy_ngettext(singular, plural, n):
-    """A lazy version of `ngettext`."""
+    """A lazy version of :func:`ngettext`.
+
+    :param singular:
+        The singular for of the string to be translated.
+    :param plural:
+        The plural for of the string to be translated.
+    :return:
+        The translated string.
+    """
     return LazyProxy(ngettext, singular, plural, n)
 
 
 def format_date(value=None, format='medium'):
+    """Formats a ``datetime.date`` object according to the current locale.
+
+    :param value:
+        A datetime object.
+    :param format:
+        The format to be returned. Valid values are 'short', 'medium', 'long'
+        and 'full'. Examples:
+
+          - short:  11/10/09
+          - medium: Nov 10, 2009
+          - long:   November 10, 2009
+          - full:   Tuesday, November 10, 2009
+
+    :return:
+        A formatted date string.
+    """
     return babel_format_date(date=value, format=format, locale=local.locale)
 
 
-def format_datetime(value=None, format='medium', tzinfo=None):
+def format_datetime(value=None, format='medium'):
+    """Formats a ``datetime.datetime`` object according to the current locale.
+
+    :param value:
+        A datetime object.
+    :param format:
+        The format to be returned. Valid values are 'short', 'medium', 'long'
+        and 'full'. Examples:
+
+          - short:  11/10/09 4:36 PM
+          - medium: Nov 10, 2009 4:36:05 PM
+          - long:   November 10, 2009 4:36:05 PM +0000
+          - full:   Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time
+
+    :return:
+        A formatted datetime string.
+    """
     return babel_format_datetime(datetime=value, format=format, tzinfo=tzinfo,
         locale=local.locale)
 
 
-def format_time(value=None, format='medium', tzinfo=None):
-    return babel_format_time(time=value, format=format, tzinfo=tzinfo,
+def format_time(value=None, format='medium'):
+    """Formats a ``datetime.time`` object according to the current locale.
+
+    :param value:
+        A datetime object.
+    :param format:
+        The format to be returned. Valid values are 'short', 'medium', 'long'
+        and 'full'. Examples:
+
+          - short:  4:36 PM
+          - medium: 4:36:05 PM
+          - long:   4:36:05 PM +0000
+          - full:   4:36:05 PM World (GMT) Time
+
+    :return:
+        A formatted time string.
+    """
+    return babel_format_time(time=value, format=format, tzinfo=local.tzinfo,
         locale=local.locale)
 
 

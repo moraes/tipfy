@@ -5,22 +5,21 @@
 
     Internationalization extension.
 
-    It requires the babel module to be added to the lib dir. Babel can be
-    downloaded at http://babel.edgewall.org/
+    It requires the babel and gae-pytz modules to be added to the lib dir.
+
+    Babel can be downloaded at http://babel.edgewall.org/
+
+    gae-pytz can be downloaded at http://code.google.com/p/gae-pytz/
 
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-import logging
-from datetime import tzinfo, timedelta
-
-from google.appengine.api import urlfetch
-
 from babel.support import Translations, LazyProxy
-from babel.dates import format_date as babel_format_date, \
-    format_datetime as babel_format_datetime, format_time as babel_format_time
+from babel.dates import format_date as _format_date, \
+    format_datetime as _format_datetime, format_time as _format_time
+from pytz.gae import pytz
 
-from tipfy import local, app, request, response
+from tipfy import local, app
 
 # Set proxy for the current locale code and translations object.
 local.locale = local.translations = None
@@ -43,7 +42,6 @@ class I18nMiddleware(object):
             'tipfy.locale', app.config.locale))
 
         set_locale(self.locale)
-        return None
 
     def process_response(self, request, response):
         if self.locale and self.locale != app.config.locale:
@@ -55,7 +53,14 @@ class I18nMiddleware(object):
 
 
 def set_locale(locale):
-    """Sets translations for the current request."""
+    """Sets the locale and loads a translation for the current request, if not
+    already loaded. This is called by :class:`I18nMiddleware` on each request.
+
+    :param locale:
+        The locale code. For example: 'en_US' or 'pt_BR'.
+    :return:
+        `None`.
+    """
     if locale not in _translations:
         options = list(set([locale, app.config.locale]))
         _translations[locale] = Translations.load('locale', options, 'messages')
@@ -64,56 +69,26 @@ def set_locale(locale):
     local.translations = _translations[locale]
 
 
-def fetch_jsontime_timezone(tz_name):
-    """Fetches timezone info from a json-time service and returns a tzinfo
-    object. By default it uses the service provided by
-    `http://json-time.appspot.com/`_.
+def get_tzinfo(zone=None):
+    """Returns a ``datetime.tzinfo`` object for the given timezone. This is
+    called by :func:`format_datetime` and :func:`format_time` when a tzinfo
+    is not provided.
 
-    This function derives from http://github.com/caio/bizarrice
-
-    :param tz_name:
-        A valid timezone name according to the Olson database. For example,
-        'America/Chicago'.
+    :param zone:
+        The zone name from the Olson database. For example: 'America/Chicago'.
+        If not set, uses the default zone set in config, or UTC.
     :return:
-        A ``datetime.tzinfo`` object. If the timezone is not valid, tzinfo for
-        UTC is returned.
+        A ``datetime.tzinfo`` object.
     """
-    url = getattr(local.app.config, 'json_time_service_url',
-        'http://json-time.appspot.com/time.json')
+    if zone is None:
+        zone = getattr(app.config, 'timezone', 'UTC')
 
-    tz = _tzinfo_utc
-    result = urlfetch.fetch('%s?tz=%s' % (url, tz_name))
+    if zone not in _timezones:
+        _timezones[zone] = pytz.timezone(zone)
 
-    if result.status_code != 200:
-        logging.error('Service JsonTime returned unexpected status code: %d'
-                      % result.status_code)
-    else:
-        from django.utils import simplejson
-        try:
-            json = simplejson.loads(result.content)
-        except ValueError:
-            logging.error('Service JsonTime returned non-json content')
-        else:
-            if json['error']:
-                logging.error('Invalid timezone "%s". Falling back to UTC.' %
-                    timezone)
-            else:
-                # Returned date format is 'Fri, 20 Nov 2009 06:43:17 -0600'
-                # First, extract the offset '-600'
-                offset = json['datetime'].rsplit(' ', 1)[1]
-
-                # Convert the offset to seconds
-                # '-0600' is converted to ((6 * 3600) + (0 * 60)) * -1
-                tz_offset = (int(offset[1:3]) * 3600) + (int(offset[3:]) * 60)
-                if offset[0] == '-':
-                    tz_offset *= -1
-
-                tz = TimezoneOffset(tz_name, tz_offset)
-
-    return tz
+    return _timezones[zone]
 
 
-# Some functions borrowed from Zine: http://zine.pocoo.org/.
 def gettext(string):
     """Translates a given string according to the current locale.
 
@@ -126,7 +101,7 @@ def gettext(string):
 
 
 def ngettext(singular, plural, n):
-    """Translates a possible pluralized string  according to the current locale.
+    """Translates a possible pluralized string according to the current locale.
 
     :param singular:
         The singular for of the string to be translated.
@@ -144,7 +119,7 @@ def lazy_gettext(string):
     :param string:
         The string to be translated.
     :return:
-        The translated string.
+        A ``LazyProxy`` object that when accessed translates the string.
     """
     return LazyProxy(gettext, string)
 
@@ -157,19 +132,21 @@ def lazy_ngettext(singular, plural, n):
     :param plural:
         The plural for of the string to be translated.
     :return:
-        The translated string.
+        A ``LazyProxy`` object that when accessed translates the string.
     """
     return LazyProxy(ngettext, singular, plural, n)
 
 
-def format_date(value=None, format='medium'):
-    """Formats a ``datetime.date`` object according to the current locale.
+def format_date(date=None, format='medium'):
+    """Returns a date formatted according to the given pattern and following
+    the current locale.
 
-    :param value:
-        A datetime object.
+    :param date:
+        A ``date`` or ``datetime`` object. If `None`, the current date in UTC
+        is used.
     :param format:
-        The format to be returned. Valid values are 'short', 'medium', 'long'
-        and 'full'. Examples:
+        The format to be returned. Valid values are "short", "medium", "long",
+        "full" or a custom date/time pattern. Example outputs:
 
           - short:  11/10/09
           - medium: Nov 10, 2009
@@ -177,90 +154,62 @@ def format_date(value=None, format='medium'):
           - full:   Tuesday, November 10, 2009
 
     :return:
-        A formatted date string.
+        A formatted date in unicode.
     """
-    return babel_format_date(date=value, format=format, locale=local.locale)
+    return _format_date(date=date, format=format, locale=local.locale)
 
 
-def format_datetime(value=None, format='medium'):
-    """Formats a ``datetime.datetime`` object according to the current locale.
+def format_datetime(datetime=None, format='medium', tzinfo=None):
+    """Returns a date and time formatted according to the given pattern and
+    following the current locale and timezone.
 
-    :param value:
-        A datetime object.
+    :param datetime:
+        A ``datetime`` object. If `None`, the current date and time in UTC is
+        used.
     :param format:
-        The format to be returned. Valid values are 'short', 'medium', 'long'
-        and 'full'. Examples:
+        The format to be returned. Valid values are "short", "medium", "long",
+        "full" or a custom date/time pattern. Example outputs:
 
           - short:  11/10/09 4:36 PM
           - medium: Nov 10, 2009 4:36:05 PM
           - long:   November 10, 2009 4:36:05 PM +0000
           - full:   Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time
 
+    :param tzinfo:
+        The timezone to apply to the date.
     :return:
-        A formatted datetime string.
+        A formatted date and time in unicode.
     """
-    return babel_format_datetime(datetime=value, format=format, tzinfo=tzinfo,
+    tzinfo = tzinfo or get_tzinfo()
+    return _format_datetime(datetime=datetime, format=format, tzinfo=tzinfo,
         locale=local.locale)
 
 
-def format_time(value=None, format='medium'):
-    """Formats a ``datetime.time`` object according to the current locale.
+def format_time(time=None, format='medium', tzinfo=None):
+    """Returns a time formatted according to the given pattern and following
+    the current locale and timezone.
 
-    :param value:
-        A datetime object.
+    :param time:
+        A ``time`` or ``datetime`` object. If `None`, the current time in UTC
+        is used.
     :param format:
-        The format to be returned. Valid values are 'short', 'medium', 'long'
-        and 'full'. Examples:
+        The format to be returned. Valid values are "short", "medium", "long",
+        "full" or a custom date/time pattern. Example outputs:
 
           - short:  4:36 PM
           - medium: 4:36:05 PM
           - long:   4:36:05 PM +0000
           - full:   4:36:05 PM World (GMT) Time
 
+    :param tzinfo:
+        The timezone to apply to the time.
     :return:
-        A formatted time string.
+        A formatted time in unicode.
     """
-    return babel_format_time(time=value, format=format, tzinfo=local.tzinfo,
+    tzinfo = tzinfo or get_tzinfo()
+    return _format_time(time=time, format=format, tzinfo=tzinfo,
         locale=local.locale)
 
 
-class TimezoneOffset(tzinfo):
-    """
-    This class derives from http://pypi.python.org/pypi/python-dateutil
-    """
-    ZERO = timedelta(0)
-
-    def __init__(self, name, offset):
-        self._name = name
-        if offset == 0:
-            self._offset = self.ZERO
-        else:
-            self._offset = timedelta(seconds=offset)
-
-    def utcoffset(self, dt):
-        return self._offset
-
-    def dst(self, dt):
-        return self.ZERO
-
-    def tzname(self, dt):
-        return self._name
-
-    def __eq__(self, other):
-        return (isinstance(other, TimezoneOffset) and
-                self._offset == other._offset)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __repr__(self):
-        return "%s('%s', %s)" % (self.__class__.__name__,
-            self._name, self._offset.days * 86400 + self._offset.seconds)
-
-    __reduce__ = object.__reduce__
-
-
-# Default timezone object.
-_tzinfo_utc = TimezoneOffset('UTC', 0)
-# Alias to gettext.
+# Common alias to gettext.
 _ = gettext

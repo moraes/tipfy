@@ -32,7 +32,22 @@ _timezones = {}
 
 
 class I18nMiddleware(object):
-    """Middleware to initialize internationalization on every request."""
+    """Middleware to initialize internationalization on every request.
+
+    To enable it, add ``tipfy.ext.i18n.I18nMiddleware``  to the list of
+    middleware classes in ``config.py``:
+
+    .. code-block:: python
+
+       middleware_classes = [
+           'tipfy.ext.i18n.I18nMiddleware',
+           # ...
+       ]
+
+    It must be placed before any other middleware that will make use of
+    internationalization. Normally it is the first or one of the first
+    middlewares to be set.
+    """
     locale = None
 
     def process_request(self, request):
@@ -57,7 +72,7 @@ def set_locale(locale):
     already loaded. This is called by :class:`I18nMiddleware` on each request.
 
     :param locale:
-        The locale code. For example: 'en_US' or 'pt_BR'.
+        The locale code. For example, 'en_US' or 'pt_BR'.
     :return:
         `None`.
     """
@@ -67,26 +82,6 @@ def set_locale(locale):
 
     local.locale = locale
     local.translations = _translations[locale]
-
-
-def get_tzinfo(zone=None):
-    """Returns a ``datetime.tzinfo`` object for the given timezone. This is
-    called by :func:`format_datetime` and :func:`format_time` when a tzinfo
-    is not provided.
-
-    :param zone:
-        The zone name from the Olson database. For example: 'America/Chicago'.
-        If not set, uses the default zone set in config, or UTC.
-    :return:
-        A ``datetime.tzinfo`` object.
-    """
-    if zone is None:
-        zone = getattr(app.config, 'timezone', 'UTC')
-
-    if zone not in _timezones:
-        _timezones[zone] = pytz.timezone(zone)
-
-    return _timezones[zone]
 
 
 def gettext(string):
@@ -176,7 +171,8 @@ def format_datetime(datetime=None, format='medium', tzinfo=None):
           - full:   Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time
 
     :param tzinfo:
-        The timezone to apply to the date.
+        The timezone to apply to the date. If not set, uses the default
+        timezone returned by :func:`get_tzinfo`.
     :return:
         A formatted date and time in unicode.
     """
@@ -202,13 +198,95 @@ def format_time(time=None, format='medium', tzinfo=None):
           - full:   4:36:05 PM World (GMT) Time
 
     :param tzinfo:
-        The timezone to apply to the time.
+        The timezone to apply to the time. If not set, uses the default
+        timezone returned by :func:`get_tzinfo`.
     :return:
         A formatted time in unicode.
     """
     tzinfo = tzinfo or get_tzinfo()
     return _format_time(time=time, format=format, tzinfo=tzinfo,
         locale=local.locale)
+
+
+def get_tzinfo(zone=None):
+    """Returns a ``datetime.tzinfo`` object for the given timezone. This is
+    called by :func:`format_datetime` and :func:`format_time` when a tzinfo
+    is not provided.
+
+    :param zone:
+        The zone name from the Olson database. For example: 'America/Chicago'.
+        If not set, uses the default zone set in config, or UTC.
+    :return:
+        A ``datetime.tzinfo`` object.
+    """
+    if zone is None:
+        zone = getattr(app.config, 'timezone', 'UTC')
+
+    if zone not in _timezones:
+        _timezones[zone] = pytz.timezone(zone)
+
+    return _timezones[zone]
+
+
+def get_local_time(datetime, tzinfo=None):
+    """Returns a datetime object converted to the local timezone.
+
+    This function derives from `Kay`_.
+
+    :param datetime:
+        A ``datetime`` object.
+    :param tzinfo:
+        The timezone to apply to the datetime. If not set, uses the default
+        timezone returned by :func:`get_tzinfo`.
+    :return:
+        A ``datetime`` object normalized to a timezone.
+    """
+    tzinfo = tzinfo or get_tzinfo()
+    if datetime.tzinfo is None:
+        #datetime = datetime.replace(tzinfo=pytz.UTC)
+        return tzinfo.localize(datetime)
+
+    return datetime.astimezone(tzinfo)
+
+
+def to_local_timezone(datetime, tzinfo=None):
+    """Returns a datetime object converted to the local timezone.
+
+    This function derives from `Kay`_.
+
+    :param datetime:
+        A ``datetime`` object.
+    :param tzinfo:
+        The timezone to apply to the datetime. If not set, uses the default
+        timezone returned by :func:`get_tzinfo`.
+    :return:
+        A ``datetime`` object normalized to a timezone.
+    """
+    tzinfo = tzinfo or get_tzinfo()
+    if datetime.tzinfo is None:
+        datetime = datetime.replace(tzinfo=pytz.UTC)
+
+    return tzinfo.normalize(datetime.astimezone(tzinfo))
+
+
+def to_utc(datetime, tzinfo=None):
+    """Convert a datetime object to UTC and drop tzinfo.
+
+    This function derives from `Kay`_.
+
+    :param datetime:
+        A ``datetime`` object.
+    :param tzinfo:
+        The timezone to apply to the datetime. If not set, uses the default
+        timezone returned by :func:`get_tzinfo`.
+    :return:
+        A naive ``datetime`` object (no timezone), converted to UTC.
+    """
+    if datetime.tzinfo is None:
+        tzinfo = tzinfo or get_tzinfo()
+        datetime = tzinfo.localize(datetime)
+
+    return datetime.astimezone(pytz.UTC).replace(tzinfo=None)
 
 
 # Common alias to gettext.

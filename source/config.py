@@ -31,11 +31,11 @@ templates_dir = 'templates'
 # Directory for compiled templates. If None, don't use compiled templates.
 templates_compiled_dir = None
 
-# Default locale.
+# Default locale code.
 locale = 'en_US'
 
-# Timezone difference from UTC: a datetime.timedelta object or None.
-time_diff = None
+# Timezone name according to the Olson database.
+timezone = 'America/Chicago'
 
 # Secret phrase for session's secure cookies.
 session_secret_key = None

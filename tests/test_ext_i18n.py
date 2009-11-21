@@ -14,11 +14,10 @@ class TestI18n(unittest.TestCase):
         local.translations = None
 
         self.app = get_app()
-        self.time_diff = self.app.config.time_diff
-        self.app.config.time_diff = None
+        self.old_timezone = self.app.config.timezone
 
     def tearDown(self):
-        self.app.config.time_diff = self.time_diff
+        self.app.config.timezone = self.old_timezone
 
     def test_set_locale(self):
         from tipfy import local
@@ -87,6 +86,7 @@ class TestI18n(unittest.TestCase):
 
     def test_format_datetime(self):
         from tipfy.ext.i18n import set_locale, format_datetime
+        self.app.config.timezone = 'UTC'
 
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -104,6 +104,7 @@ class TestI18n(unittest.TestCase):
 
     def test_format_time(self):
         from tipfy.ext.i18n import set_locale, format_time
+        self.app.config.timezone = 'UTC'
 
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -118,3 +119,45 @@ class TestI18n(unittest.TestCase):
         self.assertEqual(format_time(value, format='medium'), u'16:36:05')
         self.assertEqual(format_time(value, format='long'), u'16:36:05 +0000')
         self.assertEqual(format_time(value, format='full'), u'16h36min05s Horário Mundo (GMT)')
+
+    def test_default_get_tzinfo(self):
+        from tipfy.ext.i18n import get_tzinfo
+
+        self.app.config.timezone = 'UTC'
+        self.assertEqual(get_tzinfo().zone, 'UTC')
+
+        self.app.config.timezone = 'America/Chicago'
+        self.assertEqual(get_tzinfo().zone, 'America/Chicago')
+
+        self.app.config.timezone = 'America/Sao_Paulo'
+        self.assertEqual(get_tzinfo().zone, 'America/Sao_Paulo')
+
+    def test_get_tzinfo(self):
+        from tipfy.ext.i18n import get_tzinfo
+
+        tzinfo = get_tzinfo('UTC')
+        self.assertEqual(tzinfo.zone, 'UTC')
+
+        tzinfo = get_tzinfo('America/Chicago')
+        self.assertEqual(tzinfo.zone, 'America/Chicago')
+
+        tzinfo = get_tzinfo('America/Sao_Paulo')
+        self.assertEqual(tzinfo.zone, 'America/Sao_Paulo')
+
+    def test_to_local_timezone(self):
+        from tipfy.ext.i18n import to_local_timezone, pytz
+
+        self.app.config.timezone = 'US/Eastern'
+        format = '%Y-%m-%d %H:%M:%S %Z%z'
+
+        # Test datetime with timezone set
+        base = datetime.datetime(2002, 10, 27, 6, 0, 0, tzinfo=pytz.UTC)
+        localtime = to_local_timezone(base)
+        formatted = localtime.strftime(format)
+        self.assertEqual('2002-10-27 01:00:00 EST-0500', formatted)
+
+        # Test naive datetime - no timezone set
+        base = datetime.datetime(2002, 10, 27, 6, 0, 0)
+        localtime = to_local_timezone(base)
+        formatted = localtime.strftime(format)
+        self.assertEqual('2002-10-27 01:00:00 EST-0500', formatted)

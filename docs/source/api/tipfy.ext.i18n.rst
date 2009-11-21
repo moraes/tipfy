@@ -10,14 +10,15 @@ tipfy.ext.i18n
 .. _Kay: http://code.google.com/p/kay-framework/
 
 This module provides internationalization utilities: a translations store,
-a middleware to set locale for the current request and functions to translate
-or localize strings and dates.
+a middleware to set locale for the current request, functions to manipulate
+dates according to timezones or translate and localize strings and dates.
 
 Tipfy uses `Babel`_ to manage translations of strings and localization of dates
 and times, and `gae-pytz`_ to handle timezones.
 
-I18nMiddleware
---------------
+
+Middlewares
+-----------
 .. autoclass:: I18nMiddleware
 
 

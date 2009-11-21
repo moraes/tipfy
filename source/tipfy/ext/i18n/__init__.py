@@ -5,7 +5,12 @@
 
     Internationalization extension.
 
-    It requires the babel and gae-pytz modules to be added to the lib dir.
+    This module provides internationalization utilities: a translations store,
+    a middleware to set locale for the current request, functions to manipulate
+    dates according to timezones or translate and localize strings and dates.
+
+    Tipfy uses `Babel`_ to manage translations of strings and localization of
+    dates and times, and `gae-pytz`_ to handle timezones.
 
     Babel can be downloaded at http://babel.edgewall.org/
 
@@ -69,12 +74,15 @@ class I18nMiddleware(object):
 
 def set_locale(locale):
     """Sets the locale and loads a translation for the current request, if not
-    already loaded. This is called by :class:`I18nMiddleware` on each request.
+    already loaded. Most functions in this module depends on the locale being
+    set to work properly.
+
+    This is called by :class:`I18nMiddleware` on each request.
 
     :param locale:
         The locale code. For example, 'en_US' or 'pt_BR'.
     :return:
-        `None`.
+        ``None``.
     """
     if locale not in _translations:
         options = list(set([locale, app.config.locale]))
@@ -143,7 +151,7 @@ def format_date(date=None, format='medium'):
     the current locale.
 
     :param date:
-        A ``date`` or ``datetime`` object. If `None`, the current date in UTC
+        A ``date`` or ``datetime`` object. If ``None``, the current date in UTC
         is used.
     :param format:
         The format to be returned. Valid values are "short", "medium", "long",
@@ -165,7 +173,7 @@ def format_datetime(datetime=None, format='medium', timezone=None):
     following the current locale and timezone.
 
     :param datetime:
-        A ``datetime`` object. If `None`, the current date and time in UTC is
+        A ``datetime`` object. If ``None``, the current date and time in UTC is
         used.
     :param format:
         The format to be returned. Valid values are "short", "medium", "long",
@@ -177,8 +185,8 @@ def format_datetime(datetime=None, format='medium', timezone=None):
           - full:   Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time
 
     :param timezone:
-        The timezone name from the Olson database. For example:
-        'America/Chicago'. If not set, uses the default set in config, or UTC..
+        The timezone name from the Olson database, e.g.: 'America/Chicago'.
+        If not set, uses the default returned by :func:`get_tzinfo`.
     :return:
         A formatted date and time in unicode.
     """
@@ -191,7 +199,7 @@ def format_time(time=None, format='medium', timezone=None):
     the current locale and timezone.
 
     :param time:
-        A ``time`` or ``datetime`` object. If `None`, the current time in UTC
+        A ``time`` or ``datetime`` object. If ``None``, the current time in UTC
         is used.
     :param format:
         The format to be returned. Valid values are "short", "medium", "long",
@@ -203,8 +211,8 @@ def format_time(time=None, format='medium', timezone=None):
           - full:   4:36:05 PM World (GMT) Time
 
     :param timezone:
-        The timezone name from the Olson database. For example:
-        'America/Chicago'. If not set, uses the default set in config, or UTC..
+        The timezone name from the Olson database, e.g.: 'America/Chicago'.
+        If not set, uses the default returned by :func:`get_tzinfo`.
     :return:
         A formatted time in unicode.
     """
@@ -218,8 +226,8 @@ def get_tzinfo(timezone=None):
     is not provided.
 
     :param timezone:
-        The timezone name from the Olson database. For example:
-        'America/Chicago'. If not set, uses the default set in config, or UTC.
+        The timezone name from the Olson database, e.g.: 'America/Chicago'.
+        If not set, uses the default set in config, or UTC.
     :return:
         A ``datetime.tzinfo`` object.
     """
@@ -240,8 +248,8 @@ def to_local_timezone(datetime, timezone=None):
     :param datetime:
         A ``datetime`` object.
     :param timezone:
-        The timezone name from the Olson database. For example:
-        'America/Chicago'. If not set, uses the default set in config, or UTC.
+        The timezone name from the Olson database, e.g.: 'America/Chicago'.
+        If not set, uses the default returned by :func:`get_tzinfo`.
     :return:
         A ``datetime`` object normalized to a timezone.
     """
@@ -260,8 +268,8 @@ def to_utc(datetime, timezone=None):
     :param datetime:
         A ``datetime`` object.
     :param timezone:
-        The timezone name from the Olson database. For example:
-        'America/Chicago'. If not set, uses the default set in config, or UTC.
+        The timezone name from the Olson database, e.g.: 'America/Chicago'.
+        If not set, uses the default returned by :func:`get_tzinfo`.
     :return:
         A naive ``datetime`` object (no timezone), converted to UTC.
     """

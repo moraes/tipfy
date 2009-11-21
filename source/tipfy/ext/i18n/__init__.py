@@ -154,7 +154,7 @@ def format_date(date=None, format='medium'):
     return _format_date(date=date, format=format, locale=local.locale)
 
 
-def format_datetime(datetime=None, format='medium', tzinfo=None):
+def format_datetime(datetime=None, format='medium', timezone=None):
     """Returns a date and time formatted according to the given pattern and
     following the current locale and timezone.
 
@@ -170,18 +170,17 @@ def format_datetime(datetime=None, format='medium', tzinfo=None):
           - long:   November 10, 2009 4:36:05 PM +0000
           - full:   Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time
 
-    :param tzinfo:
-        The timezone to apply to the date. If not set, uses the default
-        timezone returned by :func:`get_tzinfo`.
+    :param timezone:
+        The timezone name from the Olson database. For example:
+        'America/Chicago'. If not set, uses the default set in config, or UTC..
     :return:
         A formatted date and time in unicode.
     """
-    tzinfo = tzinfo or get_tzinfo()
-    return _format_datetime(datetime=datetime, format=format, tzinfo=tzinfo,
-        locale=local.locale)
+    return _format_datetime(datetime=datetime, format=format,
+        tzinfo=get_tzinfo(timezone), locale=local.locale)
 
 
-def format_time(time=None, format='medium', tzinfo=None):
+def format_time(time=None, format='medium', timezone=None):
     """Returns a time formatted according to the given pattern and following
     the current locale and timezone.
 
@@ -197,93 +196,71 @@ def format_time(time=None, format='medium', tzinfo=None):
           - long:   4:36:05 PM +0000
           - full:   4:36:05 PM World (GMT) Time
 
-    :param tzinfo:
-        The timezone to apply to the time. If not set, uses the default
-        timezone returned by :func:`get_tzinfo`.
+    :param timezone:
+        The timezone name from the Olson database. For example:
+        'America/Chicago'. If not set, uses the default set in config, or UTC..
     :return:
         A formatted time in unicode.
     """
-    tzinfo = tzinfo or get_tzinfo()
-    return _format_time(time=time, format=format, tzinfo=tzinfo,
+    return _format_time(time=time, format=format, tzinfo=get_tzinfo(timezone),
         locale=local.locale)
 
 
-def get_tzinfo(zone=None):
+def get_tzinfo(timezone=None):
     """Returns a ``datetime.tzinfo`` object for the given timezone. This is
     called by :func:`format_datetime` and :func:`format_time` when a tzinfo
     is not provided.
 
-    :param zone:
-        The zone name from the Olson database. For example: 'America/Chicago'.
-        If not set, uses the default zone set in config, or UTC.
+    :param timezone:
+        The timezone name from the Olson database. For example:
+        'America/Chicago'. If not set, uses the default set in config, or UTC.
     :return:
         A ``datetime.tzinfo`` object.
     """
-    if zone is None:
-        zone = getattr(app.config, 'timezone', 'UTC')
+    if timezone is None:
+        timezone = getattr(app.config, 'timezone', 'UTC')
 
-    if zone not in _timezones:
-        _timezones[zone] = pytz.timezone(zone)
+    if timezone not in _timezones:
+        _timezones[timezone] = pytz.timezone(timezone)
 
-    return _timezones[zone]
+    return _timezones[timezone]
 
 
-def get_local_time(datetime, tzinfo=None):
+def to_local_timezone(datetime, timezone=None):
     """Returns a datetime object converted to the local timezone.
 
     This function derives from `Kay`_.
 
     :param datetime:
         A ``datetime`` object.
-    :param tzinfo:
-        The timezone to apply to the datetime. If not set, uses the default
-        timezone returned by :func:`get_tzinfo`.
+    :param timezone:
+        The timezone name from the Olson database. For example:
+        'America/Chicago'. If not set, uses the default set in config, or UTC.
     :return:
         A ``datetime`` object normalized to a timezone.
     """
-    tzinfo = tzinfo or get_tzinfo()
-    if datetime.tzinfo is None:
-        #datetime = datetime.replace(tzinfo=pytz.UTC)
-        return tzinfo.localize(datetime)
-
-    return datetime.astimezone(tzinfo)
-
-
-def to_local_timezone(datetime, tzinfo=None):
-    """Returns a datetime object converted to the local timezone.
-
-    This function derives from `Kay`_.
-
-    :param datetime:
-        A ``datetime`` object.
-    :param tzinfo:
-        The timezone to apply to the datetime. If not set, uses the default
-        timezone returned by :func:`get_tzinfo`.
-    :return:
-        A ``datetime`` object normalized to a timezone.
-    """
-    tzinfo = tzinfo or get_tzinfo()
+    tzinfo = get_tzinfo(timezone)
     if datetime.tzinfo is None:
         datetime = datetime.replace(tzinfo=pytz.UTC)
 
     return tzinfo.normalize(datetime.astimezone(tzinfo))
 
 
-def to_utc(datetime, tzinfo=None):
+def to_utc(datetime, timezone=None):
     """Convert a datetime object to UTC and drop tzinfo.
 
     This function derives from `Kay`_.
 
     :param datetime:
         A ``datetime`` object.
-    :param tzinfo:
-        The timezone to apply to the datetime. If not set, uses the default
-        timezone returned by :func:`get_tzinfo`.
+    :param timezone:
+        The timezone name from the Olson database. For example:
+        'America/Chicago'. If not set, uses the default set in config, or UTC.
     :return:
         A naive ``datetime`` object (no timezone), converted to UTC.
     """
     if datetime.tzinfo is None:
-        tzinfo = tzinfo or get_tzinfo()
+        tzinfo = get_tzinfo(timezone)
         datetime = tzinfo.localize(datetime)
 
     return datetime.astimezone(pytz.UTC).replace(tzinfo=None)

@@ -5,45 +5,48 @@
 
     Simple Access Control List.
 
-    This is used to store permissions for anything that requires some
-    level of restriction, like datastore models or handlers. Access permissions
-    can be grouped in roles for convenience, so that a new user can be assigned
-    to a role directly instead of having all his permissions defined manually.
-    Individual access permissions can then override or extend the role
-    permissions.
+    This module provides utilities to manage permissions for anything that
+    requires some level of restriction, like datastore models or handlers.
+    Access permissions can be grouped in roles for convenience, so that a new
+    user can be assigned to a role directly instead of having all his
+    permissions defined manually. Individual access permissions can then
+    override or extend the role permissions.
 
-    Roles are optional, so this module doesn't define a roles model, to keep
-    things simple and fast. Role definitions are set directly in the Acl class.
-    The strategy to load roles is open to the implementation: for best
-    performance, define them statically in a module.
+    .. note::
+       Roles are optional, so this module doesn't define a roles model, to keep
+       things simple and fast. Role definitions are set directly in the Acl
+       class. The strategy to load roles is open to the implementation: for
+       best performance, define them statically in a module.
 
     Usage example:
 
-    # Set a dict of roles with an 'admin' role that has full access and assign
-    # users to it. Each role maps to a list of rules. Each rule is a tuple
-    # (topic, name, flag), where flag is as bool to allow or disallow access.
-    # Wildcard '*' can be used to match all topics and/or names.
-    Acl.roles_map = {
-        'admin': [
-            ('*', '*', True),
-        ],
-    }
+    .. code-block:: python
 
-    # Assign users 'user_1' and 'user_2' to the 'admin' role.
-    AclRules.insert_or_update(area='my_area', user='user_1', roles=['admin'])
-    AclRules.insert_or_update(area='my_area', user='user_2', roles=['admin'])
+       # Set a dict of roles with an 'admin' role that has full access and
+       # assign users to it. Each role maps to a list of rules. Each rule is a
+       # tuple (topic, name, flag), where flag is as bool to allow or disallow
+       # access. Wildcard '*' can be used to match all topics and/or names.
+       Acl.roles_map = {
+           'admin': [
+               ('*', '*', True),
+           ],
+       }
 
-    # Restrict 'user_2' from accessing a specific resource, adding a new rule
-    # with flag set to False. Now this user has access to everything except this
-    # resource.
-    user_acl = AclRules.get_by_area_and_user('my_area', 'user_2')
-    user_acl.rules.append(('UserAdmin', '*', False))
-    user_acl.put()
+       # Assign users 'user_1' and 'user_2' to the 'admin' role.
+       AclRules.insert_or_update(area='my_area', user='user_1', roles=['admin'])
+       AclRules.insert_or_update(area='my_area', user='user_2', roles=['admin'])
 
-    # Check that 'user_2' permissions are correct.
-    acl = Acl(area='my_area', user='user_2')
-    assert acl.has_access(topic='UserAdmin', name='save') is False
-    assert acl.has_access(topic='AnythingElse', name='put') is True
+       # Restrict 'user_2' from accessing a specific resource, adding a new
+       # rule with flag set to False. Now this user has access to everything
+       # except this resource.
+       user_acl = AclRules.get_by_area_and_user('my_area', 'user_2')
+       user_acl.rules.append(('UserAdmin', '*', False))
+       user_acl.put()
+
+       # Check that 'user_2' permissions are correct.
+       acl = Acl(area='my_area', user='user_2')
+       assert acl.has_access(topic='UserAdmin', name='save') is False
+       assert acl.has_access(topic='AnythingElse', name='put') is True
 
     The Acl object should be created once after a user is loaded, so that
     it becomes available for the app to do all necessary permissions checkings.
@@ -191,32 +194,82 @@ class AclRules(db.Model):
 
 class Acl(object):
     """Loads access rules and roles for a given user in a given area and
-    provides a centralized interface to check permissions."""
-    # Dictionary of available role names mapping to list of rules.
+    provides a centralized interface to check permissions. Each ``Acl`` object
+    checks the permissions for a single user. For example:
+
+    .. code-block:: python
+
+        from tipfy.ext.user.acl import Acl
+
+        # Build an Acl object for user 'John' in the 'code-reviews' area.
+        acl = Acl('code-reviews', 'John')
+
+        # Check if 'John' is 'admin' in the 'code-reviews' area.
+        is_admin = acl.is_one('admin')
+
+        # Check if 'John' can approve new reviews.
+        can_edit = acl.has_access('EditReview', 'approve')
+    """
     roles_map = {}
-    # Lock for role changes. This is needed because if role definitions change
-    # we must invalidate existing cache that applied the previous definitions.
-    roles_lock = app.config.version_id
+    """Dictionary of available role names mapping to list of rules.
+
+    This is a class attribute.
+    """
+
+    roles_lock = None
+    """Lock for role changes. This is needed because if role definitions change
+    we must invalidate existing cache that applied the previous definitions.
+
+    This is a class attribute.
+    """
 
     def __init__(self, area, user):
-        """Loads access privileges and roles for a given user."""
+        """Loads access privileges and roles for a given user in a given area.
+
+        :param area:
+            An area identifier, as a string.
+        :param user:
+            An user identifier, as a string.
+        """
         if area and user:
             self._roles, self._rules = AclRules.get_roles_and_rules(area, user,
                 self.roles_map)
         else:
             self.reset()
 
+        # Set roles_lock default..
+        if self.__class__.roles_lock is None:
+           self.__class__.roles_lock = app.config.version_id
+
     def reset(self):
-        """Resets the currently loaded access rules and user roles."""
+        """Resets the currently loaded access rules and user roles.
+
+        :return:
+            ``None``.
+        """
         self._rules = []
         self._roles = []
 
     def is_one(self, role):
-        """Check to see if a user is in a role."""
+        """Check to see if a user is in a role group.
+
+        :param role:
+            A role name, as a string.
+        :return:
+            Boolean ``True`` if the user is in this role group; ``False``
+            otherwise.
+        """
         return role in self._roles
 
     def is_any(self, roles):
-        """Check to see if a user is in any of the listed roles."""
+        """Check to see if a user is in any of the listed role groups.
+
+        :param roles:
+            An iterable of role names.
+        :return:
+            Boolean ``True`` if the user is in any of the role groups; ``False``
+            otherwise.
+        """
         for role in roles:
             if role in self._roles:
                 return True
@@ -224,7 +277,14 @@ class Acl(object):
         return False
 
     def is_all(self, roles):
-        """Check to see if a user is in all of the listed roles."""
+        """Check to see if a user is in all of the listed role groups.
+
+        :param roles:
+            An iterable of role names.
+        :return:
+            Boolean ``True`` if the user is in all of the role groups; ``False``
+            otherwise.
+        """
         for role in roles:
             if role not in self._roles:
                 return False
@@ -232,14 +292,28 @@ class Acl(object):
         return True
 
     def has_any_access(self):
-        """Checks if the user has any access or roles."""
+        """Checks if the user has any access or roles.
+
+        :return:
+            Boolean ``True`` if the user has any access rule or role set;
+            ``False`` otherwise.
+        """
         if self._rules or self._roles:
             return True
 
         return False
 
     def has_access(self, topic, name):
-        """Tells whether or not to allow access to a topic/name combination."""
+        """Checks if the user has access to a topic/name combination.
+
+        :param topic:
+            A rule topic, as a string.
+        :param roles:
+            A rule name, as a string.
+        :return:
+            Boolean ``True`` if the user has access to this rule; ``False``
+            otherwise.
+        """
         if topic == '*' or name == '*':
             raise ValueError("has_access() can't be called passing '*'")
 

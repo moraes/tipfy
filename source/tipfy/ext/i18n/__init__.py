@@ -102,6 +102,9 @@ def ngettext(singular, plural, n):
         The singular for of the string to be translated.
     :param plural:
         The plural for of the string to be translated.
+    :param n:
+        An integer indicating if this is a singular or plural. If greater than
+        1, it is a plural.
     :return:
         The translated string.
     """
@@ -126,6 +129,9 @@ def lazy_ngettext(singular, plural, n):
         The singular for of the string to be translated.
     :param plural:
         The plural for of the string to be translated.
+    :param n:
+        An integer indicating if this is a singular or plural. If greater than
+        1, it is a plural.
     :return:
         A ``LazyProxy`` object that when accessed translates the string.
     """

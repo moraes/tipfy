@@ -139,6 +139,85 @@ class WSGIApplication(object):
         return self.handler_class().dispatch(request_method, **self.rule_args)
 
 
+class EventHandler(object):
+    """A lazy event handler callable: event handlers are set as a string and
+    only imported when called.
+    """
+    def __init__(self, handler_spec):
+        """Builds the lazy callable.
+
+        :param handler_spec:
+            The handler callable that will handle the event. This is set as a
+            string to be only imported when the callable is used.
+        """
+        self.handler_spec = handler_spec
+        self.handler = None
+
+    def __call__(self, *args, **kwargs):
+        """Executes the event callable, importing it if it is not imported yet.
+
+        :param args:
+            Positional arguments to be passed to the callable.
+        :param kwargs:
+            Keyword arguments to be passed to the callable.
+        :return:
+            The value returned by the callable.
+        """
+        if self.handler is None:
+            self.handler = import_string(self.handler_spec)
+
+        return self.handler(*args, **kwargs)
+
+
+class EventManager(object):
+    def __init__(self):
+        # Holds event subscriptions.
+        self.subscribers = {}
+
+    def subscribe(self, name, handler_spec):
+        """Subscribe a callable to a given event.
+
+        :param name:
+            The event name to subscribe to (a string).
+        :param handler_spec:
+            The handler callable that will handle the event. This is set as a
+            string to be only imported when the callable is used.
+        :return:
+            ``None``.
+        """
+        self.subscribers.setdefault(name, []).append(EventHandler(handler_spec))
+
+    def subscribe_multi(self, spec):
+        """Subscribe multiple callables to multiple events.
+
+        :param spec:
+            A dictionary with event names as keys and the handler specs as
+            values.
+        :return:
+            ``None``.
+        """
+        for name in spec.keys():
+            self.subscribers.setdefault(name, []).extend(
+                EventHandler(handler_spec) for handler_spec in spec[name])
+
+    def notify(self, name, *args, **kwargs):
+        """Notify all subscribers to a given event about its occurrence. This
+        is a generator. Depending on the event type, if a value is returned
+        the event dispatcher may stop the iteration.
+
+        :param name:
+            The event name to notify subscribers about (a string).
+        :param args:
+            Positional arguments to be passed to the subscribers.
+        :param kwargs:
+            Keyword arguments to be passed to the subscribers.
+        :yield:
+            The result of the subscriber calls.
+        """
+        for subscriber in self.subscribers.get(name, []):
+            yield subscriber(*args, **kwargs)
+
+
 class Rule(WerkzeugRule):
     """Extends Werkzeug routing to support a handler definition for each Rule.
     Handler is a RequestHandler module and class specification, while endpoint

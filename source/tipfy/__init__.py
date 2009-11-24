@@ -84,7 +84,8 @@ class WSGIApplication(object):
         local.app = self
 
         # Load default config and update with config for this instance.
-        self.config = Config(default_config)
+        self.config = Config()
+        self.config.setdefault(__name__, default_config)
         self.config.update(config)
 
         # Set the url rules.
@@ -444,15 +445,14 @@ def render_json_response(obj):
 
 
 def get_config(module, key, default=None):
-    """Returns a configuration value for an module. If it is not already set,
-    it'll load a ``default_config`` variable from the given module,
-    update the app config with those default values and return the value for
-    the given key. If the key is still not available, it'll return the
-    given default value.
+    """Returns a configuration value for a module. If it is not already set,
+    it'll load a ``default_config`` variable from the given module, update the
+    app config with those default values and return the value for the given key.
+    If the key is still not available, it'll return the given default value.
 
     Every `Tipfy`_ module that allows some kind of configuration sets a
-    ``default_config`` global variable that is loaded by this function and
-    used in case the requested configuration was not defined by the user.
+    ``default_config`` global variable that is loaded by this function, cached
+    and used in case the requested configuration was not defined by the user.
 
     :param module:
         The configured module.

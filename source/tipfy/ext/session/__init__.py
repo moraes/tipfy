@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.sessions
-    ~~~~~~~~~~~~~~~~~~
+    tipfy.ext.session
+    ~~~~~~~~~~~~~~~~~
 
-    Sessions extension.
+    Session extension.
 
     This module provides sessions using secure cookies or the datastore.
 
@@ -25,9 +25,26 @@ from google.appengine.ext import db
 from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import SessionStore
 
-from tipfy import local, InternalServerError
+from tipfy import local, app_config
 from tipfy.ext.db import get_entity_from_protobuf, get_protobuf_from_entity, \
     retry_on_timeout, PickleProperty
+
+# Set the default configuration.
+app_config.setdefault('tipfy.ext.session', {
+    'secret_key': None,
+    'expiration': 86400,
+    'cookie_name': 'tipfy.session',
+    'id_cookie_name': 'tipfy.session_id',
+})
+#: A dictionary of configuration options for ``tipfy.ext.session``. Keys are:
+#:   - ``secret_key``: Secret key to generate session cookies. Set this to
+#:     something random and unguessable. Default to `None`.
+#:   - ``expiration``: Session expiration time in seconds. Default to `86400`.
+#:   - ``cookie_name``: Name of the cookie to save the session. Default to
+#:     `tipfy.session`.
+#:   - ``id_cookie_name``:Name of the cookie to save the session id. Default to
+#:     `tipfy.session_id`.
+config = app_config['tipfy.ext.session']
 
 # Proxies to the session variables set on each request.
 local.session = local.session_store = None
@@ -36,22 +53,22 @@ session, session_store = local('session'), local('session_store')
 
 class Session(db.Model):
     """Stores session data."""
-    # Creation date.
+    #: Creation date.
     created = db.DateTimeProperty(auto_now_add=True)
-    # Modification date.
+    #: Modification date.
     updated = db.DateTimeProperty(auto_now=True)
-    # Expiration date.
+    #: Expiration date.
     expires = db.DateTimeProperty(required=True)
-    # Session data, pickled.
+    #: Session data, pickled.
     data = PickleProperty()
-    # User name, in case this session is related to an authenticated user.
+    #: User name, in case this session is related to an authenticated user.
     username = db.StringProperty(required=False)
 
 
 class DatastoreSessionStore(SessionStore):
     def __init__(self, expires=None):
         SessionStore.__init__(self)
-        self.expires = expires or local.app.config.session_expiration
+        self.expires = expires or config['expiration']
 
     def _is_valid_entity(self, entity):
         """Checks if a session data entity fetched from datastore is valid."""
@@ -102,8 +119,8 @@ class SecureCookieSessionStore(SessionStore):
     """A session store class that stores data in secure cookies."""
     def __init__(self, cookie_name, expires=None):
         self.cookie_name = cookie_name
-        self.secret_key = local.app.config.session_secret_key
-        self.expires = expires or local.app.config.session_expiration
+        self.secret_key = config['secret_key']
+        self.expires = expires or config['expiration']
 
     def new(self):
         return self.get(None)
@@ -121,31 +138,12 @@ class SecureCookieSessionStore(SessionStore):
             del session[key]
 
 
-class SecureCookieSessionMiddleware(object):
-    """Enables sessions using secure cookies."""
-    def __init__(self):
-        cookie_name = getattr(local.app.config, 'session_cookie_name',
-            'tipfy.session')
-        self.session_store = SecureCookieSessionStore(cookie_name)
-
-    def process_request(self, request):
-        local.session_store = self.session_store
-        local.session = self.session_store.get(None)
-
-    def process_response(self, request, response):
-        if hasattr(local, 'session'):
-            self.session_store.save_if_modified(local.session)
-
-        return response
-
-
 class DatastoreSessionMiddleware(object):
     """Enables sessions using the datastore."""
     def __init__(self):
         # The session id is stored in a secure cookie.
-        cookie_name = getattr(local.app.config, 'session_id_cookie_name',
-            'tipfy.session_id')
-        self.session_id_store = SecureCookieSessionStore(cookie_name)
+        self.session_id_store = SecureCookieSessionStore(
+            config['id_cookie_name'])
         self.session_store = DatastoreSessionStore()
 
     def process_request(self, request):
@@ -158,5 +156,21 @@ class DatastoreSessionMiddleware(object):
             self.session_id['_sid'] = local.session.sid
             self.session_store.save_if_modified(local.session)
             self.session_id_store.save_if_modified(self.session_id)
+
+        return response
+
+
+class SecureCookieSessionMiddleware(object):
+    """Enables sessions using secure cookies."""
+    def __init__(self):
+        self.session_store = SecureCookieSessionStore(config['cookie_name'])
+
+    def process_request(self, request):
+        local.session_store = self.session_store
+        local.session = self.session_store.get(None)
+
+    def process_response(self, request, response):
+        if hasattr(local, 'session'):
+            self.session_store.save_if_modified(local.session)
 
         return response

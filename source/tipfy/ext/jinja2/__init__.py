@@ -12,39 +12,55 @@
 """
 from os import path
 from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
-from tipfy import local, app, response
+from tipfy import local, app, response, app_config
+
+# Set the default configuration.
+app_config.setdefault('tipfy.ext.jinja2', {
+    'templates_dir': 'templates',
+    'templates_compiled_dir': None,
+})
+#: A dictionary of configuration options for ``tipfy.ext.jinja2``. Keys are:
+#:   - ``templates_dir``: Directory for templates.
+#:   - ``templates_compiled_dir``: Directory for compiled templates. If None,
+#:     don't use compiled templates.
+config = app_config['tipfy.ext.jinja2']
 
 # Jinja2 Environment, cached in the module.
 _environment = None
 
 
 def get_env():
-    """Returns the Jinja2 environment."""
+    """Returns the Jinja2 environment, a singleton.
+
+    :return:
+        A ``jinja2.Environment`` instance.
+    """
     global _environment
     if _environment is None:
-        if app.config.dev or app.config.templates_compiled_dir is None:
+        if app_config['tipfy']['dev'] or config['templates_compiled_dir'] \
+            is None:
             # In development, parse templates on every request.
-            loader = FileSystemLoader(app.config.templates_dir)
+            loader = FileSystemLoader(config['templates_dir'])
         else:
             # In production, use precompiled templates loaded from a module.
-            loader = ModuleLoader(app.config.templates_compiled_dir)
+            loader = ModuleLoader(config['templates_compiled_dir'])
 
         # Initialize the environment.
-        _environment = Environment(loader=loader)
+        _environment = Environment(loader=loader,
+            extensions=['jinja2.ext.i18n'])
 
         try:
             # Install i18n conditionally.
-            set_i18n(_environment)
-        except:
+            _set_i18n(_environment)
+        except ImportError:
             # i18n is not available.
             pass
 
     return _environment
 
 
-def set_i18n(environment):
+def _set_i18n(environment):
     """Add the internationalization extension to Jinja2 environment."""
-    from jinja2.ext import i18n
     from tipfy.ext.i18n import translations, format_date, format_datetime, \
         format_time
     environment.globals.update({
@@ -52,17 +68,32 @@ def set_i18n(environment):
         'format_datetime': format_datetime,
         'format_time': format_time,
     })
-    environment.extensions[i18n.identifier] = i18n(_environment)
     environment.install_gettext_translations(translations)
 
 
 def render_template(filename, **context):
-    """Renders a template."""
+    """Renders a template.
+
+    :param filename:
+        The template filename, related to the templates directory.
+    :param context:
+        Keyword arguments used as variables in the rendered template.
+    :return:
+        A rendered template, in unicode.
+    """
     return get_env().get_template(filename).render(**context)
 
 
 def render_response(filename, **context):
-    """Renders a template and returns a response object."""
+    """Renders a template and returns a response object.
+
+    :param filename:
+        The template filename, related to the templates directory.
+    :param context:
+        Keyword arguments used as variables in the rendered template.
+    :return:
+        A ``werkzeug.Response`` object with the rendered template.
+    """
     response.data = render_template(filename, **context)
     response.mimetype = 'text/html'
     return response

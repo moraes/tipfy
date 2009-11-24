@@ -13,10 +13,10 @@ if 'lib' not in sys.path:
     sys.path.insert(0, 'lib')
 
 import config
-from tipfy import make_wsgi_app, run_wsgi_app
+import tipfy
 
 # Instantiate the application.
-application = make_wsgi_app(config)
+application = tipfy.make_wsgi_app(config.config)
 
 # Issue 772 - http://code.google.com/p/googleappengine/issues/detail?id=772.
 # We must keep this here until it is fixed in the dev server.
@@ -31,10 +31,10 @@ def fix_sys_path():
 
 # Run, and done!
 def main():
-    if config.dev:
+    if tipfy.config['dev']:
         fix_sys_path()
 
-    run_wsgi_app(application)
+    tipfy.run_wsgi_app(application)
 
 if __name__ == '__main__':
     main()

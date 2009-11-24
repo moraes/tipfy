@@ -16,9 +16,17 @@ from mako.lookup import TemplateLookup
 from mako.runtime import Context
 from StringIO import StringIO
 
-from tipfy import local, app, response
+from tipfy import local, app, response, app_config
 
-lookup = TemplateLookup(directories=[path.join(app.config.templates_dir)],
+# Set the default configuration.
+app_config.setdefault('tipfy.ext.mako', {
+    'templates_dir': 'templates',
+})
+#: A dictionary of configuration options for ``tipfy.ext.mako``. Keys are:
+#:   - ``templates_dir``: Directory for templates.
+config = app_config['tipfy.ext.mako']
+
+lookup = TemplateLookup(directories=[path.join(config['templates_dir'])],
     output_encoding='utf-8', encoding_errors='replace')
 
 

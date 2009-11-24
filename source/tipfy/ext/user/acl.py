@@ -60,10 +60,10 @@
 from google.appengine.ext import db
 from google.appengine.api import memcache
 
-from tipfy import app
+from tipfy import app, app_config
 from tipfy.ext.db import PickleProperty
 
-# Cache for loaded rules.
+#: Cache for loaded rules.
 _rules_map = {}
 
 
@@ -80,17 +80,17 @@ def validate_rules(rules):
 
 
 class AclRules(db.Model):
-    # Creation date.
+    #: Creation date.
     created = db.DateTimeProperty(auto_now_add=True)
-    # Modification date.
+    #: Modification date.
     updated = db.DateTimeProperty(auto_now=True)
-    # Area to which this role is related.
+    #: Area to which this role is related.
     area = db.StringProperty(required=True)
-    # User identifier.
+    #: User identifier.
     user = db.StringProperty(required=True)
-    # List of role names.
+    #: List of role names.
     roles = db.StringListProperty()
-    # Lists of rules. Each rule is a tuple (topic, name, flag).
+    #: Lists of rules. Each rule is a tuple (topic, name, flag).
     rules = PickleProperty(validator=validate_rules)
 
     @classmethod
@@ -138,7 +138,8 @@ class AclRules(db.Model):
         if res is not None:
             roles_lock, roles, rules = res
 
-        if res is None or roles_lock != Acl.roles_lock or app.config.dev:
+        if res is None or roles_lock != Acl.roles_lock or \
+            app_config['tipfy']['dev']:
             entity = cls.get_by_key_name(cache_key)
             if entity is None:
                 res = (Acl.roles_lock, [], [])
@@ -210,18 +211,14 @@ class Acl(object):
         # Check if 'John' can approve new reviews.
         can_edit = acl.has_access('EditReview', 'approve')
     """
+    #: Dictionary of available role names mapping to list of rules.
+    #: This is a class attribute.
     roles_map = {}
-    """Dictionary of available role names mapping to list of rules.
 
-    This is a class attribute.
-    """
-
+    #: Lock for role changes. This is needed because if role definitions change
+    #: we must invalidate existing cache that applied the previous definitions.
+    #: This is a class attribute.
     roles_lock = None
-    """Lock for role changes. This is needed because if role definitions change
-    we must invalidate existing cache that applied the previous definitions.
-
-    This is a class attribute.
-    """
 
     def __init__(self, area, user):
         """Loads access privileges and roles for a given user in a given area.

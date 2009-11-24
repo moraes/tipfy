@@ -38,7 +38,7 @@ def get_protobuf_from_entity(entities):
        from google.appengine.api import memcache
        from tipfy.ext.db import get_protobuf_from_entity
 
-       # Inside a handler, given that a MyModel model is dfefined.
+       # Inside a handler, given that a MyModel model is defined.
        entity = MyModel(key_name='foo')
        entity.put()
 
@@ -122,7 +122,7 @@ def get_reference_key(entity, prop_name):
 
        # Now let's fetch the book and get the author key without fetching it.
        fetched_book = Book.get_by_key_name('the-shining')
-       assert str(author.key()) == get_reference_key(fetched_book, 'author')
+       assert str(author.key()) == str(get_reference_key(fetched_book, 'author'))
 
     :param entity:
         A ``db.Model`` instance.

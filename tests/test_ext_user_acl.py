@@ -6,6 +6,7 @@ import unittest
 from _base import get_app
 
 from gaetestbed import DataStoreTestCase
+from tipfy import app_config
 
 
 class TestAcl(DataStoreTestCase, unittest.TestCase):
@@ -15,18 +16,18 @@ class TestAcl(DataStoreTestCase, unittest.TestCase):
         #DataStoreTestCase.setUp(self)
 
         self.app = get_app()
-        self.app.config.dev = False
+        app_config['tipfy']['dev'] = False
 
         from tipfy.ext.user.acl import Acl, AclRules
         self.Acl = Acl
         self.Acl.roles_map = {}
-        self.Acl.roles_lock = self.app.config.version_id
+        self.Acl.roles_lock = app_config['tipfy']['version_id']
         self.AclRules = AclRules
 
     def tearDown(self):
-        self.app.config.dev = True
+        app_config['tipfy']['dev'] = True
         self.Acl.roles_map = {}
-        self.Acl.roles_lock = self.app.config.version_id
+        self.Acl.roles_lock = app_config['tipfy']['version_id']
 
     def test_set_rules(self):
         """Test setting and appending rules."""

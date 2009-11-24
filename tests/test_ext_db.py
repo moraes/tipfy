@@ -191,6 +191,29 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertRaises(db.Error, getattr, entity_3, 'foo')
         self.assertEqual(str(get_reference_key(entity_3, 'foo')), entity_1_key)
 
+    def test_get_reference_key_2(self):
+        # This is from the example in the api
+        from google.appengine.ext import db
+        from tipfy.ext.db import get_reference_key
+
+        # Set a book entity with an author reference.
+        class Author(db.Model):
+            name = db.StringProperty()
+
+        class Book(db.Model):
+            title = db.StringProperty()
+            author = db.ReferenceProperty(Author)
+
+        author = Author(name='Stephen King')
+        author.put()
+
+        book = Book(key_name='the-shining', title='The Shining', author=author)
+        book.put()
+
+        # Now let's fetch the book and get the author key without fetching it.
+        fetched_book = Book.get_by_key_name('the-shining')
+        self.assertEqual(str(author.key()), str(get_reference_key(fetched_book, 'author')))
+
     def test_pickle_property(self):
         data_1 = {'foo': 'bar'}
         entity_1 = FooModel(key_name='foo', name='foo', data=data_1)

@@ -8,6 +8,7 @@
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
+from os import environ
 from wsgiref.handlers import CGIHandler
 
 # Werkzeug swiss knife.
@@ -57,9 +58,10 @@ class WSGIApplication(object):
     def __init__(self, config):
         """Initializes the application.
 
-        :param config: Module with application settings.
+        :param config:
+            Dictionary with application configuration.
         """
-        self.config = config
+        app_config.update(config)
 
         # Set an accessor to this instance.
         local.app = self
@@ -176,13 +178,14 @@ def get_url_map(app):
     Rules are cached in production and renewed on each deployment.
     """
     from google.appengine.api import memcache
-    key = 'wsgi_app.rules.%s' % app.config.version_id
+    key = 'wsgi_app.rules.%s' % config['version_id']
     rules = memcache.get(key)
-    if not rules or app.config.dev:
+    if not rules or config['dev']:
         import urls
         try:
             rules = urls.get_rules()
         except AttributeError:
+            raise
             # Deprecated and kept here for backwards compatibility. Set a
             # get_rules() function in urls.py returning all rules to avoid
             # already bound rules being binded when an exception occurs.
@@ -200,7 +203,7 @@ def get_url_map(app):
 def get_middleware_types(app):
     """Imports middleware classes and extracts available middleware types."""
     middleware_types = {}
-    for spec in getattr(app.config, 'middleware_classes', []):
+    for spec in config['middleware_classes']:
         cls = import_string(spec)
         for name in ('wsgi_app', 'request', 'response', 'exception'):
             if hasattr(cls, 'process_%s' % name):
@@ -248,7 +251,7 @@ def handle_exception(app, e):
         if response:
             return response
 
-    if app.config.dev:
+    if config['dev']:
         raise
 
     if isinstance(e, HTTPException):
@@ -286,7 +289,7 @@ def redirect(location, code=302):
 
 
 def url_for(endpoint, full=False, method=None, **kwargs):
-    """Returns an URL for a named Rule.
+    """Builds and returns an URL for a named :class:`Rule`.
 
     :param endpoint:
         The rule endpoint.
@@ -296,7 +299,7 @@ def url_for(endpoint, full=False, method=None, **kwargs):
         The rule request method, in case there are different rules
         for different request methods.
     :param kwargs:
-        Keyword arguments to build the Rule.
+        Keyword arguments to build the URL.
     :return:
         An absolute or relative URL.
     """
@@ -305,7 +308,9 @@ def url_for(endpoint, full=False, method=None, **kwargs):
 
 
 def redirect_to(endpoint, method=None, code=302, **kwargs):
-    """Convenience function mixing redirect() and url_for()."""
+    """Convenience function mixing redirect() and url_for(): redirects the
+    client to a URL built using a named :class:`Rule`.
+    """
     return redirect(url_for(endpoint, full=True, method=method, **kwargs),
         code=code)
 
@@ -316,3 +321,56 @@ def render_json_response(obj):
     local.response.data = simplejson.dumps(obj)
     local.response.mimetype = 'application/json'
     return local.response
+
+
+class Config(dict):
+    """A configuration dictionary keyed by module name."""
+    def update(self, values):
+        for module in values.keys():
+            if not isinstance(values[module], dict):
+                raise ValueError('Values in the configuration must be a dict.')
+
+            if module not in self:
+                self[module] = {}
+
+            for key in values[module].keys():
+                self[module][key] = values[module][key]
+
+    def setdefault(self, module, values):
+        if module not in self:
+            self[module] = {}
+
+        if not isinstance(values, dict):
+            raise ValueError('Values passed to Config.setdefault() must be a '
+                'dict.')
+
+        for key in values.keys():
+            if key not in self[module]:
+                self[module][key] = values[key]
+
+
+# Initialize core configuration with some default values.
+app_config = Config({'tipfy': {
+    'dev': environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
+    'app_id': environ.get('APPLICATION_ID', None),
+    'version_id': environ.get('CURRENT_VERSION_ID', '1'),
+    'apps_installed': [],
+    'apps_entry_points': {},
+    'middleware_classes': [],
+}})
+if app_config['tipfy']['dev']:
+    # Set the debugger middleware only when using the development server.
+    app_config['tipfy']['middleware_classes'].append(
+        'tipfy.ext.debugger:DebuggedApp')
+
+#: A dictionary of configuration options for ``tipfy``. Keys are:
+#:   - ``dev``: ``True`` is this is the development server, ``False`` otherwise.
+#:     By default checks the value of ``os.environ['SERVER_SOFTWARE']``.
+#:   - ``app_id``: The application id. Default to the value set in
+#:     ``os.environ['APPLICATION_ID']``.
+#:   - ``version_id``: The current deplyment version id. Default to the value
+#:     set in ``os.environ['CURRENT_VERSION_ID']``.
+#:   - ``apps_installed``: A list of active app modules as a string.
+#:   - ``apps_entry_points``: URL entry points for the installed apps.
+#:   - ``middleware_classes``: A list of active middleware classes as a string.
+config = app_config['tipfy']

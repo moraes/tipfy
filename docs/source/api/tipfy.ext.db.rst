@@ -13,6 +13,7 @@ This module provides several utilities to work with ``google.appengine.ext.db``,
 including serialization functions, decorators and useful extra ``db.Property``
 classes.
 
+
 ``db.Model`` utilities
 ----------------------
 .. autofunction:: get_protobuf_from_entity

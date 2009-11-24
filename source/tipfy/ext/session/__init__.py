@@ -25,17 +25,11 @@ from google.appengine.ext import db
 from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import SessionStore
 
-from tipfy import local, app_config
+from tipfy import local, get_config
 from tipfy.ext.db import get_entity_from_protobuf, get_protobuf_from_entity, \
     retry_on_timeout, PickleProperty
 
-# Set the default configuration.
-app_config.setdefault('tipfy.ext.session', {
-    'secret_key': None,
-    'expiration': 86400,
-    'cookie_name': 'tipfy.session',
-    'id_cookie_name': 'tipfy.session_id',
-})
+#: Default configuration values for this module. Keys are:
 #: A dictionary of configuration options for ``tipfy.ext.session``. Keys are:
 #:   - ``secret_key``: Secret key to generate session cookies. Set this to
 #:     something random and unguessable. Default to `None`.
@@ -44,7 +38,12 @@ app_config.setdefault('tipfy.ext.session', {
 #:     `tipfy.session`.
 #:   - ``id_cookie_name``:Name of the cookie to save the session id. Default to
 #:     `tipfy.session_id`.
-config = app_config['tipfy.ext.session']
+default_config = {
+    'secret_key': None,
+    'expiration': 86400,
+    'cookie_name': 'tipfy.session',
+    'id_cookie_name': 'tipfy.session_id',
+}
 
 # Proxies to the session variables set on each request.
 local.session = local.session_store = None

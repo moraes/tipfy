@@ -13,7 +13,7 @@ engine.
 
 Configuration
 -------------
-.. autodata:: config
+.. autodata:: default_config
 
 
 Functions

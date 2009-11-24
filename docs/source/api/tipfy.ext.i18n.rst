@@ -16,9 +16,10 @@ dates according to timezones or translate and localize strings and dates.
 Tipfy uses `Babel`_ to manage translations of strings and localization of dates
 and times, and `gae-pytz`_ to handle timezones.
 
+
 Configuration
 -------------
-.. autodata:: config
+.. autodata:: default_config
 
 
 Middlewares
@@ -55,6 +56,7 @@ applied, use the functions :func:`format_date`, :func:`format_datetime` or
 .. autofunction:: format_date
 .. autofunction:: format_datetime
 .. autofunction:: format_time
+
 
 Timezone functions
 ------------------

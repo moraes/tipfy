@@ -5,6 +5,7 @@ tipfy.ext.user.acl
 This module provides a lightweight Access Control List implementation to check
 user permissions to application resources.
 
+
 Overview
 --------
 This module provides utilities to manage permissions for anything that
@@ -52,6 +53,7 @@ Usage example:
 
 The Acl object should be created once after a user is loaded, so that
 it becomes available for the app to do all necessary permissions checkings.
+
 
 Acl class
 ---------

@@ -34,6 +34,25 @@ app, request, response = local('app'), local('request'), local('response')
 ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
     'trace'])
 
+#: Default configuration values for this module. Keys are:
+#:   - ``dev``: ``True`` is this is the development server, ``False`` otherwise.
+#:     By default checks the value of ``os.environ['SERVER_SOFTWARE']``.
+#:   - ``app_id``: The application id. Default to the value set in
+#:     ``os.environ['APPLICATION_ID']``.
+#:   - ``version_id``: The current deplyment version id. Default to the value
+#:     set in ``os.environ['CURRENT_VERSION_ID']``.
+#:   - ``apps_installed``: A list of active app modules as a string.
+#:   - ``apps_entry_points``: URL entry points for the installed apps.
+#:   - ``middleware_classes``: A list of active middleware classes as a string.
+default_config = {
+    'dev': environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
+    'app_id': environ.get('APPLICATION_ID', None),
+    'version_id': environ.get('CURRENT_VERSION_ID', '1'),
+    'apps_installed': [],
+    'apps_entry_points': {},
+    'hooks': {},
+}
+
 
 class RequestHandler(object):
     """Base request handler. Only implements the minimal interface required by
@@ -59,19 +78,21 @@ class WSGIApplication(object):
         """Initializes the application.
 
         :param config:
-            Dictionary with application configuration.
+            Dictionary with configuration for the application modules.
         """
-        app_config.update(config)
-
         # Set an accessor to this instance.
         local.app = self
+
+        # Load default config and update with config for this instance.
+        self.config = Config(default_config)
+        self.config.update(config)
 
         # Set the url rules.
         self.url_map = get_url_map(self)
 
-        # Cache for loaded middlewares.
-        self.middleware_types = get_middleware_types(self)
-        self.middlewares = {}
+        # Set the event manager and the configured hooks.
+        self.event_manager = EventManager()
+        self.event_manager.subscribe_multi(self.config.get('tipfy', 'hooks'))
 
         # Cache for loaded handler classes.
         self.handlers = {}
@@ -91,9 +112,8 @@ class WSGIApplication(object):
             response = self.get_response()
 
             # Apply response middlewares.
-            if self.use_middlewares:
-                for method in iter_middleware(self, 'response'):
-                    response = method(local.request, response)
+            self.event_manager.notify('before_response_sent', local.request,
+                response)
 
         except RequestRedirect, e:
             # Execute redirects set by the routing system.
@@ -124,24 +144,54 @@ class WSGIApplication(object):
         # Set an accessor to the current handler.
         self.handler_class = self.handlers[self.rule.handler]
 
-        # Allows specific handlers to disable request/response middlewares.
-        self.use_middlewares = getattr(self.handler_class, 'use_middlewares',
-            True)
-
         # Apply request middlewares.
-        if self.use_middlewares:
-            for method in iter_middleware(self, 'request'):
-                response = method(local.request)
-                if response:
-                    return response
+        for response in self.event_manager.iter('before_handler_dispatch'):
+            if response:
+                return response
 
         # Instantiate handler and dispatch, passing method and rule arguments.
         return self.handler_class().dispatch(request_method, **self.rule_args)
 
 
+class Config(dict):
+    """A simple configuration dictionary keyed by module name."""
+    def update(self, values):
+        for module in values.keys():
+            if not isinstance(values[module], dict):
+                raise ValueError('Values in the configuration must be a dict.')
+
+            if module not in self:
+                self[module] = {}
+
+            for key in values[module].keys():
+                self[module][key] = values[module][key]
+
+    def setdefault(self, module, values):
+        if not isinstance(values, dict):
+            raise ValueError('Values passed to Config.setdefault() must be a '
+                'dict.')
+
+        if module not in self:
+            self[module] = {}
+
+        for key in values.keys():
+            self[module].setdefault(key, values[key])
+
+    def get(self, module, key=None, default=None):
+        if module not in self:
+            return default
+
+        if key is None:
+            return self[module]
+        elif key not in self[module]:
+            return default
+
+        return self[module][key]
+
+
 class EventHandler(object):
-    """A lazy event handler callable: event handlers are set as a string and
-    only imported when called.
+    """A lazy callable used by :class:`EventManager`: events handlers are set
+    as a string and only imported when used.
     """
     def __init__(self, handler_spec):
         """Builds the lazy callable.
@@ -170,9 +220,14 @@ class EventHandler(object):
 
 
 class EventManager(object):
-    def __init__(self):
-        # Holds event subscriptions.
-        self.subscribers = {}
+    def __init__(self, subscribers=None):
+        """Initializes the event manager.
+
+        :param subscribers:
+            A dictionary with event names as keys and a list of handler specs
+            as values.
+        """
+        self.subscribers = subscribers or {}
 
     def subscribe(self, name, handler_spec):
         """Subscribe a callable to a given event.
@@ -191,8 +246,8 @@ class EventManager(object):
         """Subscribe multiple callables to multiple events.
 
         :param spec:
-            A dictionary with event names as keys and the handler specs as
-            values.
+            A dictionary with event names as keys and a list of handler specs
+            as values.
         :return:
             ``None``.
         """
@@ -200,10 +255,9 @@ class EventManager(object):
             self.subscribers.setdefault(name, []).extend(
                 EventHandler(handler_spec) for handler_spec in spec[name])
 
-    def notify(self, name, *args, **kwargs):
+    def iter(self, name, *args, **kwargs):
         """Notify all subscribers to a given event about its occurrence. This
-        is a generator. Depending on the event type, if a value is returned
-        the event dispatcher may stop the iteration.
+        is a generator.
 
         :param name:
             The event name to notify subscribers about (a string).
@@ -216,6 +270,21 @@ class EventManager(object):
         """
         for subscriber in self.subscribers.get(name, []):
             yield subscriber(*args, **kwargs)
+
+    def notify(self, name, *args, **kwargs):
+        """Notify all subscribers to a given event about its occurrence. This
+        uses :meth:`iter` and returns a list with all its results.
+
+        :param name:
+            The event name to notify subscribers about (a string).
+        :param args:
+            Positional arguments to be passed to the subscribers.
+        :param kwargs:
+            Keyword arguments to be passed to the subscribers.
+        :return:
+            A list with all results from the subscriber calls.
+        """
+        return [res for res in self.iter(name, *args, **kwargs)]
 
 
 class Rule(WerkzeugRule):
@@ -257,9 +326,9 @@ def get_url_map(app):
     Rules are cached in production and renewed on each deployment.
     """
     from google.appengine.api import memcache
-    key = 'wsgi_app.rules.%s' % config['version_id']
+    key = 'wsgi_app.rules.%s' % get_config(__name__, 'version_id')
     rules = memcache.get(key)
-    if not rules or config['dev']:
+    if not rules or get_config(__name__, 'dev'):
         import urls
         try:
             rules = urls.get_rules()
@@ -279,30 +348,6 @@ def get_url_map(app):
     return Map(rules)
 
 
-def get_middleware_types(app):
-    """Imports middleware classes and extracts available middleware types."""
-    middleware_types = {}
-    for spec in config['middleware_classes']:
-        cls = import_string(spec)
-        for name in ('wsgi_app', 'request', 'response', 'exception'):
-            if hasattr(cls, 'process_%s' % name):
-                middleware_types.setdefault(name, []).append((spec, cls))
-
-    return middleware_types
-
-
-def iter_middleware(app, middleware_type):
-    """Yields middleware instance methods of a specific type."""
-    if not app.middleware_types:
-        return
-
-    for spec, cls in app.middleware_types.get(middleware_type, []):
-        if spec not in app.middlewares:
-            app.middlewares[spec] = cls()
-
-        yield getattr(app.middlewares[spec], 'process_%s' % middleware_type)
-
-
 def make_wsgi_app(config):
     """Returns a instance of WSGIApplication with loaded middlewares."""
     return WSGIApplication(config)
@@ -313,10 +358,6 @@ def run_wsgi_app(app):
     # Populate local with the WSGI app.
     local.app = app
 
-    # Apply wsgi_app middlewares only if they are loaded.
-    for method in iter_middleware(app, 'wsgi_app'):
-        app = method(app)
-
     # Wrap app by local_manager so that local is cleaned after each request.
     PatchedCGIHandler().run(local_manager.make_middleware(app))
 
@@ -325,8 +366,8 @@ def handle_exception(app, e):
     """Handles HTTPException or uncaught exceptions raised by the WSGI
     application, optionally applying exception middlewares.
     """
-    for method in iter_middleware(app, 'exception'):
-        response = method(local.request, e)
+    for response in app.event_manager.notify('before_handle_exception',
+        local.request, e):
         if response:
             return response
 
@@ -402,54 +443,33 @@ def render_json_response(obj):
     return local.response
 
 
-class Config(dict):
-    """A configuration dictionary keyed by module name."""
-    def update(self, values):
-        for module in values.keys():
-            if not isinstance(values[module], dict):
-                raise ValueError('Values in the configuration must be a dict.')
+def get_config(module, key, default=None):
+    """Returns a configuration value for an module. If it is not already set,
+    it'll load a ``default_config`` variable from the given module,
+    update the app config with those default values and return the value for
+    the given key. If the key is still not available, it'll return the
+    given default value.
 
-            if module not in self:
-                self[module] = {}
+    Every `Tipfy`_ module that allows some kind of configuration sets a
+    ``default_config`` global variable that is loaded by this function and
+    used in case the requested configuration was not defined by the user.
 
-            for key in values[module].keys():
-                self[module][key] = values[module][key]
+    :param module:
+        The configured module.
+    :param key:
+        The config key.
+    :param default:
+        The default value to be returned in case the key is not set.
+    :return:
+        A configuration value.
+    """
+    value = local.app.config.get(module, key, None)
+    if value is None:
+        default_config = import_string(module + ':default_config', silent=True)
+        if default_config is None:
+            value = default
+        else:
+            local.app.config.setdefault(module, default_config)
+            value = local.app.config.get(module, key, default)
 
-    def setdefault(self, module, values):
-        if module not in self:
-            self[module] = {}
-
-        if not isinstance(values, dict):
-            raise ValueError('Values passed to Config.setdefault() must be a '
-                'dict.')
-
-        for key in values.keys():
-            if key not in self[module]:
-                self[module][key] = values[key]
-
-
-# Initialize core configuration with some default values.
-app_config = Config({'tipfy': {
-    'dev': environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
-    'app_id': environ.get('APPLICATION_ID', None),
-    'version_id': environ.get('CURRENT_VERSION_ID', '1'),
-    'apps_installed': [],
-    'apps_entry_points': {},
-    'middleware_classes': [],
-}})
-if app_config['tipfy']['dev']:
-    # Set the debugger middleware only when using the development server.
-    app_config['tipfy']['middleware_classes'].append(
-        'tipfy.ext.debugger:DebuggedApp')
-
-#: A dictionary of configuration options for ``tipfy``. Keys are:
-#:   - ``dev``: ``True`` is this is the development server, ``False`` otherwise.
-#:     By default checks the value of ``os.environ['SERVER_SOFTWARE']``.
-#:   - ``app_id``: The application id. Default to the value set in
-#:     ``os.environ['APPLICATION_ID']``.
-#:   - ``version_id``: The current deplyment version id. Default to the value
-#:     set in ``os.environ['CURRENT_VERSION_ID']``.
-#:   - ``apps_installed``: A list of active app modules as a string.
-#:   - ``apps_entry_points``: URL entry points for the installed apps.
-#:   - ``middleware_classes``: A list of active middleware classes as a string.
-config = app_config['tipfy']
+    return value

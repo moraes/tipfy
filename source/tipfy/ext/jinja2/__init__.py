@@ -12,18 +12,16 @@
 """
 from os import path
 from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
-from tipfy import local, app, response, app_config
+from tipfy import local, app, response
 
-# Set the default configuration.
-app_config.setdefault('tipfy.ext.jinja2', {
-    'templates_dir': 'templates',
-    'templates_compiled_dir': None,
-})
-#: A dictionary of configuration options for ``tipfy.ext.jinja2``. Keys are:
+#: Default configuration values for this module. Keys are:
 #:   - ``templates_dir``: Directory for templates.
 #:   - ``templates_compiled_dir``: Directory for compiled templates. If None,
 #:     don't use compiled templates.
-config = app_config['tipfy.ext.jinja2']
+default_config = {
+    'templates_dir': 'templates',
+    'templates_compiled_dir': None,
+}
 
 # Jinja2 Environment, cached in the module.
 _environment = None
@@ -37,8 +35,9 @@ def get_env():
     """
     global _environment
     if _environment is None:
-        if app_config['tipfy']['dev'] or config['templates_compiled_dir'] \
-            is None:
+        app.config.get('tipfy.ext.jinja2', )
+        if app.config.get('tipfy', 'dev') or app.config.get(__name__,
+                'templates_compiled_dir') is None:
             # In development, parse templates on every request.
             loader = FileSystemLoader(config['templates_dir'])
         else:

@@ -14,7 +14,7 @@ This module provides sessions using secure cookies or the datastore.
 
 Configuration
 -------------
-.. autodata:: config
+.. autodata:: default_config
 
 
 Middlewares

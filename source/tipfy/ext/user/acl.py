@@ -60,7 +60,7 @@
 from google.appengine.ext import db
 from google.appengine.api import memcache
 
-from tipfy import app, app_config
+from tipfy import app, get_config
 from tipfy.ext.db import PickleProperty
 
 #: Cache for loaded rules.
@@ -139,7 +139,7 @@ class AclRules(db.Model):
             roles_lock, roles, rules = res
 
         if res is None or roles_lock != Acl.roles_lock or \
-            app_config['tipfy']['dev']:
+            get_config('tipfy', 'dev'):
             entity = cls.get_by_key_name(cache_key)
             if entity is None:
                 res = (Acl.roles_lock, [], [])

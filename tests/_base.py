@@ -4,8 +4,9 @@
   easy_install nose-gae
   easy_install webtest
   easy_install gaetestbed
+  apt-get install coverage
 
-  nosetests --with-gae --without-sandbox --gae-application=/path/to/source/
+  nosetests --with-gae --without-sandbox --with-coverage --cover-package=tipfy --gae-application=./source/
 """
 import os, sys
 ROOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',

@@ -24,18 +24,16 @@ from babel.dates import format_date as _format_date, \
     format_datetime as _format_datetime, format_time as _format_time
 from pytz.gae import pytz
 
-from tipfy import local, app, app_config
+from tipfy import local, app, get_config
 
-# Set the default configuration.
-app_config.setdefault('tipfy.ext.i18n', {
-    'locale':   'en_US',
-    'timezone': 'America/Chicago',
-})
-#: A dictionary of configuration options for ``tipfy.ext.i18n``. Keys are:
+#: Default configuration values for this module. Keys are:
 #:   - ``locale``: The default locale code. Default is `en_US`.
 #:   - ``timezone``: The application timezone according to the Olson database.
 #:     Default is `America/Chicago`.
-config = app_config['tipfy.ext.i18n']
+default_config = {
+    'locale':   'en_US',
+    'timezone': 'America/Chicago',
+}
 
 # Proxies to the i18n variables set on each request.
 local.locale = local.translations = None
@@ -69,12 +67,12 @@ class I18nMiddleware(object):
         # Get locale from a 'lang' query parameter, and if not set try to get
         # from a cookie. As last option, use the locale set in config.
         self.locale = request.args.get('lang', request.cookies.get(
-            'tipfy.locale', config['locale']))
+            'tipfy.locale', get_config(__name__, 'locale')))
 
         set_locale(self.locale)
 
     def process_response(self, request, response):
-        if self.locale and self.locale != config['locale']:
+        if self.locale and self.locale != get_config(__name__, 'locale'):
             # Persist locale using a cookie when it differs from default.
             response.set_cookie('tipfy.locale', value=self.locale,
                 max_age=(86400 * 30))
@@ -95,7 +93,7 @@ def set_locale(locale):
         ``None``.
     """
     if locale not in _translations:
-        options = list(set([locale, config['locale']]))
+        options = list(set([locale, get_config(__name__, 'locale')]))
         _translations[locale] = Translations.load('locale', options, 'messages')
 
     local.locale = locale
@@ -242,7 +240,7 @@ def get_tzinfo(timezone=None):
         A ``datetime.tzinfo`` object.
     """
     if timezone is None:
-        timezone = config['timezone']
+        timezone = get_config(__name__, 'timezone')
 
     if timezone not in _timezones:
         _timezones[timezone] = pytz.timezone(timezone)

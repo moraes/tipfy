@@ -260,6 +260,25 @@ def handle_exception(app, e):
     return InternalServerError()
 
 
+def url_for(endpoint, full=False, method=None, **kwargs):
+    """Builds and returns an URL for a named :class:`Rule`.
+
+    :param endpoint:
+        The rule endpoint.
+    :param full:
+        If True, builds an absolute URL. Otherwise, builds a relative one.
+    :param method:
+        The rule request method, in case there are different rules
+        for different request methods.
+    :param kwargs:
+        Keyword arguments to build the URL.
+    :return:
+        An absolute or relative URL.
+    """
+    return local.app.url_adapter.build(endpoint, force_external=full,
+        method=method, values=kwargs)
+
+
 def redirect(location, code=302):
     """Return a response object (a WSGI application) that, if called,
     redirects the client to the target location.  Supported codes are 301,
@@ -288,28 +307,9 @@ def redirect(location, code=302):
     return response
 
 
-def url_for(endpoint, full=False, method=None, **kwargs):
-    """Builds and returns an URL for a named :class:`Rule`.
-
-    :param endpoint:
-        The rule endpoint.
-    :param full:
-        If True, builds an absolute URL. Otherwise, builds a relative one.
-    :param method:
-        The rule request method, in case there are different rules
-        for different request methods.
-    :param kwargs:
-        Keyword arguments to build the URL.
-    :return:
-        An absolute or relative URL.
-    """
-    return local.app.url_adapter.build(endpoint, force_external=full,
-        method=method, values=kwargs)
-
-
 def redirect_to(endpoint, method=None, code=302, **kwargs):
-    """Convenience function mixing redirect() and url_for(): redirects the
-    client to a URL built using a named :class:`Rule`.
+    """Convenience function mixing :func:`redirect` and :func:`url_for`:
+    redirects the client to a URL built using a named :class:`Rule`.
     """
     return redirect(url_for(endpoint, full=True, method=method, **kwargs),
         code=code)

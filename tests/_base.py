@@ -17,10 +17,13 @@ if ROOT_PATH not in sys.path:
     sys.path.insert(0, ROOT_PATH)
 
 
-def get_app():
+def get_app(config=None):
     from tipfy import make_wsgi_app
-    import config
-    return make_wsgi_app(config.config)
+    if config is None:
+        import config
+        config = config.config
+
+    return make_wsgi_app(config)
 
 
 def get_environ(*args, **kwargs):

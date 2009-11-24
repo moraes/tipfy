@@ -8,12 +8,12 @@
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from tipfy import config, import_string, Rule
+from tipfy import get_config, import_string, Rule
 
 def get_rules():
     rules = []
 
-    for app_module in config['apps_installed']:
+    for app_module in get_config('tipfy', 'apps_installed'):
         try:
             # Load the urls module from the app and extend our rules.
             app_urls = import_string('%s.urls' % app_module)

@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.EventHandler and tipfy.EventManager.
+    Tests for tipfy.Config and tipfy.get_config.
 """
 import unittest
 import sys
-from _base import get_app, get_environ, get_request, get_response
+from _base import get_app
 
 
-from tipfy import Config
+from tipfy import Config, get_config, default_config
 
 
 class TestConfig(unittest.TestCase):
@@ -55,3 +55,31 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config['foo']['bar'], 'baz')
         self.assertEqual(config['foo']['doo'], 'ding')
 
+
+class TestGetConfig(unittest.TestCase):
+    def test_default_config(self):
+        app = get_app()
+
+        self.assertEqual(get_config('tipfy', 'dev'), default_config['dev'])
+        self.assertEqual(get_config('tipfy.ext.jinja2', 'templates_dir'), 'templates')
+        self.assertEqual(get_config('tipfy.ext.i18n', 'locale'), 'en_US')
+        self.assertEqual(get_config('tipfy.ext.i18n', 'timezone'), 'America/Chicago')
+
+    def test_override_config(self):
+        app = get_app({
+            'tipfy': {
+                'dev': True,
+            },
+            'tipfy.ext.jinja2': {
+                'templates_dir': 'apps/templates'
+            },
+            'tipfy.ext.i18n': {
+                'locale': 'pt_BR',
+                'timezone': 'America/Sao_Paulo',
+            },
+        })
+
+        self.assertEqual(get_config('tipfy', 'dev'), True)
+        self.assertEqual(get_config('tipfy.ext.jinja2', 'templates_dir'), 'apps/templates')
+        self.assertEqual(get_config('tipfy.ext.i18n', 'locale'), 'pt_BR')
+        self.assertEqual(get_config('tipfy.ext.i18n', 'timezone'), 'America/Sao_Paulo')

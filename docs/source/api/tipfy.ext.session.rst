@@ -12,8 +12,8 @@ This module provides sessions using secure cookies or the datastore.
    Consider this as a work in progress.
 
 
-Configuration
--------------
+Default Configuration
+---------------------
 .. autodata:: default_config
 
 

@@ -11,8 +11,8 @@ This module provides functions to render templates using the `Jinja2`_ template
 engine.
 
 
-Configuration
--------------
+Default Configuration
+---------------------
 .. autodata:: default_config
 
 

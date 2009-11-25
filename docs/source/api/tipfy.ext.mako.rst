@@ -12,8 +12,8 @@ This module provides functions to render templates using the `Mako`_ template
 engine.
 
 
-Configuration
--------------
+Default Configuration
+---------------------
 .. autodata:: default_config
 
 

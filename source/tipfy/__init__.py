@@ -306,10 +306,12 @@ class Rule(WerkzeugRule):
     Handler is a RequestHandler module and class specification, while endpoint
     is a friendly name used to build URL's. For example:
 
-        Rule('/users', endpoint='user-list', handler='my_app:UsersHandler')
+    .. code-block:: python
 
-    Access to the URL '/users' loads `UsersHandler` class from `my_app` module,
-    and to generate an URL to that page we use `url_for('user-list')`.
+       Rule('/users', endpoint='user-list', handler='my_app:UsersHandler')
+
+    Access to the URL ``/users`` loads ``UsersHandler`` class from ``my_app``
+    module, and to generate an URL to that page we use ``url_for('user-list')``.
     """
     def __init__(self, *args, **kwargs):
         self.handler = kwargs.pop('handler', kwargs.get('endpoint', None))

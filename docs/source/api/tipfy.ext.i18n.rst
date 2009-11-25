@@ -17,8 +17,8 @@ Tipfy uses `Babel`_ to manage translations of strings and localization of dates
 and times, and `gae-pytz`_ to handle timezones.
 
 
-Configuration
--------------
+Default Configuration
+---------------------
 .. autodata:: default_config
 
 

@@ -52,19 +52,26 @@ default_config = {
     'apps_entry_points': {},
     'hooks': {},
 }
+if default_config['dev'] is True:
+    # Add debugger by default when in development.
+    default_config['hooks'].setdefault('before_app_run', []).append(
+        'tipfy.ext.debugger:before_app_run')
 
 
 class RequestHandler(object):
     """Base request handler. Only implements the minimal interface required by
-    `WSGIApplication`: the dispatch() method.
+    :class:`WSGIApplication`: the :meth:`dispatch` method.
     """
     def dispatch(self, action, *args, **kwargs):
         """Executes a handler method. This method is called by the
         WSGIApplication and must always return a response object.
 
-        :str action: the method to be executed.
-        :dict kwargs: the arguments from the matched route.
-        :return: a Response object.
+        :param action:
+            The method to be executed.
+        :param kwargs:
+            The arguments from the matched route.
+        :return:
+            a ``werkzeug.Response`` object.
         """
         method = getattr(self, action, None)
         if method:
@@ -83,7 +90,7 @@ class WSGIApplication(object):
         # Set an accessor to this instance.
         local.app = self
 
-        # Load default config and update with config for this instance.
+        # Load default config and update with values for this instance.
         self.config = Config()
         self.config.setdefault(__name__, default_config)
         self.config.update(config)
@@ -91,16 +98,20 @@ class WSGIApplication(object):
         # Set the url rules.
         self.url_map = get_url_map(self)
 
-        # Set the event manager and the configured hooks.
-        self.event_manager = EventManager()
-        self.event_manager.subscribe_multi(self.config.get('tipfy', 'hooks'))
-
         # Cache for loaded handler classes.
         self.handlers = {}
+
+        # Set the event manager and the configured hooks.
+        self.hooks = EventManager()
+        self.hooks.subscribe_multi(self.config.get('tipfy', 'hooks'))
+
+        # Apply app middlewares.
+        self.hooks.notify('after_app_init', app=self)
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         # Populate local with the request and response.
+        self.hooks.notify('before_request_init', app=self)
         local.request = Request(environ)
         local.response = Response()
 
@@ -109,12 +120,33 @@ class WSGIApplication(object):
         self.rule = self.rule_args = self.handler_class = None
 
         try:
-            # Get a response object.
-            response = self.get_response()
+            # Check requested method.
+            method = local.request.method.lower()
+            if method not in ALLOWED_METHODS:
+                raise MethodNotAllowed()
 
-            # Apply response middlewares.
-            self.event_manager.notify('before_response_sent', local.request,
-                response)
+            # Match the path against registered rules.
+            self.rule, self.rule_args = self.url_adapter.match(request.path,
+                return_rule=True)
+
+            # Import handler set in matched rule.
+            if self.rule.handler not in self.handlers:
+                self.handlers[self.rule.handler] = import_string(
+                    self.rule.handler)
+
+            # Set an accessor to the current handler.
+            self.handler_class = self.handlers[self.rule.handler]
+
+            # Apply pre-dispatch middlewares.
+            for response in self.hooks.iter('before_handler_dispatch',
+                request=local.request, app=self):
+                if response is not None:
+                    break
+            else:
+                # Instantiate handler and dispatch, passing method and rule
+                # arguments.
+                response = self.handler_class().dispatch(method,
+                    **self.rule_args)
 
         except RequestRedirect, e:
             # Execute redirects set by the routing system.
@@ -124,34 +156,12 @@ class WSGIApplication(object):
             # middlewares if they are set.
             response = handle_exception(self, e)
 
+        # Apply response middlewares.
+        self.hooks.notify('before_response_sent', request=local.request,
+            response=response, app=self)
+
         # Call the response object as a WSGI application.
         return response(environ, start_response)
-
-    def get_response(self):
-        # Check requested method.
-        request_method = local.request.method.lower()
-        if request_method not in ALLOWED_METHODS:
-            raise MethodNotAllowed()
-
-        # Match the path against registered rules.
-        self.rule, self.rule_args = self.url_adapter.match(request.path,
-            return_rule=True)
-
-        # Import handler set in matched rule.
-        if self.rule.handler not in self.handlers:
-            self.handlers[self.rule.handler] = import_string(
-                self.rule.handler)
-
-        # Set an accessor to the current handler.
-        self.handler_class = self.handlers[self.rule.handler]
-
-        # Apply request middlewares.
-        for response in self.event_manager.iter('before_handler_dispatch'):
-            if response:
-                return response
-
-        # Instantiate handler and dispatch, passing method and rule arguments.
-        return self.handler_class().dispatch(request_method, **self.rule_args)
 
 
 class Config(dict):
@@ -334,7 +344,6 @@ def get_url_map(app):
         try:
             rules = urls.get_rules()
         except AttributeError:
-            raise
             # Deprecated and kept here for backwards compatibility. Set a
             # get_rules() function in urls.py returning all rules to avoid
             # already bound rules being binded when an exception occurs.
@@ -350,14 +359,38 @@ def get_url_map(app):
 
 
 def make_wsgi_app(config):
-    """Returns a instance of WSGIApplication with loaded middlewares."""
-    return WSGIApplication(config)
+    """Returns a instance of ``WSGIApplication`` with loaded middlewares.
+
+    :param config:
+        A dictionary of configuration values.
+    :return:
+        A ``WSGIApplication`` instance.
+    """
+    app = WSGIApplication(config)
+
+    # Apply post-make middlewares.
+    for res in app.hooks.iter('after_app_created', app=app):
+        if res is not None:
+            app = res
+
+    return app
 
 
 def run_wsgi_app(app):
-    """Executes the application, optionally wrapping it by middlewares."""
+    """Executes the application, optionally wrapping it by middlewares.
+
+    :param app:
+        A ``WSGIApplication`` instance.
+    :return:
+        ``None``.
+    """
     # Populate local with the WSGI app.
     local.app = app
+
+    # Apply pre-run middlewares.
+    for res in app.hooks.iter('before_app_run', app=app):
+        if res is not None:
+            app = res
 
     # Wrap app by local_manager so that local is cleaned after each request.
     PatchedCGIHandler().run(local_manager.make_middleware(app))
@@ -366,13 +399,20 @@ def run_wsgi_app(app):
 def handle_exception(app, e):
     """Handles HTTPException or uncaught exceptions raised by the WSGI
     application, optionally applying exception middlewares.
+
+    :param app:
+        The ``WSGIApplication`` instance.
+    :param e:
+        The catched exception.
+    :return:
+        A ``werkzeug.Response`` object, if the exception is not raised.
     """
-    for response in app.event_manager.notify('before_handle_exception',
-        local.request, e):
+    for response in app.hooks.notify('before_exception_handle', exception=e,
+        app=app):
         if response:
             return response
 
-    if config['dev']:
+    if get_config(__name__, 'dev'):
         raise
 
     if isinstance(e, HTTPException):
@@ -412,7 +452,7 @@ def redirect(location, code=302):
     :param code:
         The redirect status code.
     :return:
-        A ``werkzeug.Response`` object.
+        A ``werkzeug.Response`` object with headers set for redirection.
     """
     response = local.response
     assert code in (301, 302, 303, 305, 307), 'invalid code'
@@ -431,13 +471,32 @@ def redirect(location, code=302):
 def redirect_to(endpoint, method=None, code=302, **kwargs):
     """Convenience function mixing :func:`redirect` and :func:`url_for`:
     redirects the client to a URL built using a named :class:`Rule`.
+
+    :param endpoint:
+        The rule endpoint.
+    :param method:
+        The rule request method, in case there are different rules
+        for different request methods.
+    :param code:
+        The redirect status code.
+    :param kwargs:
+        Keyword arguments to build the URL.
+    :return:
+        A ``werkzeug.Response`` object with headers set for redirection.
     """
     return redirect(url_for(endpoint, full=True, method=method, **kwargs),
         code=code)
 
 
 def render_json_response(obj):
-    """Renders a JSON response, automatically encoding `obj` to JSON."""
+    """Renders a JSON response, automatically encoding `obj` to JSON.
+
+    :param obj:
+        An object to be serialized to JSON, normally a dictionary.
+    :return:
+        A ``werkzeug.Response`` object with `obj` converted to JSON in the body
+        and mimetype set to ``application/json``.
+    """
     from django.utils import simplejson
     local.response.data = simplejson.dumps(obj)
     local.response.mimetype = 'application/json'
@@ -446,7 +505,7 @@ def render_json_response(obj):
 
 def get_config(module, key, default=None):
     """Returns a configuration value for a module. If it is not already set,
-    it'll load a ``default_config`` variable from the given module, update the
+    it will load a ``default_config`` variable from the given module, update the
     app config with those default values and return the value for the given key.
     If the key is still not available, it'll return the given default value.
 

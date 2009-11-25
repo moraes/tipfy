@@ -15,14 +15,13 @@ import tipfy.ext.debugger.patch
 _debugged_app = None
 
 
-class DebuggedApp(object):
+def before_app_run(app=None):
     """Middleware to wrap the application by Werkzeug's debugger."""
-    def process_wsgi_app(self, app):
-        global _debugged_app
+    global _debugged_app
 
-        # Wrap app with the debugger.
-        if _debugged_app is None:
-            from werkzeug import DebuggedApplication
-            _debugged_app = DebuggedApplication(app, evalex=True)
+    # Wrap app with the debugger.
+    if _debugged_app is None:
+        from werkzeug import DebuggedApplication
+        _debugged_app = DebuggedApplication(app, evalex=True)
 
-        return _debugged_app
+    return _debugged_app

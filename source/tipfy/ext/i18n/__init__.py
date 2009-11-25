@@ -6,7 +6,7 @@
     Internationalization extension.
 
     This module provides internationalization utilities: a translations store,
-    a middleware to set locale for the current request, functions to manipulate
+    hooks to set locale for the current request, functions to manipulate
     dates according to timezones or translate and localize strings and dates.
 
     Tipfy uses `Babel`_ to manage translations of strings and localization of
@@ -44,40 +44,48 @@ _translations = {}
 _timezones = {}
 
 
-class I18nMiddleware(object):
-    """Middleware to initialize internationalization on every request.
+def after_app_init(app=None):
+    """Hook to initialize internationalization on every request.
 
-    To enable it, add ``tipfy.ext.i18n.I18nMiddleware``  to the list of
-    middleware classes in ``config.py``:
+    To enable it, add a hook to the list of hooks in ``config.py``:
 
     .. code-block:: python
 
-       middleware_classes = [
-           'tipfy.ext.i18n.I18nMiddleware',
-           # ...
-       ]
+       config = {
+           'tipfy': {
+               'hooks': {
+                   'after_app_init': ['tipfy.ext.i18n:after_app_init'],
+                   # ...
+               },
+           },
+       }
 
-    It must be placed before any other middleware that will make use of
+    It must be placed before any other hook that will make use of
     internationalization. Normally it is the first or one of the first
-    middlewares to be set.
+    hooks to be set.
     """
-    locale = None
+    app.hooks.subscribe('before_handler_dispatch', '%s:before_handler_dispatch'
+        % __name__)
+    app.hooks.subscribe('before_response_sent', '%s:before_response_sent'
+        % __name__)
 
-    def process_request(self, request):
-        # Get locale from a 'lang' query parameter, and if not set try to get
-        # from a cookie. As last option, use the locale set in config.
-        self.locale = request.args.get('lang', request.cookies.get(
-            'tipfy.locale', get_config(__name__, 'locale')))
 
-        set_locale(self.locale)
+def before_handler_dispatch(request=None, app=None):
+    # Get locale from a 'lang' query parameter, and if not set try to get
+    # from a cookie. As last option, use the locale set in config.
+    locale = request.args.get('lang', request.cookies.get(
+        'tipfy.locale', get_config(__name__, 'locale')))
 
-    def process_response(self, request, response):
-        if self.locale and self.locale != get_config(__name__, 'locale'):
-            # Persist locale using a cookie when it differs from default.
-            response.set_cookie('tipfy.locale', value=self.locale,
-                max_age=(86400 * 30))
+    set_locale(locale)
 
-        return response
+
+def before_response_sent(request=None, response=None, app=None):
+    if local.locale and local.locale != get_config(__name__, 'locale'):
+        # Persist locale using a cookie when it differs from default.
+        response.set_cookie('tipfy.locale', value=local.locale,
+            max_age=(86400 * 30))
+
+    return response
 
 
 def set_locale(locale):
@@ -85,7 +93,7 @@ def set_locale(locale):
     already loaded. Most functions in this module depends on the locale being
     set to work properly.
 
-    This is called by :class:`I18nMiddleware` on each request.
+    This is called by :func:`before_handler_dispatch` on each request.
 
     :param locale:
         The locale code. For example, 'en_US' or 'pt_BR'.

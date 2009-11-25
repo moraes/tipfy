@@ -83,3 +83,13 @@ class TestGetConfig(unittest.TestCase):
         self.assertEqual(get_config('tipfy.ext.jinja2', 'templates_dir'), 'apps/templates')
         self.assertEqual(get_config('tipfy.ext.i18n', 'locale'), 'pt_BR')
         self.assertEqual(get_config('tipfy.ext.i18n', 'timezone'), 'America/Sao_Paulo')
+
+    def test_override_config2(self):
+        app = get_app({
+            'tipfy.ext.i18n': {
+                'timezone': 'America/Sao_Paulo',
+            },
+        })
+
+        self.assertEqual(get_config('tipfy.ext.i18n', 'locale'), 'en_US')
+        self.assertEqual(get_config('tipfy.ext.i18n', 'timezone'), 'America/Sao_Paulo')

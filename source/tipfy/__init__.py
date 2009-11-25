@@ -362,12 +362,13 @@ def get_url_map(app):
 
 
 def make_wsgi_app(config):
-    """Returns a instance of ``WSGIApplication`` with loaded middlewares.
+    """Returns a instance of :class:`WSGIApplication`, optionally applying
+    middlewares.
 
     :param config:
         A dictionary of configuration values.
     :return:
-        A ``WSGIApplication`` instance.
+        A :class:`WSGIApplication` instance.
     """
     app = WSGIApplication(config)
 
@@ -383,12 +384,16 @@ def run_wsgi_app(app):
     """Executes the application, optionally wrapping it by middlewares.
 
     :param app:
-        A ``WSGIApplication`` instance.
+        A :class:`WSGIApplication` instance.
     :return:
         ``None``.
     """
     # Populate local with the WSGI app.
     local.app = app
+
+    # Fix issue #772.
+    if get_config('tipfy', 'dev'):
+        fix_sys_path()
 
     # Apply pre-run middlewares.
     for res in app.hooks.iter('before_app_run', app=app):
@@ -404,7 +409,7 @@ def handle_exception(app, e):
     application, optionally applying exception middlewares.
 
     :param app:
-        The ``WSGIApplication`` instance.
+        The :class:`WSGIApplication` instance.
     :param e:
         The catched exception.
     :return:
@@ -535,3 +540,19 @@ def get_config(module, key, default=None):
             value = local.app.config.get(module, key, default)
 
     return value
+
+
+ultimate_sys_path = None
+def fix_sys_path():
+    """A fix for issue 772. We must keep this here until it is fixed in the dev
+    server.
+
+    See http://code.google.com/p/googleappengine/issues/detail?id=772.
+    """
+    global ultimate_sys_path
+    import sys
+    if ultimate_sys_path is None:
+        ultimate_sys_path = list(sys.path)
+    else:
+        if sys.path != ultimate_sys_path:
+            sys.path[:] = ultimate_sys_path

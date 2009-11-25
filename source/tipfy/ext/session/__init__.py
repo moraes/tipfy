@@ -32,14 +32,15 @@ from tipfy.ext.db import get_entity_from_protobuf, get_protobuf_from_entity, \
 #: Default configuration values for this module. Keys are:
 #: A dictionary of configuration options for ``tipfy.ext.session``. Keys are:
 #:   - ``secret_key``: Secret key to generate session cookies. Set this to
-#:     something random and unguessable. Default to `None`.
+#:     something random and unguessable. Default to
+#:     `please-change-me-it-is-important`.
 #:   - ``expiration``: Session expiration time in seconds. Default to `86400`.
 #:   - ``cookie_name``: Name of the cookie to save the session. Default to
 #:     `tipfy.session`.
 #:   - ``id_cookie_name``:Name of the cookie to save the session id. Default to
 #:     `tipfy.session_id`.
 default_config = {
-    'secret_key': None,
+    'secret_key': 'please-change-me-it-is-important',
     'expiration': 86400,
     'cookie_name': 'tipfy.session',
     'id_cookie_name': 'tipfy.session_id',
@@ -67,7 +68,7 @@ class Session(db.Model):
 class DatastoreSessionStore(SessionStore):
     def __init__(self, expires=None):
         SessionStore.__init__(self)
-        self.expires = expires or config['expiration']
+        self.expires = expires or get_config(__name__, 'expiration')
 
     def _is_valid_entity(self, entity):
         """Checks if a session data entity fetched from datastore is valid."""
@@ -118,8 +119,8 @@ class SecureCookieSessionStore(SessionStore):
     """A session store class that stores data in secure cookies."""
     def __init__(self, cookie_name, expires=None):
         self.cookie_name = cookie_name
-        self.secret_key = config['secret_key']
-        self.expires = expires or config['expiration']
+        self.secret_key = get_config(__name__, 'secret_key')
+        self.expires = expires or get_config(__name__, 'expiration')
 
     def new(self):
         return self.get(None)
@@ -142,7 +143,7 @@ class DatastoreSessionMiddleware(object):
     def __init__(self):
         # The session id is stored in a secure cookie.
         self.session_id_store = SecureCookieSessionStore(
-            config['id_cookie_name'])
+            get_config(__name__, 'id_cookie_name'))
         self.session_store = DatastoreSessionStore()
 
     def process_request(self, request):
@@ -162,7 +163,8 @@ class DatastoreSessionMiddleware(object):
 class SecureCookieSessionMiddleware(object):
     """Enables sessions using secure cookies."""
     def __init__(self):
-        self.session_store = SecureCookieSessionStore(config['cookie_name'])
+        self.session_store = SecureCookieSessionStore(get_config(__name__,
+            'cookie_name'))
 
     def process_request(self, request):
         local.session_store = self.session_store
@@ -173,3 +175,11 @@ class SecureCookieSessionMiddleware(object):
             self.session_store.save_if_modified(local.session)
 
         return response
+
+
+def securecookie_session_setup():
+    pass
+
+
+def datastore_session_setup():
+    pass

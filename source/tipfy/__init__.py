@@ -244,14 +244,17 @@ class EventManager(object):
         """Subscribe a callable to a given event.
 
         :param name:
-            The event name to subscribe to (a string).
+            The event name to subscribe to (a string)
         :param handler_spec:
-            The handler callable that will handle the event. This is set as a
-            string to be only imported when the callable is used.
+            The handler that will handle the event. Can be either a callable or
+            a string to be lazily imported when the callable is used.
         :return:
             ``None``.
         """
-        self.subscribers.setdefault(name, []).append(EventHandler(handler_spec))
+        if not callable(handler_spec):
+            handler_spec = EventHandler(handler_spec)
+
+        self.subscribers.setdefault(name, []).append(handler_spec)
 
     def subscribe_multi(self, spec):
         """Subscribe multiple callables to multiple events.
@@ -263,8 +266,8 @@ class EventManager(object):
             ``None``.
         """
         for name in spec.keys():
-            self.subscribers.setdefault(name, []).extend(
-                EventHandler(handler_spec) for handler_spec in spec[name])
+            for handler_spec in spec[name]:
+                self.subscribe(name, handler_spec)
 
     def iter(self, name, *args, **kwargs):
         """Notify all subscribers to a given event about its occurrence. This

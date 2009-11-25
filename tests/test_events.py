@@ -4,6 +4,8 @@
 """
 import unittest
 import sys
+from types import FunctionType
+
 from _base import get_app, get_environ, get_request, get_response
 
 
@@ -70,6 +72,36 @@ class TestEventManager(unittest.TestCase):
 
         self.assertEqual(event_3[0].handler_spec, 'ding')
 
+    def test_subscribe_callable(self):
+        event_manager = EventManager()
+
+        event_manager.subscribe('before_request_init', event_callable_1)
+        event_manager.subscribe('before_request_init', event_callable_2)
+        event_manager.subscribe('after_request_init', event_callable_3)
+        event_manager.subscribe('after_request_dispatch', event_callable_4)
+
+        event_1 = event_manager.subscribers.get('before_request_init', None)
+        self.assertEqual(len(event_1), 2)
+        for event in event_1:
+            self.assertEqual(isinstance(event, FunctionType), True)
+
+        self.assertEqual(event_1[0].__name__, 'event_callable_1')
+        self.assertEqual(event_1[1].__name__, 'event_callable_2')
+
+        event_2 = event_manager.subscribers.get('after_request_init', None)
+        self.assertEqual(len(event_2), 1)
+        for event in event_2:
+            self.assertEqual(isinstance(event, FunctionType), True)
+
+        self.assertEqual(event_2[0].__name__, 'event_callable_3')
+
+        event_3 = event_manager.subscribers.get('after_request_dispatch', None)
+        self.assertEqual(len(event_3), 1)
+        for event in event_3:
+            self.assertEqual(isinstance(event, FunctionType), True)
+
+        self.assertEqual(event_3[0].__name__, 'event_callable_4')
+
     def test_subscribe_multi(self):
         event_manager = EventManager()
 
@@ -93,6 +125,37 @@ class TestEventManager(unittest.TestCase):
             self.assertEqual(isinstance(event, EventHandler), True)
 
         self.assertEqual(event_2[0].handler_spec, 'baz')
+
+        event_3 = event_manager.subscribers.get('after_request_dispatch', None)
+        self.assertEqual(len(event_3), 1)
+        for event in event_3:
+            self.assertEqual(isinstance(event, EventHandler), True)
+
+        self.assertEqual(event_3[0].handler_spec, 'ding')
+
+    def test_subscribe_multi_with_callable(self):
+        event_manager = EventManager()
+
+        event_manager.subscribe_multi({
+            'before_request_init': ['foo', 'bar'],
+            'after_request_init': [event_callable_1],
+            'after_request_dispatch': ['ding'],
+        })
+
+        event_1 = event_manager.subscribers.get('before_request_init', None)
+        self.assertEqual(len(event_1), 2)
+        for event in event_1:
+            self.assertEqual(isinstance(event, EventHandler), True)
+
+        self.assertEqual(event_1[0].handler_spec, 'foo')
+        self.assertEqual(event_1[1].handler_spec, 'bar')
+
+        event_2 = event_manager.subscribers.get('after_request_init', None)
+        self.assertEqual(len(event_2), 1)
+        for event in event_2:
+            self.assertEqual(isinstance(event, FunctionType), True)
+
+        self.assertEqual(event_2[0].__name__, 'event_callable_1')
 
         event_3 = event_manager.subscribers.get('after_request_dispatch', None)
         self.assertEqual(len(event_3), 1)
@@ -149,6 +212,54 @@ class TestEventManager(unittest.TestCase):
 
         self.assertEqual(i, 1)
 
+    def test_notify_with_callable(self):
+        event_manager = EventManager()
+
+        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+
+        event_manager.subscribe_multi({
+            'before_request_init': ['%s:event_callable_2' % __name__],
+            'after_request_init': ['%s:event_callable_3' % __name__],
+            'after_request_dispatch': [event_callable_4],
+        })
+
+        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+
+        i = 0
+        name = 'something'
+        expected_results = [
+            name + 'something_added',
+            name + 'something_added_2',
+            name + 'something_added',
+        ]
+        for result in event_manager.notify('before_request_init', name):
+            self.assertEqual(result, expected_results[i])
+            i += 1
+
+        self.assertEqual(i, 3)
+
+        i = 0
+        name = 'something2'
+        expected_results = [
+            name + 'something_added_3',
+        ]
+        for result in event_manager.notify('after_request_init', name):
+            self.assertEqual(result, expected_results[i])
+            i += 1
+
+        self.assertEqual(i, 1)
+
+        i = 0
+        name = 'something2'
+        expected_results = [
+            name + 'something_added_4',
+        ]
+        for result in event_manager.notify('after_request_dispatch', name):
+            self.assertEqual(result, expected_results[i])
+            i += 1
+
+        self.assertEqual(i, 1)
+
     def test_iter(self):
         event_manager = EventManager()
 
@@ -157,6 +268,54 @@ class TestEventManager(unittest.TestCase):
         event_manager.subscribe_multi({
             'before_request_init': ['%s:event_callable_2' % __name__],
             'after_request_init': ['%s:event_callable_3' % __name__],
+            'after_request_dispatch': ['%s:event_callable_4' % __name__],
+        })
+
+        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+
+        i = 0
+        name = 'something'
+        expected_results = [
+            name + 'something_added',
+            name + 'something_added_2',
+            name + 'something_added',
+        ]
+        for result in event_manager.iter('before_request_init', name):
+            self.assertEqual(result, expected_results[i])
+            i += 1
+
+        self.assertEqual(i, 3)
+
+        i = 0
+        name = 'something2'
+        expected_results = [
+            name + 'something_added_3',
+        ]
+        for result in event_manager.iter('after_request_init', name):
+            self.assertEqual(result, expected_results[i])
+            i += 1
+
+        self.assertEqual(i, 1)
+
+        i = 0
+        name = 'something2'
+        expected_results = [
+            name + 'something_added_4',
+        ]
+        for result in event_manager.iter('after_request_dispatch', name):
+            self.assertEqual(result, expected_results[i])
+            i += 1
+
+        self.assertEqual(i, 1)
+
+    def test_iter_with_callable(self):
+        event_manager = EventManager()
+
+        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+
+        event_manager.subscribe_multi({
+            'before_request_init': ['%s:event_callable_2' % __name__],
+            'after_request_init': [event_callable_3],
             'after_request_dispatch': ['%s:event_callable_4' % __name__],
         })
 

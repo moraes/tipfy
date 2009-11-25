@@ -45,7 +45,7 @@ _timezones = {}
 
 
 def after_app_init(app=None):
-    """Hook to initialize internationalization on every request.
+    """Hook to initialize and persist internationalization.
 
     To enable it, add a hook to the list of hooks in ``config.py``:
 
@@ -64,10 +64,8 @@ def after_app_init(app=None):
     internationalization. Normally it is the first or one of the first
     hooks to be set.
     """
-    app.hooks.subscribe('before_handler_dispatch', '%s:before_handler_dispatch'
-        % __name__)
-    app.hooks.subscribe('before_response_sent', '%s:before_response_sent'
-        % __name__)
+    app.hooks.subscribe('before_handler_dispatch', before_handler_dispatch)
+    app.hooks.subscribe('before_response_sent', before_response_sent)
 
 
 def before_handler_dispatch(request=None, app=None):

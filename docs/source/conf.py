@@ -22,6 +22,7 @@ sys.path.append(source_path)
 sys.path.append(lib_path)
 sys.path.append('/usr/local/google_appengine')
 sys.path.append('/usr/local/google_appengine/lib/yaml/lib')
+sys.path.append('/usr/local/google_appengine/lib/django')
 
 # -- General configuration -----------------------------------------------------
 
@@ -136,7 +137,9 @@ html_static_path = ['_static']
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {
+    #'index': 'testsidebar.html'
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

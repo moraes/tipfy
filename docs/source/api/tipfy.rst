@@ -8,7 +8,7 @@ module configurations, and several other utilities.
 .. module:: tipfy
 
 
-Default Configuration
+Default configuration
 ---------------------
 .. autodata:: default_config
 

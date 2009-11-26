@@ -1,13 +1,12 @@
 tipfy.ext.mako
 ==============
-
 This module provides functions to render templates using the `Mako`_ template
 engine.
 
 .. module:: tipfy.ext.mako
 
 
-Default Configuration
+Default configuration
 ---------------------
 .. autodata:: default_config
 

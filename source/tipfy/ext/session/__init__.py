@@ -51,6 +51,101 @@ local.session = local.session_store = None
 session, session_store = local('session'), local('session_store')
 
 
+def set_datastore_session(app=None):
+    """Hook to initialize and persist datastore based sessions. This
+    initializes :class:`DatastoreSessionMiddleware` and sets hooks to load and
+    save sessions.
+
+    To enable it, add a hook to the list of hooks in ``config.py``:
+
+    .. code-block:: python
+
+       config = {
+           'tipfy': {
+               'hooks': {
+                   'after_app_init': ['tipfy.ext.session:set_datastore_session'],
+                   # ...
+               },
+           },
+       }
+
+    :param app:
+        A :class:`tipfy.WSGIApplication` instance.
+    :return:
+        ``None``.
+    """
+    middleware = DatastoreSessionMiddleware()
+    app.hooks.subscribe('before_handler_dispatch', middleware.load_session)
+    app.hooks.subscribe('before_response_sent', middleware.save_session)
+
+
+def set_securecookie_session():
+    """Hook to initialize and persist secure cookie based sessions. This
+    initializes :class:`SecureCookieSessionMiddleware` and sets hooks to load
+    and save sessions.
+
+    To enable it, add a hook to the list of hooks in ``config.py``:
+
+    .. code-block:: python
+
+       config = {
+           'tipfy': {
+               'hooks': {
+                   'after_app_init': ['tipfy.ext.session:set_securecookie_session'],
+                   # ...
+               },
+           },
+       }
+
+    :param app:
+        A :class:`tipfy.WSGIApplication` instance.
+    :return:
+        ``None``.
+    """
+    middleware = DatastoreSessionMiddleware()
+    app.hooks.subscribe('before_handler_dispatch', middleware.load_session)
+    app.hooks.subscribe('before_response_sent', middleware.save_session)
+
+
+class DatastoreSessionMiddleware(object):
+    """Enables sessions using the datastore."""
+    def __init__(self):
+        # The session id is stored in a secure cookie.
+        self.session_id_store = SecureCookieSessionStore(
+            get_config(__name__, 'id_cookie_name'))
+        self.session_store = DatastoreSessionStore()
+
+    def load_session(self, request=None, app=None):
+        self.session_id = self.session_id_store.get(None)
+        local.session_store = self.session_store
+        local.session = self.session_store.get(self.session_id.get('_sid'))
+
+    def save_session(self, request=None, response=None, app=None):
+        if hasattr(local, 'session'):
+            self.session_id['_sid'] = local.session.sid
+            self.session_store.save_if_modified(local.session)
+            self.session_id_store.save_if_modified(self.session_id)
+
+        return response
+
+
+class SecureCookieSessionMiddleware(object):
+    """Enables sessions using secure cookies."""
+    def __init__(self):
+        self.session_store = SecureCookieSessionStore(get_config(__name__,
+            'cookie_name'))
+
+    def load_session(self, request=None, app=None):
+        local.session_store = self.session_store
+        local.session = self.session_store.get(None)
+
+    def save_session(self, request=None, response=None, app=None):
+        if hasattr(local, 'session'):
+            self.session_store.save_if_modified(local.session)
+
+        return response
+
+
 class Session(db.Model):
     """Stores session data."""
     #: Creation date.
@@ -136,50 +231,3 @@ class SecureCookieSessionStore(SessionStore):
     def delete(self, session):
         for key in session.keys():
             del session[key]
-
-
-class DatastoreSessionMiddleware(object):
-    """Enables sessions using the datastore."""
-    def __init__(self):
-        # The session id is stored in a secure cookie.
-        self.session_id_store = SecureCookieSessionStore(
-            get_config(__name__, 'id_cookie_name'))
-        self.session_store = DatastoreSessionStore()
-
-    def process_request(self, request):
-        self.session_id = self.session_id_store.get(None)
-        local.session_store = self.session_store
-        local.session = self.session_store.get(self.session_id.get('_sid'))
-
-    def process_response(self, request, response):
-        if hasattr(local, 'session'):
-            self.session_id['_sid'] = local.session.sid
-            self.session_store.save_if_modified(local.session)
-            self.session_id_store.save_if_modified(self.session_id)
-
-        return response
-
-
-class SecureCookieSessionMiddleware(object):
-    """Enables sessions using secure cookies."""
-    def __init__(self):
-        self.session_store = SecureCookieSessionStore(get_config(__name__,
-            'cookie_name'))
-
-    def process_request(self, request):
-        local.session_store = self.session_store
-        local.session = self.session_store.get(None)
-
-    def process_response(self, request, response):
-        if hasattr(local, 'session'):
-            self.session_store.save_if_modified(local.session)
-
-        return response
-
-
-def securecookie_session_setup():
-    pass
-
-
-def datastore_session_setup():
-    pass

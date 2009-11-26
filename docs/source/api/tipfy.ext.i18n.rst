@@ -1,6 +1,5 @@
 tipfy.ext.i18n
 ==============
-
 This module provides internationalization utilities: a translations store,
 a middleware to set locale for the current request, functions to manipulate
 dates according to timezones or translate and localize strings and dates.
@@ -11,7 +10,7 @@ and times, and `gae-pytz`_ to handle timezones.
 .. module:: tipfy.ext.i18n
 
 
-Default Configuration
+Default configuration
 ---------------------
 .. autodata:: default_config
 

@@ -1,13 +1,12 @@
 tipfy.ext.jinja2
 =================
-
 This module provides functions to render templates using the `Jinja2`_ template
 engine.
 
 .. module:: tipfy.ext.jinja2
 
 
-Default Configuration
+Default configuration
 ---------------------
 .. autodata:: default_config
 

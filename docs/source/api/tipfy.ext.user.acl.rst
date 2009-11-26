@@ -1,6 +1,5 @@
 tipfy.ext.user.acl
 ==================
-
 This module provides a lightweight Access Control List implementation to check
 user permissions to application resources.
 
@@ -9,7 +8,6 @@ user permissions to application resources.
 
 Overview
 --------
-
 This module provides utilities to manage permissions for anything that
 requires some level of restriction, like datastore models or handlers.
 Access permissions can be grouped in roles for convenience, so that a new
@@ -61,7 +59,6 @@ it becomes available for the app to do all necessary permissions checkings.
 
 Acl class
 ---------
-
 .. autoclass:: Acl
    :members: roles_map, roles_lock, __init__, reset, is_one, is_any, is_all, has_any_access, has_access
 

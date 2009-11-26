@@ -12,20 +12,58 @@
 from base64 import b64encode, b64decode
 from django.utils import simplejson
 
-from tipfy import local
-try:
-    from tipfy.ext.i18n import _
-except ImportError:
-    _ = unicode
+from tipfy import local, get_config
+#from tipfy.ext.i18n import _
+
+#: Default configuration values for this module. Keys are:
+#:   - ``cookie_name``: The name of the cookie to store flash messages. Default
+#:     is `tipfy.flash`.
+default_config = {
+    'cookie_name': 'tipfy.flash',
+}
+
+# Proxies to the messages variables set on each request.
+local.messages = None
+messages = local('messages')
 
 
-class MessagesMiddleware(object):
-    def process_request(self, request):
-        """Adds messages attribute to the request and initializes the messages
-        container.
+def set_messages(request=None, app=None):
+    """Application hook executed right before the handler is dispatched.
+
+    It initializes the messages system.
+
+    To enable it, add a hook to the list of hooks in ``config.py``:
+
+    .. code-block:: python
+
+       config = {
+           'tipfy': {
+               'hooks': {
+                   'after_app_init': ['tipfy.ext.messages:set_messages'],
+                   # ...
+               },
+           },
+       }
+
+    It must be placed before any other hook that will make use of
+    internationalization. Normally it is the first or one of the first
+    hooks to be set.
+
+    :param request:
+        A ``werkzeug.Request`` instance.
+    :param app:
+        A :class:`tipfy.WSGIApplication` instance.
+    :return:
+        ``None``.
+    """
+    local.messages = Messages()
+
+
+class Messages(object):
+    def __init__(self):
+        """Initializes the messages container, loading a possibly existing
+        flash message.
         """
-        request.messages = self
-
         # Set the messages container.
         self.messages = []
 
@@ -48,13 +86,19 @@ class MessagesMiddleware(object):
     def add(self, level, body, title=None, life=5000):
         """Adds a status message.
 
-        :param level: Message level. Common values are "info", "alert", "error"
+        :param level:
+            Message level. Common values are "info", "alert", "error"
             and "success".
-        :param body: Message contents.
-        :param title: Optional message title.
-        :life: Message life time in milliseconds. User interface can implement
+        :param body:
+            Message contents.
+        :param title:
+            Optional message title.
+        :life:
+            Message life time in milliseconds. User interface can implement
             a mechanism to make the message disappear after the elapsed time.
             If not set, the message is permanent.
+        :return:
+            ``None``.
         """
         self.messages.append({
             'level': level,
@@ -64,7 +108,15 @@ class MessagesMiddleware(object):
         })
 
     def add_form_error(self, body=None, title=None):
-        """Adds a form error message."""
+        """Adds a form error message.
+
+        :param body:
+            Message contents.
+        :param title:
+            Optional message title.
+        :return:
+            ``None``.
+        """
         if body is None:
             body = _('A problem occurred. Please correct the errors listed in '
                 'the form.')
@@ -75,7 +127,22 @@ class MessagesMiddleware(object):
         self.add('error', body, title=title, life=None)
 
     def set_flash(self, level, body, title=None, life=5000):
-        """Sets a flash message."""
+        """Sets a flash message.
+
+        :param level:
+            Message level. Common values are "info", "alert", "error"
+            and "success".
+        :param body:
+            Message contents.
+        :param title:
+            Optional message title.
+        :life:
+            Message life time in milliseconds. User interface can implement
+            a mechanism to make the message disappear after the elapsed time.
+            If not set, the message is permanent.
+        :return:
+            ``None``.
+        """
         set_flash({
             'level': level,
             'title': title,
@@ -84,18 +151,28 @@ class MessagesMiddleware(object):
         })
 
 
-def get_flash(key='tipfy.flash'):
+def get_flash():
     """Reads and deletes a flash message. Flash messages are stored in a cookie
     and automatically deleted when read.
+
+    :return:
+        The data stored in a flash, in any.
     """
+    key = get_config(__name__, 'cookie_name')
     if key in local.request.cookies:
         data = simplejson.loads(b64decode(local.request.cookies[key]))
         local.response.delete_cookie(key)
         return data
 
 
-def set_flash(data, key='tipfy.flash'):
+def set_flash(data):
     """Sets a flash message. Flash messages are stored in a cookie
     and automatically deleted when read.
+
+    :param data:
+        Flash data to be serialized and stored as JSON.
+    :return:
+        ``None``.
     """
+    key = get_config(__name__, 'cookie_name')
     local.response.set_cookie(key, value=b64encode(simplejson.dumps(data)))

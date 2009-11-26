@@ -1,6 +1,5 @@
 tipfy.ext.taskqueue
 ===================
-
 This module provides utilities to work with
 ``google.appengine.api.labs.taskqueue``.
 

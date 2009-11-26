@@ -1,6 +1,5 @@
 ``app.yaml``, ``main.py``, ``config.py`` and ``urls.py``
 ========================================================
-
 ``app.yaml``, ``main.py``, ``config.py`` and ``urls.py`` are the basic files
 used to configure and initialize a `Tipfy`_ application. In a common case,
 you'll set ``app.yaml`` and ``main.py`` once (or use the provided ones, as they
@@ -10,7 +9,6 @@ application needs. We'll explain each one in details.
 
 ``app.yaml`` and ``main.py``
 ----------------------------
-
 `Tipfy`_ comes with simple ``app.yaml`` and ``main.py`` files ready to be used
 by any application. Unless you have uncommon needs, you can use them as they
 are. About them:
@@ -49,7 +47,6 @@ to ``main.py``, as in this example:
 
 ``config.py``
 -------------
-
 By default, ``main.py`` will load configuration options from ``config.py``, to
 pass the configuration dictionary that is set there to :func:`tipfy.make_wsgi_app`.
 
@@ -109,7 +106,6 @@ module's ``default_config`` variable.
 
 ``urls.py``
 -----------
-
 All URLs in a `Tipfy`_ application are, by default, loaded from ``urls.py``.
 This module must implement a ``get_rules()`` function that takes no parameters
 and returns a list of :class:`tipfy.Rule` instances.

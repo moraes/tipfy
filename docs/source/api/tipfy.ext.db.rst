@@ -1,6 +1,5 @@
 tipfy.ext.db
 ============
-
 This module provides several utilities to work with ``google.appengine.ext.db``,
 including serialization functions, decorators and useful extra ``db.Property``
 classes.

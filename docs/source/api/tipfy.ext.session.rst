@@ -1,6 +1,5 @@
 tipfy.ext.session
 =================
-
 This module provides sessions using secure cookies or the datastore.
 
 .. note::
@@ -10,12 +9,18 @@ This module provides sessions using secure cookies or the datastore.
 .. module:: tipfy.ext.session
 
 
-Default Configuration
+Default configuration
 ---------------------
 .. autodata:: default_config
 
 
-Middlewares
------------
-.. autoclass:: SecureCookieSessionMiddleware
+Application hooks
+-----------------
+.. autofunction:: set_datastore_session
+.. autofunction:: set_securecookie_session
+
+
+Classes
+-------
 .. autoclass:: DatastoreSessionMiddleware
+.. autoclass:: SecureCookieSessionMiddleware

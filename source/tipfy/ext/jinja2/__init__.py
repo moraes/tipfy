@@ -50,7 +50,7 @@ def get_env():
         try:
             # Install i18n conditionally.
             _set_i18n(_environment)
-        except ImportError:
+        except (ImportError, AttributeError), e:
             # i18n is not available.
             pass
 

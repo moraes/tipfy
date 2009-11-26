@@ -9,12 +9,12 @@
   nosetests --with-gae --without-sandbox --with-coverage --cover-package=tipfy --gae-application=./source/
 """
 import os, sys
-ROOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
+APP_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
     'source'))
-LIBS_PATH = os.path.join(ROOT_PATH, 'lib')
-if ROOT_PATH not in sys.path:
-    sys.path.insert(0, LIBS_PATH)
-    sys.path.insert(0, ROOT_PATH)
+LIB_PATH = os.path.join(APP_PATH, 'lib')
+if APP_PATH not in sys.path:
+    sys.path.insert(0, LIB_PATH)
+    sys.path.insert(0, APP_PATH)
 
 
 def get_app(config=None):

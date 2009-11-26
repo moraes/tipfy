@@ -102,16 +102,16 @@ class WSGIApplication(object):
         self.handlers = {}
 
         # Set the event manager and the configured hooks.
-        self.hooks = EventManager()
-        self.hooks.subscribe_multi(self.config.get('tipfy', 'hooks'))
+        self.hooks = HookHandler()
+        self.hooks.add_multi(self.config.get('tipfy', 'hooks'))
 
         # Apply app middlewares.
-        self.hooks.notify('after_app_init', app=self)
+        self.hooks.call('after_app_init', app=self)
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         # Populate local with the request and response.
-        self.hooks.notify('before_request_init', app=self)
+        self.hooks.call('before_request_init', app=self)
         local.request = Request(environ)
         local.response = Response()
 
@@ -157,7 +157,7 @@ class WSGIApplication(object):
             response = handle_exception(self, e)
 
         # Apply response middlewares.
-        self.hooks.notify('before_response_sent', request=local.request,
+        self.hooks.call('before_response_sent', request=local.request,
             response=response, app=self)
 
         # Call the response object as a WSGI application.
@@ -165,28 +165,36 @@ class WSGIApplication(object):
 
 
 class Config(dict):
-    """A simple configuration dictionary keyed by module name."""
-    def update(self, values):
-        for module in values.keys():
-            if not isinstance(values[module], dict):
-                raise ValueError('Values in the configuration must be a dict.')
+    """A simple configuration dictionary keyed by module name. This is a
+    dictionary of dictionaries. It requires all values to be dictionaries
+    and applies updates and default values to the inner dictionaries instead of
+    the first level values.
+    """
+    def __init__(self, value=None):
+        if value is not None:
+            self.update(value)
 
+    def __setitem__(self, key, value):
+        self.require_dict(value)
+        super(Config, self).__setitem__(key, value)
+
+    def update(self, value):
+        self.require_dict(value)
+        for module in value.keys():
+            self.require_dict(value[module])
             if module not in self:
                 self[module] = {}
 
-            for key in values[module].keys():
-                self[module][key] = values[module][key]
+            for key in value[module].keys():
+                self[module][key] = value[module][key]
 
-    def setdefault(self, module, values):
-        if not isinstance(values, dict):
-            raise ValueError('Values passed to Config.setdefault() must be a '
-                'dict.')
-
+    def setdefault(self, module, value):
+        self.require_dict(value)
         if module not in self:
             self[module] = {}
 
-        for key in values.keys():
-            self[module].setdefault(key, values[key])
+        for key in value.keys():
+            self[module].setdefault(key, value[key])
 
     def get(self, module, key=None, default=None):
         if module not in self:
@@ -199,20 +207,24 @@ class Config(dict):
 
         return self[module][key]
 
+    def require_dict(self, value):
+        if not isinstance(value, dict):
+            raise ValueError('Config values must be a dict.')
 
-class EventHandler(object):
-    """A lazy callable used by :class:`EventManager`: events handlers are set
-    as a string and only imported when used.
+
+class LazyHook(object):
+    """A lazy callable used by :class:`HookHandler`: hooks are set as a string
+    and only imported when used.
     """
-    def __init__(self, handler_spec):
+    def __init__(self, hook_spec):
         """Builds the lazy callable.
 
-        :param handler_spec:
-            The handler callable that will handle the event. This is set as a
-            string to be only imported when the callable is used.
+        :param hook_spec:
+            The callable that will handle the event, as a string. It will be
+            imported only when the callable is used.
         """
-        self.handler_spec = handler_spec
-        self.handler = None
+        self.hook_spec = hook_spec
+        self.hook = None
 
     def __call__(self, *args, **kwargs):
         """Executes the event callable, importing it if it is not imported yet.
@@ -224,79 +236,78 @@ class EventHandler(object):
         :return:
             The value returned by the callable.
         """
-        if self.handler is None:
-            self.handler = import_string(self.handler_spec)
+        if self.hook is None:
+            self.hook = import_string(self.hook_spec)
 
-        return self.handler(*args, **kwargs)
+        return self.hook(*args, **kwargs)
 
 
-class EventManager(object):
-    def __init__(self, subscribers=None):
-        """Initializes the event manager.
+class HookHandler(object):
+    def __init__(self, hooks=None):
+        """Initializes the application hook handler.
 
-        :param subscribers:
-            A dictionary with event names as keys and a list of handler specs
+        :param hooks:
+            A dictionary with event names as keys and a list of hook specs
             as values.
         """
-        self.subscribers = subscribers or {}
+        self.hooks = hooks or {}
 
-    def subscribe(self, name, handler_spec):
-        """Subscribe a callable to a given event.
+    def add(self, name, hook):
+        """Adds a hook to a given application event.
 
         :param name:
-            The event name to subscribe to (a string)
-        :param handler_spec:
-            The handler that will handle the event. Can be either a callable or
-            a string to be lazily imported when the callable is used.
+            The event name to be added (a string).
+        :param hook:
+            The callable that is executed when the event occurs. Can be either
+            a callable or a string to be lazily imported.
         :return:
             ``None``.
         """
-        if not callable(handler_spec):
-            handler_spec = EventHandler(handler_spec)
+        if not callable(hook):
+            hook = LazyHook(hook)
 
-        self.subscribers.setdefault(name, []).append(handler_spec)
+        self.hooks.setdefault(name, []).append(hook)
 
-    def subscribe_multi(self, spec):
-        """Subscribe multiple callables to multiple events.
+    def add_multi(self, spec):
+        """Adds multiple hook to multiple application events.
 
         :param spec:
-            A dictionary with event names as keys and a list of handler specs
-            as values.
+            A dictionary with event names as keys and a list of hooks as values.
+            Hooks can be a callable or a string to be lazily imported.
         :return:
             ``None``.
         """
         for name in spec.keys():
-            for handler_spec in spec[name]:
-                self.subscribe(name, handler_spec)
+            for hook in spec[name]:
+                self.add(name, hook)
 
     def iter(self, name, *args, **kwargs):
-        """Notify all subscribers to a given event about its occurrence. This
-        is a generator.
+        """Call all hooks for a given application event. This is a generator.
 
         :param name:
-            The event name to notify subscribers about (a string).
+            The event name (a string).
         :param args:
             Positional arguments to be passed to the subscribers.
         :param kwargs:
             Keyword arguments to be passed to the subscribers.
         :yield:
-            The result of the subscriber calls.
+            The result of the hook calls.
         """
-        for subscriber in self.subscribers.get(name, []):
-            yield subscriber(*args, **kwargs)
+        for hook in self.hooks.get(name, []):
+            yield hook(*args, **kwargs)
 
-    def notify(self, name, *args, **kwargs):
-        """Notify all subscribers to a given event about its occurrence. This
-        uses :meth:`iter` and returns a list with all its results.
+    def call(self, name, *args, **kwargs):
+        """Call all hooks for a given application event. This uses :meth:`iter`
+        and returns a list with all results.
 
         :param name:
-            The event name to notify subscribers about (a string).
+            The event name (a string).
         :param args:
-            Positional arguments to be passed to the subscribers.
+            Positional arguments to be passed to the hooks.
         :param kwargs:
-            Keyword arguments to be passed to the subscribers.
+            Keyword arguments to be passed to the hooks.
         :return:
-            A list with all results from the subscriber calls.
+            A list with all results from the hook calls.
         """
         return [res for res in self.iter(name, *args, **kwargs)]
 
@@ -417,7 +428,7 @@ def handle_exception(app, e):
     :return:
         A ``werkzeug.Response`` object, if the exception is not raised.
     """
-    for response in app.hooks.notify('before_exception_handle', exception=e,
+    for response in app.hooks.call('before_exception_handle', exception=e,
         app=app):
         if response:
             return response

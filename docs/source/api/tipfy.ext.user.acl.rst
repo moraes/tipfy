@@ -1,13 +1,15 @@
 tipfy.ext.user.acl
 ==================
-.. module:: tipfy.ext.user.acl
 
 This module provides a lightweight Access Control List implementation to check
 user permissions to application resources.
 
+.. module:: tipfy.ext.user.acl
+
 
 Overview
 --------
+
 This module provides utilities to manage permissions for anything that
 requires some level of restriction, like datastore models or handlers.
 Access permissions can be grouped in roles for convenience, so that a new
@@ -20,6 +22,7 @@ override or extend the role permissions.
    things simple and fast. Role definitions are set directly in the Acl
    class. The strategy to load roles is open to the implementation: for
    best performance, define them statically in a module.
+
 
 Usage example:
 
@@ -51,12 +54,14 @@ Usage example:
    assert acl.has_access(topic='UserAdmin', name='save') is False
    assert acl.has_access(topic='AnythingElse', name='put') is True
 
+
 The Acl object should be created once after a user is loaded, so that
 it becomes available for the app to do all necessary permissions checkings.
 
 
 Acl class
 ---------
+
 .. autoclass:: Acl
    :members: roles_map, roles_lock, __init__, reset, is_one, is_any, is_all, has_any_access, has_access
 

@@ -1,13 +1,5 @@
 tipfy.ext.i18n
 ==============
-.. module:: tipfy.ext.i18n
-
-.. toctree::
-   :maxdepth: 5
-
-.. _Babel: http://babel.edgewall.org/
-.. _gae-pytz: http://code.google.com/p/gae-pytz/
-.. _Kay: http://code.google.com/p/kay-framework/
 
 This module provides internationalization utilities: a translations store,
 a middleware to set locale for the current request, functions to manipulate
@@ -16,15 +8,19 @@ dates according to timezones or translate and localize strings and dates.
 Tipfy uses `Babel`_ to manage translations of strings and localization of dates
 and times, and `gae-pytz`_ to handle timezones.
 
+.. module:: tipfy.ext.i18n
+
 
 Default Configuration
 ---------------------
 .. autodata:: default_config
 
 
-Middlewares
------------
-.. autoclass:: I18nMiddleware
+Application hooks
+-----------------
+.. autofunction:: set_app_hooks
+.. autofunction:: set_requested_locale
+.. autofunction:: persist_requested_locale
 
 
 Translation functions
@@ -65,3 +61,8 @@ These functions help to convert internal datetime values to different timezones.
 .. autofunction:: get_tzinfo
 .. autofunction:: to_local_timezone
 .. autofunction:: to_utc
+
+
+.. _Babel: http://babel.edgewall.org/
+.. _gae-pytz: http://code.google.com/p/gae-pytz/
+.. _Kay: http://code.google.com/p/kay-framework/

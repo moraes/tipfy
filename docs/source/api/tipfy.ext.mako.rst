@@ -1,15 +1,10 @@
 tipfy.ext.mako
 ==============
-.. module:: tipfy.ext.mako
-
-.. toctree::
-   :maxdepth: 5
-
-
-.. _Mako: http://www.makotemplates.org/
 
 This module provides functions to render templates using the `Mako`_ template
 engine.
+
+.. module:: tipfy.ext.mako
 
 
 Default Configuration
@@ -21,3 +16,6 @@ Functions
 ---------
 .. autofunction:: render_template
 .. autofunction:: render_response
+
+
+.. _Mako: http://www.makotemplates.org/

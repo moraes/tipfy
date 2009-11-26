@@ -44,8 +44,10 @@ _translations = {}
 _timezones = {}
 
 
-def after_app_init(app=None):
-    """Hook to initialize and persist internationalization.
+def set_app_hooks(app=None):
+    """Hook to initialize and persist internationalization. This is a shortcut
+    to set the default hooks for this module: :func:`set_requested_locale` and
+    :func:`persist_requested_locale`.
 
     To enable it, add a hook to the list of hooks in ``config.py``:
 
@@ -54,7 +56,7 @@ def after_app_init(app=None):
        config = {
            'tipfy': {
                'hooks': {
-                   'after_app_init': ['tipfy.ext.i18n:after_app_init'],
+                   'after_app_init': ['tipfy.ext.i18n:set_app_hooks'],
                    # ...
                },
            },
@@ -63,12 +65,30 @@ def after_app_init(app=None):
     It must be placed before any other hook that will make use of
     internationalization. Normally it is the first or one of the first
     hooks to be set.
+
+    :param app:
+        A :class:`tipfy.WSGIApplication` instance.
+    :return:
+        ``None``.
     """
-    app.hooks.subscribe('before_handler_dispatch', before_handler_dispatch)
-    app.hooks.subscribe('before_response_sent', before_response_sent)
+    app.hooks.subscribe('before_handler_dispatch', set_requested_locale)
+    app.hooks.subscribe('before_response_sent', persist_requested_locale)
 
 
-def before_handler_dispatch(request=None, app=None):
+def set_requested_locale(request=None, app=None):
+    """
+    Application hook executed right before the handler is dispatched.
+
+    It reads the locale from a `lang` GET variable or from a cookie to set the
+    current locale.
+
+    :param request:
+        A ``werkzeug.Request`` instance.
+    :param app:
+        A :class:`tipfy.WSGIApplication` instance.
+    :return:
+        ``None``.
+    """
     # Get locale from a 'lang' query parameter, and if not set try to get
     # from a cookie. As last option, use the locale set in config.
     locale = request.args.get('lang', request.cookies.get(
@@ -77,7 +97,23 @@ def before_handler_dispatch(request=None, app=None):
     set_locale(locale)
 
 
-def before_response_sent(request=None, response=None, app=None):
+def persist_requested_locale(request=None, response=None, app=None):
+    """
+    Application hook executed right before the response is returned by the WSGI
+    application.
+
+    It saves the current locale in a cookie so that the same locale is used in
+    subsequent requests.
+
+    :param request:
+        A ``werkzeug.Request`` instance.
+    :param response:
+        A ``werkzeug.Response`` instance.
+    :param app:
+        A :class:`tipfy.WSGIApplication` instance.
+    :return:
+        ``None``.
+    """
     if local.locale and local.locale != get_config(__name__, 'locale'):
         # Persist locale using a cookie when it differs from default.
         response.set_cookie('tipfy.locale', value=local.locale,

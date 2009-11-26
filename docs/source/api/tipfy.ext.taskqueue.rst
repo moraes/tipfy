@@ -1,12 +1,10 @@
 tipfy.ext.taskqueue
 ===================
-.. module:: tipfy.ext.taskqueue
-
-.. toctree::
-   :maxdepth: 5
 
 This module provides utilities to work with
 ``google.appengine.api.labs.taskqueue``.
+
+.. module:: tipfy.ext.taskqueue
 
 
 Deferred handler replacement

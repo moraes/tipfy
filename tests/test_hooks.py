@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.EventHandler and tipfy.EventManager.
+    Tests for tipfy.HookHandler and tipfy.LazyHook.
 """
 import unittest
 import sys
@@ -9,7 +9,7 @@ from types import FunctionType
 from _base import get_app, get_environ, get_request, get_response
 
 
-from tipfy import EventHandler, EventManager
+from tipfy import HookHandler, LazyHook
 
 
 def event_callable_1(name):
@@ -25,62 +25,62 @@ def event_callable_4(name):
     return name + 'something_added_4'
 
 
-class TestEventHandler(unittest.TestCase):
-    def test_handler_init(self):
-        handler_spec = 'foo'
-        event_handler = EventHandler(handler_spec)
-        self.assertEqual(event_handler.handler_spec, handler_spec)
-        self.assertEqual(event_handler.handler, None)
+class TestLazyHook(unittest.TestCase):
+    def test_hook_init(self):
+        hook_spec = 'foo'
+        event_hook = LazyHook(hook_spec)
+        self.assertEqual(event_hook.hook_spec, hook_spec)
+        self.assertEqual(event_hook.hook, None)
 
-    def test_handler_call(self):
-        handler_spec = '%s:event_callable_1' % __name__
-        event_handler = EventHandler(handler_spec)
+    def test_hook_call(self):
+        hook_spec = '%s:event_callable_1' % __name__
+        event_hook = LazyHook(hook_spec)
 
-        self.assertEqual(event_handler('foo'), 'foo' + 'something_added')
-        self.assertEqual(event_handler('bar'), 'bar' + 'something_added')
-        self.assertEqual(event_handler('baz'), 'baz' + 'something_added')
+        self.assertEqual(event_hook('foo'), 'foo' + 'something_added')
+        self.assertEqual(event_hook('bar'), 'bar' + 'something_added')
+        self.assertEqual(event_hook('baz'), 'baz' + 'something_added')
 
 
-class TestEventManager(unittest.TestCase):
-    def test_subscribe(self):
-        event_manager = EventManager()
+class TestHookHandler(unittest.TestCase):
+    def test_add(self):
+        hook_handler = HookHandler()
 
-        event_manager.subscribe('before_request_init', 'foo')
-        event_manager.subscribe('before_request_init', 'bar')
-        event_manager.subscribe('after_request_init', 'baz')
-        event_manager.subscribe('after_request_dispatch', 'ding')
+        hook_handler.add('before_request_init', 'foo')
+        hook_handler.add('before_request_init', 'bar')
+        hook_handler.add('after_request_init', 'baz')
+        hook_handler.add('after_request_dispatch', 'ding')
 
-        event_1 = event_manager.subscribers.get('before_request_init', None)
+        event_1 = hook_handler.hooks.get('before_request_init', None)
         self.assertEqual(len(event_1), 2)
         for event in event_1:
-            self.assertEqual(isinstance(event, EventHandler), True)
+            self.assertEqual(isinstance(event, LazyHook), True)
 
-        self.assertEqual(event_1[0].handler_spec, 'foo')
-        self.assertEqual(event_1[1].handler_spec, 'bar')
+        self.assertEqual(event_1[0].hook_spec, 'foo')
+        self.assertEqual(event_1[1].hook_spec, 'bar')
 
-        event_2 = event_manager.subscribers.get('after_request_init', None)
+        event_2 = hook_handler.hooks.get('after_request_init', None)
         self.assertEqual(len(event_2), 1)
         for event in event_2:
-            self.assertEqual(isinstance(event, EventHandler), True)
+            self.assertEqual(isinstance(event, LazyHook), True)
 
-        self.assertEqual(event_2[0].handler_spec, 'baz')
+        self.assertEqual(event_2[0].hook_spec, 'baz')
 
-        event_3 = event_manager.subscribers.get('after_request_dispatch', None)
+        event_3 = hook_handler.hooks.get('after_request_dispatch', None)
         self.assertEqual(len(event_3), 1)
         for event in event_3:
-            self.assertEqual(isinstance(event, EventHandler), True)
+            self.assertEqual(isinstance(event, LazyHook), True)
 
-        self.assertEqual(event_3[0].handler_spec, 'ding')
+        self.assertEqual(event_3[0].hook_spec, 'ding')
 
-    def test_subscribe_callable(self):
-        event_manager = EventManager()
+    def test_add_callable(self):
+        hook_handler = HookHandler()
 
-        event_manager.subscribe('before_request_init', event_callable_1)
-        event_manager.subscribe('before_request_init', event_callable_2)
-        event_manager.subscribe('after_request_init', event_callable_3)
-        event_manager.subscribe('after_request_dispatch', event_callable_4)
+        hook_handler.add('before_request_init', event_callable_1)
+        hook_handler.add('before_request_init', event_callable_2)
+        hook_handler.add('after_request_init', event_callable_3)
+        hook_handler.add('after_request_dispatch', event_callable_4)
 
-        event_1 = event_manager.subscribers.get('before_request_init', None)
+        event_1 = hook_handler.hooks.get('before_request_init', None)
         self.assertEqual(len(event_1), 2)
         for event in event_1:
             self.assertEqual(isinstance(event, FunctionType), True)
@@ -88,94 +88,94 @@ class TestEventManager(unittest.TestCase):
         self.assertEqual(event_1[0].__name__, 'event_callable_1')
         self.assertEqual(event_1[1].__name__, 'event_callable_2')
 
-        event_2 = event_manager.subscribers.get('after_request_init', None)
+        event_2 = hook_handler.hooks.get('after_request_init', None)
         self.assertEqual(len(event_2), 1)
         for event in event_2:
             self.assertEqual(isinstance(event, FunctionType), True)
 
         self.assertEqual(event_2[0].__name__, 'event_callable_3')
 
-        event_3 = event_manager.subscribers.get('after_request_dispatch', None)
+        event_3 = hook_handler.hooks.get('after_request_dispatch', None)
         self.assertEqual(len(event_3), 1)
         for event in event_3:
             self.assertEqual(isinstance(event, FunctionType), True)
 
         self.assertEqual(event_3[0].__name__, 'event_callable_4')
 
-    def test_subscribe_multi(self):
-        event_manager = EventManager()
+    def test_add_multi(self):
+        hook_handler = HookHandler()
 
-        event_manager.subscribe_multi({
+        hook_handler.add_multi({
             'before_request_init': ['foo', 'bar'],
             'after_request_init': ['baz'],
             'after_request_dispatch': ['ding'],
         })
 
-        event_1 = event_manager.subscribers.get('before_request_init', None)
+        event_1 = hook_handler.hooks.get('before_request_init', None)
         self.assertEqual(len(event_1), 2)
         for event in event_1:
-            self.assertEqual(isinstance(event, EventHandler), True)
+            self.assertEqual(isinstance(event, LazyHook), True)
 
-        self.assertEqual(event_1[0].handler_spec, 'foo')
-        self.assertEqual(event_1[1].handler_spec, 'bar')
+        self.assertEqual(event_1[0].hook_spec, 'foo')
+        self.assertEqual(event_1[1].hook_spec, 'bar')
 
-        event_2 = event_manager.subscribers.get('after_request_init', None)
+        event_2 = hook_handler.hooks.get('after_request_init', None)
         self.assertEqual(len(event_2), 1)
         for event in event_2:
-            self.assertEqual(isinstance(event, EventHandler), True)
+            self.assertEqual(isinstance(event, LazyHook), True)
 
-        self.assertEqual(event_2[0].handler_spec, 'baz')
+        self.assertEqual(event_2[0].hook_spec, 'baz')
 
-        event_3 = event_manager.subscribers.get('after_request_dispatch', None)
+        event_3 = hook_handler.hooks.get('after_request_dispatch', None)
         self.assertEqual(len(event_3), 1)
         for event in event_3:
-            self.assertEqual(isinstance(event, EventHandler), True)
+            self.assertEqual(isinstance(event, LazyHook), True)
 
-        self.assertEqual(event_3[0].handler_spec, 'ding')
+        self.assertEqual(event_3[0].hook_spec, 'ding')
 
-    def test_subscribe_multi_with_callable(self):
-        event_manager = EventManager()
+    def test_add_multi_with_callable(self):
+        hook_handler = HookHandler()
 
-        event_manager.subscribe_multi({
+        hook_handler.add_multi({
             'before_request_init': ['foo', 'bar'],
             'after_request_init': [event_callable_1],
             'after_request_dispatch': ['ding'],
         })
 
-        event_1 = event_manager.subscribers.get('before_request_init', None)
+        event_1 = hook_handler.hooks.get('before_request_init', None)
         self.assertEqual(len(event_1), 2)
         for event in event_1:
-            self.assertEqual(isinstance(event, EventHandler), True)
+            self.assertEqual(isinstance(event, LazyHook), True)
 
-        self.assertEqual(event_1[0].handler_spec, 'foo')
-        self.assertEqual(event_1[1].handler_spec, 'bar')
+        self.assertEqual(event_1[0].hook_spec, 'foo')
+        self.assertEqual(event_1[1].hook_spec, 'bar')
 
-        event_2 = event_manager.subscribers.get('after_request_init', None)
+        event_2 = hook_handler.hooks.get('after_request_init', None)
         self.assertEqual(len(event_2), 1)
         for event in event_2:
             self.assertEqual(isinstance(event, FunctionType), True)
 
         self.assertEqual(event_2[0].__name__, 'event_callable_1')
 
-        event_3 = event_manager.subscribers.get('after_request_dispatch', None)
+        event_3 = hook_handler.hooks.get('after_request_dispatch', None)
         self.assertEqual(len(event_3), 1)
         for event in event_3:
-            self.assertEqual(isinstance(event, EventHandler), True)
+            self.assertEqual(isinstance(event, LazyHook), True)
 
-        self.assertEqual(event_3[0].handler_spec, 'ding')
+        self.assertEqual(event_3[0].hook_spec, 'ding')
 
-    def test_notify(self):
-        event_manager = EventManager()
+    def test_call(self):
+        hook_handler = HookHandler()
 
-        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+        hook_handler.add('before_request_init', '%s:event_callable_1' % __name__)
 
-        event_manager.subscribe_multi({
+        hook_handler.add_multi({
             'before_request_init': ['%s:event_callable_2' % __name__],
             'after_request_init': ['%s:event_callable_3' % __name__],
             'after_request_dispatch': ['%s:event_callable_4' % __name__],
         })
 
-        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+        hook_handler.add('before_request_init', '%s:event_callable_1' % __name__)
 
         i = 0
         name = 'something'
@@ -184,7 +184,7 @@ class TestEventManager(unittest.TestCase):
             name + 'something_added_2',
             name + 'something_added',
         ]
-        for result in event_manager.notify('before_request_init', name):
+        for result in hook_handler.call('before_request_init', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
@@ -195,7 +195,7 @@ class TestEventManager(unittest.TestCase):
         expected_results = [
             name + 'something_added_3',
         ]
-        for result in event_manager.notify('after_request_init', name):
+        for result in hook_handler.call('after_request_init', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
@@ -206,24 +206,24 @@ class TestEventManager(unittest.TestCase):
         expected_results = [
             name + 'something_added_4',
         ]
-        for result in event_manager.notify('after_request_dispatch', name):
+        for result in hook_handler.call('after_request_dispatch', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
         self.assertEqual(i, 1)
 
-    def test_notify_with_callable(self):
-        event_manager = EventManager()
+    def test_call_with_callable(self):
+        hook_handler = HookHandler()
 
-        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+        hook_handler.add('before_request_init', '%s:event_callable_1' % __name__)
 
-        event_manager.subscribe_multi({
+        hook_handler.add_multi({
             'before_request_init': ['%s:event_callable_2' % __name__],
             'after_request_init': ['%s:event_callable_3' % __name__],
             'after_request_dispatch': [event_callable_4],
         })
 
-        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+        hook_handler.add('before_request_init', '%s:event_callable_1' % __name__)
 
         i = 0
         name = 'something'
@@ -232,7 +232,7 @@ class TestEventManager(unittest.TestCase):
             name + 'something_added_2',
             name + 'something_added',
         ]
-        for result in event_manager.notify('before_request_init', name):
+        for result in hook_handler.call('before_request_init', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
@@ -243,7 +243,7 @@ class TestEventManager(unittest.TestCase):
         expected_results = [
             name + 'something_added_3',
         ]
-        for result in event_manager.notify('after_request_init', name):
+        for result in hook_handler.call('after_request_init', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
@@ -254,24 +254,24 @@ class TestEventManager(unittest.TestCase):
         expected_results = [
             name + 'something_added_4',
         ]
-        for result in event_manager.notify('after_request_dispatch', name):
+        for result in hook_handler.call('after_request_dispatch', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
         self.assertEqual(i, 1)
 
     def test_iter(self):
-        event_manager = EventManager()
+        hook_handler = HookHandler()
 
-        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+        hook_handler.add('before_request_init', '%s:event_callable_1' % __name__)
 
-        event_manager.subscribe_multi({
+        hook_handler.add_multi({
             'before_request_init': ['%s:event_callable_2' % __name__],
             'after_request_init': ['%s:event_callable_3' % __name__],
             'after_request_dispatch': ['%s:event_callable_4' % __name__],
         })
 
-        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+        hook_handler.add('before_request_init', '%s:event_callable_1' % __name__)
 
         i = 0
         name = 'something'
@@ -280,7 +280,7 @@ class TestEventManager(unittest.TestCase):
             name + 'something_added_2',
             name + 'something_added',
         ]
-        for result in event_manager.iter('before_request_init', name):
+        for result in hook_handler.iter('before_request_init', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
@@ -291,7 +291,7 @@ class TestEventManager(unittest.TestCase):
         expected_results = [
             name + 'something_added_3',
         ]
-        for result in event_manager.iter('after_request_init', name):
+        for result in hook_handler.iter('after_request_init', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
@@ -302,24 +302,24 @@ class TestEventManager(unittest.TestCase):
         expected_results = [
             name + 'something_added_4',
         ]
-        for result in event_manager.iter('after_request_dispatch', name):
+        for result in hook_handler.iter('after_request_dispatch', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
         self.assertEqual(i, 1)
 
     def test_iter_with_callable(self):
-        event_manager = EventManager()
+        hook_handler = HookHandler()
 
-        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+        hook_handler.add('before_request_init', '%s:event_callable_1' % __name__)
 
-        event_manager.subscribe_multi({
+        hook_handler.add_multi({
             'before_request_init': ['%s:event_callable_2' % __name__],
             'after_request_init': [event_callable_3],
             'after_request_dispatch': ['%s:event_callable_4' % __name__],
         })
 
-        event_manager.subscribe('before_request_init', '%s:event_callable_1' % __name__)
+        hook_handler.add('before_request_init', '%s:event_callable_1' % __name__)
 
         i = 0
         name = 'something'
@@ -328,7 +328,7 @@ class TestEventManager(unittest.TestCase):
             name + 'something_added_2',
             name + 'something_added',
         ]
-        for result in event_manager.iter('before_request_init', name):
+        for result in hook_handler.iter('before_request_init', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
@@ -339,7 +339,7 @@ class TestEventManager(unittest.TestCase):
         expected_results = [
             name + 'something_added_3',
         ]
-        for result in event_manager.iter('after_request_init', name):
+        for result in hook_handler.iter('after_request_init', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 
@@ -350,7 +350,7 @@ class TestEventManager(unittest.TestCase):
         expected_results = [
             name + 'something_added_4',
         ]
-        for result in event_manager.iter('after_request_dispatch', name):
+        for result in hook_handler.iter('after_request_dispatch', name):
             self.assertEqual(result, expected_results[i])
             i += 1
 

@@ -15,8 +15,29 @@ import tipfy.ext.debugger.patch
 _debugged_app = None
 
 
-def before_app_run(app=None):
-    """Middleware to wrap the application by Werkzeug's debugger."""
+def set_debugger(app=None):
+    """Application hook executed right before the WSGI app runs.
+
+    It wraps the application by Werkzeug's debugger.
+
+    To enable it, add a hook to the list of hooks in ``config.py``:
+
+    .. code-block:: python
+
+       config = {
+           'tipfy': {
+               'hooks': {
+                   'pre_run_app': ['tipfy.ext.debugger:set_debugger'],
+                   # ...
+               },
+           },
+       }
+
+    :param app:
+        A :class:`tipfy.WSGIApplication` instance.
+    :return:
+        ``None``.
+    """
     global _debugged_app
 
     # Wrap app with the debugger.

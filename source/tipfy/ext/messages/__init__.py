@@ -39,15 +39,11 @@ def set_messages(request=None, app=None):
        config = {
            'tipfy': {
                'hooks': {
-                   'after_app_init': ['tipfy.ext.messages:set_messages'],
+                   'pre_dispatch_handler': ['tipfy.ext.messages:set_messages'],
                    # ...
                },
            },
        }
-
-    It must be placed before any other hook that will make use of
-    internationalization. Normally it is the first or one of the first
-    hooks to be set.
 
     :param request:
         A ``werkzeug.Request`` instance.

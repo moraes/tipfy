@@ -1,6 +1,5 @@
 tipfy
 =====
-
 This is the main module for the WSGI application and base utilities. It provides
 the base :class:`RequestHandler`, a system to hook middlewares and load
 module configurations, and several other utilities.
@@ -15,7 +14,6 @@ Default configuration
 
 WSGI application and base request handler
 -----------------------------------------
-
 .. autoclass:: WSGIApplication
    :members: __init__
 .. autoclass:: RequestHandler
@@ -24,6 +22,14 @@ WSGI application and base request handler
 
 Application hook system
 -----------------------
+  - pos_create_app
+  - pre_run_app
+  - pos_init_app
+  - pre_init_request
+  - pre_dispatch_handler
+  - pre_send_response
+  - pre_handle_exception
+
 .. autoclass:: HookHandler
    :members: __init__, add, add_multi, iter, call
 .. autoclass:: LazyHook

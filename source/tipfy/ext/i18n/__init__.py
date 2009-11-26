@@ -56,7 +56,7 @@ def set_app_hooks(app=None):
        config = {
            'tipfy': {
                'hooks': {
-                   'after_app_init': ['tipfy.ext.i18n:set_app_hooks'],
+                   'pos_init_app': ['tipfy.ext.i18n:set_app_hooks'],
                    # ...
                },
            },
@@ -71,8 +71,8 @@ def set_app_hooks(app=None):
     :return:
         ``None``.
     """
-    app.hooks.subscribe('before_handler_dispatch', set_requested_locale)
-    app.hooks.subscribe('before_response_sent', persist_requested_locale)
+    app.hooks.add('pre_dispatch_handler', set_requested_locale)
+    app.hooks.add('pre_send_response', persist_requested_locale)
 
 
 def set_requested_locale(request=None, app=None):
@@ -127,7 +127,7 @@ def set_locale(locale):
     already loaded. Most functions in this module depends on the locale being
     set to work properly.
 
-    This is called by :func:`before_handler_dispatch` on each request.
+    This is called by :func:`pre_dispatch_handler` on each request.
 
     :param locale:
         The locale code. For example, 'en_US' or 'pt_BR'.

@@ -76,7 +76,7 @@ Pretty easy, see:
            # Application hooks enables other modules to plug into the
            # application. Here we enable internalization setup.
            'hooks': {
-               'after_app_init': ['tipfy.ext.i18n:set_app_hooks'],
+               'pos_init_app': ['tipfy.ext.i18n:set_app_hooks'],
             },
        },
        'tipfy.ext.i18n': {

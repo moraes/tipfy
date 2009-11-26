@@ -63,7 +63,7 @@ def set_datastore_session(app=None):
        config = {
            'tipfy': {
                'hooks': {
-                   'after_app_init': ['tipfy.ext.session:set_datastore_session'],
+                   'pos_init_app': ['tipfy.ext.session:set_datastore_session'],
                    # ...
                },
            },
@@ -75,8 +75,8 @@ def set_datastore_session(app=None):
         ``None``.
     """
     middleware = DatastoreSessionMiddleware()
-    app.hooks.subscribe('before_handler_dispatch', middleware.load_session)
-    app.hooks.subscribe('before_response_sent', middleware.save_session)
+    app.hooks.add('pre_dispatch_handler', middleware.load_session)
+    app.hooks.add('pre_send_response', middleware.save_session)
 
 
 def set_securecookie_session():
@@ -91,7 +91,7 @@ def set_securecookie_session():
        config = {
            'tipfy': {
                'hooks': {
-                   'after_app_init': ['tipfy.ext.session:set_securecookie_session'],
+                   'pos_init_app': ['tipfy.ext.session:set_securecookie_session'],
                    # ...
                },
            },
@@ -103,8 +103,8 @@ def set_securecookie_session():
         ``None``.
     """
     middleware = DatastoreSessionMiddleware()
-    app.hooks.subscribe('before_handler_dispatch', middleware.load_session)
-    app.hooks.subscribe('before_response_sent', middleware.save_session)
+    app.hooks.add('pre_dispatch_handler', middleware.load_session)
+    app.hooks.add('pre_send_response', middleware.save_session)
 
 
 class DatastoreSessionMiddleware(object):

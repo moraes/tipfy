@@ -54,8 +54,8 @@ default_config = {
 }
 if default_config['dev'] is True:
     # Add debugger by default when in development.
-    default_config['hooks'].setdefault('before_app_run', []).append(
-        'tipfy.ext.debugger:before_app_run')
+    default_config['hooks'].setdefault('pre_run_app', []).append(
+        'tipfy.ext.debugger:set_debugger')
 
 
 class RequestHandler(object):
@@ -91,8 +91,7 @@ class WSGIApplication(object):
         local.app = self
 
         # Load default config and update with values for this instance.
-        self.config = Config()
-        self.config.setdefault(__name__, default_config)
+        self.config = Config({__name__: default_config})
         self.config.update(config)
 
         # Set the url rules.
@@ -101,17 +100,17 @@ class WSGIApplication(object):
         # Cache for loaded handler classes.
         self.handlers = {}
 
-        # Set the event manager and the configured hooks.
+        # Set the hook handler and the configured hooks.
         self.hooks = HookHandler()
-        self.hooks.add_multi(self.config.get('tipfy', 'hooks'))
+        self.hooks.add_multi(self.config.get(__name__, 'hooks'))
 
         # Apply app middlewares.
-        self.hooks.call('after_app_init', app=self)
+        self.hooks.call('pos_init_app', app=self)
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         # Populate local with the request and response.
-        self.hooks.call('before_request_init', app=self)
+        self.hooks.call('pre_init_request', app=self)
         local.request = Request(environ)
         local.response = Response()
 
@@ -138,7 +137,7 @@ class WSGIApplication(object):
             self.handler_class = self.handlers[self.rule.handler]
 
             # Apply pre-dispatch middlewares.
-            for response in self.hooks.iter('before_handler_dispatch',
+            for response in self.hooks.iter('pre_dispatch_handler',
                 request=local.request, app=self):
                 if response is not None:
                     break
@@ -157,7 +156,7 @@ class WSGIApplication(object):
             response = handle_exception(self, e)
 
         # Apply response middlewares.
-        self.hooks.call('before_response_sent', request=local.request,
+        self.hooks.call('pre_send_response', request=local.request,
             response=response, app=self)
 
         # Call the response object as a WSGI application.
@@ -386,7 +385,7 @@ def make_wsgi_app(config):
     app = WSGIApplication(config)
 
     # Apply post-make middlewares.
-    for res in app.hooks.iter('after_app_created', app=app):
+    for res in app.hooks.iter('pos_create_app', app=app):
         if res is not None:
             app = res
 
@@ -409,7 +408,7 @@ def run_wsgi_app(app):
         fix_sys_path()
 
     # Apply pre-run middlewares.
-    for res in app.hooks.iter('before_app_run', app=app):
+    for res in app.hooks.iter('pre_run_app', app=app):
         if res is not None:
             app = res
 
@@ -428,7 +427,7 @@ def handle_exception(app, e):
     :return:
         A ``werkzeug.Response`` object, if the exception is not raised.
     """
-    for response in app.hooks.call('before_exception_handle', exception=e,
+    for response in app.hooks.call('pre_handle_exception', exception=e,
         app=app):
         if response:
             return response

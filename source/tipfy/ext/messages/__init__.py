@@ -68,8 +68,6 @@ class Messages(object):
         if flash:
             self.messages.append(flash)
 
-        return None
-
     def __len__(self):
         return len(self.messages)
 

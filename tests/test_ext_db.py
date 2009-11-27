@@ -4,6 +4,7 @@
 """
 import unittest
 import hashlib
+from nose.tools import raises
 
 from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase
@@ -17,11 +18,14 @@ from tipfy.ext.db import get_entity_from_protobuf, get_protobuf_from_entity, \
 
 class FooModel(db.Model):
     name = db.StringProperty(required=True)
+    name2 = db.StringProperty()
     age = db.IntegerProperty()
     married = db.BooleanProperty()
     data = PickleProperty()
     slug = SlugProperty(name)
+    slug2 = SlugProperty(name2, default='some-default-value', max_length=20)
     etag = EtagProperty(name)
+    etag2 = EtagProperty(name2)
 
 
 class FooExpandoModel(db.Expando):
@@ -63,6 +67,18 @@ def test_timeout_3(**kwargs):
 
 
 class TestModel(DataStoreTestCase, unittest.TestCase):
+    def test_no_protobuf_from_entity(self):
+        res_1 = get_protobuf_from_entity([])
+        self.assertEqual(res_1, None)
+        res_2 = get_protobuf_from_entity(None)
+        self.assertEqual(res_2, None)
+
+    def test_no_entity_from_protobuf(self):
+        res_1 = get_entity_from_protobuf([])
+        self.assertEqual(res_1, None)
+        res_2 = get_entity_from_protobuf(None)
+        self.assertEqual(res_2, None)
+
     def test_one_model_to_and_from_protobuf(self):
         entity_1 = FooModel(name='foo', age=15, married=False)
         entity_1.put()
@@ -75,7 +91,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(entity_1.age, 15)
         self.assertEqual(entity_1.married, False)
 
-    def test_several_models_to_and_from_protobuf(self):
+    def test_many_models_to_and_from_protobuf(self):
         entity_1 = FooModel(name='foo', age=15, married=False)
         entity_1.put()
         entity_2 = FooModel(name='bar', age=30, married=True)
@@ -85,84 +101,22 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
         pbs = get_protobuf_from_entity([entity_1, entity_2, entity_3])
         self.assertEqual(len(pbs), 3)
-        pb_1, pb_2, pb_3 = pbs
 
-        entity_1 = get_entity_from_protobuf(pb_1)
+        entity_1, entity_2, entity_3 = get_entity_from_protobuf(pbs)
         self.assertEqual(isinstance(entity_1, FooModel), True)
         self.assertEqual(entity_1.name, 'foo')
         self.assertEqual(entity_1.age, 15)
         self.assertEqual(entity_1.married, False)
 
-        entity_2 = get_entity_from_protobuf(pb_2)
         self.assertEqual(isinstance(entity_2, FooModel), True)
         self.assertEqual(entity_2.name, 'bar')
         self.assertEqual(entity_2.age, 30)
         self.assertEqual(entity_2.married, True)
 
-        entity_3 = get_entity_from_protobuf(pb_3)
         self.assertEqual(isinstance(entity_3, FooModel), True)
         self.assertEqual(entity_3.name, 'baz')
         self.assertEqual(entity_3.age, 45)
         self.assertEqual(entity_3.married, False)
-
-    def test_populate_entity(self):
-        entity_1 = FooModel(name='foo', age=15, married=False)
-        entity_1.put()
-
-        self.assertEqual(entity_1.name, 'foo')
-        self.assertEqual(entity_1.age, 15)
-        self.assertEqual(entity_1.married, False)
-
-        populate_entity(entity_1, name='bar', age=20, married=True, city='Yukon')
-        entity_1.put()
-
-        self.assertEqual(entity_1.name, 'bar')
-        self.assertEqual(entity_1.age, 20)
-        self.assertEqual(entity_1.married, True)
-        self.assertRaises(AttributeError, getattr, entity_1, 'city')
-
-    def test_populate_expando_entity(self):
-        entity_1 = FooExpandoModel(name='foo', age=15, married=False)
-        entity_1.put()
-
-        self.assertEqual(entity_1.name, 'foo')
-        self.assertEqual(entity_1.age, 15)
-        self.assertEqual(entity_1.married, False)
-
-        populate_entity(entity_1, name='bar', age=20, married=True, city='Yukon')
-        entity_1.put()
-
-        self.assertEqual(entity_1.name, 'bar')
-        self.assertEqual(entity_1.age, 20)
-        self.assertEqual(entity_1.married, True)
-        self.assertRaises(AttributeError, getattr, entity_1, 'city')
-
-    def test_get_by_key_name_or_404(self):
-        entity_1 = FooModel(key_name='foo', name='foo', age=15, married=False)
-        entity_1.put()
-
-        entity = get_by_key_name_or_404(FooModel, 'foo')
-        self.assertEqual(str(entity_1.key()), str(entity.key()))
-
-        self.assertRaises(NotFound, get_by_key_name_or_404, FooModel, 'bar')
-
-    def test_get_by_id_or_404(self):
-        entity_1 = FooModel(name='foo', age=15, married=False)
-        entity_1.put()
-
-        entity = get_by_id_or_404(FooModel, entity_1.key().id())
-        self.assertEqual(str(entity_1.key()), str(entity.key()))
-
-        self.assertRaises(NotFound, get_by_id_or_404, FooModel, -1)
-
-    def test_get_or_404(self):
-        entity_1 = FooModel(name='foo', age=15, married=False)
-        entity_1.put()
-
-        entity = get_or_404(FooModel, entity_1.key())
-        self.assertEqual(str(entity_1.key()), str(entity.key()))
-
-        self.assertRaises(NotFound, get_or_404, FooModel, db.Key.from_path('FooModel', 'bar'))
 
     def test_get_or_insert_with_flag(self):
         entity, flag = get_or_insert_with_flag(FooModel, 'foo', name='foo', age=15, married=False)
@@ -192,10 +146,6 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(str(get_reference_key(entity_3, 'foo')), entity_1_key)
 
     def test_get_reference_key_2(self):
-        # This is from the example in the api
-        from google.appengine.ext import db
-        from tipfy.ext.db import get_reference_key
-
         # Set a book entity with an author reference.
         class Author(db.Model):
             name = db.StringProperty()
@@ -212,8 +162,108 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
         # Now let's fetch the book and get the author key without fetching it.
         fetched_book = Book.get_by_key_name('the-shining')
-        self.assertEqual(str(author.key()), str(get_reference_key(fetched_book, 'author')))
+        self.assertEqual(str(get_reference_key(fetched_book, 'author')), str(author.key()))
 
+    #===========================================================================
+    # populate_entity
+    #===========================================================================
+    def test_populate_entity(self):
+        entity_1 = FooModel(name='foo', age=15, married=False)
+        entity_1.put()
+
+        self.assertEqual(entity_1.name, 'foo')
+        self.assertEqual(entity_1.age, 15)
+        self.assertEqual(entity_1.married, False)
+
+        populate_entity(entity_1, name='bar', age=20, married=True, city='Yukon')
+        entity_1.put()
+
+        self.assertEqual(entity_1.name, 'bar')
+        self.assertEqual(entity_1.age, 20)
+        self.assertEqual(entity_1.married, True)
+
+    @raises(AttributeError)
+    def test_populate_entity_2(self):
+        entity_1 = FooModel(name='foo', age=15, married=False)
+        entity_1.put()
+
+        self.assertEqual(entity_1.name, 'foo')
+        self.assertEqual(entity_1.age, 15)
+        self.assertEqual(entity_1.married, False)
+
+        populate_entity(entity_1, name='bar', age=20, married=True, city='Yukon')
+        entity_1.put()
+
+        getattr(entity_1, 'city')
+
+    def test_populate_expando_entity(self):
+        entity_1 = FooExpandoModel(name='foo', age=15, married=False)
+        entity_1.put()
+
+        self.assertEqual(entity_1.name, 'foo')
+        self.assertEqual(entity_1.age, 15)
+        self.assertEqual(entity_1.married, False)
+
+        populate_entity(entity_1, name='bar', age=20, married=True, city='Yukon')
+        entity_1.put()
+
+        self.assertEqual(entity_1.name, 'bar')
+        self.assertEqual(entity_1.age, 20)
+        self.assertEqual(entity_1.married, True)
+
+    @raises(AttributeError)
+    def test_populate_expando_entity_2(self):
+        entity_1 = FooExpandoModel(name='foo', age=15, married=False)
+        entity_1.put()
+
+        self.assertEqual(entity_1.name, 'foo')
+        self.assertEqual(entity_1.age, 15)
+        self.assertEqual(entity_1.married, False)
+
+        populate_entity(entity_1, name='bar', age=20, married=True, city='Yukon')
+        entity_1.put()
+
+        getattr(entity_1, 'city')
+
+    #===========================================================================
+    # get..._or_404
+    #===========================================================================
+    def test_get_by_key_name_or_404(self):
+        entity_1 = FooModel(key_name='foo', name='foo', age=15, married=False)
+        entity_1.put()
+
+        entity = get_by_key_name_or_404(FooModel, 'foo')
+        self.assertEqual(str(entity.key()), str(entity_1.key()))
+
+    @raises(NotFound)
+    def test_get_by_key_name_or_404_2(self):
+        get_by_key_name_or_404(FooModel, 'bar')
+
+    def test_get_by_id_or_404(self):
+        entity_1 = FooModel(name='foo', age=15, married=False)
+        entity_1.put()
+
+        entity = get_by_id_or_404(FooModel, entity_1.key().id())
+        self.assertEqual(str(entity.key()), str(entity_1.key()))
+
+    @raises(NotFound)
+    def test_get_by_id_or_404_2(self):
+        get_by_id_or_404(FooModel, -1)
+
+    def test_get_or_404(self):
+        entity_1 = FooModel(name='foo', age=15, married=False)
+        entity_1.put()
+
+        entity = get_or_404(FooModel, entity_1.key())
+        self.assertEqual(str(entity.key()), str(entity_1.key()))
+
+    @raises(NotFound)
+    def test_get_or_404_2(self):
+        get_or_404(FooModel, db.Key.from_path('FooModel', 'bar'))
+
+    #===========================================================================
+    # db.Property
+    #===========================================================================
     def test_pickle_property(self):
         data_1 = {'foo': 'bar'}
         entity_1 = FooModel(key_name='foo', name='foo', data=data_1)
@@ -224,10 +274,10 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity_2.put()
 
         entity_1 = FooModel.get_by_key_name('foo')
-        self.assertEqual(data_1, entity_1.data)
+        self.assertEqual(entity_1.data, data_1)
 
         entity_2 = FooModel.get_by_key_name('bar')
-        self.assertEqual(data_2, entity_2.data)
+        self.assertEqual(entity_2.data, data_2)
 
     def test_slug_property(self):
         entity_1 = FooModel(key_name='foo', name=u'Mary Björk')
@@ -238,8 +288,44 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
         entity_1 = FooModel.get_by_key_name('foo')
         entity_2 = FooModel.get_by_key_name('bar')
-        self.assertEqual('mary-bjork', entity_1.slug)
-        self.assertEqual('tiao-macale', entity_2.slug)
+        self.assertEqual(entity_1.slug, 'mary-bjork')
+        self.assertEqual(entity_2.slug, 'tiao-macale')
+
+    def test_slug_property2(self):
+        entity_1 = FooModel(key_name='foo', name=u'---')
+        entity_1.put()
+
+        entity_2 = FooModel(key_name='bar', name=u'___')
+        entity_2.put()
+
+        entity_1 = FooModel.get_by_key_name('foo')
+        entity_2 = FooModel.get_by_key_name('bar')
+        self.assertEqual(entity_1.slug, None)
+        self.assertEqual(entity_2.slug, None)
+
+    def test_slug_property3(self):
+        entity_1 = FooModel(key_name='foo', name=u'---', name2=u'---')
+        entity_1.put()
+
+        entity_2 = FooModel(key_name='bar', name=u'___', name2=u'___')
+        entity_2.put()
+
+        entity_1 = FooModel.get_by_key_name('foo')
+        entity_2 = FooModel.get_by_key_name('bar')
+        self.assertEqual(entity_1.slug2, 'some-default-value')
+        self.assertEqual(entity_2.slug2, 'some-default-value')
+
+    def test_slug_property4(self):
+        entity_1 = FooModel(key_name='foo', name=u'---', name2=u'Some really very big and maybe enormous string')
+        entity_1.put()
+
+        entity_2 = FooModel(key_name='bar', name=u'___', name2=u'abcdefghijklmnopqrstuwxyz')
+        entity_2.put()
+
+        entity_1 = FooModel.get_by_key_name('foo')
+        entity_2 = FooModel.get_by_key_name('bar')
+        self.assertEqual(entity_1.slug2, 'some-really-very-big')
+        self.assertEqual(entity_2.slug2, 'abcdefghijklmnopqrst')
 
     def test_etag_property(self):
         entity_1 = FooModel(key_name='foo', name=u'Mary Björk')
@@ -250,9 +336,24 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
         entity_1 = FooModel.get_by_key_name('foo')
         entity_2 = FooModel.get_by_key_name('bar')
-        self.assertEqual(hashlib.sha1(entity_1.name.encode('utf8')).hexdigest(), entity_1.etag)
-        self.assertEqual(hashlib.sha1(entity_2.name.encode('utf8')).hexdigest(), entity_2.etag)
+        self.assertEqual(entity_1.etag, hashlib.sha1(entity_1.name.encode('utf8')).hexdigest())
+        self.assertEqual(entity_2.etag, hashlib.sha1(entity_2.name.encode('utf8')).hexdigest())
 
+    def test_etag_property2(self):
+        entity_1 = FooModel(key_name='foo', name=u'Mary Björk')
+        entity_1.put()
+
+        entity_2 = FooModel(key_name='bar', name=u'Tião Macalé')
+        entity_2.put()
+
+        entity_1 = FooModel.get_by_key_name('foo')
+        entity_2 = FooModel.get_by_key_name('bar')
+        self.assertEqual(entity_1.etag2, None)
+        self.assertEqual(entity_2.etag2, None)
+
+    #===========================================================================
+    # @retry_on_timeout
+    #===========================================================================
     def test_retry_on_timeout_1(self):
         counter = [0]
         test_timeout_1(counter=counter)
@@ -268,7 +369,10 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertRaises(db.Timeout, test_timeout_3, counter=counter)
         self.assertEqual(counter[0], 3)
 
-    def test_load_entity_1(self):
+    #===========================================================================
+    # @load_entity
+    #===========================================================================
+    def test_load_entity_with_key(self):
         @load_entity(FooModel, 'foo_key', 'foo', 'key')
         def get(*args, **kwargs):
             return kwargs['foo']
@@ -277,10 +381,18 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         foo.put()
 
         loaded_foo = get(foo_key=str(foo.key()))
-        self.assertEqual(str(foo.key()), str(loaded_foo.key()))
-        self.assertEqual(None, get(foo_key=None))
+        self.assertEqual(str(loaded_foo.key()), str(foo.key()))
+        self.assertEqual(get(foo_key=None), None)
 
-    def test_load_entity_2(self):
+    @raises(NotFound)
+    def test_load_entity_with_key_2(self):
+        @load_entity(FooModel, 'foo_key', 'foo', 'key')
+        def get(*args, **kwargs):
+            return kwargs['foo']
+
+        loaded_foo = get(foo_key=str(db.Key.from_path('FooModel', 'bar')))
+
+    def test_load_entity_with_id(self):
         @load_entity(FooModel, 'foo_id', 'foo', 'id')
         def get(*args, **kwargs):
             return kwargs['foo']
@@ -289,10 +401,17 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         foo.put()
 
         loaded_foo = get(foo_id=foo.key().id())
-        self.assertEqual(str(foo.key()), str(loaded_foo.key()))
-        self.assertRaises(NotFound, get, foo_id=-1)
+        self.assertEqual(str(loaded_foo.key()), str(foo.key()))
 
-    def test_load_entity_3(self):
+    @raises(NotFound)
+    def test_load_entity_with_id_2(self):
+        @load_entity(FooModel, 'foo_id', 'foo', 'id')
+        def get(*args, **kwargs):
+            return kwargs['foo']
+
+        loaded_foo = get(foo_id=-1)
+
+    def test_load_entity_with_key_name(self):
         @load_entity(FooModel, 'foo_key_name', 'foo', 'key_name')
         def get(*args, **kwargs):
             return kwargs['foo']
@@ -301,6 +420,37 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         foo.put()
 
         loaded_foo = get(foo_key_name='foo')
-        self.assertEqual(str(foo.key()), str(loaded_foo.key()))
-        self.assertRaises(NotFound, get, foo_key_name='bar')
+        self.assertEqual(str(loaded_foo.key()), str(foo.key()))
 
+    @raises(NotFound)
+    def test_load_entity_with_key_name_2(self):
+        @load_entity(FooModel, 'foo_key_name', 'foo', 'key_name')
+        def get(*args, **kwargs):
+            return kwargs['foo']
+
+        loaded_foo = get(foo_key_name='bar')
+
+    def test_load_entity_with_key_with_guessed_fetch_mode(self):
+        @load_entity(FooModel, 'foo_key')
+        def get(*args, **kwargs):
+            return kwargs['foo']
+
+        foo = FooModel(name='foo')
+        foo.put()
+
+        loaded_foo = get(foo_key=str(foo.key()))
+        self.assertEqual(str(loaded_foo.key()), str(foo.key()))
+        self.assertEqual(get(foo_key=None), None)
+
+    @raises(NotImplementedError)
+    def test_load_entity_with_key_with_impossible_fetch_mode(self):
+        @load_entity(FooModel, 'foo_bar')
+        def get(*args, **kwargs):
+            return kwargs['foo']
+
+        foo = FooModel(name='foo')
+        foo.put()
+
+        loaded_foo = get(foo_key=str(foo.key()))
+        self.assertEqual(str(loaded_foo.key()), str(foo.key()))
+        self.assertEqual(get(foo_key=None), None)

@@ -16,7 +16,7 @@ from mako.lookup import TemplateLookup
 from mako.runtime import Context
 from StringIO import StringIO
 
-from tipfy import local, app, response, get_config
+from tipfy import local, get_config
 
 #: Default configuration values for this module. Keys are:
 #:   - ``templates_dir``: Directory for templates.
@@ -48,6 +48,6 @@ def render_template(filename, **context):
 
 def render_response(filename, **context):
     """Renders a template and returns a response object."""
-    response.data = render_template(filename, **context)
-    response.mimetype = 'text/html'
-    return response
+    local.response.data = render_template(filename, **context)
+    local.response.mimetype = 'text/html'
+    return local.response

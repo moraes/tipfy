@@ -3,71 +3,66 @@
     Tests for tipfy.ext.i18n
 """
 import unittest
+import gettext as gettext_stdlib
 import datetime
+from nose.tools import raises
+
 from _base import get_app, get_environ, get_request, get_response
+from tipfy import local
+from tipfy.ext.i18n import locale, translations, set_locale, gettext, _, \
+    ngettext, lazy_gettext, lazy_ngettext, format_datetime, format_time, \
+    format_date, get_tzinfo, to_local_timezone, to_utc, pytz, set_app_hooks
+
 
 class TestI18n(unittest.TestCase):
-    def setUp(self):
-        from tipfy import local
+    def tearDown(self):
+        local.app = None
         local.locale = None
         local.translations = None
 
-        self.app = get_app()
-        self.old_timezone = self.app.config.get('tipfy.ext.i18n', 'timezone')
-
-    def tearDown(self):
-        self.app.config.update({'tipfy.ext.i18n': {'timezone': self.old_timezone}})
-
+    #===========================================================================
+    # Translations
+    #===========================================================================
     def test_set_locale(self):
-        from tipfy import local
-        import gettext
-        from tipfy.ext.i18n import set_locale, locale, translations
-
         self.assertEqual(local.locale, None)
         self.assertEqual(local.translations, None)
 
         set_locale('pt_BR')
         self.assertEqual(local.locale, 'pt_BR')
-        self.assertEqual(isinstance(local.translations, gettext.NullTranslations), True)
+        self.assertEqual(isinstance(local.translations, gettext_stdlib.NullTranslations), True)
 
+    @raises(AttributeError)
     def test_translations_not_set(self):
-        from tipfy.ext.i18n import gettext
-        self.assertRaises(AttributeError, gettext, 'foo')
+        gettext('foo')
 
     def test_gettext(self):
-        from tipfy.ext.i18n import set_locale, gettext
-
         set_locale('en_US')
         self.assertEqual(gettext('foo'), u'foo')
 
     def test_gettext_(self):
-        from tipfy.ext.i18n import set_locale, _
-
         set_locale('en_US')
         self.assertEqual(_('foo'), u'foo')
 
     def test_ngettext(self):
-        from tipfy.ext.i18n import set_locale, ngettext
-
         set_locale('en_US')
         self.assertEqual(ngettext('One foo', 'Many foos', 1), u'One foo')
         self.assertEqual(ngettext('One foo', 'Many foos', 2), u'Many foos')
 
     def test_lazy_gettext(self):
-        from tipfy.ext.i18n import set_locale, lazy_gettext
-
         set_locale('en_US')
         self.assertEqual(lazy_gettext('foo'), u'foo')
 
     def test_lazy_ngettext(self):
-        from tipfy.ext.i18n import set_locale, lazy_ngettext
-
         set_locale('en_US')
         self.assertEqual(lazy_ngettext('One foo', 'Many foos', 1), u'One foo')
         self.assertEqual(lazy_ngettext('One foo', 'Many foos', 2), u'Many foos')
 
+    #===========================================================================
+    # Date formatting
+    #===========================================================================
     def test_format_date(self):
-        from tipfy.ext.i18n import set_locale, format_date
+        app = get_app()
+        app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
 
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -84,8 +79,8 @@ class TestI18n(unittest.TestCase):
         self.assertEqual(format_date(value, format='full'), u'terça-feira, 10 de novembro de 2009')
 
     def test_format_datetime(self):
-        from tipfy.ext.i18n import set_locale, format_datetime
-        self.app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app = get_app()
+        app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
 
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -102,8 +97,8 @@ class TestI18n(unittest.TestCase):
         self.assertEqual(format_datetime(value, format='full'), u'terça-feira, 10 de novembro de 2009 16h36min05s Horário Mundo (GMT)')
 
     def test_format_time(self):
-        from tipfy.ext.i18n import set_locale, format_time
-        self.app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app = get_app()
+        app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
 
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -119,21 +114,21 @@ class TestI18n(unittest.TestCase):
         self.assertEqual(format_time(value, format='long'), u'16:36:05 +0000')
         self.assertEqual(format_time(value, format='full'), u'16h36min05s Horário Mundo (GMT)')
 
+    #===========================================================================
+    # Timezones
+    #===========================================================================
     def test_default_get_tzinfo(self):
-        from tipfy.ext.i18n import get_tzinfo
-
-        self.app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app = get_app()
+        app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
         self.assertEqual(get_tzinfo().zone, 'UTC')
 
-        self.app.config.update({'tipfy.ext.i18n': {'timezone': 'America/Chicago'}})
+        app.config.update({'tipfy.ext.i18n': {'timezone': 'America/Chicago'}})
         self.assertEqual(get_tzinfo().zone, 'America/Chicago')
 
-        self.app.config.update({'tipfy.ext.i18n': {'timezone': 'America/Sao_Paulo'}})
+        app.config.update({'tipfy.ext.i18n': {'timezone': 'America/Sao_Paulo'}})
         self.assertEqual(get_tzinfo().zone, 'America/Sao_Paulo')
 
     def test_get_tzinfo(self):
-        from tipfy.ext.i18n import get_tzinfo
-
         tzinfo = get_tzinfo('UTC')
         self.assertEqual(tzinfo.zone, 'UTC')
 
@@ -144,19 +139,50 @@ class TestI18n(unittest.TestCase):
         self.assertEqual(tzinfo.zone, 'America/Sao_Paulo')
 
     def test_to_local_timezone(self):
-        from tipfy.ext.i18n import to_local_timezone, pytz
-
-        self.app.config.update({'tipfy.ext.i18n': {'timezone': 'US/Eastern'}})
+        app = get_app()
+        app.config.update({'tipfy.ext.i18n': {'timezone': 'US/Eastern'}})
         format = '%Y-%m-%d %H:%M:%S %Z%z'
 
         # Test datetime with timezone set
         base = datetime.datetime(2002, 10, 27, 6, 0, 0, tzinfo=pytz.UTC)
         localtime = to_local_timezone(base)
-        formatted = localtime.strftime(format)
-        self.assertEqual('2002-10-27 01:00:00 EST-0500', formatted)
+        result = localtime.strftime(format)
+        self.assertEqual(result, '2002-10-27 01:00:00 EST-0500')
 
         # Test naive datetime - no timezone set
         base = datetime.datetime(2002, 10, 27, 6, 0, 0)
         localtime = to_local_timezone(base)
-        formatted = localtime.strftime(format)
-        self.assertEqual('2002-10-27 01:00:00 EST-0500', formatted)
+        result = localtime.strftime(format)
+        self.assertEqual(result, '2002-10-27 01:00:00 EST-0500')
+
+    def test_to_utc(self):
+        app = get_app()
+        app.config.update({'tipfy.ext.i18n': {'timezone': 'US/Eastern'}})
+        format = '%Y-%m-%d %H:%M:%S'
+
+        # Test datetime with timezone set
+        base = datetime.datetime(2002, 10, 27, 6, 0, 0, tzinfo=pytz.UTC)
+        localtime = to_utc(base)
+        result = localtime.strftime(format)
+
+        self.assertEqual(result, '2002-10-27 06:00:00')
+
+        # Test naive datetime - no timezone set
+        base = datetime.datetime(2002, 10, 27, 6, 0, 0)
+        localtime = to_utc(base)
+        result = localtime.strftime(format)
+        self.assertEqual(result, '2002-10-27 11:00:00')
+
+    #===========================================================================
+    # App hooks
+    #===========================================================================
+    def test_set_app_hooks(self):
+        app = get_app()
+
+        self.assertEqual('pre_dispatch_handler' not in app.hooks.hooks, True)
+        self.assertEqual('pre_send_response' not in app.hooks.hooks, True)
+
+        set_app_hooks(app)
+
+        self.assertEqual('pre_dispatch_handler' in app.hooks.hooks, True)
+        self.assertEqual('pre_send_response' in app.hooks.hooks, True)

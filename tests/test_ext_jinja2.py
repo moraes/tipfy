@@ -1,14 +1,33 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.EventHandler and tipfy.EventManager.
+    Tests for tipfy.ext.jinja2
 """
-import unittest
 import sys
+import os
+import unittest
 from _base import get_app, get_environ, get_request, get_response
 
 
-import tipfy.ext.jinja2
+from tipfy import local, Response
+from tipfy.ext.jinja2 import render_template, render_response
 
 
-class TestSession(unittest.TestCase):
-    """TODO"""
+current_dir = os.path.abspath(os.path.dirname(__file__))
+templates_dir = os.path.join(current_dir, 'files', 'jinja2')
+
+
+class TestJinja2(unittest.TestCase):
+    def test_render_template(self):
+        app = get_app({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
+        message = 'Hello, World!'
+        res = render_template('template1.html', message=message)
+        self.assertEqual(res, message)
+
+    def test_render_response(self):
+        app = get_app({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
+        local.response = get_response()
+        message = 'Hello, World!'
+        response = render_response('template1.html', message=message)
+        self.assertEqual(isinstance(response, Response), True)
+        self.assertEqual(response.mimetype, 'text/html')
+        self.assertEqual(response.data, message)

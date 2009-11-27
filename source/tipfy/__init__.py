@@ -109,8 +109,11 @@ class WSGIApplication(object):
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
-        # Populate local with the request and response.
+        # Pre initialize request hook.
         self.hooks.call('pre_init_request', app=self)
+
+        # Set local variables for the request.
+        local.app = self
         local.request = Request(environ)
         local.response = Response()
 
@@ -339,8 +342,8 @@ class Rule(WerkzeugRule):
 
 
 class PatchedCGIHandler(CGIHandler):
-    """wsgiref.handlers.CGIHandler holds os.environ when imported. This class
-    override this behaviour. Thanks to Kay framework for this patch.
+    """``wsgiref.handlers.CGIHandler`` holds ``os.environ`` when imported. This
+    class overrides this behaviour. Thanks to Kay framework for this patch.
     """
     def __init__(self):
         self.os_environ = {}
@@ -382,14 +385,7 @@ def make_wsgi_app(config):
     :return:
         A :class:`WSGIApplication` instance.
     """
-    app = WSGIApplication(config)
-
-    # Apply post-make middlewares.
-    for res in app.hooks.iter('pos_create_app', app=app):
-        if res is not None:
-            app = res
-
-    return app
+    return WSGIApplication(config)
 
 
 def run_wsgi_app(app):
@@ -400,11 +396,8 @@ def run_wsgi_app(app):
     :return:
         ``None``.
     """
-    # Populate local with the WSGI app.
-    local.app = app
-
     # Fix issue #772.
-    if get_config('tipfy', 'dev'):
+    if app.config.get(__name__, 'dev'):
         fix_sys_path()
 
     # Apply pre-run middlewares.

@@ -236,7 +236,7 @@ class Acl(object):
 
         # Set roles_lock default..
         if self.__class__.roles_lock is None:
-           self.__class__.roles_lock = app.config.version_id
+           self.__class__.roles_lock = app.config.get('tipfy', 'version_id')
 
     def reset(self):
         """Resets the currently loaded access rules and user roles.

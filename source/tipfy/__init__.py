@@ -44,8 +44,8 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
 #:   - ``apps_installed``: A list of active app modules as a string.
 #:   - ``apps_entry_points``: URL entry points for the installed apps.
 #:   - ``hooks``: A dictionary of event names mapped to a list of callable hooks
-#:     as a string. See `Apllication hooks` in the documentation for a complete
-#:     explanation.
+#:     as a string. See `Application hook system` in the documentation for a
+#:     complete explanation.
 #:   - ``urls``: A lazy callable, defined as a string, that returns the list of
 #:     URL rules to be used by the application. Default to `urls:get_rules`.
 default_config = {

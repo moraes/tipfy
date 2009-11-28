@@ -244,7 +244,7 @@ def convert_TimeProperty(model, prop, kwargs):
 
 def convert_ListProperty(model, prop, kwargs):
     """Returns a form field for a ``db.ListProperty``."""
-    raise NotImplementedError()
+    return None
 
 
 def convert_StringListProperty(model, prop, kwargs):
@@ -260,12 +260,12 @@ def convert_ReferenceProperty(model, prop, kwargs):
 
 def convert_SelfReferenceProperty(model, prop, kwargs):
     """Returns a form field for a ``db.SelfReferenceProperty``."""
-    raise NotImplementedError()
+    return None
 
 
 def convert_UserProperty(model, prop, kwargs):
     """Returns a form field for a ``db.UserProperty``."""
-    raise NotImplementedError()
+    return None
 
 
 def convert_BlobProperty(model, prop, kwargs):
@@ -297,12 +297,12 @@ def convert_EmailProperty(model, prop, kwargs):
 
 def convert_GeoPtProperty(model, prop, kwargs):
     """Returns a form field for a ``db.GeoPtProperty``."""
-    raise NotImplementedError()
+    return None
 
 
 def convert_IMProperty(model, prop, kwargs):
     """Returns a form field for a ``db.IMProperty``."""
-    raise NotImplementedError()
+    return None
 
 
 def convert_PhoneNumberProperty(model, prop, kwargs):
@@ -353,9 +353,9 @@ class ModelConverter(object):
     +--------------------+-------------------+--------------+------------------+
     | StringListProperty | TextAreaField     | list of str  |                  |
     +--------------------+-------------------+--------------+------------------+
-    | ReferenceProperty  | None              | db.Model     | always skipped   |
+    | ReferenceProperty  | ReferencePropertyF| db.Model     |                  |
     +--------------------+-------------------+--------------+------------------+
-    | SelfReferenceP.    | None              | db.Model     | always skipped   |
+    | SelfReferenceP.    | ReferencePropertyF| db.Model     |                  |
     +--------------------+-------------------+--------------+------------------+
     | UserProperty       | None              | users.User   | always skipped   |
     +--------------------+-------------------+--------------+------------------+
@@ -449,7 +449,7 @@ class ModelConverter(object):
 
 
 def model_fields(model, only=None, exclude=None, field_args=None,
-    converter=None):
+                 converter=None):
     """Extracts and returns a dictionary of form fields for a given
     ``db.Model`` class.
 
@@ -491,7 +491,7 @@ def model_fields(model, only=None, exclude=None, field_args=None,
 
 
 def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
-    converter=None):
+               converter=None):
     """Creates and returns a dynamic ``wtforms.Form`` class for a given
     ``db.Model`` class. The form class can be used as it is or serve as a base
     for extended form classes, which can then mix non-model related fields,

@@ -39,9 +39,6 @@ API page, under the section `Application hooks`.
 Custom extensions can make use of the hook system to plug functionality into
 the application. The defined events are the following:
 
-  - ``pos_create_app``: called after the
-    :class:`tipfy.WSGIApplication` is created,. in :func:`tipfy.make_wsgi_app`.
-    Receives the application as parameter.
   - ``pos_init_app``: called after the :class:`tipfy.WSGIApplication`
     initializes. Receives the application as parameter.
   - ``pre_run_app``: called before the :class:`tipfy.WSGIApplication` instance
@@ -78,6 +75,12 @@ Hook classes
    :members: __init__, add, add_multi, iter, call
 .. autoclass:: LazyHook
    :members: __init__, __call__
+
+
+Configuration class
+-------------------
+.. autoclass:: Config
+   :members: update, setdefault, get
 
 
 URL Routing

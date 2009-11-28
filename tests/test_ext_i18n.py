@@ -62,7 +62,7 @@ class TestI18n(unittest.TestCase):
     #===========================================================================
     def test_format_date(self):
         app = get_app()
-        app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app.config.update('tipfy.ext.i18n', {'timezone': 'UTC'})
 
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -80,7 +80,7 @@ class TestI18n(unittest.TestCase):
 
     def test_format_datetime(self):
         app = get_app()
-        app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app.config.update('tipfy.ext.i18n', {'timezone': 'UTC'})
 
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -98,7 +98,7 @@ class TestI18n(unittest.TestCase):
 
     def test_format_time(self):
         app = get_app()
-        app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app.config.update('tipfy.ext.i18n', {'timezone': 'UTC'})
 
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -119,13 +119,13 @@ class TestI18n(unittest.TestCase):
     #===========================================================================
     def test_default_get_tzinfo(self):
         app = get_app()
-        app.config.update({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app.config.update('tipfy.ext.i18n', {'timezone': 'UTC'})
         self.assertEqual(get_tzinfo().zone, 'UTC')
 
-        app.config.update({'tipfy.ext.i18n': {'timezone': 'America/Chicago'}})
+        app.config.update('tipfy.ext.i18n', {'timezone': 'America/Chicago'})
         self.assertEqual(get_tzinfo().zone, 'America/Chicago')
 
-        app.config.update({'tipfy.ext.i18n': {'timezone': 'America/Sao_Paulo'}})
+        app.config.update('tipfy.ext.i18n', {'timezone': 'America/Sao_Paulo'})
         self.assertEqual(get_tzinfo().zone, 'America/Sao_Paulo')
 
     def test_get_tzinfo(self):
@@ -140,7 +140,7 @@ class TestI18n(unittest.TestCase):
 
     def test_to_local_timezone(self):
         app = get_app()
-        app.config.update({'tipfy.ext.i18n': {'timezone': 'US/Eastern'}})
+        app.config.update('tipfy.ext.i18n', {'timezone': 'US/Eastern'})
         format = '%Y-%m-%d %H:%M:%S %Z%z'
 
         # Test datetime with timezone set
@@ -157,7 +157,7 @@ class TestI18n(unittest.TestCase):
 
     def test_to_utc(self):
         app = get_app()
-        app.config.update({'tipfy.ext.i18n': {'timezone': 'US/Eastern'}})
+        app.config.update('tipfy.ext.i18n', {'timezone': 'US/Eastern'})
         format = '%Y-%m-%d %H:%M:%S'
 
         # Test datetime with timezone set

@@ -43,7 +43,11 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
 #:     set in ``os.environ['CURRENT_VERSION_ID']``.
 #:   - ``apps_installed``: A list of active app modules as a string.
 #:   - ``apps_entry_points``: URL entry points for the installed apps.
-#:   - ``middleware_classes``: A list of active middleware classes as a string.
+#:   - ``hooks``: A dictionary of event names mapped to a list of callable hooks
+#:     as a string. See `Apllication hooks` in the documentation for a complete
+#:     explanation.
+#:   - ``urls``: A lazy callable, defined as a string, that returns the list of
+#:     URL rules to be used by the application. Default to `urls:get_rules`.
 default_config = {
     'dev': environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
     'app_id': environ.get('APPLICATION_ID', None),
@@ -51,6 +55,7 @@ default_config = {
     'apps_installed': [],
     'apps_entry_points': {},
     'hooks': {},
+    'urls': 'urls:get_rules',
 }
 if default_config['dev'] is True:
     # Add debugger by default when in development.
@@ -71,7 +76,7 @@ class RequestHandler(object):
         :param kwargs:
             The arguments from the matched route.
         :return:
-            a ``werkzeug.Response`` object.
+            A ``werkzeug.Response`` object.
         """
         method = getattr(self, action, None)
         if method:
@@ -91,8 +96,8 @@ class WSGIApplication(object):
         local.app = self
 
         # Load default config and update with values for this instance.
-        self.config = Config({__name__: default_config})
-        self.config.update(config)
+        self.config = Config(config)
+        self.config.setdefault(__name__, default_config)
 
         # Set the url rules.
         self.url_map = get_url_map(self)
@@ -102,7 +107,7 @@ class WSGIApplication(object):
 
         # Set the hook handler and the configured hooks.
         self.hooks = HookHandler()
-        self.hooks.add_multi(self.config.get(__name__, 'hooks'))
+        self.hooks.add_multi(self.config.get(__name__, 'hooks', {}))
 
         # Apply app middlewares.
         self.hooks.call('pos_init_app', app=self)
@@ -174,24 +179,57 @@ class Config(dict):
     """
     def __init__(self, value=None):
         if value is not None:
-            self.update(value)
+            assert isinstance(value, dict)
+            for module in value.keys():
+                self.update(module, value[module])
 
     def __setitem__(self, key, value):
-        self.require_dict(value)
+        """Sets a configuration for a module, requiring it to be a dictionary.
+        """
+        assert isinstance(value, dict)
         super(Config, self).__setitem__(key, value)
 
-    def update(self, value):
-        self.require_dict(value)
-        for module in value.keys():
-            self.require_dict(value[module])
-            if module not in self:
-                self[module] = {}
+    def update(self, module, value):
+        """Updates the configuration dictionary for a module.
 
-            for key in value[module].keys():
-                self[module][key] = value[module][key]
+        >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
+        >>> cfg.update('tipfy.ext.i18n', {'locale': 'en_US', 'foo': 'bar'})
+        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        en_US
+        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        bar
+
+        :param module:
+            The module to update the configuration, e.g.: 'tipfy.ext.i18n'.
+        :param value:
+            A dictionary of configurations for the module.
+        :return:
+            None.
+        """
+        assert isinstance(value, dict)
+        if module not in self:
+            self[module] = {}
+
+        self[module].update(value)
 
     def setdefault(self, module, value):
-        self.require_dict(value)
+        """Sets a default configuration dictionary for a module.
+
+        >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
+        >>> cfg.setdefault('tipfy.ext.i18n', {'locale': 'en_US', 'foo': 'bar'})
+        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        pt_BR
+        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        bar
+
+        :param module:
+            The module to set default configuration, e.g.: 'tipfy.ext.i18n'.
+        :param value:
+            A dictionary of configurations for the module.
+        :return:
+            None.
+        """
+        assert isinstance(value, dict)
         if module not in self:
             self[module] = {}
 
@@ -199,6 +237,28 @@ class Config(dict):
             self[module].setdefault(key, value[key])
 
     def get(self, module, key=None, default=None):
+        """Returns a configuration value for given key in a given module.
+
+        >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
+        >>> cfg.get('tipfy.ext.i18n')
+        {'locale': 'pt_BR'}
+        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        pt_BR
+        >>> cfg.get('tipfy.ext.i18n', 'invalid-key')
+        None
+        >>> cfg.get('tipfy.ext.i18n', 'invalid-key', 'default-value')
+        default-value
+
+        :param module:
+            The module to get a configuration from, e.g.: 'tipfy.ext.i18n'.
+        :param key:
+            The key from the module configuration.
+        :param default:
+            A default value to return in case the configuration for the
+            module/key is not set.
+        :return:
+            The configuration value.
+        """
         if module not in self:
             return default
 
@@ -208,10 +268,6 @@ class Config(dict):
             return default
 
         return self[module][key]
-
-    def require_dict(self, value):
-        if not isinstance(value, dict):
-            raise ValueError('Config values must be a dict.')
 
 
 class LazyHook(object):
@@ -332,7 +388,8 @@ class Rule(WerkzeugRule):
 
     def empty(self):
         """Returns an unbound copy of this rule. This can be useful if you
-        want to reuse an already bound URL for another map."""
+        want to reuse an already bound URL for another map.
+        """
         defaults = None
         if self.defaults is not None:
             defaults = dict(self.defaults)
@@ -351,21 +408,19 @@ class PatchedCGIHandler(CGIHandler):
 
 
 def get_url_map(app):
-    """Returns a `werkzeug.routing.Map` with the URL rules defined for the app.
-    Rules are cached in production and renewed on each deployment.
+    """Returns a ``werkzeug.routing.Map`` with the URL rules defined for the
+    application. Rules are cached in production and renewed on each deployment.
+
+    :param app:
+        A :class:`WSGIApplication` instance.
+    :return:
+        A ``werkzeug.Map`` instance with the loaded URL rules.
     """
     from google.appengine.api import memcache
     key = 'wsgi_app.rules.%s' % get_config(__name__, 'version_id')
     rules = memcache.get(key)
     if not rules or get_config(__name__, 'dev'):
-        import urls
-        try:
-            rules = urls.get_rules()
-        except AttributeError:
-            # Deprecated and kept here for backwards compatibility. Set a
-            # get_rules() function in urls.py returning all rules to avoid
-            # already bound rules being binded when an exception occurs.
-            rules = urls.urls
+        rules = import_string(get_config(__name__, 'urls'))()
 
         try:
             memcache.set(key, rules)

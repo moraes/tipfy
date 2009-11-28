@@ -1,5 +1,5 @@
-``app.yaml``, ``main.py``, ``config.py`` and ``urls.py``
-========================================================
+Configuration
+=============
 ``app.yaml``, ``main.py``, ``config.py`` and ``urls.py`` are the basic files
 used to configure and initialize a `Tipfy`_ application. In a common case,
 you'll set ``app.yaml`` and ``main.py`` once (or use the provided ones, as they
@@ -173,6 +173,17 @@ example:
 
 For the URL ``/2009/11/``, the above handler will print `This is year 2009,
 and the month is 11!`.
+
+To generate an URL using a given rule, use the function :func:`tipfy.url_for`.
+For example, this creates an URL that maps to the ``ArchiveHandler`` class
+above:
+
+.. code-block:: python
+
+   from tipfy import url_for
+
+   url = url_for('blog/archive', year=2009, month=11)
+
 
 There are several extra possibilities in the routing system, but this should be
 the subject for a more advanced tutorial.

@@ -37,7 +37,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config['foo']['bar'], 'baz')
         self.assertEqual(config['foo']['doo'], 'ding')
 
-        config.update({'foo': {'bar': 'other',}})
+        config.update('foo', {'bar': 'other'})
 
         self.assertEqual(config['foo']['bar'], 'other')
         self.assertEqual(config['foo']['doo'], 'ding')
@@ -65,22 +65,22 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(setitem('foo', {'bar': 'baz'}), {'foo': {'bar': 'baz'}})
 
     def test_init_no_dict_values(self):
-        self.assertRaises(ValueError, Config, {'foo': 'bar'})
-        self.assertRaises(ValueError, Config, {'foo': None})
-        self.assertRaises(ValueError, Config, 'foo')
+        self.assertRaises(AssertionError, Config, {'foo': 'bar'})
+        self.assertRaises(AssertionError, Config, {'foo': None})
+        self.assertRaises(AssertionError, Config, 'foo')
 
     def test_update_no_dict_values(self):
         config = Config()
 
-        self.assertRaises(ValueError, config.update, {'foo': 'bar'})
-        self.assertRaises(ValueError, config.update, {'foo': None})
-        self.assertRaises(ValueError, config.update, 'foo')
+        self.assertRaises(AssertionError, config.update, {'foo': 'bar'}, 'baz')
+        self.assertRaises(AssertionError, config.update, {'foo': None}, 'baz')
+        self.assertRaises(AssertionError, config.update, 'foo', 'bar')
 
     def test_setdefault_no_dict_values(self):
         config = Config()
 
-        self.assertRaises(ValueError, config.setdefault, 'foo', 'bar')
-        self.assertRaises(ValueError, config.setdefault, 'foo', None)
+        self.assertRaises(AssertionError, config.setdefault, 'foo', 'bar')
+        self.assertRaises(AssertionError, config.setdefault, 'foo', None)
 
     def test_setitem_no_dict_values(self):
         config = Config()
@@ -89,8 +89,8 @@ class TestConfig(unittest.TestCase):
             config[key] = value
             return config
 
-        self.assertRaises(ValueError, setitem, 'foo', 'bar')
-        self.assertRaises(ValueError, setitem, 'foo', None)
+        self.assertRaises(AssertionError, setitem, 'foo', 'bar')
+        self.assertRaises(AssertionError, setitem, 'foo', None)
 
 class TestGetConfig(unittest.TestCase):
     def test_default_config(self):

@@ -93,7 +93,8 @@ from wtforms import Form, validators, widgets, fields as f
 
 
 class ReferencePropertyField(f.Field):
-    """A field for ``db.ReferenceProperty``. The list items are rendered in a
+    """
+    A field for ``db.ReferenceProperty``. The list items are rendered in a
     select.
     """
     widget = widgets.Select()
@@ -154,7 +155,8 @@ class ReferencePropertyField(f.Field):
 
 
 class StringListPropertyField(f.TextAreaField):
-    """A field for ``db.StringListProperty``. The list items are rendered in a
+    """
+    A field for ``db.StringListProperty``. The list items are rendered in a
     textarea.
     """
     def process_data(self, value):
@@ -173,7 +175,8 @@ class StringListPropertyField(f.TextAreaField):
 
 
 def get_TextField(kwargs):
-    """Returns a ``TextField``, applying the ``db.StringProperty`` length limit
+    """
+    Returns a ``TextField``, applying the ``db.StringProperty`` length limit
     of 500 bytes.
     """
     kwargs['validators'].append(validators.length(max=500))
@@ -181,7 +184,8 @@ def get_TextField(kwargs):
 
 
 def get_IntegerField(kwargs):
-    """Returns an ``IntegerField``, applying the ``db.IntegerProperty`` range
+    """
+    Returns an ``IntegerField``, applying the ``db.IntegerProperty`` range
     limits.
     """
     kwargs['validators'].append(validators.NumberRange(min=-0x8000000000000000,
@@ -322,7 +326,8 @@ def convert_RatingProperty(model, prop, kwargs):
 
 
 class ModelConverter(object):
-    """Converts properties from a ``db.Model`` class to form fields.
+    """
+    Converts properties from a ``db.Model`` class to form fields.
 
     Default conversions between properties and fields:
 
@@ -409,7 +414,8 @@ class ModelConverter(object):
     }
 
     def __init__(self, converters=None):
-        """Constructs the converter, setting the converter callables.
+        """
+        Constructs the converter, setting the converter callables.
 
         :param converters:
             A dictionary of converter callables for each property type. The
@@ -418,7 +424,8 @@ class ModelConverter(object):
         self.converters = converters or self.default_converters
 
     def convert(self, model, prop, field_args):
-        """Returns a form field for a single model property.
+        """
+        Returns a form field for a single model property.
 
         :param model:
             The ``db.Model`` class that contains the property.
@@ -450,7 +457,8 @@ class ModelConverter(object):
 
 def model_fields(model, only=None, exclude=None, field_args=None,
                  converter=None):
-    """Extracts and returns a dictionary of form fields for a given
+    """
+    Extracts and returns a dictionary of form fields for a given
     ``db.Model`` class.
 
     :param model:
@@ -492,7 +500,8 @@ def model_fields(model, only=None, exclude=None, field_args=None,
 
 def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
                converter=None):
-    """Creates and returns a dynamic ``wtforms.Form`` class for a given
+    """
+    Creates and returns a dynamic ``wtforms.Form`` class for a given
     ``db.Model`` class. The form class can be used as it is or serve as a base
     for extended form classes, which can then mix non-model related fields,
     subforms with other model forms, among other possibilities.

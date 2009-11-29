@@ -79,7 +79,7 @@ def set_datastore_session(app=None):
     app.hooks.add('pre_send_response', middleware.save_session)
 
 
-def set_securecookie_session():
+def set_securecookie_session(app=None):
     """Hook to initialize and persist secure cookie based sessions. This
     initializes :class:`SecureCookieSessionMiddleware` and sets hooks to load
     and save sessions.

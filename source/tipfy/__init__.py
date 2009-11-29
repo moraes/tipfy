@@ -193,6 +193,10 @@ class Config(dict):
         """Updates the configuration dictionary for a module.
 
         >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
+        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        pt_BR
+        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        None
         >>> cfg.update('tipfy.ext.i18n', {'locale': 'en_US', 'foo': 'bar'})
         >>> cfg.get('tipfy.ext.i18n', 'locale')
         en_US
@@ -216,6 +220,10 @@ class Config(dict):
         """Sets a default configuration dictionary for a module.
 
         >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
+        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        pt_BR
+        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        None
         >>> cfg.setdefault('tipfy.ext.i18n', {'locale': 'en_US', 'foo': 'bar'})
         >>> cfg.get('tipfy.ext.i18n', 'locale')
         pt_BR

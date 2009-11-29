@@ -35,6 +35,8 @@ middleware. See in :func:`set_datastore_session` or
 After the hook is set, session will be available on each request. You can
 import and use it like a dictionary. A simple example:
 
+**session_test.py**
+
 .. code-block:: python
 
    from tipfy import RequestHandler, request, response

@@ -32,12 +32,12 @@ from tipfy.ext.db import get_entity_from_protobuf, get_protobuf_from_entity, \
 #: Default configuration values for this module. Keys are:
 #: A dictionary of configuration options for ``tipfy.ext.session``. Keys are:
 #:   - ``secret_key``: Secret key to generate session cookies. Set this to
-#:     something random and unguessable. Default to
+#:     something random and unguessable. Default is
 #:     `please-change-me-it-is-important`.
-#:   - ``expiration``: Session expiration time in seconds. Default to `86400`.
-#:   - ``cookie_name``: Name of the cookie to save the session. Default to
+#:   - ``expiration``: Session expiration time in seconds. Default is `86400`.
+#:   - ``cookie_name``: Name of the cookie to save the session. Default is
 #:     `tipfy.session`.
-#:   - ``id_cookie_name``:Name of the cookie to save the session id. Default to
+#:   - ``id_cookie_name``:Name of the cookie to save the session id. Default is
 #:     `tipfy.session_id`.
 default_config = {
     'secret_key': 'please-change-me-it-is-important',

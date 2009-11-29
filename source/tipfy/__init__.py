@@ -36,18 +36,19 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
 
 #: Default configuration values for this module. Keys are:
 #:   - ``dev``: ``True`` is this is the development server, ``False`` otherwise.
-#:     By default checks the value of ``os.environ['SERVER_SOFTWARE']``.
-#:   - ``app_id``: The application id. Default to the value set in
+#:     Default is the value of ``os.environ['SERVER_SOFTWARE']``.
+#:   - ``app_id``: The application id. Default is the value of
 #:     ``os.environ['APPLICATION_ID']``.
-#:   - ``version_id``: The current deplyment version id. Default to the value
-#:     set in ``os.environ['CURRENT_VERSION_ID']``.
-#:   - ``apps_installed``: A list of active app modules as a string.
+#:   - ``version_id``: The current deplyment version id. Default is the value
+#:     of ``os.environ['CURRENT_VERSION_ID']``.
+#:   - ``apps_installed``: A list of active app modules as a string. Default is
+#:     an empty list
 #:   - ``apps_entry_points``: URL entry points for the installed apps.
 #:   - ``hooks``: A dictionary of event names mapped to a list of callable hooks
 #:     as a string. See `Application hook system` in the documentation for a
-#:     complete explanation.
+#:     complete explanation. Default is an empty dict.
 #:   - ``urls``: A lazy callable, defined as a string, that returns the list of
-#:     URL rules to be used by the application. Default to `urls:get_rules`.
+#:     URL rules to be used by the application. Default is `urls:get_rules`.
 default_config = {
     'dev': environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
     'app_id': environ.get('APPLICATION_ID', None),

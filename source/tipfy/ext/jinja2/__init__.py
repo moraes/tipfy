@@ -15,9 +15,9 @@ from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
 from tipfy import local, get_config
 
 #: Default configuration values for this module. Keys are:
-#:   - ``templates_dir``: Directory for templates.
+#:   - ``templates_dir``: Directory for templates. Default is `templates`.
 #:   - ``templates_compiled_dir``: Directory for compiled templates. If None,
-#:     don't use compiled templates.
+#:     don't use compiled templates. Default is ``None``.
 default_config = {
     'templates_dir': 'templates',
     'templates_compiled_dir': None,

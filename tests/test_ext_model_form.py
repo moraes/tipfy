@@ -125,16 +125,14 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(isinstance(form.age, f.IntegerField), True)
 
     def test_not_implemented_properties(self):
-        self.assertRaises(NotImplementedError, model_form, AllPropertiesModel)
-        self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_list',))
-        #self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_reference',))
-        #self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_self_refeference',))
-        self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_user',))
-        self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_geo_pt',))
-        self.assertRaises(NotImplementedError, model_form, AllPropertiesModel, only=('prop_im',))
-
         # This should not raise NotImplementedError.
-        form = model_form(AllPropertiesModel, exclude=('prop_list', 'prop_user', 'prop_geo_pt', 'prop_im'))
+        form = model_form(AllPropertiesModel)
+
+        # These properties should not be included in the form.
+        self.assertRaises(AttributeError, getattr, model_form, 'prop_list')
+        self.assertRaises(AttributeError, getattr, model_form, 'prop_user')
+        self.assertRaises(AttributeError, getattr, model_form, 'prop_geo_pt')
+        self.assertRaises(AttributeError, getattr, model_form, 'prop_im')
 
     def test_datetime_model(self):
         """Fields marked as auto_add / auto_add_now should not be included."""

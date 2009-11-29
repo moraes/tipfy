@@ -13,6 +13,9 @@ from base64 import b64encode, b64decode
 from django.utils import simplejson
 
 from tipfy import local, get_config
+
+from tipfy.ext.i18n import _
+
 #from tipfy.ext.i18n import _
 
 #: Default configuration values for this module. Keys are:
@@ -72,7 +75,8 @@ class Messages(object):
         return len(self.messages)
 
     def __unicode__(self):
-        return unicode('\n'.join(unicode(msg) for msg in self.messages))
+        return unicode('\n'.join(unicode(sorted(msg.items())) for msg in
+            self.messages))
 
     def __str__(self):
         return self.__unicode__()

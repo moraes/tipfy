@@ -378,6 +378,18 @@ class HookHandler(object):
         """
         return [res for res in self.iter(name, *args, **kwargs)]
 
+    def get(self, name, default=None):
+        """Returns the list of hooks added to a given event.
+
+        :param name:
+            The event name to get related hooks.
+        :param default:
+            The default value to return in case the event doesn't have hooks.
+        :return:
+            A list of hooks.
+        """
+        return self.hooks.get(name, default)
+
 
 class Rule(WerkzeugRule):
     """Extends Werkzeug routing to support a handler definition for each Rule.

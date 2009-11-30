@@ -7,11 +7,20 @@ import sys
 from _base import get_app, get_environ, get_request, get_response
 
 
+from werkzeug import Request
 from tipfy import local
-from tipfy.ext.messages import set_messages, Messages
+from tipfy.ext.messages import Messages, set_messages, set_flash, get_flash
 
 
-def get_app_environ_request(**kwargs):
+class TestRequest(Request):
+    @property
+    def cookies(self):
+        """The retrieved cookie values as regular dictionary."""
+        return parse_cookie(self.environ, self.charset,
+                            cls=ImmutableTypeConversionDict)
+
+
+def get_app_environ_request_response(**kwargs):
     app = get_app({
         'tipfy': {
             'hooks': {
@@ -22,12 +31,13 @@ def get_app_environ_request(**kwargs):
     })
     environ = get_environ(**kwargs)
     request = get_request(environ)
-    return app, environ, request
+    response = get_response()
+    return app, environ, request, response
 
 
 class TestMessages(unittest.TestCase):
     def test_set_messages(self):
-        app, environ, request = get_app_environ_request()
+        app, environ, request, response = get_app_environ_request_response()
         local.request = request
 
         set_messages(request, app)
@@ -37,7 +47,7 @@ class TestMessages(unittest.TestCase):
         pass
 
     def test_messages_len(self):
-        app, environ, request = get_app_environ_request()
+        app, environ, request, response = get_app_environ_request_response()
         local.request = request
 
         messages = Messages()
@@ -50,7 +60,7 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(len(messages), 2)
 
     def test_messages_str(self):
-        app, environ, request = get_app_environ_request()
+        app, environ, request, response = get_app_environ_request_response()
         local.request = request
 
         messages = Messages()
@@ -66,7 +76,7 @@ class TestMessages(unittest.TestCase):
         pass
 
     def test_messages_add_form_error(self):
-        app, environ, request = get_app_environ_request()
+        app, environ, request, response = get_app_environ_request_response()
         local.request = request
 
         app.hooks.call('pre_dispatch_handler', request=local.request, app=app)

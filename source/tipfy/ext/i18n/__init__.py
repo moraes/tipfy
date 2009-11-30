@@ -277,7 +277,7 @@ def get_tzinfo(timezone=None):
 
     :param timezone:
         The timezone name from the Olson database, e.g.: 'America/Chicago'.
-        If not set, uses the default set in config, or UTC.
+        If not set, uses the default configuration value.
     :return:
         A ``datetime.tzinfo`` object.
     """
@@ -311,7 +311,7 @@ def to_local_timezone(datetime, timezone=None):
 
 
 def to_utc(datetime, timezone=None):
-    """Convert a datetime object to UTC and drop tzinfo.
+    """Returns a datetime object converted to UTC and without tzinfo.
 
     This function derives from `Kay`_.
 

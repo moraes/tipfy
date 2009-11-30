@@ -2,7 +2,6 @@
 """
     Tests for tipfy.ext.mako
 """
-import sys
 import os
 import unittest
 from _base import get_app, get_environ, get_request, get_response

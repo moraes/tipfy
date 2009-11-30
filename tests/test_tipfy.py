@@ -2,8 +2,6 @@
 """
     Tests for tipfy
 """
-import sys
-import os
 import unittest
 from nose.tools import raises
 

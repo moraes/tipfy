@@ -3,12 +3,9 @@
     Tests for tipfy.HookHandler and tipfy.LazyHook.
 """
 import unittest
-import sys
 from types import FunctionType
 
 from _base import get_app, get_environ, get_request, get_response
-
-
 from tipfy import HookHandler, LazyHook
 
 

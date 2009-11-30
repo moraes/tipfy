@@ -4,26 +4,14 @@
     redirect(), redirect_to().
 """
 import unittest
-import sys
 from nose.tools import raises
 
 from _base import get_app, get_environ, get_request, get_response
-from tipfy import local, redirect, redirect_to, url_for, NotFound
-
-
-def setup_module():
-    # Make it load our test url rules.
-    sys.modules['urls'] = sys.modules[__name__]
-
-
-def teardown_module():
-    if 'urls' in sys.modules:
-        del sys.modules['urls']
+from tipfy import local, redirect, redirect_to, url_for, NotFound, Rule
 
 
 def get_rules():
     # Fake get_rules() for testing.
-    from tipfy import Rule
     return [
         Rule('/', endpoint='home', handler='test.home:HomeHandler'),
         Rule('/people/<string:username>', endpoint='profile',
@@ -32,7 +20,11 @@ def get_rules():
 
 
 def get_app_environ_request(**kwargs):
-    app = get_app()
+    app = get_app({
+        'tipfy': {
+            'urls': '%s:get_rules' % __name__
+        },
+    })
     environ = get_environ(**kwargs)
     request = get_request(environ)
     return app, environ, request

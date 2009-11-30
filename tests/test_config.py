@@ -3,7 +3,6 @@
     Tests for tipfy.Config and tipfy.get_config.
 """
 import unittest
-import sys
 from nose.tools import assert_raises
 
 from _base import get_app

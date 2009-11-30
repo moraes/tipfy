@@ -13,23 +13,23 @@ from tipfy.ext.session import set_datastore_session, set_securecookie_session
 class TestSession(unittest.TestCase):
     def test_set_datastore_session(self):
         app = get_app()
-        self.assertEqual(app.hooks.get('pre_dispatch_handler', None), None)
-        self.assertEqual(app.hooks.get('pre_send_response', None), None)
+        assert app.hooks.get('pre_dispatch_handler', None) is None
+        assert app.hooks.get('pre_send_response', None) is None
 
         set_datastore_session(app)
 
-        self.assertEqual(app.hooks.get('pre_dispatch_handler', None) is not None, True)
-        self.assertEqual(app.hooks.get('pre_send_response', None) is not None, True)
+        assert app.hooks.get('pre_dispatch_handler', None) is not None
+        assert app.hooks.get('pre_send_response', None) is not None
 
     def test_set_securecookie_session(self):
         app = get_app()
-        self.assertEqual(app.hooks.get('pre_dispatch_handler', None), None)
-        self.assertEqual(app.hooks.get('pre_send_response', None), None)
+        assert app.hooks.get('pre_dispatch_handler', None) is None
+        assert app.hooks.get('pre_send_response', None) is None
 
         set_securecookie_session(app)
 
-        self.assertEqual(app.hooks.get('pre_dispatch_handler', None) is not None, True)
-        self.assertEqual(app.hooks.get('pre_send_response', None) is not None, True)
+        assert app.hooks.get('pre_dispatch_handler', None) is not None
+        assert app.hooks.get('pre_send_response', None) is not None
 
     def test_SecureCookieSessionMiddleware(self):
         # Initialize app so that get_config() is available.

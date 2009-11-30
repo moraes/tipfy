@@ -22,10 +22,10 @@ class Handler1(RequestHandler):
 class TestRequestHandler(unittest.TestCase):
     def test_dispatch(self):
         handler = Handler1()
-        self.assertEqual(handler.dispatch('get', some_arg='test'), 'handler1-get-test')
+        assert handler.dispatch('get', some_arg='test') == 'handler1-get-test'
 
         handler = Handler1()
-        self.assertEqual(handler.dispatch('post', some_arg='test'), 'handler1-post-test')
+        assert handler.dispatch('post', some_arg='test') == 'handler1-post-test'
 
     @raises(MethodNotAllowed)
     def test_dispatch_not_allowed(self):
@@ -38,6 +38,6 @@ class TestMiscelaneous(unittest.TestCase):
         local.response = get_response()
         response = render_json_response({'foo': 'bar'})
 
-        self.assertEqual(isinstance(response, Response), True)
-        self.assertEqual(response.mimetype, 'application/json')
-        self.assertEqual(response.data, '{"foo": "bar"}')
+        assert isinstance(response, Response)
+        assert response.mimetype == 'application/json'
+        assert response.data == '{"foo": "bar"}'

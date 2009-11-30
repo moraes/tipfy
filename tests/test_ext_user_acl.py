@@ -6,6 +6,7 @@ import unittest
 from _base import get_app
 from google.appengine.api import memcache
 from gaetestbed import DataStoreTestCase, MemcacheTestCase
+from nose.tools import assert_raises
 
 from tipfy.ext.user.acl import Acl, AclRules, _rules_map
 
@@ -46,7 +47,7 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
 
         # Fetch the record again, and compare.
         user_acl = AclRules.get_by_area_and_user('test', 'test')
-        self.assertEqual(user_acl.rules, rules)
+        assert user_acl.rules == rules
 
         # Append more rules.
         user_acl.rules.append(extra_rule)
@@ -55,7 +56,7 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
 
         # Fetch the record again, and compare.
         user_acl = AclRules.get_by_area_and_user('test', 'test')
-        self.assertEqual(user_acl.rules, rules)
+        assert user_acl.rules == rules
 
     def test_delete_rules(self):
         rules = [
@@ -67,22 +68,22 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
 
         # Fetch the record again, and compare.
         user_acl = AclRules.get_by_area_and_user('test', 'test')
-        self.assertEqual(user_acl.rules, rules)
+        assert user_acl.rules == rules
 
         key_name = AclRules.get_key_name('test', 'test')
         acl = Acl('test', 'test')
 
         cached = memcache.get(key_name, namespace=AclRules.__name__)
-        self.assertEqual(key_name in _rules_map, True)
-        self.assertEqual(cached, _rules_map[key_name])
+        assert key_name in _rules_map
+        assert cached == _rules_map[key_name]
 
         user_acl.delete()
         user_acl2 = AclRules.get_by_area_and_user('test', 'test')
 
         cached = memcache.get(key_name, namespace=AclRules.__name__)
-        self.assertEqual(user_acl2, None)
-        self.assertEqual(key_name in _rules_map, False)
-        self.assertEqual(cached, None)
+        assert user_acl2 is None
+        assert key_name not in _rules_map
+        assert cached is None
 
     def test_is_rule_set(self):
         rules = [
@@ -95,45 +96,45 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         # Fetch the record again, and compare.
         user_acl = AclRules.get_by_area_and_user('test', 'test')
 
-        self.assertEqual(user_acl.is_rule_set(*rules[0]), True)
-        self.assertEqual(user_acl.is_rule_set(*rules[1]), True)
-        self.assertEqual(user_acl.is_rule_set(*rules[2]), True)
-        self.assertEqual(user_acl.is_rule_set('topic_1', 'name_3', True), False)
+        assert user_acl.is_rule_set(*rules[0]) is True
+        assert user_acl.is_rule_set(*rules[1]) is True
+        assert user_acl.is_rule_set(*rules[2]) is True
+        assert user_acl.is_rule_set('topic_1', 'name_3', True) is False
 
     def test_no_area_or_no_user(self):
         acl1 = Acl('foo', None)
         acl2 = Acl(None, 'foo')
 
-        self.assertEqual(acl1.has_any_access(), False)
-        self.assertEqual(acl2.has_any_access(), False)
+        assert acl1.has_any_access() is False
+        assert acl2.has_any_access() is False
 
     def test_default_roles_lock(self):
         Acl.roles_lock = None
         acl2 = Acl('foo', 'foo')
 
-        self.assertEqual(Acl.roles_lock, self.app.config.get('tipfy', 'version_id'))
+        assert Acl.roles_lock == self.app.config.get('tipfy', 'version_id')
 
     def test_set_invalid_rules(self):
         rules = {}
-        self.assertRaises(AssertionError, AclRules.insert_or_update, area='test', user='test', rules=rules)
+        assert_raises(AssertionError, AclRules.insert_or_update, area='test', user='test', rules=rules)
 
         rules = ['foo', 'bar', True]
-        self.assertRaises(AssertionError, AclRules.insert_or_update, area='test', user='test', rules=rules)
+        assert_raises(AssertionError, AclRules.insert_or_update, area='test', user='test', rules=rules)
 
         rules = [('foo',)]
-        self.assertRaises(AssertionError, AclRules.insert_or_update, area='test', user='test', rules=rules)
+        assert_raises(AssertionError, AclRules.insert_or_update, area='test', user='test', rules=rules)
 
         rules = [('foo', 'bar')]
-        self.assertRaises(AssertionError, AclRules.insert_or_update, area='test', user='test', rules=rules)
+        assert_raises(AssertionError, AclRules.insert_or_update, area='test', user='test', rules=rules)
 
         rules = [(1, 2, 3)]
-        self.assertRaises(AssertionError, AclRules.insert_or_update, area='test', user='test', rules=rules)
+        assert_raises(AssertionError, AclRules.insert_or_update, area='test', user='test', rules=rules)
 
         rules = [('foo', 'bar', True)]
         AclRules.insert_or_update(area='test', user='test', rules=rules)
         user_acl = AclRules.get_by_area_and_user('test', 'test')
         user_acl.rules.append((1, 2, 3))
-        self.assertRaises(AssertionError, user_acl.put)
+        assert_raises(AssertionError, user_acl.put)
 
     def test_example(self):
         """Tests the example set in the acl module."""
@@ -160,38 +161,38 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
 
         # Check 'user_2' permission.
         acl = Acl(area='my_area', user='user_2')
-        self.assertEqual(acl.has_access(topic='UserAdmin', name='save'), False)
-        self.assertEqual(acl.has_access(topic='UserAdmin', name='get'), False)
-        self.assertEqual(acl.has_access(topic='AnythingElse', name='put'), True)
+        assert acl.has_access(topic='UserAdmin', name='save') is False
+        assert acl.has_access(topic='UserAdmin', name='get') is False
+        assert acl.has_access(topic='AnythingElse', name='put') is True
 
     def test_is_one(self):
         AclRules.insert_or_update(area='my_area', user='user_1', roles=['editor', 'designer'])
 
         acl = Acl(area='my_area', user='user_1')
-        self.assertEqual(acl.is_one('editor'), True)
-        self.assertEqual(acl.is_one('designer'), True)
-        self.assertEqual(acl.is_one('admin'), False)
+        assert acl.is_one('editor') is True
+        assert acl.is_one('designer') is True
+        assert acl.is_one('admin') is False
 
     def test_is_any(self):
         AclRules.insert_or_update(area='my_area', user='user_1', roles=['editor', 'designer'])
 
         acl = Acl(area='my_area', user='user_1')
-        self.assertEqual(acl.is_any(['editor', 'admin']), True)
-        self.assertEqual(acl.is_any(['admin', 'designer']), True)
-        self.assertEqual(acl.is_any(['admin', 'user']), False)
+        assert acl.is_any(['editor', 'admin']) is True
+        assert acl.is_any(['admin', 'designer']) is True
+        assert acl.is_any(['admin', 'user']) is False
 
     def test_is_all(self):
         AclRules.insert_or_update(area='my_area', user='user_1', roles=['editor', 'designer'])
 
         acl = Acl(area='my_area', user='user_1')
-        self.assertEqual(acl.is_all(['editor', 'admin']), False)
-        self.assertEqual(acl.is_all(['admin', 'designer']), False)
-        self.assertEqual(acl.is_all(['admin', 'user']), False)
-        self.assertEqual(acl.is_all(['editor', 'designer']), True)
+        assert acl.is_all(['editor', 'admin']) is False
+        assert acl.is_all(['admin', 'designer']) is False
+        assert acl.is_all(['admin', 'user']) is False
+        assert acl.is_all(['editor', 'designer']) is True
 
     def test_non_existent_user(self):
         acl = Acl(area='my_area', user='user_3')
-        self.assertEqual(acl.has_any_access(), False)
+        assert acl.has_any_access() is False
 
     def test_has_any_access(self):
         AclRules.insert_or_update(area='my_area', user='user_1', roles=['editor', 'designer'])
@@ -199,23 +200,23 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         AclRules.insert_or_update(area='my_area', user='user_3')
 
         acl = Acl(area='my_area', user='user_1')
-        self.assertEqual(acl.has_any_access(), True)
+        assert acl.has_any_access() is True
 
         acl = Acl(area='my_area', user='user_2')
-        self.assertEqual(acl.has_any_access(), True)
+        assert acl.has_any_access() is True
 
         acl = Acl(area='my_area', user='user_3')
-        self.assertEqual(acl.has_any_access(), False)
-        self.assertEqual(acl._rules, [])
-        self.assertEqual(acl._roles, [])
+        assert acl.has_any_access() is False
+        assert acl._rules == []
+        assert acl._roles == []
 
     def test_has_access_invalid_parameters(self):
         AclRules.insert_or_update(area='my_area', user='user_1', rules=[('*', '*', True)])
 
         acl1 = Acl(area='my_area', user='user_1')
 
-        self.assertRaises(ValueError, acl1.has_access, 'content', '*')
-        self.assertRaises(ValueError, acl1.has_access, '*', 'content')
+        assert_raises(ValueError, acl1.has_access, 'content', '*')
+        assert_raises(ValueError, acl1.has_access, '*', 'content')
 
     def test_has_access(self):
         AclRules.insert_or_update(area='my_area', user='user_1', rules=[('*', '*', True)])
@@ -226,17 +227,17 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         acl2 = Acl(area='my_area', user='user_2')
         acl3 = Acl(area='my_area', user='user_3')
 
-        self.assertEqual(acl1.has_access('content', 'read'), True)
-        self.assertEqual(acl1.has_access('content', 'update'), True)
-        self.assertEqual(acl1.has_access('content', 'delete'), True)
+        assert acl1.has_access('content', 'read') is True
+        assert acl1.has_access('content', 'update') is True
+        assert acl1.has_access('content', 'delete') is True
 
-        self.assertEqual(acl2.has_access('content', 'read'), True)
-        self.assertEqual(acl2.has_access('content', 'update'), True)
-        self.assertEqual(acl2.has_access('content', 'delete'), False)
+        assert acl2.has_access('content', 'read') is True
+        assert acl2.has_access('content', 'update') is True
+        assert acl2.has_access('content', 'delete') is False
 
-        self.assertEqual(acl3.has_access('content', 'read'), True)
-        self.assertEqual(acl3.has_access('content', 'update'), False)
-        self.assertEqual(acl3.has_access('content', 'delete'), False)
+        assert acl3.has_access('content', 'read') is True
+        assert acl3.has_access('content', 'update') is False
+        assert acl3.has_access('content', 'delete') is False
 
     def test_has_access_with_roles(self):
         Acl.roles_map = {
@@ -258,31 +259,31 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         AclRules.insert_or_update(area='my_area', user='user_4', roles=['contributor'], rules=[('design', '*', True),])
         acl4 = Acl(area='my_area', user='user_4')
 
-        self.assertEqual(acl1.has_access('ApproveUsers', 'save'), True)
-        self.assertEqual(acl1.has_access('ManageUsers', 'edit'), True)
-        self.assertEqual(acl1.has_access('ManageUsers', 'delete'), True)
+        assert acl1.has_access('ApproveUsers', 'save') is True
+        assert acl1.has_access('ManageUsers', 'edit') is True
+        assert acl1.has_access('ManageUsers', 'delete') is True
 
-        self.assertEqual(acl1.has_access('ApproveUsers', 'save'), True)
-        self.assertEqual(acl2.has_access('ManageUsers', 'edit'), False)
-        self.assertEqual(acl2.has_access('ManageUsers', 'delete'), False)
+        assert acl1.has_access('ApproveUsers', 'save') is True
+        assert acl2.has_access('ManageUsers', 'edit') is False
+        assert acl2.has_access('ManageUsers', 'delete') is False
 
-        self.assertEqual(acl3.has_access('ApproveUsers', 'save'), False)
-        self.assertEqual(acl3.has_access('ManageUsers', 'edit'), False)
-        self.assertEqual(acl3.has_access('ManageUsers', 'delete'), False)
-        self.assertEqual(acl3.has_access('content', 'edit'), True)
-        self.assertEqual(acl3.has_access('content', 'delete'), True)
-        self.assertEqual(acl3.has_access('content', 'save'), True)
-        self.assertEqual(acl3.has_access('design', 'edit'), False)
-        self.assertEqual(acl3.has_access('design', 'delete'), False)
+        assert acl3.has_access('ApproveUsers', 'save') is False
+        assert acl3.has_access('ManageUsers', 'edit') is False
+        assert acl3.has_access('ManageUsers', 'delete') is False
+        assert acl3.has_access('content', 'edit') is True
+        assert acl3.has_access('content', 'delete') is True
+        assert acl3.has_access('content', 'save') is True
+        assert acl3.has_access('design', 'edit') is False
+        assert acl3.has_access('design', 'delete') is False
 
-        self.assertEqual(acl4.has_access('ApproveUsers', 'save'), False)
-        self.assertEqual(acl4.has_access('ManageUsers', 'edit'), False)
-        self.assertEqual(acl4.has_access('ManageUsers', 'delete'), False)
-        self.assertEqual(acl4.has_access('content', 'edit'), True)
-        self.assertEqual(acl4.has_access('content', 'delete'), False)
-        self.assertEqual(acl4.has_access('content', 'save'), True)
-        self.assertEqual(acl4.has_access('design', 'edit'), True)
-        self.assertEqual(acl4.has_access('design', 'delete'), True)
+        assert acl4.has_access('ApproveUsers', 'save') is False
+        assert acl4.has_access('ManageUsers', 'edit') is False
+        assert acl4.has_access('ManageUsers', 'delete') is False
+        assert acl4.has_access('content', 'edit') is True
+        assert acl4.has_access('content', 'delete') is False
+        assert acl4.has_access('content', 'save') is True
+        assert acl4.has_access('design', 'edit') is True
+        assert acl4.has_access('design', 'delete') is True
 
     def test_roles_lock_unchanged(self):
         roles_map1 = {
@@ -298,13 +299,13 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         AclRules.insert_or_update(area='my_area', user='user_2', roles=['contributor'])
         acl2 = Acl(area='my_area', user='user_2')
 
-        self.assertEqual(acl1.has_access('content', 'add'), True)
-        self.assertEqual(acl1.has_access('content', 'edit'), True)
-        self.assertEqual(acl1.has_access('content', 'delete'), True)
+        assert acl1.has_access('content', 'add') is True
+        assert acl1.has_access('content', 'edit') is True
+        assert acl1.has_access('content', 'delete') is True
 
-        self.assertEqual(acl2.has_access('content', 'add'), True)
-        self.assertEqual(acl2.has_access('content', 'edit'), True)
-        self.assertEqual(acl2.has_access('content', 'delete'), False)
+        assert acl2.has_access('content', 'add') is True
+        assert acl2.has_access('content', 'edit') is True
+        assert acl2.has_access('content', 'delete') is False
 
         roles_map2 = {
             'editor':      [('content', '*', True),],
@@ -317,13 +318,13 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         acl1 = Acl(area='my_area', user='user_1')
         acl2 = Acl(area='my_area', user='user_2')
 
-        self.assertEqual(acl1.has_access('content', 'add'), True)
-        self.assertEqual(acl1.has_access('content', 'edit'), True)
-        self.assertEqual(acl1.has_access('content', 'delete'), True)
+        assert acl1.has_access('content', 'add') is True
+        assert acl1.has_access('content', 'edit') is True
+        assert acl1.has_access('content', 'delete') is True
 
-        self.assertEqual(acl2.has_access('content', 'add'), True)
-        self.assertEqual(acl2.has_access('content', 'edit'), True)
-        self.assertEqual(acl2.has_access('content', 'delete'), False)
+        assert acl2.has_access('content', 'add') is True
+        assert acl2.has_access('content', 'edit') is True
+        assert acl2.has_access('content', 'delete') is False
 
     def test_roles_lock_changed(self):
         roles_map1 = {
@@ -339,13 +340,13 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         AclRules.insert_or_update(area='my_area', user='user_2', roles=['contributor'])
         acl2 = Acl(area='my_area', user='user_2')
 
-        self.assertEqual(acl1.has_access('content', 'add'), True)
-        self.assertEqual(acl1.has_access('content', 'edit'), True)
-        self.assertEqual(acl1.has_access('content', 'delete'), True)
+        assert acl1.has_access('content', 'add') is True
+        assert acl1.has_access('content', 'edit') is True
+        assert acl1.has_access('content', 'delete') is True
 
-        self.assertEqual(acl2.has_access('content', 'add'), True)
-        self.assertEqual(acl2.has_access('content', 'edit'), True)
-        self.assertEqual(acl2.has_access('content', 'delete'), False)
+        assert acl2.has_access('content', 'add') is True
+        assert acl2.has_access('content', 'edit') is True
+        assert acl2.has_access('content', 'delete') is False
 
         roles_map2 = {
             'editor':      [('content', '*', True),],
@@ -357,10 +358,10 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         acl1 = Acl(area='my_area', user='user_1')
         acl2 = Acl(area='my_area', user='user_2')
 
-        self.assertEqual(acl1.has_access('content', 'add'), True)
-        self.assertEqual(acl1.has_access('content', 'edit'), True)
-        self.assertEqual(acl1.has_access('content', 'delete'), True)
+        assert acl1.has_access('content', 'add') is True
+        assert acl1.has_access('content', 'edit') is True
+        assert acl1.has_access('content', 'delete') is True
 
-        self.assertEqual(acl2.has_access('content', 'add'), False)
-        self.assertEqual(acl2.has_access('content', 'edit'), True)
-        self.assertEqual(acl2.has_access('content', 'delete'), False)
+        assert acl2.has_access('content', 'add') is False
+        assert acl2.has_access('content', 'edit') is True
+        assert acl2.has_access('content', 'delete') is False

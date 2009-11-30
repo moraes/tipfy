@@ -41,7 +41,7 @@ class TestMessages(unittest.TestCase):
         local.request = request
 
         set_messages(request, app)
-        self.assertEqual(isinstance(local.messages, Messages), True)
+        assert isinstance(local.messages, Messages) is True
 
     def test_messages_init(self):
         pass
@@ -51,26 +51,32 @@ class TestMessages(unittest.TestCase):
         local.request = request
 
         messages = Messages()
-        self.assertEqual(len(messages), 0)
+        assert len(messages) == 0
+
         messages.add('error', 'foo', 'bar')
-        self.assertEqual(len(messages), 1)
+        assert len(messages) == 1
+
         messages.add_form_error('baz', 'ding')
-        self.assertEqual(len(messages), 2)
+        assert len(messages) == 2
+
         messages.set_flash('baz', 'ding', 'weee')
-        self.assertEqual(len(messages), 2)
+        assert len(messages) == 2
 
     def test_messages_str(self):
         app, environ, request, response = get_app_environ_request_response()
         local.request = request
 
         messages = Messages()
-        self.assertEqual(str(messages), '')
+        assert str(messages) == ''
+
         messages.add('error', 'foo', 'bar')
-        self.assertEqual(str(messages), "[('body', 'foo'), ('level', 'error'), ('life', 5000), ('title', 'bar')]")
+        assert str(messages) == "[('body', 'foo'), ('level', 'error'), ('life', 5000), ('title', 'bar')]"
+
         messages.add_form_error('baz', 'ding')
-        self.assertEqual(str(messages), "[('body', 'foo'), ('level', 'error'), ('life', 5000), ('title', 'bar')]\n[('body', 'baz'), ('level', 'error'), ('life', None), ('title', 'ding')]")
+        assert str(messages) == "[('body', 'foo'), ('level', 'error'), ('life', 5000), ('title', 'bar')]\n[('body', 'baz'), ('level', 'error'), ('life', None), ('title', 'ding')]"
+
         messages.set_flash('baz', 'ding', 'weee')
-        self.assertEqual(str(messages), "[('body', 'foo'), ('level', 'error'), ('life', 5000), ('title', 'bar')]\n[('body', 'baz'), ('level', 'error'), ('life', None), ('title', 'ding')]")
+        assert str(messages) == "[('body', 'foo'), ('level', 'error'), ('life', 5000), ('title', 'bar')]\n[('body', 'baz'), ('level', 'error'), ('life', None), ('title', 'ding')]"
 
     def test_messages_add(self):
         pass
@@ -82,13 +88,13 @@ class TestMessages(unittest.TestCase):
         app.hooks.call('pre_dispatch_handler', request=local.request, app=app)
 
         messages = Messages()
-        self.assertEqual(str(messages), '')
+        assert str(messages) == ''
 
         messages.add_form_error('foo', 'bar')
-        self.assertEqual(str(messages), "[('body', 'foo'), ('level', 'error'), ('life', None), ('title', 'bar')]")
+        assert str(messages) == "[('body', 'foo'), ('level', 'error'), ('life', None), ('title', 'bar')]"
 
         messages.add_form_error('baz')
-        self.assertEqual(str(messages), "[('body', 'foo'), ('level', 'error'), ('life', None), ('title', 'bar')]\n[('body', 'baz'), ('level', 'error'), ('life', None), ('title', u'Error')]")
+        assert str(messages) == "[('body', 'foo'), ('level', 'error'), ('life', None), ('title', 'bar')]\n[('body', 'baz'), ('level', 'error'), ('life', None), ('title', u'Error')]"
 
     def test_messages_set_flash(self):
         pass

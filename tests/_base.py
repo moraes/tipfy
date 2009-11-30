@@ -6,7 +6,7 @@
   easy_install gaetestbed
   apt-get install coverage
 
-  nosetests --with-gae --without-sandbox --with-coverage --cover-package=tipfy --gae-application=./source/
+  nosetests -d --with-gae --without-sandbox --with-coverage --cover-package=tipfy --gae-application=./source/
 """
 import os, sys
 APP_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',

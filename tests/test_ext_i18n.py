@@ -24,12 +24,12 @@ class TestI18n(unittest.TestCase):
     # Translations
     #===========================================================================
     def test_set_locale(self):
-        self.assertEqual(local.locale, None)
-        self.assertEqual(local.translations, None)
+        assert local.locale is None
+        assert local.translations is None
 
         set_locale('pt_BR')
-        self.assertEqual(local.locale, 'pt_BR')
-        self.assertEqual(isinstance(local.translations, gettext_stdlib.NullTranslations), True)
+        assert local.locale == 'pt_BR'
+        assert isinstance(local.translations, gettext_stdlib.NullTranslations)
 
     @raises(AttributeError)
     def test_translations_not_set(self):
@@ -37,25 +37,25 @@ class TestI18n(unittest.TestCase):
 
     def test_gettext(self):
         set_locale('en_US')
-        self.assertEqual(gettext('foo'), u'foo')
+        assert gettext('foo') == u'foo'
 
     def test_gettext_(self):
         set_locale('en_US')
-        self.assertEqual(_('foo'), u'foo')
+        assert _('foo') == u'foo'
 
     def test_ngettext(self):
         set_locale('en_US')
-        self.assertEqual(ngettext('One foo', 'Many foos', 1), u'One foo')
-        self.assertEqual(ngettext('One foo', 'Many foos', 2), u'Many foos')
+        assert ngettext('One foo', 'Many foos', 1) == u'One foo'
+        assert ngettext('One foo', 'Many foos', 2) == u'Many foos'
 
     def test_lazy_gettext(self):
         set_locale('en_US')
-        self.assertEqual(lazy_gettext('foo'), u'foo')
+        assert lazy_gettext('foo') == u'foo'
 
     def test_lazy_ngettext(self):
         set_locale('en_US')
-        self.assertEqual(lazy_ngettext('One foo', 'Many foos', 1), u'One foo')
-        self.assertEqual(lazy_ngettext('One foo', 'Many foos', 2), u'Many foos')
+        assert lazy_ngettext('One foo', 'Many foos', 1) == u'One foo'
+        assert lazy_ngettext('One foo', 'Many foos', 2) == u'Many foos'
 
     #===========================================================================
     # Date formatting
@@ -67,16 +67,22 @@ class TestI18n(unittest.TestCase):
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
 
-        self.assertEqual(format_date(value, format='short'), u'11/10/09')
-        self.assertEqual(format_date(value, format='medium'), u'Nov 10, 2009')
-        self.assertEqual(format_date(value, format='long'), u'November 10, 2009')
-        self.assertEqual(format_date(value, format='full'), u'Tuesday, November 10, 2009')
+        assert format_date(value, format='short') == u'11/10/09'
+        assert format_date(value, format='medium') == u'Nov 10, 2009'
+        assert format_date(value, format='long') == u'November 10, 2009'
+        assert format_date(value, format='full') == u'Tuesday, November 10, 2009'
+
+    def test_format_date_pt_BR(self):
+        app = get_app()
+        app.config.update('tipfy.ext.i18n', {'timezone': 'UTC'})
 
         set_locale('pt_BR')
-        self.assertEqual(format_date(value, format='short'), u'10/11/09')
-        self.assertEqual(format_date(value, format='medium'), u'10/11/2009')
-        self.assertEqual(format_date(value, format='long'), u'10 de novembro de 2009')
-        self.assertEqual(format_date(value, format='full'), u'terça-feira, 10 de novembro de 2009')
+        value = datetime.datetime(2009, 11, 10, 16, 36, 05)
+
+        assert format_date(value, format='short') == u'10/11/09'
+        assert format_date(value, format='medium') == u'10/11/2009'
+        assert format_date(value, format='long') == u'10 de novembro de 2009'
+        assert format_date(value, format='full') == u'terça-feira, 10 de novembro de 2009'
 
     def test_format_datetime(self):
         app = get_app()
@@ -85,16 +91,22 @@ class TestI18n(unittest.TestCase):
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
 
-        self.assertEqual(format_datetime(value, format='short'), u'11/10/09 4:36 PM')
-        self.assertEqual(format_datetime(value, format='medium'), u'Nov 10, 2009 4:36:05 PM')
-        self.assertEqual(format_datetime(value, format='long'), u'November 10, 2009 4:36:05 PM +0000')
-        self.assertEqual(format_datetime(value, format='full'), u'Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time')
+        assert format_datetime(value, format='short') == u'11/10/09 4:36 PM'
+        assert format_datetime(value, format='medium') == u'Nov 10, 2009 4:36:05 PM'
+        assert format_datetime(value, format='long') == u'November 10, 2009 4:36:05 PM +0000'
+        assert format_datetime(value, format='full') == u'Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time'
+
+    def test_format_datetime_pt_BR(self):
+        app = get_app()
+        app.config.update('tipfy.ext.i18n', {'timezone': 'UTC'})
 
         set_locale('pt_BR')
-        self.assertEqual(format_datetime(value, format='short'), u'10/11/09 16:36')
-        self.assertEqual(format_datetime(value, format='medium'), u'10/11/2009 16:36:05')
-        self.assertEqual(format_datetime(value, format='long'), u'10 de novembro de 2009 16:36:05 +0000')
-        self.assertEqual(format_datetime(value, format='full'), u'terça-feira, 10 de novembro de 2009 16h36min05s Horário Mundo (GMT)')
+        value = datetime.datetime(2009, 11, 10, 16, 36, 05)
+
+        assert format_datetime(value, format='short') == u'10/11/09 16:36'
+        assert format_datetime(value, format='medium') == u'10/11/2009 16:36:05'
+        assert format_datetime(value, format='long') == u'10 de novembro de 2009 16:36:05 +0000'
+        assert format_datetime(value, format='full') == u'terça-feira, 10 de novembro de 2009 16h36min05s Horário Mundo (GMT)'
 
     def test_format_time(self):
         app = get_app()
@@ -103,16 +115,22 @@ class TestI18n(unittest.TestCase):
         set_locale('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
 
-        self.assertEqual(format_time(value, format='short'), u'4:36 PM')
-        self.assertEqual(format_time(value, format='medium'), u'4:36:05 PM')
-        self.assertEqual(format_time(value, format='long'), u'4:36:05 PM +0000')
-        self.assertEqual(format_time(value, format='full'), u'4:36:05 PM World (GMT) Time')
+        assert format_time(value, format='short') == u'4:36 PM'
+        assert format_time(value, format='medium') == u'4:36:05 PM'
+        assert format_time(value, format='long') == u'4:36:05 PM +0000'
+        assert format_time(value, format='full') == u'4:36:05 PM World (GMT) Time'
+
+    def test_format_time_pt_BR(self):
+        app = get_app()
+        app.config.update('tipfy.ext.i18n', {'timezone': 'UTC'})
 
         set_locale('pt_BR')
-        self.assertEqual(format_time(value, format='short'), u'16:36')
-        self.assertEqual(format_time(value, format='medium'), u'16:36:05')
-        self.assertEqual(format_time(value, format='long'), u'16:36:05 +0000')
-        self.assertEqual(format_time(value, format='full'), u'16h36min05s Horário Mundo (GMT)')
+        value = datetime.datetime(2009, 11, 10, 16, 36, 05)
+
+        assert format_time(value, format='short') == u'16:36'
+        assert format_time(value, format='medium') == u'16:36:05'
+        assert format_time(value, format='long') == u'16:36:05 +0000'
+        assert format_time(value, format='full') == u'16h36min05s Horário Mundo (GMT)'
 
     #===========================================================================
     # Timezones
@@ -120,23 +138,23 @@ class TestI18n(unittest.TestCase):
     def test_default_get_tzinfo(self):
         app = get_app()
         app.config.update('tipfy.ext.i18n', {'timezone': 'UTC'})
-        self.assertEqual(get_tzinfo().zone, 'UTC')
+        assert get_tzinfo().zone == 'UTC'
 
         app.config.update('tipfy.ext.i18n', {'timezone': 'America/Chicago'})
-        self.assertEqual(get_tzinfo().zone, 'America/Chicago')
+        assert get_tzinfo().zone == 'America/Chicago'
 
         app.config.update('tipfy.ext.i18n', {'timezone': 'America/Sao_Paulo'})
-        self.assertEqual(get_tzinfo().zone, 'America/Sao_Paulo')
+        assert get_tzinfo().zone == 'America/Sao_Paulo'
 
     def test_get_tzinfo(self):
         tzinfo = get_tzinfo('UTC')
-        self.assertEqual(tzinfo.zone, 'UTC')
+        assert tzinfo.zone == 'UTC'
 
         tzinfo = get_tzinfo('America/Chicago')
-        self.assertEqual(tzinfo.zone, 'America/Chicago')
+        assert tzinfo.zone == 'America/Chicago'
 
         tzinfo = get_tzinfo('America/Sao_Paulo')
-        self.assertEqual(tzinfo.zone, 'America/Sao_Paulo')
+        assert tzinfo.zone == 'America/Sao_Paulo'
 
     def test_to_local_timezone(self):
         app = get_app()
@@ -147,13 +165,13 @@ class TestI18n(unittest.TestCase):
         base = datetime.datetime(2002, 10, 27, 6, 0, 0, tzinfo=pytz.UTC)
         localtime = to_local_timezone(base)
         result = localtime.strftime(format)
-        self.assertEqual(result, '2002-10-27 01:00:00 EST-0500')
+        assert result == '2002-10-27 01:00:00 EST-0500'
 
         # Test naive datetime - no timezone set
         base = datetime.datetime(2002, 10, 27, 6, 0, 0)
         localtime = to_local_timezone(base)
         result = localtime.strftime(format)
-        self.assertEqual(result, '2002-10-27 01:00:00 EST-0500')
+        assert result == '2002-10-27 01:00:00 EST-0500'
 
     def test_to_utc(self):
         app = get_app()
@@ -165,13 +183,13 @@ class TestI18n(unittest.TestCase):
         localtime = to_utc(base)
         result = localtime.strftime(format)
 
-        self.assertEqual(result, '2002-10-27 06:00:00')
+        assert result == '2002-10-27 06:00:00'
 
         # Test naive datetime - no timezone set
         base = datetime.datetime(2002, 10, 27, 6, 0, 0)
         localtime = to_utc(base)
         result = localtime.strftime(format)
-        self.assertEqual(result, '2002-10-27 11:00:00')
+        assert result == '2002-10-27 11:00:00'
 
     #===========================================================================
     # App hooks
@@ -179,10 +197,10 @@ class TestI18n(unittest.TestCase):
     def test_set_app_hooks(self):
         app = get_app()
 
-        self.assertEqual('pre_dispatch_handler' not in app.hooks.hooks, True)
-        self.assertEqual('pre_send_response' not in app.hooks.hooks, True)
+        assert 'pre_dispatch_handler' not in app.hooks.hooks
+        assert 'pre_send_response' not in app.hooks.hooks
 
         set_app_hooks(app)
 
-        self.assertEqual('pre_dispatch_handler' in app.hooks.hooks, True)
-        self.assertEqual('pre_send_response' in app.hooks.hooks, True)
+        assert 'pre_dispatch_handler' in app.hooks.hooks
+        assert 'pre_send_response' in app.hooks.hooks

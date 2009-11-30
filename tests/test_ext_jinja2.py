@@ -21,13 +21,13 @@ class TestJinja2(unittest.TestCase):
         app = get_app({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
         message = 'Hello, World!'
         res = render_template('template1.html', message=message)
-        self.assertEqual(res, message)
+        assert res == message
 
     def test_render_response(self):
         app = get_app({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
         local.response = get_response()
         message = 'Hello, World!'
         response = render_response('template1.html', message=message)
-        self.assertEqual(isinstance(response, Response), True)
-        self.assertEqual(response.mimetype, 'text/html')
-        self.assertEqual(response.data, message)
+        assert isinstance(response, Response)
+        assert response.mimetype == 'text/html'
+        assert response.data == message

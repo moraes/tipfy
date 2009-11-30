@@ -6,6 +6,7 @@ import unittest
 
 from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase
+from nose.tools import assert_raises
 
 from tipfy import NotFound
 from tipfy.ext.model.form import model_form, ModelConverter, f, validators
@@ -70,85 +71,85 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
     def test_model_form_basic(self):
         form_class = model_form(Contact)
 
-        self.assertEqual(hasattr(form_class, 'name'), True)
-        self.assertEqual(hasattr(form_class, 'age'), True)
-        self.assertEqual(hasattr(form_class, 'city'), True)
-        self.assertEqual(hasattr(form_class, 'is_admin'), True)
+        assert hasattr(form_class, 'name')
+        assert hasattr(form_class, 'age')
+        assert hasattr(form_class, 'city')
+        assert hasattr(form_class, 'is_admin')
 
         form = form_class()
-        self.assertEqual(isinstance(form.name, f.TextField), True)
-        self.assertEqual(isinstance(form.city, f.TextField), True)
-        self.assertEqual(isinstance(form.age, f.IntegerField), True)
-        self.assertEqual(isinstance(form.is_admin, f.BooleanField), True)
+        assert isinstance(form.name, f.TextField)
+        assert isinstance(form.city, f.TextField)
+        assert isinstance(form.age, f.IntegerField)
+        assert isinstance(form.is_admin, f.BooleanField)
 
     def test_required_field(self):
         form_class = model_form(Contact)
 
         form = form_class()
-        self.assertEqual(form.name.flags.required, True)
-        self.assertEqual(form.city.flags.required, False)
-        self.assertEqual(form.age.flags.required, True)
-        self.assertEqual(form.is_admin.flags.required, False)
+        assert form.name.flags.required is True
+        assert form.city.flags.required is False
+        assert form.age.flags.required is True
+        assert form.is_admin.flags.required is False
 
     def test_default_value(self):
         form_class = model_form(Contact)
 
         form = form_class()
-        self.assertEqual(form.name._default, None)
-        self.assertEqual(form.city._default, None)
-        self.assertEqual(form.age._default, None)
-        self.assertEqual(form.is_admin._default, False)
+        assert form.name._default is None
+        assert form.city._default is None
+        assert form.age._default is None
+        assert form.is_admin._default is False
 
     def test_model_form_only(self):
         form_class = model_form(Contact, only=['name', 'age'])
 
-        self.assertEqual(hasattr(form_class, 'name'), True)
-        self.assertEqual(hasattr(form_class, 'city'), False)
-        self.assertEqual(hasattr(form_class, 'age'), True)
-        self.assertEqual(hasattr(form_class, 'is_admin'), False)
+        assert hasattr(form_class, 'name')
+        assert hasattr(form_class, 'city') is False
+        assert hasattr(form_class, 'age')
+        assert hasattr(form_class, 'is_admin') is False
 
         form = form_class()
-        self.assertEqual(isinstance(form.name, f.TextField), True)
-        self.assertEqual(isinstance(form.age, f.IntegerField), True)
+        assert isinstance(form.name, f.TextField)
+        assert isinstance(form.age, f.IntegerField)
 
     def test_model_form_exclude(self):
         form_class = model_form(Contact, exclude=['is_admin'])
 
-        self.assertEqual(hasattr(form_class, 'name'), True)
-        self.assertEqual(hasattr(form_class, 'city'), True)
-        self.assertEqual(hasattr(form_class, 'age'), True)
-        self.assertEqual(hasattr(form_class, 'is_admin'), False)
+        assert hasattr(form_class, 'name')
+        assert hasattr(form_class, 'city')
+        assert hasattr(form_class, 'age')
+        assert hasattr(form_class, 'is_admin') is False
 
         form = form_class()
-        self.assertEqual(isinstance(form.name, f.TextField), True)
-        self.assertEqual(isinstance(form.city, f.TextField), True)
-        self.assertEqual(isinstance(form.age, f.IntegerField), True)
+        assert isinstance(form.name, f.TextField)
+        assert isinstance(form.city, f.TextField)
+        assert isinstance(form.age, f.IntegerField)
 
     def test_not_implemented_properties(self):
         # This should not raise NotImplementedError.
         form = model_form(AllPropertiesModel)
 
         # These properties should not be included in the form.
-        self.assertRaises(AttributeError, getattr, model_form, 'prop_list')
-        self.assertRaises(AttributeError, getattr, model_form, 'prop_user')
-        self.assertRaises(AttributeError, getattr, model_form, 'prop_geo_pt')
-        self.assertRaises(AttributeError, getattr, model_form, 'prop_im')
+        assert_raises(AttributeError, getattr, model_form, 'prop_list')
+        assert_raises(AttributeError, getattr, model_form, 'prop_user')
+        assert_raises(AttributeError, getattr, model_form, 'prop_geo_pt')
+        assert_raises(AttributeError, getattr, model_form, 'prop_im')
 
     def test_datetime_model(self):
         """Fields marked as auto_add / auto_add_now should not be included."""
         form_class = model_form(DateTimeModel)
 
-        self.assertEqual(hasattr(form_class, 'prop_date_time_1'), True)
-        self.assertEqual(hasattr(form_class, 'prop_date_time_2'), False)
-        self.assertEqual(hasattr(form_class, 'prop_date_time_3'), False)
+        assert hasattr(form_class, 'prop_date_time_1')
+        assert hasattr(form_class, 'prop_date_time_2') is False
+        assert hasattr(form_class, 'prop_date_time_3') is False
 
-        self.assertEqual(hasattr(form_class, 'prop_date_1'), True)
-        self.assertEqual(hasattr(form_class, 'prop_date_2'), False)
-        self.assertEqual(hasattr(form_class, 'prop_date_3'), False)
+        assert hasattr(form_class, 'prop_date_1')
+        assert hasattr(form_class, 'prop_date_2') is False
+        assert hasattr(form_class, 'prop_date_3') is False
 
-        self.assertEqual(hasattr(form_class, 'prop_time_1'), True)
-        self.assertEqual(hasattr(form_class, 'prop_time_2'), False)
-        self.assertEqual(hasattr(form_class, 'prop_time_3'), False)
+        assert hasattr(form_class, 'prop_time_1')
+        assert hasattr(form_class, 'prop_time_2') is False
+        assert hasattr(form_class, 'prop_time_3') is False
 
     def test_populate_form(self):
         entity = Contact(key_name='test', name='John', city='Yukon', age=25, is_admin=True)
@@ -158,10 +159,10 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
         form_class = model_form(Contact)
 
         form = form_class(obj=obj)
-        self.assertEqual(form.name.data, 'John')
-        self.assertEqual(form.city.data, 'Yukon')
-        self.assertEqual(form.age.data, 25)
-        self.assertEqual(form.is_admin.data, True)
+        assert form.name.data == 'John'
+        assert form.city.data == 'Yukon'
+        assert form.age.data == 25
+        assert form.is_admin.data is True
 
     def test_field_attributes(self):
         form_class = model_form(Contact, field_args={
@@ -183,15 +184,15 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
         })
         form = form_class()
 
-        self.assertEqual(form.name.label.text, 'Full name')
-        self.assertEqual(form.name.description, 'Your name')
+        assert form.name.label.text == 'Full name'
+        assert form.name.description == 'Your name'
 
-        self.assertEqual(form.age.label.text, 'Age')
+        assert form.age.label.text == 'Age'
 
-        self.assertEqual(form.city.label.text, 'City')
-        self.assertEqual(form.city.description, 'The city in which you live, not the one in which you were born.')
+        assert form.city.label.text == 'City'
+        assert form.city.description == 'The city in which you live, not the one in which you were born.'
 
-        self.assertEqual(form.is_admin.label.text, 'Administrative rights')
+        assert form.is_admin.label.text == 'Administrative rights'
 
     def test_reference_property(self):
         keys = []
@@ -206,5 +207,5 @@ class TestModelForm(DataStoreTestCase, unittest.TestCase):
         choices = []
         i = 0
         for key, name, value in form.author.iter_choices():
-            self.assertEqual(key, keys[i])
+            assert key == keys[i]
             i += 1

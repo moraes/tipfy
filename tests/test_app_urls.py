@@ -50,16 +50,16 @@ class TestUrls(unittest.TestCase):
         app.url_adapter = app.url_map.bind_to_environ(environ)
         rule, rule_args = app.url_adapter.match(request.path, return_rule=True)
 
-        self.assertEqual(rule.handler, 'test.home:HomeHandler')
-        self.assertEqual(rule_args, {})
+        assert rule.handler == 'test.home:HomeHandler'
+        assert rule_args == {}
 
     def test_url_match2(self):
         app, environ, request = get_app_environ_request(path='/people/calvin')
         app.url_adapter = app.url_map.bind_to_environ(environ)
         rule, rule_args = app.url_adapter.match(request.path, return_rule=True)
 
-        self.assertEqual(rule.handler, 'test.profile:ProfileHandler')
-        self.assertEqual(rule_args, {'username': 'calvin'})
+        assert rule.handler == 'test.profile:ProfileHandler'
+        assert rule_args == {'username': 'calvin'}
 
     @raises(NotFound)
     def test_not_found(self):
@@ -76,34 +76,34 @@ class TestUrls(unittest.TestCase):
         app, environ, request = get_app_environ_request()
         app.url_adapter = app.url_map.bind_to_environ(environ)
 
-        self.assertEqual(url_for('home'), '/')
+        assert url_for('home') == '/'
 
     def test_url_for2(self):
         app, environ, request = get_app_environ_request()
         app.url_adapter = app.url_map.bind_to_environ(environ)
 
-        self.assertEqual(url_for('profile', username='calvin'), '/people/calvin')
-        self.assertEqual(url_for('profile', username='hobbes'), '/people/hobbes')
-        self.assertEqual(url_for('profile', username='moe'), '/people/moe')
+        assert url_for('profile', username='calvin') == '/people/calvin'
+        assert url_for('profile', username='hobbes') == '/people/hobbes'
+        assert url_for('profile', username='moe') == '/people/moe'
 
     def test_url_for_full(self):
         app, environ, request = get_app_environ_request()
         app.url_adapter = app.url_map.bind_to_environ(environ)
 
         host = 'http://%s' % environ['HTTP_HOST']
-        self.assertEqual(url_for('home', full=True), host + '/')
+        assert url_for('home', full=True) == host + '/'
 
     def test_url_for_full2(self):
         app, environ, request = get_app_environ_request()
         app.url_adapter = app.url_map.bind_to_environ(environ)
         host = 'http://%s' % environ['HTTP_HOST']
 
-        self.assertEqual(url_for('profile', username='calvin', full=True), \
-            host + '/people/calvin')
-        self.assertEqual(url_for('profile', username='hobbes', full=True), \
-            host + '/people/hobbes')
-        self.assertEqual(url_for('profile', username='moe', full=True), \
-            host + '/people/moe')
+        assert url_for('profile', username='calvin', full=True) == \
+            host + '/people/calvin'
+        assert url_for('profile', username='hobbes', full=True) == \
+            host + '/people/hobbes'
+        assert url_for('profile', username='moe', full=True) == \
+            host + '/people/moe'
 
     #===========================================================================
     # redirect_to()
@@ -115,8 +115,8 @@ class TestUrls(unittest.TestCase):
         host = 'http://%s' % environ['HTTP_HOST']
 
         response = redirect_to('home')
-        self.assertEqual(response.headers['location'], host + '/')
-        self.assertEqual(response.status_code, 302)
+        assert response.headers['location'] == host + '/'
+        assert response.status_code == 302
 
     def test_redirect_to2(self):
         app, environ, request = get_app_environ_request()
@@ -125,16 +125,16 @@ class TestUrls(unittest.TestCase):
         host = 'http://%s' % environ['HTTP_HOST']
 
         response = redirect_to('profile', username='calvin')
-        self.assertEqual(response.headers['location'], host + '/people/calvin')
-        self.assertEqual(response.status_code, 302)
+        assert response.headers['location'] == host + '/people/calvin'
+        assert response.status_code == 302
 
         response = redirect_to('profile', username='hobbes')
-        self.assertEqual(response.headers['location'], host + '/people/hobbes')
-        self.assertEqual(response.status_code, 302)
+        assert response.headers['location'] == host + '/people/hobbes'
+        assert response.status_code == 302
 
         response = redirect_to('profile', username='moe')
-        self.assertEqual(response.headers['location'], host + '/people/moe')
-        self.assertEqual(response.status_code, 302)
+        assert response.headers['location'] == host + '/people/moe'
+        assert response.status_code == 302
 
     def test_redirect_to_301(self):
         app, environ, request = get_app_environ_request()
@@ -143,8 +143,8 @@ class TestUrls(unittest.TestCase):
         host = 'http://%s' % environ['HTTP_HOST']
 
         response = redirect_to('home', code=301)
-        self.assertEqual(response.headers['location'], host + '/')
-        self.assertEqual(response.status_code, 301)
+        assert response.headers['location'] == host + '/'
+        assert response.status_code == 301
 
     @raises(AssertionError)
     def test_redirect_to_invalid_code(self):
@@ -161,15 +161,15 @@ class TestUrls(unittest.TestCase):
         local.response = get_response()
         response = redirect('http://www.google.com/')
 
-        self.assertEqual(response.headers['location'], 'http://www.google.com/')
-        self.assertEqual(response.status_code, 302)
+        assert response.headers['location'] == 'http://www.google.com/'
+        assert response.status_code == 302
 
     def test_redirect_301(self):
         local.response = get_response()
         response = redirect('http://www.google.com/', 301)
 
-        self.assertEqual(response.headers['location'], 'http://www.google.com/')
-        self.assertEqual(response.status_code, 301)
+        assert response.headers['location'] == 'http://www.google.com/'
+        assert response.status_code == 301
 
     @raises(AssertionError)
     def test_redirect_invalid_code(self):

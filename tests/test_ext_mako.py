@@ -20,18 +20,18 @@ templates_dir = os.path.join(current_dir, 'files', 'mako')
 class TestMako(unittest.TestCase):
     def test_get_lookup(self):
         app = get_app({'tipfy.ext.mako': {'templates_dir': templates_dir}})
-        self.assertEqual(isinstance(get_lookup(), TemplateLookup), True)
+        assert isinstance(get_lookup(), TemplateLookup)
 
     def test_render_template(self):
         app = get_app({'tipfy.ext.mako': {'templates_dir': templates_dir}})
         message = 'Hello, World!'
         res = render_template('template1.html', message=message)
-        self.assertEqual(res, message + '\n')
+        assert res == message + '\n'
 
     def test_render_response(self):
         local.response = get_response()
         message = 'Hello, World!'
         response = render_response('template1.html', message=message)
-        self.assertEqual(isinstance(response, Response), True)
-        self.assertEqual(response.mimetype, 'text/html')
-        self.assertEqual(response.data, message + '\n')
+        assert isinstance(response, Response)
+        assert response.mimetype == 'text/html'
+        assert response.data == message + '\n'

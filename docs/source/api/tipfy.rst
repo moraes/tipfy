@@ -73,7 +73,7 @@ Hook classes
 ------------
 .. autoclass:: HookHandler
    :members: __init__, add, add_multi, iter, call
-.. autoclass:: LazyHook
+.. autoclass:: LazyCallable
    :members: __init__, __call__
 
 

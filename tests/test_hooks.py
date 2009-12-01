@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.HookHandler and tipfy.LazyHook.
+    Tests for tipfy.HookHandler and tipfy.LazyCallable.
 """
 import unittest
 from types import FunctionType
 
 from _base import get_app, get_environ, get_request, get_response
-from tipfy import HookHandler, LazyHook
+from tipfy import HookHandler, LazyCallable
 
 
 def event_callable_1(name):
@@ -22,16 +22,16 @@ def event_callable_4(name):
     return name + 'something_added_4'
 
 
-class TestLazyHook(unittest.TestCase):
+class TestLazyCallable(unittest.TestCase):
     def test_hook_init(self):
         hook_spec = 'foo'
-        event_hook = LazyHook(hook_spec)
+        event_hook = LazyCallable(hook_spec)
         assert event_hook.hook_spec == hook_spec
         assert event_hook.hook is None
 
     def test_hook_call(self):
         hook_spec = '%s:event_callable_1' % __name__
-        event_hook = LazyHook(hook_spec)
+        event_hook = LazyCallable(hook_spec)
 
         assert event_hook('foo') == 'foo' + 'something_added'
         assert event_hook('bar') == 'bar' + 'something_added'
@@ -50,7 +50,7 @@ class TestHookHandler(unittest.TestCase):
         event_1 = hook_handler.hooks.get('before_request_init', None)
         assert len(event_1) == 2
         for event in event_1:
-            assert isinstance(event, LazyHook)
+            assert isinstance(event, LazyCallable)
 
         assert event_1[0].hook_spec == 'foo'
         assert event_1[1].hook_spec == 'bar'
@@ -58,14 +58,14 @@ class TestHookHandler(unittest.TestCase):
         event_2 = hook_handler.hooks.get('after_request_init', None)
         assert len(event_2) == 1
         for event in event_2:
-            assert isinstance(event, LazyHook)
+            assert isinstance(event, LazyCallable)
 
         assert event_2[0].hook_spec == 'baz'
 
         event_3 = hook_handler.hooks.get('after_request_dispatch', None)
         assert len(event_3) == 1
         for event in event_3:
-            assert isinstance(event, LazyHook)
+            assert isinstance(event, LazyCallable)
 
         assert event_3[0].hook_spec == 'ding'
 
@@ -111,7 +111,7 @@ class TestHookHandler(unittest.TestCase):
         event_1 = hook_handler.hooks.get('before_request_init', None)
         assert len(event_1) == 2
         for event in event_1:
-            assert isinstance(event, LazyHook)
+            assert isinstance(event, LazyCallable)
 
         assert event_1[0].hook_spec == 'foo'
         assert event_1[1].hook_spec == 'bar'
@@ -119,14 +119,14 @@ class TestHookHandler(unittest.TestCase):
         event_2 = hook_handler.hooks.get('after_request_init', None)
         assert len(event_2) == 1
         for event in event_2:
-            assert isinstance(event, LazyHook)
+            assert isinstance(event, LazyCallable)
 
         assert event_2[0].hook_spec == 'baz'
 
         event_3 = hook_handler.hooks.get('after_request_dispatch', None)
         assert len(event_3) == 1
         for event in event_3:
-            assert isinstance(event, LazyHook)
+            assert isinstance(event, LazyCallable)
 
         assert event_3[0].hook_spec == 'ding'
 
@@ -142,7 +142,7 @@ class TestHookHandler(unittest.TestCase):
         event_1 = hook_handler.hooks.get('before_request_init', None)
         assert len(event_1) == 2
         for event in event_1:
-            assert isinstance(event, LazyHook)
+            assert isinstance(event, LazyCallable)
 
         assert event_1[0].hook_spec == 'foo'
         assert event_1[1].hook_spec == 'bar'
@@ -157,7 +157,7 @@ class TestHookHandler(unittest.TestCase):
         event_3 = hook_handler.hooks.get('after_request_dispatch', None)
         assert len(event_3) == 1
         for event in event_3:
-            assert isinstance(event, LazyHook)
+            assert isinstance(event, LazyCallable)
 
         assert event_3[0].hook_spec == 'ding'
 

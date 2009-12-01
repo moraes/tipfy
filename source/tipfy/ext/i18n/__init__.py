@@ -24,7 +24,7 @@ from babel.dates import format_date as _format_date, \
     format_datetime as _format_datetime, format_time as _format_time
 from pytz.gae import pytz
 
-from tipfy import local, app, get_config
+from tipfy import local, get_config
 
 #: Default configuration values for this module. Keys are:
 #:   - ``locale``: The default locale code. Default is `en_US`.

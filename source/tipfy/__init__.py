@@ -176,7 +176,7 @@ class Config(dict):
     """A simple configuration dictionary keyed by module name. This is a
     dictionary of dictionaries. It requires all values to be dictionaries
     and applies updates and default values to the inner dictionaries instead of
-    the first level values.
+    the first level one.
     """
     def __init__(self, value=None):
         if value is not None:
@@ -279,7 +279,7 @@ class Config(dict):
         return self[module][key]
 
 
-class LazyHook(object):
+class LazyCallable(object):
     """A lazy callable used by :class:`HookHandler`: hooks are set as a string
     and only imported when used.
     """
@@ -331,7 +331,7 @@ class HookHandler(object):
             ``None``.
         """
         if not callable(hook):
-            hook = LazyHook(hook)
+            hook = LazyCallable(hook)
 
         self.hooks.setdefault(name, []).append(hook)
 
@@ -393,15 +393,20 @@ class HookHandler(object):
 
 class Rule(WerkzeugRule):
     """Extends Werkzeug routing to support a handler definition for each Rule.
-    Handler is a RequestHandler module and class specification, while endpoint
-    is a friendly name used to build URL's. For example:
+    Handler is a :class:`RequestHandler` module and class specification, and
+    endpoint is a friendly name used to build URL's. For example:
 
     .. code-block:: python
 
        Rule('/users', endpoint='user-list', handler='my_app:UsersHandler')
 
     Access to the URL ``/users`` loads ``UsersHandler`` class from ``my_app``
-    module, and to generate an URL to that page we use ``url_for('user-list')``.
+    module. To generate an URL to that page, use :func:`url_for`:
+
+    .. code-block:: python
+
+       url = url_for('user-list')
+
     """
     def __init__(self, *args, **kwargs):
         self.handler = kwargs.pop('handler', kwargs.get('endpoint', None))
@@ -615,8 +620,10 @@ def get_config(module, key, default=None):
     if value is None:
         default_config = import_string(module + ':default_config', silent=True)
         if default_config is None:
+            # Module doesn't have a default_config variable; use default value.
             value = default
         else:
+            # Update app config and get requested key with fallback to default.
             local.app.config.setdefault(module, default_config)
             value = local.app.config.get(module, key, default)
 
@@ -628,7 +635,7 @@ def fix_sys_path():
     """A fix for issue 772. We must keep this here until it is fixed in the dev
     server.
 
-    See http://code.google.com/p/googleappengine/issues/detail?id=772.
+    See: http://code.google.com/p/googleappengine/issues/detail?id=772
     """
     global ultimate_sys_path
     import sys

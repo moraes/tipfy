@@ -71,8 +71,8 @@ def set_app_hooks(app=None):
     :return:
         ``None``.
     """
-    app.hooks.add('pre_dispatch_handler', set_requested_locale)
-    app.hooks.add('pre_send_response', persist_requested_locale)
+    app.hooks.add('pre_dispatch_handler', set_requested_locale, 0)
+    app.hooks.add('pre_send_response', persist_requested_locale, 0)
 
 
 def set_requested_locale(request=None, app=None):

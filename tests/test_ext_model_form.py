@@ -8,7 +8,6 @@ from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase
 from nose.tools import assert_raises
 
-from tipfy import NotFound
 from tipfy.ext.model.form import model_form, ModelConverter, f, validators
 
 

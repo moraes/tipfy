@@ -319,7 +319,7 @@ class HookHandler(object):
         """
         self.hooks = hooks or {}
 
-    def add(self, name, hook):
+    def add(self, name, hook, pos=None):
         """Adds a hook to a given application event.
 
         :param name:
@@ -327,13 +327,20 @@ class HookHandler(object):
         :param hook:
             The callable that is executed when the event occurs. Can be either
             a callable or a string to be lazily imported.
+        :param pos:
+            Position to insert the hook in the hook list. If not set, the hook
+            is appended to the list.
         :return:
             ``None``.
         """
         if not callable(hook):
             hook = LazyCallable(hook)
 
-        self.hooks.setdefault(name, []).append(hook)
+        event = self.hooks.setdefault(name, [])
+        if pos is None:
+            event.append(hook)
+        else:
+            event.insert(pos, hook)
 
     def add_multi(self, spec):
         """Adds multiple hook to multiple application events.

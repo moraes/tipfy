@@ -13,7 +13,7 @@ from wsgiref.handlers import CGIHandler
 
 # Werkzeug swiss knife.
 from werkzeug import Local, LocalManager, Request, Response, import_string, \
-    escape
+    escape, cached_property
 from werkzeug.exceptions import HTTPException, BadRequest, Unauthorized, \
     Forbidden, NotFound, MethodNotAllowed, NotAcceptable, RequestTimeout, \
     Gone, LengthRequired, PreconditionFailed, RequestEntityTooLarge, \

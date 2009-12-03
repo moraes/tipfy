@@ -102,7 +102,7 @@ def set_securecookie_session(app=None):
     :return:
         ``None``.
     """
-    middleware = DatastoreSessionMiddleware()
+    middleware = SecureCookieSessionMiddleware()
     app.hooks.add('pre_dispatch_handler', middleware.load_session)
     app.hooks.add('pre_send_response', middleware.save_session)
 

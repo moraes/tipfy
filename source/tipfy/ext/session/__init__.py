@@ -50,6 +50,9 @@ default_config = {
 local.session = local.session_store = None
 session, session_store = local('session'), local('session_store')
 
+# Let other modules initialize sessions.
+is_session_set = False
+
 
 def set_datastore_session(app=None):
     """Hook to initialize and persist datastore based sessions. This
@@ -74,9 +77,12 @@ def set_datastore_session(app=None):
     :return:
         ``None``.
     """
-    middleware = DatastoreSessionMiddleware()
-    app.hooks.add('pre_dispatch_handler', middleware.load_session)
-    app.hooks.add('pre_send_response', middleware.save_session)
+    global is_session_set
+    if is_session_set is False:
+        middleware = DatastoreSessionMiddleware()
+        app.hooks.add('pre_dispatch_handler', middleware.load_session)
+        app.hooks.add('pre_send_response', middleware.save_session)
+        is_session_set = True
 
 
 def set_securecookie_session(app=None):
@@ -102,9 +108,12 @@ def set_securecookie_session(app=None):
     :return:
         ``None``.
     """
-    middleware = SecureCookieSessionMiddleware()
-    app.hooks.add('pre_dispatch_handler', middleware.load_session)
-    app.hooks.add('pre_send_response', middleware.save_session)
+    global is_session_set
+    if is_session_set is False:
+        middleware = SecureCookieSessionMiddleware()
+        app.hooks.add('pre_dispatch_handler', middleware.load_session)
+        app.hooks.add('pre_send_response', middleware.save_session)
+        is_session_set = True
 
 
 class DatastoreSessionMiddleware(object):

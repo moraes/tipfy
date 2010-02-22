@@ -12,7 +12,7 @@ class BaseForm(object):
     def __init__(self, fields, prefix=''):
         """
         :param fields:
-            A dict of partially-constructed fields.
+            A dict or sequence of 2-tuples of partially-constructed fields.
         :param prefix:
             If provided, all fields will have their name prefixed with the
             value.
@@ -24,7 +24,10 @@ class BaseForm(object):
         self._errors = None
         self._fields = {}
 
-        for name, unbound_field in fields.iteritems():
+        if hasattr(fields, 'iteritems'):
+            fields = fields.iteritems()
+
+        for name, unbound_field in fields:
             field = unbound_field.bind(form=self, name=name, prefix=prefix)
             self._fields[name] = field
 
@@ -47,12 +50,6 @@ class BaseForm(object):
     def __delitem__(self, name):
         """ Remove a field from this form. """
         del self._fields[name]
-
-    def __getattr__(self, name):
-        try:
-            return self._fields[name]
-        except KeyError:
-            raise AttributeError('Form has no field %r' % name)
 
     def populate_obj(self, obj):
         """
@@ -81,28 +78,38 @@ class BaseForm(object):
             form will assign the value of a matching keyword argument to the
             field, if provided.
         """
+        if formdata is not None and not hasattr(formdata, 'getlist'):
+            if hasattr(formdata, 'getall'):
+                formdata = WebobInputWrapper(formdata)
+            else:
+                raise TypeError("formdata should be a multidict-type wrapper that supports the 'getlist' method")
+
         for name, field, in self._fields.iteritems():
-            if hasattr(obj, name):
+            if obj is not None and hasattr(obj, name):
                 field.process(formdata, getattr(obj, name))
             elif name in kwargs:
                 field.process(formdata, kwargs[name])
             else:
                 field.process(formdata)
 
-    def validate(self):
+    def validate(self, extra_validators=None):
         """
-        Validates the form by calling `validate` on each field, passing any
-        extra `Form.validate_<fieldname>` validators to the field validator.
+        Validates the form by calling `validate` on each field.
+
+        :param extra_validators:
+            If provided, is a dict mapping field names to a sequence of
+            callables which will be passed as extra validators to the field's
+            `validate` method.
 
         Returns `True` if no errors occur.
         """
         self._errors = None
         success = True
         for name, field in self._fields.iteritems():
-            extra = []
-            inline = getattr(self.__class__, 'validate_%s' % name, None)
-            if inline is not None:
-                extra.append(inline)
+            if extra_validators is not None and name in extra_validators:
+                extra = extra_validators[name]
+            else:
+                extra = tuple()
             if not field.validate(self, extra):
                 success = False
         return success
@@ -197,12 +204,12 @@ class Form(BaseForm):
             form will assign the value of a matching keyword argument to the
             field, if provided.
         """
-        super(Form, self).__init__(dict(self._unbound_fields), prefix=prefix)
+        super(Form, self).__init__(self._unbound_fields, prefix=prefix)
 
-        for name in self._fields:
+        for name, field in self._fields.iteritems():
             # Set all the fields to attributes so that they obscure the class
             # attributes with the same names.
-            setattr(self, name, self._fields[name])
+            setattr(self, name, field)
 
         self.process(formdata, obj, **kwargs)
 
@@ -224,3 +231,48 @@ class Form(BaseForm):
             self.__delitem__(name)
         except KeyError:
             super(Form, self).__delattr__(name)
+
+    def validate(self):
+        """
+        Validates the form by calling `validate` on each field, passing any
+        extra `Form.validate_<fieldname>` validators to the field validator.
+        """
+        extra = {}
+        for name in self._fields:
+            inline = getattr(self.__class__, 'validate_%s' % name, None)
+            if inline is not None:
+                extra[name] = [inline]
+
+        return super(Form, self).validate(extra)
+
+
+class WebobInputWrapper(object):
+    """
+    Wrap a webob MultiDict for use as passing as `formdata` to Field.
+
+    Since for consistency, we have decided in WTForms to support as input a
+    small subset of the API provided in common between cgi.FieldStorage,
+    Django's QueryDict, and Werkzeug's MultiDict, we need to wrap Webob, the
+    only supported framework whose multidict does not fit this API, but is
+    nevertheless used by a lot of frameworks.
+
+    While we could write a full wrapper to support all the methods, this will
+    undoubtedly result in bugs due to some subtle differences between the
+    various wrappers. So we will keep it simple.
+    """
+
+    def __init__(self, multidict):
+        self._wrapped = multidict
+
+    def __iter__(self):
+        return iter(self._wrapped)
+
+    def __len__(self):
+        return len(self._wrapped)
+
+    def __contains__(self, name):
+        return (name in self._wrapped)
+
+    def getlist(self, name):
+        return self._wrapped.getall(name)
+

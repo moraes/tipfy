@@ -24,7 +24,7 @@ default_config = {
 _auth_system = None
 
 
-def set_auth(request, app):
+def set_auth(app):
     """Hook to initialize the authentication system. This will authenticate
     users and load the related :class:`tipfy.ext.user.models.User` entity from
     datastore.
@@ -49,6 +49,11 @@ def set_auth(request, app):
     :return:
         ``None``.
     """
+    get_auth_system()
+    app.hooks.add('pre_dispatch_handler', load_user)
+
+
+def load_user(request, app):
     response = get_auth_system().load_user(request, app)
     if response is not None:
         return response

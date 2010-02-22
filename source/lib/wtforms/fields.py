@@ -1,18 +1,17 @@
-from cgi import escape
-from datetime import datetime
-from decimal import Decimal, InvalidOperation
-from itertools import chain, count
+import datetime
+import decimal
+import itertools
 import time
 
 from wtforms import widgets
-from wtforms.validators import StopValidation, ValidationError
+from wtforms.validators import StopValidation
 
 
 __all__ = (
-    'BooleanField', 'DecimalField', 'DateTimeField', 'FieldList', 'FileField',
-    'FormField', 'HiddenField', 'IntegerField', 'PasswordField', 'RadioField',
-    'SelectField', 'SelectMultipleField', 'SubmitField', 'TextField',
-    'TextAreaField',
+    'BooleanField', 'DecimalField', 'DateField', 'DateTimeField', 'FieldList',
+    'FileField', 'FormField', 'HiddenField', 'IntegerField', 'PasswordField',
+    'RadioField', 'SelectField', 'SelectMultipleField', 'SubmitField',
+    'TextField', 'TextAreaField',
 )
 
 
@@ -25,6 +24,7 @@ class Field(object):
     """
     widget = None
     errors = tuple()
+    process_errors = tuple()
     _formfield = True
 
     def __new__(cls, *args, **kwargs):
@@ -85,7 +85,7 @@ class Field(object):
         if widget:
             self.widget = widget
         self.flags = Flags()
-        for v in validators:    
+        for v in validators:
             flags = getattr(v, 'field_flags', ())
             for f in flags:
                 setattr(self.flags, f, True)
@@ -125,7 +125,7 @@ class Field(object):
         :param form: The form the field belongs to.
         :param extra_validators: A list of extra validators to run.
         """
-        self.errors = []
+        self.errors = list(self.process_errors)
         stop_validation = False
 
         # Call pre_validate
@@ -140,7 +140,7 @@ class Field(object):
 
         # Run validators
         if not stop_validation:
-            for validator in chain(self.validators, extra_validators):
+            for validator in itertools.chain(self.validators, extra_validators):
                 try:
                     validator(form, self)
                 except StopValidation, e:
@@ -192,24 +192,31 @@ class Field(object):
         special advanced processing, such as when a field encapsulates many
         inputs.
         """
+        self.process_errors = []
         if data is _unset_value:
             try:
                 data = self._default()
             except TypeError:
                 data = self._default
-        self.process_data(data)
+        try:
+            self.process_data(data)
+        except ValueError, e:
+            self.process_errors.append(e.args[0])
 
         if formdata:
-            if self.name in formdata:
-                try:
+            try:
+                if self.name in formdata:
                     self.process_formdata(formdata.getlist(self.name))
-                except AttributeError:
-                    self.process_formdata(formdata.getall(self.name))
-            else:
-                self.process_formdata([])
+                else:
+                    self.process_formdata([])
+            except ValueError, e:
+                self.process_errors.append(e.args[0])
 
         for filter in self.filters:
-            self.data = filter(self.data)
+            try:
+                self.data = filter(self.data)
+            except ValueError, e:
+                self.process_errors.append(e.args[0])
 
     def process_data(self, value):
         """
@@ -318,14 +325,14 @@ class SelectField(Field):
             try:
                 self.data = self.coerce(valuelist[0])
             except ValueError:
-                pass
+                raise ValueError(u'Invalid Choice: could not coerce')
 
     def pre_validate(self, form):
         for v, _ in self.choices:
             if self.data == v:
                 break
         else:
-            raise ValidationError('Not a valid choice')
+            raise ValueError('Not a valid choice')
 
 
 class SelectMultipleField(SelectField):
@@ -351,14 +358,14 @@ class SelectMultipleField(SelectField):
         try:
             self.data = [self.coerce(x) for x in valuelist]
         except ValueError:
-            pass
+            raise ValueError(u'Invalid choice(s): one or more data inputs could not be coerced')
 
     def pre_validate(self, form):
         if self.data:
             values = [c[0] for c in self.choices]
             for d in self.data:
                 if d not in values:
-                    raise ValidationError(u"'%s' is not a valid choice for this field" % d)
+                    raise ValueError(u"'%s' is not a valid choice for this field" % d)
 
 
 class RadioField(SelectField):
@@ -452,49 +459,58 @@ class IntegerField(TextField):
             try:
                 self.data = int(valuelist[0])
             except ValueError:
-                pass
-
-    def post_validate(self, form, validation_stopped):
-        if not validation_stopped and self.raw_data:
-            try:
-                int(self.raw_data)
-            except ValueError:
-                raise ValidationError(u'Not a valid integer value')
+                raise ValueError(u'Not a valid integer value')
 
 
 class DecimalField(TextField):
     """
     A text field which displays and coerces data of the `decimal.Decimal` type.
 
-    Defining the `number_format` parameter to the constructor allows you to
-    customize how the number is displayed, using standard python string
-    formatting rules.
+    :param places:
+        How many decimal places to quantize the value to for display on form.
+        If None, does not quantize value.
+    :param rounding:
+        How to round the value during quantize, for example
+        `decimal.ROUND_UP`. If unset, uses the rounding value from the
+        current thread's context.
     """
 
-    def __init__(self, label=u'', validators=None, number_format='%0.2f', **kwargs):
+    def __init__(self, label=u'', validators=None, places=2, rounding=None, **kwargs):
         super(DecimalField, self).__init__(label, validators, **kwargs)
         self.raw_data = None
-        self.number_format = number_format
+        self.places = places
+        self.rounding = rounding
 
     def _value(self):
-        if self.data is not None:
-            return self.number_format % self.data
-        elif self.raw_data is not None:
+        if self.raw_data is not None:
             return self.raw_data
+        elif self.data is not None:
+            if self.places is not None:
+                if hasattr(self.data, 'quantize'):
+                    exp = decimal.Decimal('.1') ** self.places
+                    quantized = self.data.quantize(exp, rounding=self.rounding)
+                    return unicode(quantized)
+                else:
+                    # If for some reason, data is a float or int, then format
+                    # as we would for floats using string formatting.
+                    format = u'%%0.%df' % self.places
+                    return format % self.data
+            else:
+                return unicode(self.data)
         else:
-            return ''
+            return u''
 
     def process_formdata(self, valuelist):
         if valuelist:
             self.raw_data = valuelist[0]
             try:
-                self.data = Decimal(valuelist[0])
-            except (InvalidOperation, ValueError):
-                pass
+                self.data = decimal.Decimal(valuelist[0])
+            except (decimal.InvalidOperation, ValueError):
+                raise ValueError(u'Not a valid decimal value')
 
 
 class BooleanField(Field):
-    """ 
+    """
     Represents an ``<input type="checkbox">``.
     """
     widget = widgets.CheckboxInput()
@@ -516,10 +532,12 @@ class BooleanField(Field):
             self.data = False
 
 
-class DateTimeField(TextField):
+class DateTimeField(Field):
     """
-    Can be represented by one or multiple text-inputs.
+    A text field which stores a `datetime.datetime` matching a format.
     """
+    widget = widgets.TextInput()
+
     def __init__(self, label=u'', validators=None, format='%Y-%m-%d %H:%M:%S', **kwargs):
         super(DateTimeField, self).__init__(label, validators, **kwargs)
         self.format = format
@@ -536,9 +554,28 @@ class DateTimeField(TextField):
             self.raw_data = str.join(' ', valuelist)
             try:
                 timetuple = time.strptime(self.raw_data, self.format)
-                self.data = datetime(*timetuple[:7])
+                self.data = datetime.datetime(*timetuple[:6])
             except ValueError:
                 self.data = None
+                raise
+
+
+class DateField(DateTimeField):
+    """
+    Same as DateTimeField, except stores a `datetime.date`.
+    """
+    def __init__(self, label=u'', validators=None, format='%Y-%m-%d', **kwargs):
+        super(DateField, self).__init__(label, validators, format, **kwargs)
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            self.raw_data = str.join(' ', valuelist)
+            try:
+                timetuple = time.strptime(self.raw_data, self.format)
+                self.data = datetime.date(*timetuple[:3])
+            except ValueError:
+                self.data = None
+                raise
 
 
 class SubmitField(BooleanField):
@@ -565,6 +602,7 @@ class FormField(Field):
         super(FormField, self).__init__(label, validators, **kwargs)
         self.form_class = form_class
         self.separator = separator
+        self._obj = None
         if self.filters:
             raise TypeError('FormField cannot take filters, as the encapsulated data is not mutable.')
         if validators:
@@ -576,6 +614,7 @@ class FormField(Field):
                 data = self._default()
             except TypeError:
                 data = self._default
+            self._obj = data
 
         prefix = self.name + self.separator
         if isinstance(data, dict):
@@ -589,7 +628,14 @@ class FormField(Field):
         return self.form.validate()
 
     def populate_obj(self, obj, name):
-        self.form.populate_obj(getattr(obj, name))
+        candidate = getattr(obj, name, None)
+        if candidate is None:
+            if self._obj is None:
+                raise TypeError('populate_obj: cannot find a value to populate from the provided obj or input data/defaults')
+            candidate = self._obj
+            setattr(obj, name, candidate)
+
+        self.form.populate_obj(candidate)
 
     def __iter__(self):
         return iter(self.form)
@@ -614,7 +660,7 @@ class FieldList(Field):
     Encapsulate an ordered list of multiple instances of the same field type,
     keeping data as a list.
 
-    >>> authors = FieldList(TextField('Name', [validators.required()])) 
+    >>> authors = FieldList(TextField('Name', [validators.required()]))
 
     :param unbound_field:
         A partially-instantiated field definition, just like that would be
@@ -686,6 +732,24 @@ class FieldList(Field):
                 success = False
                 self.errors.append(subfield.errors)
         return success
+
+    def populate_obj(self, obj, name):
+        values = getattr(obj, name, None)
+        try:
+            ivalues = iter(values)
+        except TypeError:
+            ivalues = iter([])
+
+        candidates = itertools.chain(ivalues, itertools.repeat(None))
+        _fake = type('_fake', (object, ), {})
+        output = []
+        for field, data in itertools.izip(self.entries, candidates):
+            fake_obj = _fake()
+            fake_obj.data = data
+            field.populate_obj(fake_obj, 'data')
+            output.append(fake_obj.data)
+
+        setattr(obj, name, output)
 
     def _add_entry(self, formdata=None, data=_unset_value, index=None):
         assert not self.max_entries or len(self.entries) < self.max_entries, \

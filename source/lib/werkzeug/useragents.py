@@ -8,7 +8,7 @@
     browsers.
 
 
-    :copyright: (c) 2009 by the Werkzeug Team, see AUTHORS for more details.
+    :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
 import re
@@ -150,9 +150,6 @@ class UserAgent(object):
 
         the language of the browser
     """
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     _parser = UserAgentParser()
 

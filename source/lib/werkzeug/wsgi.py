@@ -5,7 +5,7 @@
 
     This module implements WSGI related helpers.
 
-    :copyright: (c) 2009 by the Werkzeug Team, see AUTHORS for more details.
+    :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
 import os
@@ -235,7 +235,7 @@ def extract_path_info(environ_or_baseurl, path_or_url, charset='utf-8',
                 base_scheme == cur_scheme):
             return None
 
-    # are the netlocs compatibible?
+    # are the netlocs compatible?
     if base_netloc != cur_netloc:
         return None
 
@@ -302,9 +302,6 @@ class SharedDataMiddleware(object):
     :param cache: enable or disable caching headers.
     :Param cache_timeout: the cache timeout in seconds for the headers.
     """
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     def __init__(self, app, exports, disallow=None, cache=True,
                  cache_timeout=60 * 60 * 12, fallback_mimetype='text/plain'):
@@ -438,7 +435,7 @@ class SharedDataMiddleware(object):
 
 
 class DispatcherMiddleware(object):
-    """Allows one to mount middlewares or application in a WSGI application.
+    """Allows one to mount middlewares or applications in a WSGI application.
     This is useful if you want to combine multiple WSGI applications::
 
         app = DispatcherMiddleware(app, {
@@ -446,9 +443,6 @@ class DispatcherMiddleware(object):
             '/app3':        app3
         })
     """
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     def __init__(self, app, mounts=None):
         self.app = app
@@ -492,9 +486,6 @@ class ClosingIterator(object):
             cleanup_session()
             cleanup_locals()
     """
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     def __init__(self, iterable, callbacks=None):
         iterator = iter(iterable)
@@ -558,9 +549,6 @@ class FileWrapper(object):
     :param buffer_size: number of bytes for one iteration.
     """
 
-    # this class is public
-    __module__ = 'werkzeug'
-
     def __init__(self, file, buffer_size=8192):
         self.file = file
         self.buffer_size = buffer_size
@@ -580,7 +568,7 @@ class FileWrapper(object):
 
 
 def make_line_iter(stream, limit=None, buffer_size=10 * 1024):
-    """Savely iterates line-based over an input stream.  If the input stream
+    """Safely iterates line-based over an input stream.  If the input stream
     is not a :class:`LimitedStream` the `limit` parameter is mandatory.
 
     This uses the stream's :meth:`~file.read` method internally as opposite
@@ -658,7 +646,7 @@ class LimitedStream(object):
        is not portable.  It internally calls :meth:`readline`.
 
        We strongly suggest using :meth:`read` only or using the
-       :func:`make_line_iter` which savely iterates line-based
+       :func:`make_line_iter` which safely iterates line-based
        over a WSGI input stream.
 
     :param stream: the stream to wrap.
@@ -668,9 +656,6 @@ class LimitedStream(object):
     :param silent: If set to `True` the stream will allow reading
                    past the limit and will return an empty string.
     """
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     def __init__(self, stream, limit, silent=True):
         self._read = stream.read
@@ -774,6 +759,6 @@ class LimitedStream(object):
         return line
 
 
-# circulear dependencies
+# circular dependencies
 from werkzeug.utils import http_date
 from werkzeug.http import is_resource_modified

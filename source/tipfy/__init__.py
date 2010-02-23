@@ -52,7 +52,8 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
 #:   - ``server_name``: A server name hint, used to calculate current subdomain.
 #:     If you plan to use dynamic subdomains, you must define the main domain
 #:     here so that the subdomain can be extracted and applied to URL rules..
-#:   - ``subdomain``: Optionally, the current subdomain.
+#:   - ``subdomain``: The default subdomain used to build URLs when subdomains
+#:     are in use and one is not provided.
 default_config = {
     'dev': environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
     'app_id': environ.get('APPLICATION_ID', None),
@@ -154,8 +155,7 @@ class WSGIApplication(object):
             self.handler_class = self.handlers[self.rule.handler]
 
             # Apply pre-dispatch middlewares.
-            for response in self.hooks.iter('pre_dispatch_handler',
-                request=local.request, app=self):
+            for response in self.hooks.iter('pre_dispatch_handler', self):
                 if response is not None:
                     break
             else:

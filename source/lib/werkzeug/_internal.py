@@ -5,7 +5,7 @@
 
     This module provides internally used helpers and constants.
 
-    :copyright: (c) 2009 by the Werkzeug Team, see AUTHORS for more details.
+    :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
 import inspect
@@ -13,12 +13,13 @@ from weakref import WeakKeyDictionary
 from cStringIO import StringIO
 from Cookie import BaseCookie, Morsel, CookieError
 from time import gmtime
-from datetime import datetime
+from datetime import datetime, date
 
 
 _logger = None
 _empty_stream = StringIO('')
 _signature_cache = WeakKeyDictionary()
+_epoch_ord = date(1970, 1, 1).toordinal()
 
 
 HTTP_STATUS_CODES = {
@@ -64,7 +65,7 @@ HTTP_STATUS_CODES = {
     423:    'Locked',
     424:    'Failed Dependency',
     426:    'Upgrade Required',
-    449:    'Retry With',           # propritary MS extension
+    449:    'Retry With',           # proprietary MS extension
     500:    'Internal Server Error',
     501:    'Not Implemented',
     502:    'Bad Gateway',
@@ -74,14 +75,6 @@ HTTP_STATUS_CODES = {
     507:    'Insufficient Storage',
     510:    'Not Extended'
 }
-
-
-def public(obj=None):
-    """Marks a function or class as publically available.  Do not call
-    functions that are not public.
-    """
-    obj.__module__ = 'werkzeug'
-    return obj
 
 
 class _Missing(object):
@@ -245,19 +238,20 @@ def _dump_date(d, delim):
     )
 
 
-_timegm = None
 def _date_to_unix(arg):
     """Converts a timetuple, integer or datetime object into the seconds from
     epoch in utc.
     """
-    global _timegm
     if isinstance(arg, datetime):
         arg = arg.utctimetuple()
     elif isinstance(arg, (int, long, float)):
         return int(arg)
-    if _timegm is None:
-        from calendar import timegm as _timegm
-    return _timegm(arg)
+    year, month, day, hour, minute, second = arg[:6]
+    days = date(year, month, 1).toordinal() - _epoch_ord + day - 1
+    hours = days * 24 + hour
+    minutes = hours * 60 + minute
+    seconds = minutes * 60 + second
+    return seconds
 
 
 class _ExtendedMorsel(Morsel):
@@ -339,7 +333,6 @@ class _DictAccessorProperty(object):
         )
 
 
-@public
 def _easteregg(app):
     """Like the name says.  But who knows how it works?"""
     gyver = '\n'.join([x + (77 - len(x)) * ' ' for x in '''

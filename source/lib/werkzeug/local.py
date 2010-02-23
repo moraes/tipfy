@@ -5,7 +5,7 @@
 
     This module implements context-local objects.
 
-    :copyright: (c) 2009 by the Werkzeug Team, see AUTHORS for more details.
+    :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
 try:
@@ -25,7 +25,7 @@ from werkzeug._internal import _patch_wrapper
 
 
 # get the best ident function.  if greenlets are not installed we can
-# savely just use the builtin thread function and save a python methodcall
+# safely just use the builtin thread function and save a python methodcall
 # and the cost of calculating a hash.
 if get_current_greenlet is int:
     get_ident = get_current_thread
@@ -35,9 +35,6 @@ else:
 
 class Local(object):
     __slots__ = ('__storage__', '__lock__')
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     def __init__(self):
         object.__setattr__(self, '__storage__', {})
@@ -89,9 +86,6 @@ class LocalManager(object):
     by appending them to `manager.locals`.  Everytime the manager cleans up
     it, will clean up all the data left in the locals for this context.
     """
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     def __init__(self, locals=None):
         if locals is None:
@@ -159,14 +153,11 @@ class LocalProxy(object):
         request = l('request')
         user = l('user')
 
-    Whenever something is bound to l.user / l.requesourececodest the proxy objects
+    Whenever something is bound to l.user / l.request the proxy objects
     will forward all operations.  If no object is bound a `RuntimeError`
     will be raised.
     """
     __slots__ = ('__local', '__dict__', '__name__')
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     def __init__(self, local, name):
         object.__setattr__(self, '_LocalProxy__local', local)

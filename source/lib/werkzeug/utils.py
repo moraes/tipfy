@@ -7,7 +7,7 @@
     them are used by the request and response wrappers but especially for
     middleware development it makes sense to use them without the wrappers.
 
-    :copyright: (c) 2009 by the Werkzeug Team, see AUTHORS for more details.
+    :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
 import re
@@ -30,7 +30,7 @@ _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4', 'LPT1',
 class cached_property(object):
     """A decorator that converts a function into a lazy property.  The
     function wrapped is called the first time to retrieve the result
-    and than that calculated result is used the next time you access
+    and then that calculated result is used the next time you access
     the value::
 
         class Foo(object):
@@ -50,12 +50,9 @@ class cached_property(object):
        writeable setting and will always make the property writeable.
     """
 
-    # this class is public
-    __module__ = 'werkzeug'
-
     # implementation detail: this property is implemented as non-data
     # descriptor.  non-data descriptors are only invoked if there is
-    # no entry with the same name in the instance's __dict__
+    # no entry with the same name in the instance's __dict__.
     # this allows us to completely get rid of the access function call
     # overhead.  If one choses to invoke __get__ by hand the property
     # will still work as expected because the lookup logic is replicated
@@ -70,7 +67,8 @@ class cached_property(object):
                                     'by default for performance reasons'))
 
         self.__name__ = name or func.__name__
-        self.__doc__ = doc
+        self.__module__ = func.__module__
+        self.__doc__ = doc or func.__doc__
         self.func = func
 
     def __get__(self, obj, type=None):
@@ -104,9 +102,6 @@ class environ_property(_DictAccessorProperty):
     by passing ``read_only=False`` to the constructor.
     """
 
-    # this class is public
-    __module__ = 'werkzeug'
-
     read_only = True
 
     def lookup(self, obj):
@@ -115,9 +110,6 @@ class environ_property(_DictAccessorProperty):
 
 class header_property(_DictAccessorProperty):
     """Like `environ_property` but for headers."""
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     def lookup(self, obj):
         return obj.headers
@@ -148,9 +140,6 @@ class HTMLBuilder(object):
     >>> html.p(html("<foo>"))
     u'<p>&lt;foo&gt;</p>'
     """
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     from htmlentitydefs import name2codepoint
     _entity_re = re.compile(r'&([^;]+);')
@@ -347,7 +336,7 @@ def cookie_date(expires=None):
     """Formats the time to ensure compatibility with Netscape's cookie
     standard.
 
-    Accepts a floating point number expressed in seconds since the epoc in, a
+    Accepts a floating point number expressed in seconds since the epoch in, a
     datetime object or a timetuple.  All times in UTC.  The :func:`parse_date`
     function can be used to parse such a date.
 
@@ -450,7 +439,7 @@ def dump_cookie(key, value='', max_age=None, expires=None, path='/',
 def http_date(timestamp=None):
     """Formats the time to match the RFC1123 date format.
 
-    Accepts a floating point number expressed in seconds since the epoc in, a
+    Accepts a floating point number expressed in seconds since the epoch in, a
     datetime object or a timetuple.  All times in UTC.  The :func:`parse_date`
     function can be used to parse such a date.
 
@@ -469,7 +458,7 @@ def redirect(location, code=302):
     with defined If-Modified-Since headers.
 
     .. versionadded:: 0.6
-       The location can now be unicode strings that are encoded using
+       The location can now be a unicode string that is encoded using
        the :func:`iri_to_uri` function.
 
     :param location: the location the response should redirect to.
@@ -520,6 +509,9 @@ def import_string(import_name, silent=False):
                    `None` is returned instead.
     :return: imported object
     """
+    # force the import name to automatically convert to strings
+    if isinstance(import_name, unicode):
+        import_name = str(import_name)
     try:
         if ':' in import_name:
             module, obj = import_name.split(':', 1)
@@ -527,6 +519,10 @@ def import_string(import_name, silent=False):
             module, obj = import_name.rsplit('.', 1)
         else:
             return __import__(import_name)
+        # __import__ is not able to handle unicode strings in the fromlist
+        # if the module is a package
+        if isinstance(obj, unicode):
+            obj = obj.encode('utf-8')
         return getattr(__import__(module, None, None, [obj]), obj)
     except (ImportError, AttributeError):
         if not silent:
@@ -567,7 +563,7 @@ def find_modules(import_path, include_packages=False, recursive=False):
 
 def validate_arguments(func, args, kwargs, drop_extra=True):
     """Check if the function accepts the arguments and keyword arguments.
-    Returns a new ``(args, kwargs)`` tuple that can savely be passed to
+    Returns a new ``(args, kwargs)`` tuple that can safely be passed to
     the function without causing a `TypeError` because the function signature
     is incompatible.  If `drop_extra` is set to `True` (which is the default)
     any extra positional or keyword arguments are dropped automatically.
@@ -653,9 +649,6 @@ def bind_arguments(func, args, kwargs):
 
 class ArgumentValidationError(ValueError):
     """Raised if :func:`validate_arguments` fails to validate"""
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     def __init__(self, missing=None, extra=None, extra_positional=None):
         self.missing = set(missing or ())

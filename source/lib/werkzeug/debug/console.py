@@ -5,7 +5,7 @@
 
     Interactive console support.
 
-    :copyright: (c) 2009 by the Werkzeug Team, see AUTHORS for more details.
+    :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD.
 """
 import sys
@@ -36,7 +36,10 @@ class HTMLStringO(object):
         pass
 
     def seek(self, n, mode=0):
-        pass
+        raise IOError('Bad file descriptor')
+
+    def readline(self):
+        raise IOError('Bad file descriptor')
 
     def reset(self):
         val = ''.join(self._buffer)
@@ -53,13 +56,6 @@ class HTMLStringO(object):
 
     def writelines(self, x):
         self._write(escape(''.join(x)))
-
-    def readline(self):
-        if len(self._buffer) == 0:
-            return ''
-        ret = self._buffer[0]
-        del self._buffer[0]
-        return ret
 
 
 class ThreadedStream(object):

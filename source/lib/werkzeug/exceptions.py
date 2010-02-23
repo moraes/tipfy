@@ -53,7 +53,7 @@
                 return e
 
 
-    :copyright: (c) 2009 by the Werkzeug Team, see AUTHORS for more details.
+    :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
 import sys
@@ -121,10 +121,10 @@ class HTTPException(Exception):
         :param environ: the environ for the request.
         :return: a :class:`BaseResponse` object or a subclass thereof.
         """
-        # lazyly imported for various reasons.  For one can use the exceptions
+        # lazily imported for various reasons.  For one, we can use the exceptions
         # with custom responses (testing exception instances against types) and
         # so we don't ever have to import the wrappers, but also because there
-        # are ciruclar dependencies when bootstrapping the module.
+        # are circular dependencies when bootstrapping the module.
         from werkzeug.wrappers import BaseResponse
         headers = self.get_headers(environ)
         return BaseResponse(self.get_body(environ), self.code, headers)
@@ -138,6 +138,19 @@ class HTTPException(Exception):
         """
         response = self.get_response(environ)
         return response(environ, start_response)
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        if 'description' in self.__dict__:
+            txt = self.description
+        else:
+            txt = self.name
+        return '%d: %s' % (self.code, txt)
+
+    def __repr__(self):
+        return '<%s \'%s\'>' % (self.__class__.__name__, self)
 
 
 class _ProxyException(HTTPException):
@@ -418,14 +431,11 @@ class Aborter(object):
     """
     When passed a dict of code -> exception items it can be used as
     callable that raises exceptions.  If the first argument to the
-    callable is a integer it will be looked up in the mapping, if it's
+    callable is an integer it will be looked up in the mapping, if it's
     a WSGI application it will be raised in a proxy exception.
 
     The rest of the arguments are forwarded to the exception constructor.
     """
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     def __init__(self, mapping=None, extra=None):
         if mapping is None:

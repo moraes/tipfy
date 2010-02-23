@@ -5,7 +5,7 @@
 
     This module implements a client to WSGI applications for testing.
 
-    :copyright: (c) 2009 by the Werkzeug Team, see AUTHORS for more details.
+    :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
 import sys
@@ -153,7 +153,7 @@ class _TestCookieJar(CookieJar):
         for cookie in self:
             cvals.append('%s=%s' % (cookie.name, cookie.value))
         if cvals:
-            environ['HTTP_COOKIE'] = ','.join(cvals)
+            environ['HTTP_COOKIE'] = ', '.join(cvals)
 
     def extract_wsgi(self, environ, headers):
         """Extract the server's set-cookie headers as cookies into the
@@ -203,7 +203,7 @@ class EnvironBuilder(object):
         the :attr:`content_length` is set and you have to provide a
         :attr:`content_type`.
     -   a `dict`: If it's a dict the keys have to be strings and the values
-        and of the following objects:
+        any of the following objects:
 
         -   a :class:`file`-like object.  These are converted into
             :class:`FileStorage` objects automatically.
@@ -244,9 +244,6 @@ class EnvironBuilder(object):
     :param environ_overrides: an optional dict of environment overrides.
     :param charset: the charset used to encode unicode data.
     """
-
-    # this class is public
-    __module__ = 'werkzeug'
 
     #: the server protocol to use.  defaults to HTTP/1.1
     server_protocol = 'HTTP/1.1'
@@ -324,7 +321,7 @@ class EnvironBuilder(object):
             from warnings import warn
             warn(DeprecationWarning('it\'s no longer possible to pass dicts '
                                     'as `data`.  Use tuples or FileStorage '
-                                    'objects intead'), stacklevel=2)
+                                    'objects instead'), stacklevel=2)
             args = v
             value = dict(value)
             mimetype = value.pop('mimetype', None)
@@ -597,9 +594,6 @@ class Client(object):
        builtin cookie support.
     """
 
-    # this class is public
-    __module__ = 'werkzeug'
-
     def __init__(self, application, response_wrapper=None, use_cookies=True):
         self.application = application
         if response_wrapper is None:
@@ -630,7 +624,7 @@ class Client(object):
         Additional parameters:
 
         :param as_tuple: Returns a tuple in the form ``(environ, result)``
-        :param buffered: Set this to true to buffer the application run.
+        :param buffered: Set this to True to buffer the application run.
                          This will automatically close the application for
                          you as well.
         :param follow_redirects: Set this to True if the `Client` should
@@ -784,7 +778,7 @@ def run_wsgi_app(app, environ, buffered=False):
 
     app_iter = app(environ, start_response)
 
-    # when buffering we emit the close call early and conver the
+    # when buffering we emit the close call early and convert the
     # application iterator into a regular list
     if buffered:
         close_func = getattr(app_iter, 'close', None)
@@ -802,9 +796,12 @@ def run_wsgi_app(app, environ, buffered=False):
         while not response:
             buffer.append(app_iter.next())
         if buffer:
-            app_iter = chain(buffer, app_iter)
             close_func = getattr(app_iter, 'close', None)
+            app_iter = chain(buffer, app_iter)
             if close_func is not None:
                 app_iter = ClosingIterator(app_iter, close_func)
 
     return app_iter, response[0], response[1]
+
+
+from werkzeug.wsgi import ClosingIterator

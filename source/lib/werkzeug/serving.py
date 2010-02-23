@@ -32,7 +32,7 @@
     instead of a simple start file.
 
 
-    :copyright: (c) 2009 by the Werkzeug Team, see AUTHORS for more details.
+    :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
 import os
@@ -42,7 +42,6 @@ import time
 import thread
 import subprocess
 from urllib import unquote
-from urlparse import urlparse
 from itertools import chain
 from SocketServer import ThreadingMixIn, ForkingMixIn
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
@@ -60,7 +59,11 @@ class WSGIRequestHandler(BaseHTTPRequestHandler, object):
         return 'Werkzeug/' + werkzeug.__version__
 
     def make_environ(self):
-        path_info, query = urlparse(self.path)[2::2]
+        if '?' in self.path:
+            path_info, query = self.path.split('?', 1)
+        else:
+            path_info = self.path
+            query = ''
         url_scheme = self.server.ssl_context is None and 'http' or 'https'
         environ = {
             'wsgi.version':         (1, 0),
@@ -409,6 +412,15 @@ def restart_with_reloader():
         args = [sys.executable] + sys.argv
         new_environ = os.environ.copy()
         new_environ['WERKZEUG_RUN_MAIN'] = 'true'
+
+        # a weird bug on windows. sometimes unicode strings end up in the
+        # environment and subprocess.call does not like this, encode them
+        # to latin1 and continue.
+        if os.name == 'nt':
+            for key, value in new_environ:
+                if isinstance(value, unicode):
+                    new_environ[key] = value.encode('iso-8859-1')
+
         exit_code = subprocess.call(args, env=new_environ)
         if exit_code != 3:
             return exit_code
@@ -470,15 +482,16 @@ def run_simple(hostname, port, application, use_reloader=False,
     :param passthrough_errors: set this to `True` to disable the error catching.
                                This means that the server will die on errors but
                                it can be useful to hook debuggers in (pdb etc.)
-    :param ssl_context: an SSL context for the connction, 'adhoc' if the server
-                        should automatically create one, or `None` to disable
-                        SSL (which is the default).
+    :param ssl_context: an SSL context for the connection. Either an OpenSSL
+                        context, the string ``'adhoc'`` if the server should
+                        automatically create one, or `None` to disable SSL
+                        (which is the default).
     """
     if use_debugger:
         from werkzeug.debug import DebuggedApplication
         application = DebuggedApplication(application, use_evalex)
     if static_files:
-        from werkzeug.utils import SharedDataMiddleware
+        from werkzeug.wsgi import SharedDataMiddleware
         application = SharedDataMiddleware(application, static_files)
 
     def inner():
@@ -488,7 +501,8 @@ def run_simple(hostname, port, application, use_reloader=False,
 
     if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         display_hostname = hostname or '127.0.0.1'
-        _log('info', ' * Running on http://%s:%d/', display_hostname, port)
+        _log('info', ' * Running on %s://%s:%d/', ssl_context is None
+             and 'http' or 'https', display_hostname, port)
     if use_reloader:
         # Create and destroy a socket so that any exceptions are raised before
         # we spawn a separate Python interpreter and lose this ability.

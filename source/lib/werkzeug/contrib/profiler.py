@@ -13,7 +13,7 @@
         from werkzeug.contrib.profiler import ProfilerMiddleware
         app = ProfilerMiddleware(app)
 
-    :copyright: (c) 2009 by the Werkzeug Team, see AUTHORS for more details.
+    :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
 import sys
@@ -87,7 +87,7 @@ class ProfilerMiddleware(object):
         p = Profile()
         p.runcall(runapp)
         body = ''.join(response_body)
-        stats = Stats(p)
+        stats = Stats(p, stream=self._stream)
         stats.sort_stats(*self._sort_by)
 
         self._stream.write('-' * 80)

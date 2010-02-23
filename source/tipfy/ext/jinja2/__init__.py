@@ -12,7 +12,7 @@
 """
 from os import path
 from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
-from tipfy import local, get_config
+from tipfy import local, get_config, url_for
 
 #: Default configuration values for this module. Keys are:
 #:   - ``templates_dir``: Directory for templates. Default is `templates`.
@@ -46,6 +46,9 @@ def get_env():
         # Initialize the environment.
         _environment = Environment(loader=loader,
             extensions=['jinja2.ext.i18n'])
+
+        # Add url_for() by default.
+        _environment.globals.update({'url_for': url_for})
 
         try:
             # Install i18n conditionally.

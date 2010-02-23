@@ -54,7 +54,7 @@
     Based on concept from Solar's Access and Role classes: http://solarphp.com.
 
     :copyright: Paul M. Jones <pmjones@solarphp.com>
-    :copyright: 2009 by tipfy.org.
+    :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 from google.appengine.ext import db

@@ -8,7 +8,7 @@
     It requires the mako module to be added to the lib dir. Mako can be
     downloaded at http://www.makotemplates.org/
 
-    :copyright: 2009 by tipfy.org.
+    :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 from os import path

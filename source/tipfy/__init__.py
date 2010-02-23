@@ -5,7 +5,7 @@
 
     Minimalist WSGI application and utilities.
 
-    :copyright: 2009 by tipfy.org.
+    :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 from os import environ

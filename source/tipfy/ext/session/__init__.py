@@ -14,7 +14,7 @@
     This module derives from `Kay`_.
 
     :copyright: (c) 2009 Accense Technology, Inc. All rights reserved.
-    :copyright: 2009 by tipfy.org.
+    :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 from datetime import datetime, timedelta

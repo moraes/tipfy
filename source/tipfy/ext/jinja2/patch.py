@@ -8,7 +8,7 @@
 
     See http://dev.pocoo.org/projects/jinja/ticket/349
 
-    :copyright: 2009 by tipfy.org.
+    :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 from jinja2 import Template

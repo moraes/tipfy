@@ -49,6 +49,10 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
 #:     complete explanation. Default is an empty dict.
 #:   - ``urls``: A lazy callable, defined as a string, that returns the list of
 #:     URL rules to be used by the application. Default is `urls:get_rules`.
+#:   - ``server_name``: A server name hint, used to calculate current subdomain.
+#:     If you plan to use dynamic subdomains, you must define the main domain
+#:     here so that the subdomain can be extracted and applied to URL rules..
+#:   - ``subdomain``: Optionally, the current subdomain.
 default_config = {
     'dev': environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
     'app_id': environ.get('APPLICATION_ID', None),
@@ -57,6 +61,8 @@ default_config = {
     'apps_entry_points': {},
     'hooks': {},
     'urls': 'urls:get_rules',
+    'server_name': None,
+    'subdomain': None,
 }
 if default_config['dev'] is True:
     # Add debugger by default when in development.
@@ -124,7 +130,9 @@ class WSGIApplication(object):
         local.response = Response()
 
         # Bind url map to the current request location.
-        self.url_adapter = self.url_map.bind_to_environ(environ)
+        self.url_adapter = self.url_map.bind_to_environ(environ,
+            server_name=self.config.get(__name__, 'server_name', None),
+            subdomain=self.config.get(__name__, 'subdomain', None))
         self.rule = self.rule_args = self.handler_class = None
 
         try:

@@ -10,7 +10,10 @@
 """
 config = {}
 
+# Configurations for the 'tipfy' module.
 config['tipfy'] = {
+    # Some extensions enabled by default: interactive debugger,
+    # internationalization and user accounts.
     'extensions': [
         'tipfy.ext.debugger',
         'tipfy.ext.i18n',

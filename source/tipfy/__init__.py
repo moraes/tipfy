@@ -43,10 +43,13 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
 #:     of ``os.environ['CURRENT_VERSION_ID']``.
 #:   - ``apps_installed``: A list of active app modules as a string. Default is
 #:     an empty list
-#:   - ``apps_entry_points``: URL entry points for the installed apps.
-#:   - ``hooks``: A dictionary of event names mapped to a list of callable hooks
-#:     as a string. See `Application hook system` in the documentation for a
-#:     complete explanation. Default is an empty dict.
+#:   - ``apps_entry_points``: URL entry points for the installed apps, in case
+#:     their URLs are mounted using base paths.
+#:   - ``extensions``: A list of extension modules as strings. A `setup()`
+#:     function from each module is called when the WSGI application is
+#:     initialized. Extensions can then setup app hooks or perform other
+#:     initializations. See `Extensions` in the documentation for a
+#:     complete explanation. Default is an empty list.
 #:   - ``urls``: A lazy callable, defined as a string, that returns the list of
 #:     URL rules to be used by the application. Default is `urls:get_rules`.
 #:   - ``server_name``: A server name hint, used to calculate current subdomain.
@@ -60,15 +63,11 @@ default_config = {
     'version_id': environ.get('CURRENT_VERSION_ID', '1'),
     'apps_installed': [],
     'apps_entry_points': {},
-    'hooks': {},
+    'extensions': [],
     'urls': 'urls:get_rules',
     'server_name': None,
     'subdomain': None,
 }
-if default_config['dev'] is True:
-    # Add debugger by default when in development.
-    default_config['hooks'].setdefault('pre_run_app', []).append(
-        'tipfy.ext.debugger:set_debugger')
 
 
 class RequestHandler(object):
@@ -113,17 +112,20 @@ class WSGIApplication(object):
         # Cache for loaded handler classes.
         self.handlers = {}
 
-        # Set the hook handler and the configured hooks.
+        # Set the hook handler.
         self.hooks = HookHandler()
-        self.hooks.add_multi(self.config.get(__name__, 'hooks', {}))
+
+        # Setup extensions.
+        for module in self.config.get(__name__, 'extensions', []):
+            import_string(module + ':setup')()
 
         # Apply app middlewares.
-        self.hooks.call('pos_init_app', app=self)
+        self.hooks.call('pos_init_app')
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         # Pre initialize request hook.
-        self.hooks.call('pre_init_request', app=self)
+        self.hooks.call('pre_init_request')
 
         # Set local variables for the request.
         local.app = self
@@ -155,7 +157,7 @@ class WSGIApplication(object):
             self.handler_class = self.handlers[self.rule.handler]
 
             # Apply pre-dispatch middlewares.
-            for response in self.hooks.iter('pre_dispatch_handler', self):
+            for response in self.hooks.iter('pre_dispatch_handler'):
                 if response is not None:
                     break
             else:
@@ -173,8 +175,7 @@ class WSGIApplication(object):
             response = handle_exception(self, e)
 
         # Apply response middlewares.
-        self.hooks.call('pre_send_response', request=local.request,
-            response=response, app=self)
+        self.hooks.call('pre_send_response', response=response)
 
         # Call the response object as a WSGI application.
         return response(environ, start_response)
@@ -516,8 +517,7 @@ def handle_exception(app, e):
     :return:
         A ``werkzeug.Response`` object, if the exception is not raised.
     """
-    for response in app.hooks.call('pre_handle_exception', exception=e,
-        app=app):
+    for response in app.hooks.call('pre_handle_exception', exception=e):
         if response:
             return response
 

@@ -9,3 +9,11 @@
     :license: BSD, see LICENSE for more details.
 """
 config = {}
+
+config['tipfy'] = {
+    'extensions': [
+        'tipfy.ext.debugger',
+        'tipfy.ext.i18n',
+        'tipfy.ext.user',
+    ],
+}

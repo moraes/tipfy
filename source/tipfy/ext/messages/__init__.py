@@ -27,28 +27,34 @@ local.messages = None
 messages = local('messages')
 
 
-def set_messages(request=None, app=None):
-    """Application hook executed right before the handler is dispatched.
+def setup():
+    """
+    Setup this extension.
 
     It initializes the messages system.
 
-    To enable it, add a hook to the list of hooks in ``config.py``:
+    To enable it, add this module to the list of extensions in ``config.py``:
 
     .. code-block:: python
 
        config = {
            'tipfy': {
-               'hooks': {
-                   'pre_dispatch_handler': ['tipfy.ext.messages:set_messages'],
+               'extensions': [
+                   'tipfy.ext.messages',
                    # ...
-               },
+               ],
            },
        }
 
-    :param request:
-        A ``werkzeug.Request`` instance.
-    :param app:
-        A :class:`tipfy.WSGIApplication` instance.
+    :return:
+        ``None``.
+    """
+    app.hooks.add('pre_dispatch_handler', set_messages)
+
+
+def set_messages():
+    """Initializes the messages container.
+
     :return:
         ``None``.
     """

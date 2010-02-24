@@ -8,7 +8,7 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from tipfy import import_string, get_config
+from tipfy import import_string, get_config, app, request
 
 #: Default configuration values for this module. Keys are:
 #:   - ``auth_system``: The default authentication class, as a string. Default
@@ -24,37 +24,33 @@ default_config = {
 _auth_system = None
 
 
-def set_auth(app):
-    """Hook to initialize the authentication system. This will authenticate
-    users and load the related :class:`tipfy.ext.user.models.User` entity from
-    datastore.
+def setup():
+    """Setup this extension.
 
-    It is called on 'pre_dispatch_handler'.
+    This will authenticate users and load the related
+    :class:`tipfy.ext.user.models.User` entity from datastore.
 
-    To enable it, add a hook to the list of hooks in ``config.py``:
+    To enable it, add this module to the list of extensions in ``config.py``:
 
     .. code-block:: python
 
        config = {
            'tipfy': {
-               'hooks': {
-                   'pre_dispatch_handler': ['tipfy.ext.user:set_auth'],
+               'extensions': [
+                   'tipfy.ext.user',
                    # ...
-               },
+               ],
            },
        }
 
-    :param app:
-        A :class:`tipfy.WSGIApplication` instance.
     :return:
         ``None``.
     """
-    get_auth_system()
     app.hooks.add('pre_dispatch_handler', load_user)
 
 
-def load_user(request, app):
-    response = get_auth_system().load_user(request, app)
+def load_user():
+    response = get_auth_system().load_user()
     if response is not None:
         return response
 

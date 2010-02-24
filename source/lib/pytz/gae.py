@@ -45,23 +45,40 @@ def get_zoneinfo():
     return zoneinfo
 
 
-def open_resource(name):
-    """Open a resource from the zoneinfo subdir for reading."""
-    name_parts = name.lstrip('/').split('/')
-    for part in name_parts:
-        if part == os.path.pardir or os.path.sep in part:
-            raise ValueError('Bad path segment: %r' % part)
+class TimezoneLoader(object):
+    """A loader that that reads timezones using ZipFile."""
+    def __init__(self):
+        self.available = {}
 
-    cache_key = 'pytz.zoneinfo.%s.%s' % (pytz.OLSON_VERSION, name)
-    zonedata = memcache.get(cache_key)
-    if zonedata is None:
-        zonedata = get_zoneinfo().read(os.path.join('zoneinfo', *name_parts))
-        memcache.add(cache_key, zonedata)
-        logging.info('Added timezone to memcache: %s' % cache_key)
-    else:
-        logging.info('Loaded timezone from memcache: %s' % cache_key)
+    def open_resource(self, name):
+        """Opens a resource from the zoneinfo subdir for reading."""
+        name_parts = name.lstrip('/').split('/')
+        for part in name_parts:
+            if part == os.path.pardir or os.path.sep in part:
+                raise ValueError('Bad path segment: %r' % part)
 
-    return StringIO(zonedata)
+        cache_key = 'pytz.zoneinfo.%s.%s' % (pytz.OLSON_VERSION, name)
+        zonedata = memcache.get(cache_key)
+        if zonedata is None:
+            zonedata = get_zoneinfo().read(os.path.join('zoneinfo', *name_parts))
+            memcache.add(cache_key, zonedata)
+            logging.info('Added timezone to memcache: %s' % cache_key)
+        else:
+            logging.info('Loaded timezone from memcache: %s' % cache_key)
+
+        return StringIO(zonedata)
+
+    def resource_exists(self, name):
+        """Return true if the given resource exists"""
+        if name not in self.available:
+            try:
+                get_zoneinfo().getinfo(os.path.join('zoneinfo',
+                    *name.lstrip('/').split('/')))
+                self.available[name] = True
+            except KeyError:
+                self.available[name] = False
+
+        return self.available[name]
 
 
-pytz.open_resource = open_resource
+pytz.loader = TimezoneLoader()

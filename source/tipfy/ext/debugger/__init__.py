@@ -8,6 +8,8 @@
     :copyright: Copyright 2008 by Armin Ronacher.
     :license: BSD.
 """
+from tipfy import app
+
 # Apply patches to make the debugger fully work on development server.
 import tipfy.ext.debugger.patch
 
@@ -15,29 +17,31 @@ import tipfy.ext.debugger.patch
 _debugged_app = None
 
 
-def set_debugger(app=None):
-    """Application hook executed right before the WSGI app runs.
+def setup():
+    """
+    Setup this extension. It wraps the application by Werkzeug's debugger.
 
-    It wraps the application by Werkzeug's debugger.
-
-    To enable it, add a hook to the list of hooks in ``config.py``:
+    To enable it, add this module to the list of extensions in ``config.py``:
 
     .. code-block:: python
 
        config = {
            'tipfy': {
-               'hooks': {
-                   'pre_run_app': ['tipfy.ext.debugger:set_debugger'],
+               'extensions': [
+                   'tipfy.ext.debugger',
                    # ...
-               },
+               ],
            },
        }
 
-    :param app:
-        A :class:`tipfy.WSGIApplication` instance.
     :return:
         ``None``.
     """
+    if app.config.get('tipfy', 'dev') is True:
+        app.hooks.add('pre_run_app', set_debugger)
+
+
+def set_debugger(app=None):
     global _debugged_app
 
     # Wrap app with the debugger.

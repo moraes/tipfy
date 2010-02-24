@@ -24,7 +24,7 @@ from babel.dates import format_date as _format_date, \
     format_datetime as _format_datetime, format_time as _format_time
 from pytz.gae import pytz
 
-from tipfy import local, get_config
+from tipfy import local, get_config, app, request
 
 #: Default configuration values for this module. Keys are:
 #:   - ``locale``: The default locale code. Default is `en_US`.
@@ -44,30 +44,29 @@ _translations = {}
 _timezones = {}
 
 
-def set_app_hooks(app=None):
-    """Hook to initialize and persist internationalization. This is a shortcut
-    to set the default hooks for this module: :func:`set_requested_locale` and
-    :func:`persist_requested_locale`.
+def setup():
+    """
+    Setup this extension.
 
-    To enable it, add a hook to the list of hooks in ``config.py``:
+    This will set hooks to initialize and persist internationalization.
+
+    To enable it, add this module to the list of extensions in ``config.py``:
 
     .. code-block:: python
 
        config = {
            'tipfy': {
-               'hooks': {
-                   'pos_init_app': ['tipfy.ext.i18n:set_app_hooks'],
+               'extensions': [
+                   'tipfy.ext.i18n',
                    # ...
-               },
+               ],
            },
        }
 
-    It must be placed before any other hook that will make use of
+    It must be placed before any other extension that will make use of
     internationalization. Normally it is the first or one of the first
-    hooks to be set.
+    extensions to be set.
 
-    :param app:
-        A :class:`tipfy.WSGIApplication` instance.
     :return:
         ``None``.
     """
@@ -75,7 +74,7 @@ def set_app_hooks(app=None):
     app.hooks.add('pre_send_response', persist_requested_locale, 0)
 
 
-def set_requested_locale(request=None, app=None):
+def set_requested_locale():
     """
     Application hook executed right before the handler is dispatched.
 
@@ -97,7 +96,7 @@ def set_requested_locale(request=None, app=None):
     set_locale(locale)
 
 
-def persist_requested_locale(request=None, response=None, app=None):
+def persist_requested_locale(response=None):
     """
     Application hook executed right before the response is returned by the WSGI
     application.

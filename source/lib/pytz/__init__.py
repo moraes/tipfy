@@ -9,7 +9,7 @@ on how to use these modules.
 '''
 
 # The Olson database is updated several times a year.
-OLSON_VERSION = '2009r'
+OLSON_VERSION = '2010b'
 VERSION = OLSON_VERSION
 # Version format for a patch release - only one so far.
 #VERSION = OLSON_VERSION + '.2'
@@ -23,10 +23,12 @@ __all__ = [
     'NonExistentTimeError', 'UnknownTimeZoneError',
     'all_timezones', 'all_timezones_set',
     'common_timezones', 'common_timezones_set',
+    'loader',
     ]
 
 import sys, datetime, os.path, gettext
 from UserDict import DictMixin
+from UserList import UserList
 
 try:
     from pkg_resources import resource_stream
@@ -43,34 +45,48 @@ try:
 except NameError:
     from sets import Set as set
 
+class TimezoneLoader(object):
+    def __init__(self):
+        self.available = {}
+
+    def open_resource(self, name):
+        """Open a resource from the zoneinfo subdir for reading.
+
+        Uses the pkg_resources module if available and no standard file
+        found at the calculated location.
+        """
+        name_parts = name.lstrip('/').split('/')
+        for part in name_parts:
+            if part == os.path.pardir or os.path.sep in part:
+                raise ValueError('Bad path segment: %r' % part)
+        filename = os.path.join(os.path.dirname(__file__),
+                                'zoneinfo', *name_parts)
+        if not os.path.exists(filename) and resource_stream is not None:
+            # http://bugs.launchpad.net/bugs/383171 - we avoid using this
+            # unless absolutely necessary to help when a broken version of
+            # pkg_resources is installed.
+            return resource_stream(__name__, 'zoneinfo/' + name)
+        return open(filename, 'rb')
+
+
+    def resource_exists(self, name):
+        """Return true if the given resource exists"""
+        if name not in self.available:
+            try:
+                self.open_resource(name)
+                self.available[name] = True
+            except IOError:
+                self.available[name] = False
+
+        return self.available[name]
+
+loader = TimezoneLoader()
 
 def open_resource(name):
-    """Open a resource from the zoneinfo subdir for reading.
-
-    Uses the pkg_resources module if available and no standard file
-    found at the calculated location.
-    """
-    name_parts = name.lstrip('/').split('/')
-    for part in name_parts:
-        if part == os.path.pardir or os.path.sep in part:
-            raise ValueError('Bad path segment: %r' % part)
-    filename = os.path.join(os.path.dirname(__file__),
-                            'zoneinfo', *name_parts)
-    if not os.path.exists(filename) and resource_stream is not None:
-        # http://bugs.launchpad.net/bugs/383171 - we avoid using this
-        # unless absolutely necessary to help when a broken version of
-        # pkg_resources is installed.
-        return resource_stream(__name__, 'zoneinfo/' + name)
-    return open(filename, 'rb')
-
+    return loader.open_resource(name)
 
 def resource_exists(name):
-    """Return true if the given resource exists"""
-    try:
-        open_resource(name)
-        return True
-    except IOError:
-        return False
+    return loader.resource_exists(name)
 
 
 # Enable this when we get some translations?
@@ -151,7 +167,7 @@ def timezone(zone):
 
     zone = _unmunge_zone(zone)
     if zone not in _tzinfo_cache:
-        if zone in all_timezones_set:
+        if resource_exists(zone):
             _tzinfo_cache[zone] = build_tzinfo(zone, open_resource(zone))
         else:
             raise UnknownTimeZoneError(zone)
@@ -271,6 +287,18 @@ class _LazyDict(DictMixin):
         return self.data.keys()
 
 
+class _LazyList(UserList):
+    def __init__(self, func):
+        self._data = None
+        self._build = func
+
+    def data(self):
+        if self._data is None:
+            self._data = self._build()
+        return self._data
+
+    data = property(data)
+
 class _CountryTimezoneDict(_LazyDict):
     """Map ISO 3166 country code to a list of timezone names commonly used
     in that country.
@@ -305,7 +333,7 @@ class _CountryTimezoneDict(_LazyDict):
             if line.startswith('#'):
                 continue
             code, coordinates, zone = line.split(None, 4)[:3]
-            if zone not in all_timezones_set:
+            if not resource_exists(zone):
                 continue
             try:
                 data[code].append(zone)
@@ -449,7 +477,7 @@ def _test():
 if __name__ == '__main__':
     _test()
 
-all_timezones = \
+all_timezones_unfiltered = \
 ['Africa/Abidjan',
  'Africa/Accra',
  'Africa/Addis_Ababa',
@@ -1010,11 +1038,14 @@ all_timezones = \
  'W-SU',
  'WET',
  'Zulu']
-#all_timezones = [
-#        tz for tz in all_timezones if resource_exists(tz)]
 
-all_timezones_set = set(all_timezones)
-common_timezones = \
+all_timezones = _LazyList(
+        lambda: filter(resource_exists, all_timezones_unfiltered)
+)
+
+all_timezones_set = set(all_timezones_unfiltered) # XXX
+
+common_timezones_unfiltered = \
 ['Africa/Abidjan',
  'Africa/Accra',
  'Africa/Addis_Ababa',
@@ -1409,7 +1440,9 @@ common_timezones = \
  'US/Mountain',
  'US/Pacific',
  'UTC']
-#common_timezones = [
-#        tz for tz in common_timezones if tz in all_timezones]
 
-common_timezones_set = set(common_timezones)
+common_timezones = _LazyList(
+    lambda: filter(resource_exists, common_timezones_unfiltered)
+)
+
+common_timezones_set = set(common_timezones_unfiltered) # XXX

@@ -8,7 +8,7 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from tipfy import import_string, get_config, app, request
+from tipfy import import_string, get_config, app, request, NotFound
 
 #: Default configuration values for this module. Keys are:
 #:   - ``auth_system``: The default authentication class, as a string. Default
@@ -28,7 +28,8 @@ def setup():
     """Setup this extension.
 
     This will authenticate users and load the related
-    :class:`tipfy.ext.user.models.User` entity from datastore.
+    :class:`tipfy.ext.user.models.User` entity from datastore. It will ask
+    users to create an account if they are not created yet.
 
     To enable it, add this module to the list of extensions in ``config.py``:
 
@@ -50,6 +51,7 @@ def setup():
 
 
 def load_user():
+    """Loads the current user using the configured auth system."""
     response = get_auth_system().load_user()
     if response is not None:
         return response
@@ -111,3 +113,69 @@ def is_current_user_admin():
         otherwise.
     """
     return get_auth_system().is_current_user_admin()
+
+
+def is_logged_in():
+    """Returns ``True`` if the user is logged in. It is possible that an user
+    is logged in and :func:`get_current_user()` is None: it happens when the
+    user authenticated but still didn't create an account.
+
+    :return:
+        ``True`` if the user for the current request is an admin, ``False``
+        otherwise.
+    """
+    return get_auth_system().is_logged_in()
+
+
+def login_required(func):
+    """A handler decorator to require user authentication.
+
+    :param func:
+        The handler method to be decorated.
+    :return:
+        The decorated method.
+    """
+    def decorated(*args, **kwargs):
+        if is_logged_in():
+            return func(*args, **kwargs)
+
+        # TODO which exception to use?
+        raise NotFound()
+
+    return decorated
+
+
+def user_required(func):
+    """A handler decorator to require the current user to have an account.
+
+    :param func:
+        The handler method to be decorated.
+    :return:
+        The decorated method.
+    """
+    def decorated(*args, **kwargs):
+        if get_current_user() is not None:
+            return func(*args, **kwargs)
+
+        # TODO which exception to use?
+        raise NotFound()
+
+    return decorated
+
+
+def admin_required(func):
+    """A handler decorator to require the current user to be admin.
+
+    :param func:
+        The handler method to be decorated.
+    :return:
+        The decorated method.
+    """
+    def decorated(*args, **kwargs):
+        if is_current_user_admin():
+            return func(*args, **kwargs)
+
+        # TODO which exception to use?
+        raise NotFound()
+
+    return decorated

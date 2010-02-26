@@ -67,6 +67,8 @@ default_config = {
     'urls': 'urls:get_rules',
     'server_name': None,
     'subdomain': None,
+    # Undocumented for now.
+    'url_map_kwargs': {},
 }
 
 
@@ -470,7 +472,7 @@ def get_url_map(app):
             import logging
             logging.info('Failed to save wsgi_app.rules to memcache.')
 
-    return Map(rules)
+    return Map(rules, **get_config(__name__, 'url_map_kwargs', {}))
 
 
 def make_wsgi_app(config):

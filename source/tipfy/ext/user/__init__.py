@@ -8,7 +8,8 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from tipfy import import_string, get_config, app, request, NotFound
+from tipfy import import_string, get_config, app, request, redirect, \
+    Forbidden
 
 #: Default configuration values for this module. Keys are:
 #:   - ``auth_system``: The default authentication class, as a string. Default
@@ -68,6 +69,18 @@ def get_auth_system():
         _auth_system = import_string(get_config(__name__, 'auth_system'))()
 
     return _auth_system
+
+
+def create_signup_url(dest_url):
+    """Returns the signup URL for this request and specified destination URL.
+
+    :param dest_url:
+        String that is the desired final destination URL for the user once
+        signup is complete.
+    :return:
+        An URL to perform login.
+    """
+    return get_auth_system().create_signup_url(dest_url)
 
 
 def create_login_url(dest_url):
@@ -139,8 +152,8 @@ def login_required(func):
         if is_logged_in():
             return func(*args, **kwargs)
 
-        # TODO which exception to use?
-        raise NotFound()
+        # Redirect to login page.
+        return redirect(create_login_url(request.url))
 
     return decorated
 
@@ -157,8 +170,12 @@ def user_required(func):
         if get_current_user() is not None:
             return func(*args, **kwargs)
 
-        # TODO which exception to use?
-        raise NotFound()
+        if is_logged_in():
+            # Redirect to signup page.
+            return redirect(create_signup_url(request.url))
+
+        # Redirect to login page.
+        return redirect(create_login_url(request.url))
 
     return decorated
 
@@ -175,7 +192,11 @@ def admin_required(func):
         if is_current_user_admin():
             return func(*args, **kwargs)
 
-        # TODO which exception to use?
-        raise NotFound()
+        if not is_logged_in():
+            # Redirect to signup page.
+            return redirect(create_login_url(request.url))
+
+        # Nope, user isn't an admin.
+        raise Forbidden()
 
     return decorated

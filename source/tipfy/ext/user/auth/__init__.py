@@ -36,14 +36,14 @@ class BaseAuth(object):
     #: Like `external_email` but for the password
     external_password = True
 
+    #: Endpoint to the handler that creates a new user account.
+    signup_endpoint = 'users/signup'
+
     #: Endpoint to the handler that logs in the user.
     login_endpoint = 'users/login'
 
     #: Endpoint to the handler that logs out the user.
     logout_endpoint = 'users/logout'
-
-    #: Endpoint to the handler that creates a new user account.
-    signup_endpoint = 'users/signup'
 
     @cached_property
     def user_model(self):
@@ -59,6 +59,17 @@ class BaseAuth(object):
         """
         return (self.use_password and not self.external_password)
 
+    def create_signup_url(self, dest_url):
+        """Returns the signup URL for this request and specified destination URL.
+
+        :param dest_url:
+            String that is the desired final destination URL for the user once
+            signup is complete.
+        :return:
+            An URL to perform signup.
+        """
+        return url_for(self.signup_endpoint, redirect=dest_url, full=True)
+
     def create_login_url(self, dest_url):
         """Returns the login URL for this request and specified destination URL.
 
@@ -68,7 +79,7 @@ class BaseAuth(object):
         :return:
             An URL to perform login.
         """
-        raise NotImplementedError()
+        return url_for(self.login_endpoint, redirect=dest_url, full=True)
 
     def create_logout_url(self, dest_url):
         """Returns the logout URL for this request and specified destination
@@ -80,7 +91,7 @@ class BaseAuth(object):
         :return:
             An URL to perform logout.
         """
-        raise NotImplementedError()
+        return url_for(self.logout_endpoint, redirect=dest_url, full=True)
 
     def get_current_user(self):
         """Returns the currently logged in user or ``None``.

@@ -55,8 +55,8 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
 #:   - ``server_name``: A server name hint, used to calculate current subdomain.
 #:     If you plan to use dynamic subdomains, you must define the main domain
 #:     here so that the subdomain can be extracted and applied to URL rules..
-#:   - ``subdomain``: The default subdomain used to build URLs when subdomains
-#:     are in use and one is not provided.
+#:   - ``subdomain``: Force this subdomain to be used instead of extracting
+#:     the subdomain from the current url.
 default_config = {
     'dev': environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
     'app_id': environ.get('APPLICATION_ID', None),

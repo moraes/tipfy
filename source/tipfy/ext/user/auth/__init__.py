@@ -10,7 +10,7 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from tipfy import local, redirect_to, get_config, import_string, \
+from tipfy import local, redirect_to, get_config, url_for, import_string, \
     cached_property, app, request
 
 

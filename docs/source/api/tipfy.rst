@@ -40,16 +40,21 @@ Setting up an extension is simple: in the application configuration, under the
 module `tipfy`, you define which extensions you want to enable. For example,
 to enable the debugger and internationalization::
 
+**config.py**
+
 .. code-block:: python
 
    config = {
        'tipfy': {
+           # Application hooks enables other modules to plug into the
+           # application. Here we enable debugger and internalization setup.
            'extensions': [
                'tipfy.ext.debugger',
                'tipfy.ext.i18n',
-           ],
+            ],
        },
    }
+
 
 When the app is initialized, all configured extension modules are loaded and
 a ``setup()`` function is executed. You can create your own extensions and just

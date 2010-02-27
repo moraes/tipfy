@@ -25,6 +25,7 @@ display a 'Hello, World!' message, like this:
            response.data = 'Hello, World!'
            return response
 
+
 Here we extend the base class ``RequestHandler`` and add a method ``get`` to be
 executed on ``GET`` requests. Then we set the response data to display our
 Hello, World! message, and return the response. The key points are:
@@ -62,6 +63,7 @@ To execute our ``HelloWorldHandler``, we define a rule in ``urls.py``:
            Rule('/', endpoint='home', handler='hello:HelloWorldHandler'),
        ]
 
+
 A list of ``tipfy.Rule`` is defined in this file and returned by
 ``get_rules()``. The key points are:
 
@@ -93,6 +95,7 @@ Jinja2 template instead of setting a raw response. First, define a
 
    {{ message }}
 
+
 This template only outputs a message variable, as you see. Now let's redefine
 our ``HelloWorldHandler``:
 
@@ -107,6 +110,7 @@ our ``HelloWorldHandler``:
        def get(self, **kwargs):
            context = {'message': 'Hello, World!'}
            return render_response('hello.html', **context)
+
 
 That's it. ``render_response()`` will render a Jinja2 template and fill a
 response object, which is exactly what we need to return. You could also use
@@ -138,8 +142,10 @@ example:
            context = {'message': 'Hello, World!'}
            return render_json_response(context)
 
+
 This will output a ``application/json`` response with the context dictionary
 encoded as ``JSON``.
+
 
 Hello, World!, take 4: The AJAX Revenge
 ---------------------------------------
@@ -161,6 +167,7 @@ response for ``AJAX`` requests. Here's how we can achieve this:
                return render_json_response(context)
            else:
                return render_response('hello.html', **context)
+
 
 We just need to check the ``is_xhr`` variable in the request object, which is
 ``True`` when the request is made through ``XMLHttpRequest``, aka ``AJAX``.

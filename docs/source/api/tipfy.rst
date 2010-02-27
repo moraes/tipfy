@@ -20,8 +20,8 @@ WSGI application and base request handler
    :members: dispatch
 
 
-Application hook system
------------------------
+Extensions
+----------
 `Tipfy`_ uses a lightweight hook system to allow the application to be extended.
 Several `Tipfy`_ extensions use these hooks to add extra features to the
 application. For example:
@@ -32,15 +32,37 @@ application. For example:
   - :mod:`tipfy.ext.session` loads session data and saves it at the end of
     the request.
 
-And so on. These hooks are optional. You only activate the ones you want to use.
-If a module requires a hook to be activated, it is documented in the module's
-API page, under the section `Application hooks`.
+And so on. These extensions are all optional. You only activate the ones you
+want to use. If an extension requires any setup, it is documented in the
+module's API page, under the section `Setup`.
 
+Setting up an extension is simple: in the application configuration, under the
+module `tipfy`, you define which extensions you want to enable. For example,
+to enable the debugger and internationalization::
+
+.. code-block:: python
+
+   config = {
+       'tipfy': {
+           'extensions': [
+               'tipfy.ext.debugger',
+               'tipfy.ext.i18n',
+           ],
+       },
+   }
+
+When the app is initialized, all configured extension modules are loaded and
+a ``setup()`` function is executed. You can create your own extensions and just
+add to your custom extension module to the configuration. The only requirement
+is that the module must have a ``setup()`` function.
+
+Hooks
+-----
 Custom extensions can make use of the hook system to plug functionality into
 the application. The defined events are the following:
 
   - ``pos_init_app``: called after the :class:`tipfy.WSGIApplication`
-    initializes. Receives the application as parameter.
+    initializes.
   - ``pre_run_app``: called before the :class:`tipfy.WSGIApplication` instance
     is executed, on each request.
   - ``pre_init_request``: called in the start of a new request.
@@ -48,23 +70,6 @@ the application. The defined events are the following:
   - ``pre_send_response``: called before the current response is returned by
     the :class:`tipfy.WSGIApplication`.
   - ``pre_handle_exception``: called before an exception is raised.
-
-These events are executed if the application is configured to run them. In the
-application configuration, under the module `tipfy`, you define which hooks
-should be executed for each event. The debugger for example is set when the
-``pre_run_app`` event occurs. To configure it, we add a hook for that event in
-``config.py``:
-
-.. code-block:: python
-
-   config = {
-       'tipfy': {
-           'hooks': {
-               'pre_run_app': ['tipfy.ext.debugger:set_debugger'],
-               # ...
-           },
-       },
-   }
 
 You can add many hooks to the same event; they will be executed in order.
 

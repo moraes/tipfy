@@ -11,9 +11,9 @@ Default configuration
 .. autodata:: default_config
 
 
-Application hooks
------------------
-.. autofunction:: set_messages
+Setup
+-----
+.. autofunction:: setup
 
 
 Messages container

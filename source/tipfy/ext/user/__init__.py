@@ -53,9 +53,7 @@ def setup():
 
 def load_user():
     """Loads the current user using the configured auth system."""
-    response = get_auth_system().load_user()
-    if response is not None:
-        return response
+    return get_auth_system().load_user()
 
 
 def get_auth_system():

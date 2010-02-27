@@ -45,8 +45,7 @@ _timezones = {}
 
 
 def setup():
-    """
-    Setup this extension.
+    """Setup this extension.
 
     This will set hooks to initialize and persist internationalization.
 
@@ -75,16 +74,11 @@ def setup():
 
 
 def set_requested_locale():
-    """
-    Application hook executed right before the handler is dispatched.
+    """Application hook executed right before the handler is dispatched.
 
     It reads the locale from a `lang` GET variable or from a cookie to set the
     current locale.
 
-    :param request:
-        A ``werkzeug.Request`` instance.
-    :param app:
-        A :class:`tipfy.WSGIApplication` instance.
     :return:
         ``None``.
     """
@@ -97,19 +91,14 @@ def set_requested_locale():
 
 
 def persist_requested_locale(response=None):
-    """
-    Application hook executed right before the response is returned by the WSGI
-    application.
+    """Application hook executed right before the response is returned by the
+    WSGI application.
 
     It saves the current locale in a cookie so that the same locale is used in
     subsequent requests.
 
-    :param request:
-        A ``werkzeug.Request`` instance.
     :param response:
         A ``werkzeug.Response`` instance.
-    :param app:
-        A :class:`tipfy.WSGIApplication` instance.
     :return:
         ``None``.
     """

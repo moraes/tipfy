@@ -14,26 +14,27 @@ Default configuration
 .. autodata:: default_config
 
 
-Application hooks
------------------
-.. autofunction:: set_datastore_session
-.. autofunction:: set_securecookie_session
+Setup
+-----
+.. autofunction:: tipfy.ext.session.datastore.setup
+.. autofunction:: tipfy.ext.session.securecookie.setup
 
 
 Classes
 -------
-.. autoclass:: DatastoreSessionMiddleware
-.. autoclass:: SecureCookieSessionMiddleware
+.. autoclass:: tipfy.ext.session.datastore.DatastoreSessionMiddleware
+.. autoclass:: tipfy.ext.session.securecookie.SecureCookieSessionMiddleware
 
 
 How to use sessions
 -------------------
-First, setup an application hook in ``config.py`` to initialize the session
-middleware. See in :func:`set_datastore_session` or
-:func:`set_securecookie_session` how to do this.
+First, add a session extension to ``config.py`` to initialize the session
+middleware. It can be ``tipfy.ext.session.datastore`` or
+``tipfy.ext.session.securecookie``.
 
-After the hook is set, session will be available on each request. You can
-import and use it like a dictionary. A simple example:
+After the extension is set, session will be available on each request. You can
+import the ``session`` variable from the extension module and use it like a
+dictionary. A simple example:
 
 **session_test.py**
 

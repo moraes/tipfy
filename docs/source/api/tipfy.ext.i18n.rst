@@ -15,11 +15,9 @@ Default configuration
 .. autodata:: default_config
 
 
-Application hooks
------------------
-.. autofunction:: set_app_hooks
-.. autofunction:: set_requested_locale
-.. autofunction:: persist_requested_locale
+Setup
+-----
+.. autofunction:: setup
 
 
 Translation functions

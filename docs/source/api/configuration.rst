@@ -63,9 +63,9 @@ cases making configuration entirely optional.
 
 Let's show an example on how to configure two modules, ``tipfy`` itself and our
 internationalization extension, ``tipfy.ext.i18n``. First, we **enable** the
-i18n extension in ``tipfy`` configuration adding a hook for it. Then we set the
-default locale to `pt_BR` and the default timezone to `America/Sao_Paulo`.
-Pretty easy, see:
+i18n extension in ``tipfy`` configuration adding it to the extensions list.
+Then we set the default locale to `pt_BR` and the default timezone to
+`America/Sao_Paulo`. Pretty easy, see:
 
 **config.py**
 
@@ -75,9 +75,9 @@ Pretty easy, see:
        'tipfy': {
            # Application hooks enables other modules to plug into the
            # application. Here we enable internalization setup.
-           'hooks': {
-               'pos_init_app': ['tipfy.ext.i18n:set_app_hooks'],
-            },
+           'extensions': [
+               'tipfy.ext.i18n',
+            ],
        },
        'tipfy.ext.i18n': {
            # Change default values from the internalization module.

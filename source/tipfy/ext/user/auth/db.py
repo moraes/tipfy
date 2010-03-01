@@ -83,30 +83,23 @@ class DbAuth(BaseAuth):
         :param password:
             Password.
         :param remember:
-            True if authentication should be persisted even if user leaves the
-            current session (the "remember me" feature).
+            ``True`` if authentication should be persisted even if user leaves
+            the current session (the "remember me" feature).
+        :return:
+            ``True`` if authentication was successful, ``False`` otherwise.
         """
         user = self.user_model.get_by_username(username)
-        if user:
-            valid = user.check_password(password)
-            if valid is True:
-                if remember is True:
-                    remember = '1'
-                else:
-                    remember = '0'
+        if user and user.check_password(password) is True:
+            local.user_session = SecureCookie(data={
+                'auth_id': user.auth_id,
+                'remember': str(int(remember)),
+            },
+            secret_key=get_config('tipfy.ext.session', 'secret_key'))
 
-                local.user_session = SecureCookie(
-                    data={
-                        'auth_id': user.auth_id,
-                        'remember': remember,
-                    },
-                    secret_key=get_config('tipfy.ext.session', 'secret_key'))
+            self.login()
+            return True
 
-                self.login()
-        else:
-            valid = False
-
-        return valid
+        return False
 
     def is_logged_in(self):
         """Returns ``True`` if the current user is logged in.
@@ -124,7 +117,7 @@ class DbAuth(BaseAuth):
         if getattr(local, 'user_session', None) is not None:
             # Set cookie to the past.
             self.set_cookie(-86400, -86400)
-            local.user_session = None
+            del local.user_session
 
     def set_cookie(self, session_expires, max_age):
         """Saves the authentication cookie."""

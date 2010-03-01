@@ -88,8 +88,8 @@ class BaseAuth(object):
 
     def logout(self):
         """Logs out the current user."""
-        local.user = None
-        local.user_auth = None
+        del local.user
+        del local.user_auth
 
     def authenticate_with_session(self):
         """Authenticates the current user using sessions."""

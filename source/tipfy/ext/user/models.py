@@ -33,11 +33,9 @@ class User(db.Model):
     password = db.StringProperty(required=False)
     #: Authentication identifier.
     #: google|google_user.user_id()
+    #: db|username
     #: openid|
-    #: oauth|
-    #: own|username
     auth_id = db.StringProperty(required=True)
-
     email = db.EmailProperty()
     is_admin = db.BooleanProperty(required=True, default=False)
 

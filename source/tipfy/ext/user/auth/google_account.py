@@ -65,3 +65,22 @@ class GoogleAuth(BaseAuth):
             ``False`` otherwise.
         """
         return (users.get_current_user() is not None)
+
+    def create_user(self, username, **kwargs):
+        """Saves a new user in the datastore for the currently logged in user,
+        and returns it. If the username already exists, returns ``None``.
+
+        :param username:
+            The unique username for this user.
+        :param kwargs:
+            Extra keyword arguments accepted by
+            :class:`tipfy.ext.user.models.User`.
+        :return:
+            The new :class:`tipfy.ext.user.models.User` entity, or ``None`` if
+            the username already exists.
+        """
+        kwargs = {
+            'email': users.get_current_user().email(),
+            'is_admin': users.is_current_user_admin(),
+        }
+        return super(GoogleAuth, self).create_user(username, **kwargs)

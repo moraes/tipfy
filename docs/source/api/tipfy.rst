@@ -46,8 +46,8 @@ to enable the debugger and internationalization::
 
    config = {
        'tipfy': {
-           # Application hooks enables other modules to plug into the
-           # application. Here we enable debugger and internalization setup.
+           # Extensions plug into the application.
+           # Here we enable debugger and internalization ones.
            'extensions': [
                'tipfy.ext.debugger',
                'tipfy.ext.i18n',

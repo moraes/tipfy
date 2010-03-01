@@ -28,9 +28,21 @@ Classes
 
 How to use sessions
 -------------------
-First, add a session extension to ``config.py`` to initialize the session
-middleware. It can be ``tipfy.ext.session.datastore`` or
-``tipfy.ext.session.securecookie``.
+First, add a session module to the list of extensions in ``config.py``. This
+will initialize the session middleware. It can be
+``tipfy.ext.session.datastore`` or ``tipfy.ext.session.securecookie``:
+
+**config.py**
+
+.. code-block:: python
+
+   config = {
+       'tipfy': {
+           'extensions': [
+               'tipfy.ext.session.securecookie',
+            ],
+       },
+   }
 
 After the extension is set, session will be available on each request. You can
 import the ``session`` variable from the extension module and use it like a

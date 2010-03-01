@@ -16,6 +16,8 @@ from tipfy.ext.user.auth import BaseAuth
 
 
 class GoogleAuth(BaseAuth):
+    """Google Account authentication adapter."""
+
     #: Used to identify the auth provider in user ids.
     auth_name = 'google'
 
@@ -23,7 +25,7 @@ class GoogleAuth(BaseAuth):
         """Returns an authenticated user loaded from session or ``None``.
 
         :return:
-            A tuple (user_id, nickname, email) if the user authenticated.
+            A tuple (auth_id, nickname, email) if the user authenticated.
             Otherwise, `None`.
         """
         user = users.get_current_user()

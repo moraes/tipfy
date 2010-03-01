@@ -1,6 +1,12 @@
-/**
- * Sphinx stylesheet -- default theme
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*
+ * nature.css_t
+ * ~~~~~~~~~~~~
+ *
+ * Sphinx stylesheet -- nature theme.
+ *
+ * :copyright: Copyright 2007-2010 by the Sphinx team, see AUTHORS.
+ * :license: BSD, see LICENSE for details.
+ *
  */
 
 @import url("basic.css");
@@ -16,7 +22,16 @@ body {
     padding: 0;
 }
 
-hr{
+div.documentwrapper {
+    float: left;
+    width: 100%;
+}
+
+div.bodywrapper {
+    margin: 0 0 0 230px;
+}
+
+hr {
     border: 1px solid #B1B4B6;
 }
 
@@ -28,7 +43,7 @@ div.body {
     background-color: #ffffff;
     color: #3E4349;
     padding: 0 30px 30px 30px;
-    font-size: 0.8em;
+    font-size: 0.9em;
 }
 
 div.footer {
@@ -49,7 +64,7 @@ div.related {
     line-height: 32px;
     color: #fff;
     text-shadow: 0px 1px 0 #444;
-    font-size: 0.80em;
+    font-size: 0.9em;
 }
 
 div.related a {
@@ -161,7 +176,6 @@ a.headerlink:hover {
 }
 
 div.body p, div.body dd, div.body li {
-    text-align: justify;
     line-height: 1.5em;
 }
 
@@ -170,7 +184,7 @@ div.admonition p.admonition-title + p {
 }
 
 div.highlight{
-    background-color: #E3E7EB;
+    background-color: white;
 }
 
 div.note {
@@ -205,19 +219,17 @@ pre {
     background-color: White;
     color: #222;
     line-height: 1.2em;
-    border: 1px solid #BED4EB;
-    font-size: 1.2em;
+    border: 1px solid #C6C9CB;
+    font-size: 1.1em;
     margin: 1.5em 0 1.5em 0;
     -webkit-box-shadow: 1px 1px 1px #d8d8d8;
     -moz-box-shadow: 1px 1px 1px #d8d8d8;
 }
-div.highlight pre {
-    background-color: #E3E7EB;
-}
+
 tt {
     background-color: #ecf0f3;
     color: #222;
-    padding: 1px 2px;
-    font-size: 1.2em;
+    /* padding: 1px 2px; */
+    font-size: 1.1em;
     font-family: monospace;
 }

@@ -15,6 +15,8 @@ from tipfy import local, redirect_to, get_config, url_for, import_string, \
 
 
 class BaseAuth(object):
+    """Base authentication adapter."""
+
     #: Used to identify the auth provider in user ids.
     auth_name = 'google'
 
@@ -30,7 +32,7 @@ class BaseAuth(object):
     #: For auth systems that are managing the email externally this
     #: attributes has to set to `True`.  In that case the user will
     #: be unable to change the email from the profile.  (True for
-    #: Google auth, possible OpenID support and more.)
+    #: Google auth, possibly OpenID and more.)
     external_email = True
 
     #: Like `external_email` but for the password
@@ -59,8 +61,57 @@ class BaseAuth(object):
         """
         return (self.use_password and not self.external_password)
 
+    def setup(self):
+        """Sets up this auth adapter. This is called when the user extension is
+        installed.
+        """
+        pass
+
+    def login(self):
+        """Authenticates the current user using sessions and loads the user
+        entity, if it is authenticated. This is called on each request.
+        """
+        local.user_auth = self.authenticate_with_session()
+        if local.user_auth is None:
+            local.user = None
+            return
+
+        user = self.user_model.get_by_auth_id(self.get_auth_id())
+        if user is None and app.rule.endpoint not in (self.signup_endpoint,
+            self.login_endpoint, self.logout_endpoint):
+            # User is logged in but User entity is not already created:
+            # redirect to the `users/signup` page.
+            redirect = local.request.args.get('redirect', request.url)
+            return redirect_to(self.signup_endpoint, redirect=redirect)
+
+        local.user = user
+
+    def logout(self):
+        """Logs out the current user."""
+        local.user = None
+        local.user_auth = None
+
+    def authenticate_with_session(self):
+        """Authenticates the current user using sessions."""
+        raise NotImplementedError()
+
+    def authenticate_with_form(self, username, password, remember=False):
+        """Authenticates the current user using data from a form.
+
+        :param username:
+            Username.
+        :param password:
+            Password.
+        :param remember:
+            True if authentication should be persisted even if user leaves the
+            current session (the "remember me" feature).
+        """
+        raise NotImplementedError()
+
     def create_signup_url(self, dest_url):
-        """Returns the signup URL for this request and specified destination URL.
+        """Returns the signup URL for this request and specified destination
+        URL. By default returns the URL for the endpoint
+        :attr:`signup_endpoint`.
 
         :param dest_url:
             String that is the desired final destination URL for the user once
@@ -72,6 +123,7 @@ class BaseAuth(object):
 
     def create_login_url(self, dest_url):
         """Returns the login URL for this request and specified destination URL.
+         By default returns the URL for the endpoint :attr:`login_endpoint`.
 
         :param dest_url:
             String that is the desired final destination URL for the user once
@@ -83,7 +135,8 @@ class BaseAuth(object):
 
     def create_logout_url(self, dest_url):
         """Returns the logout URL for this request and specified destination
-        URL.
+        URL. By default returns the URL for the endpoint
+        :attr:`logout_endpoint`.
 
         :param dest_url:
             String that is the desired final destination URL for the user once
@@ -94,7 +147,7 @@ class BaseAuth(object):
         return url_for(self.logout_endpoint, redirect=dest_url, full=True)
 
     def get_current_user(self):
-        """Returns the currently logged in user or ``None``.
+        """Returns the currently logged in user entity or ``None``.
 
         :return:
             A :class:`User` entity, if the user for the current request is
@@ -123,15 +176,9 @@ class BaseAuth(object):
         """
         raise NotImplementedError()
 
-    def authenticate_with_session(self, request):
-        raise NotImplementedError()
-
-    def authenticate_with_form(self, username, password, remember=False):
-        raise NotImplementedError()
-
-    def get_user_id(self):
-        """Returns the user id used by this authentication system The user id
-        is in the format `auth_name|auth_unique_id`.
+    def get_auth_id(self):
+        """Returns the id used by this authentication system, in the format
+        `auth_name|auth_unique_id`.
 
         :return:
             An user id.
@@ -139,22 +186,7 @@ class BaseAuth(object):
         if local.user_auth is None:
             return None
 
-        return '%s|%s' % (self.auth_name, local.user_auth[0])
-
-    def load_user(self):
-        local.user_auth = self.authenticate_with_session(request)
-        if local.user_auth is None:
-            local.user = None
-            return
-
-        user = self.user_model.get_by_user_id(self.get_user_id())
-        if user is None and app.rule.endpoint != self.signup_endpoint:
-            # User is logged in but User entity is not already created:
-            # redirect to the `users/signup` page.
-            redirect = local.request.args.get('redirect', request.url)
-            return redirect_to(self.signup_endpoint, redirect=redirect)
-
-        local.user = user
+        return local.user_auth[0]
 
     def create_user(self, username, **kwargs):
         """Saves a new user in the datastore for the currently logged in user,
@@ -169,5 +201,5 @@ class BaseAuth(object):
             The new :class:`tipfy.ext.user.models.User` entity, or ``None`` if
             the username already exists.
         """
-        return self.user_model.create(username, user_id=self.get_user_id(),
-            **kwargs)
+        auth_id = '%s|%s' % (self.auth_name, username)
+        return self.user_model.create(username, auth_id=auth_id, **kwargs)

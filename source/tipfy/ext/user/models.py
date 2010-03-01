@@ -36,7 +36,7 @@ class User(db.Model):
     #: openid|
     #: oauth|
     #: own|username
-    user_id = db.StringProperty(required=True)
+    auth_id = db.StringProperty(required=True)
 
     email = db.EmailProperty()
     is_admin = db.BooleanProperty(required=True, default=False)
@@ -50,8 +50,8 @@ class User(db.Model):
         return cls.get_by_key_name(cls.get_key_name(username))
 
     @classmethod
-    def get_by_user_id(cls, user_id):
-        return cls.all().filter('user_id =', user_id).get()
+    def get_by_auth_id(cls, auth_id):
+        return cls.all().filter('auth_id =', auth_id).get()
 
     @classmethod
     def create(cls, username, **kwargs):

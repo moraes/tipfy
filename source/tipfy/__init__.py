@@ -121,9 +121,6 @@ class WSGIApplication(object):
         for module in self.config.get(__name__, 'extensions', []):
             import_string(module + ':setup')()
 
-        # Apply app middlewares.
-        self.hooks.call('pos_init_app')
-
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         # Pre initialize request hook.

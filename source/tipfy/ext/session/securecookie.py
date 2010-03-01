@@ -19,7 +19,7 @@ from werkzeug.contrib.sessions import SessionStore
 from tipfy import local, app, get_config
 
 # Let other modules initialize sessions.
-is_session_set = False
+is_ext_set = False
 # The module name from where we get configuration values.
 EXT = 'tipfy.ext.session'
 
@@ -48,19 +48,22 @@ def setup():
     :return:
         ``None``.
     """
-    global is_session_set
-    if is_session_set is False:
+    global is_ext_set
+    if is_ext_set is False:
         middleware = SecureCookieSessionMiddleware()
         app.hooks.add('pre_dispatch_handler', middleware.load_session)
         app.hooks.add('pre_send_response', middleware.save_session)
-        is_session_set = True
+        is_ext_set = True
 
 
 class SecureCookieSessionMiddleware(object):
     """Enables sessions using secure cookies."""
-    def __init__(self):
-        self.session_store = SecureCookieSessionStore(get_config(EXT,
-            'cookie_name'))
+    def __init__(self, cookie_name=None):
+        if cookie_name is None:
+            cookie_name = get_config(EXT, 'cookie_name')
+
+        expires = get_config(EXT, 'expiration')
+        self.session_store = SecureCookieSessionStore(cookie_name, expires)
 
     def load_session(self):
         local.session_store = self.session_store
@@ -75,21 +78,29 @@ class SecureCookieSessionMiddleware(object):
 
 class SecureCookieSessionStore(SessionStore):
     """A session store class that stores data in secure cookies."""
-    def __init__(self, cookie_name, expires=None):
+    def __init__(self, cookie_name, session_expires=None, max_age=None,
+        path='/', domain=None, secure=None, httponly=False, force=False):
         self.cookie_name = cookie_name
+        self.session_expires = session_expires
+        self.max_age = max_age
+        self.path = path
+        self.domain = domain
+        self.secure = secure
+        self.httponly = httponly
+        self.force = force
         self.secret_key = get_config(EXT, 'secret_key')
-        self.expires = expires or get_config(EXT, 'expiration')
 
     def new(self):
         return self.get(None)
 
-    def get(self, sid):
-        return SecureCookie.load_cookie(local.request, key=self.cookie_name,
+    def get(self, sid=None):
+        key = sid or self.cookie_name
+        return SecureCookie.load_cookie(local.request, key=key,
             secret_key=self.secret_key)
 
     def save(self, session):
-        session.save_cookie(local.response, key=self.cookie_name, expires=
-            datetime.now() + timedelta(seconds=self.expires))
+        session.save_cookie(local.response, key=self.cookie_name,
+            max_age=self.max_age)
 
     def delete(self, session):
         for key in session.keys():

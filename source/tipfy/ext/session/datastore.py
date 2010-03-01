@@ -24,7 +24,7 @@ from tipfy.ext.db import get_entity_from_protobuf, get_protobuf_from_entity, \
     retry_on_timeout, PickleProperty
 
 # Let other modules initialize sessions.
-is_session_set = False
+is_ext_set = False
 # The module name from where we get configuration values.
 EXT = 'tipfy.ext.session'
 
@@ -53,12 +53,12 @@ def setup():
     :return:
         ``None``.
     """
-    global is_session_set
-    if is_session_set is False:
+    global is_ext_set
+    if is_ext_set is False:
         middleware = DatastoreSessionMiddleware()
         app.hooks.add('pre_dispatch_handler', middleware.load_session)
         app.hooks.add('pre_send_response', middleware.save_session)
-        is_session_set = True
+        is_ext_set = True
 
 
 class DatastoreSessionMiddleware(object):

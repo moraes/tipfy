@@ -683,7 +683,7 @@ def get_config(module, key, default=_DEFAULT_CONFIG):
             if value == _DEFAULT_CONFIG:
                 # Key is not set.
                 raise BadValueError("Config key %s is not set in "
-                    "%s.default_config" % (key, module))
+                    "%s.default_config." % (key, module))
 
     return value
 

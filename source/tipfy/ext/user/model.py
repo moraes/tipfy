@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.user.models
-    ~~~~~~~~~~~~~~~~~~~~~
+    tipfy.ext.user.model
+    ~~~~~~~~~~~~~~~~~~~~
 
     Base model for authenticated users.
 
@@ -37,11 +37,11 @@ class User(db.Model):
     #: User email
     email = db.EmailProperty()
     #: Authentication identifier.
-    #: google|google_user.user_id()
-    #: db|username
+    #: own|username
+    #: gae|google_user.user_id()
     #: openid|identifier
     auth_id = db.StringProperty(required=True)
-    # Cookie token for improved security.
+    # Cookie token, renewed periodically for improved security.
     auth_token = db.StringProperty(required=True)
     # Cookie token last renewal date.
     auth_token_date = db.DateTimeProperty(auto_now_add=True)

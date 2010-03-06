@@ -21,7 +21,7 @@ from tipfy.ext.session import get_secure_cookie, set_secure_cookie
 #:     is ``tipfy.ext.user.AppEngineAuth`` (uses App Engine's built in users
 #:     system to login).
 #:   - ``user_model``: A subclass of ``db.Model`` used for authenticated users,.
-#:     as a string. Default is ``tipfy.ext.user.models:User``.
+#:     as a string. Default is ``tipfy.ext.user.model:User``.
 #:   - ``cookie_max_age``: Time in seconds before the authentication cookie
 #:     data is invalidated. Both persistent and non-persitent authentications
 #:     are affected by this setting - the difference is that non-persitent
@@ -42,7 +42,7 @@ from tipfy.ext.session import get_secure_cookie, set_secure_cookie
 #:     is automatically renewed. Default is 1 week.
 default_config = {
     'auth_system': None,
-    'user_model': 'tipfy.ext.user.models:User',
+    'user_model': 'tipfy.ext.user.model:User',
     'cookie_max_age': 86400 * 7,
     'cookie_key': 'tipfy.ext.user',
     'cookie_domain': None,
@@ -62,7 +62,7 @@ def setup(app):
     """Setup this extension.
 
     This will authenticate users and load the related
-    :class:`tipfy.ext.user.models.User` entity from datastore. It will ask
+    :class:`tipfy.ext.user.model.User` entity from datastore. It will ask
     users to create an account if they are not created yet.
 
     To enable it, add this module to the list of extensions in ``config.py``:
@@ -230,9 +230,9 @@ class BaseAuth(object):
             The unique username for this user.
         :param kwargs:
             Extra keyword arguments accepted by
-            :class:`tipfy.ext.user.models.User`.
+            :class:`tipfy.ext.user.model.User`.
         :return:
-            The new :class:`tipfy.ext.user.models.User` entity, or ``None`` if
+            The new :class:`tipfy.ext.user.model.User` entity, or ``None`` if
             the username already exists.
         """
         res = self.user_model.create(username, auth_id, **kwargs)

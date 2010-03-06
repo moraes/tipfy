@@ -24,7 +24,7 @@ from babel.dates import format_date as _format_date, \
     format_datetime as _format_datetime, format_time as _format_time
 from pytz.gae import pytz
 
-from tipfy import local, get_config, app, request
+from tipfy import local, get_config
 
 #: Default configuration values for this module. Keys are:
 #:   - ``locale``: The default locale code. Default is `en_US`.
@@ -44,7 +44,7 @@ _translations = {}
 _timezones = {}
 
 
-def setup():
+def setup(app):
     """Setup this extension.
 
     This will set hooks to initialize and persist internationalization.
@@ -73,7 +73,7 @@ def setup():
     app.hooks.add('pre_send_response', persist_requested_locale, 0)
 
 
-def set_requested_locale():
+def set_requested_locale(app, request):
     """Application hook executed right before the handler is dispatched.
 
     It reads the locale from a `lang` GET variable or from a cookie to set the
@@ -90,7 +90,7 @@ def set_requested_locale():
     set_locale(locale)
 
 
-def persist_requested_locale(response=None):
+def persist_requested_locale(app, request, response):
     """Application hook executed right before the response is returned by the
     WSGI application.
 
@@ -106,8 +106,6 @@ def persist_requested_locale(response=None):
         # Persist locale using a cookie when it differs from default.
         response.set_cookie('tipfy.locale', value=local.locale,
             max_age=(86400 * 30))
-
-    return response
 
 
 def set_locale(locale):

@@ -12,7 +12,7 @@
 from base64 import b64encode, b64decode
 from django.utils import simplejson
 
-from tipfy import local, app, get_config
+from tipfy import local, get_config
 from tipfy.ext.i18n import _
 
 #: Default configuration values for this module. Keys are:
@@ -27,7 +27,7 @@ local.messages = None
 messages = local('messages')
 
 
-def setup():
+def setup(app):
     """
     Setup this extension.
 
@@ -52,7 +52,7 @@ def setup():
     app.hooks.add('pre_dispatch_handler', set_messages)
 
 
-def set_messages():
+def set_messages(app, request):
     """Initializes the messages container.
 
     :return:

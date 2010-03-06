@@ -137,10 +137,11 @@ class BaseAuth(object):
             True if authentication should be persisted even if user leaves the
             current session (the "remember me" feature).
         :return:
-            `None`.
+            `True` if login was succesfull, `False` otherwise.
         """
         local.user = None
         local.user_session = None
+        return False
 
     def login_with_external_data(self, data, remember=False):
         """Authenticates using data provided by an external service, such as
@@ -286,6 +287,7 @@ class MultiAuth(BaseAuth):
     def login_with_form(self, username, password, remember=False):
         local.user = None
         local.user_session = None
+        res = False
 
         user = self.user_model.get_by_username(username)
         if user is not None and user.check_password(password) is True:
@@ -295,6 +297,9 @@ class MultiAuth(BaseAuth):
                 'token': user.auth_token,
                 'remember': str(int(remember)),
             })
+            res = True
+
+        return res
 
     def login_with_external_data(self, data, remember=False):
         local.user = None

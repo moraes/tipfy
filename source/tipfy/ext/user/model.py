@@ -93,7 +93,7 @@ class User(db.Model):
         return True
 
     def check_token(self, token):
-        if self.token != token:
+        if self.auth_token != token:
             return False
 
         self._renew_token()

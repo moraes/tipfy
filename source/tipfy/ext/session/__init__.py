@@ -55,17 +55,19 @@ def get_secure_cookie(key=None, data=None):
     secret_key = get_config(__name__, 'secret_key')
 
     if key is None:
-        return SecureCookie(data=data, secret_key=secret_key)
+        cookie = SecureCookie(data=data, secret_key=secret_key)
     else:
         cookie = SecureCookie.load_cookie(local.request, key=key, secret_key=
             secret_key)
 
         if data is not None:
             cookie.update(data)
-            # Always force it to save when data is passed.
-            cookie.modified = True
 
-        return cookie
+    if data is not None:
+        # Always force it to save when data is passed.
+        cookie.modified = True
+
+    return cookie
 
 
 def set_secure_cookie(key, data=None, cookie=None, **kwargs):

@@ -19,7 +19,9 @@ from tipfy.ext.session import get_secure_cookie, set_secure_cookie
 #: Default configuration values for this module. Keys are:
 #:   - ``auth_system``: The default authentication class, as a string. Default
 #:     is ``tipfy.ext.user.AppEngineAuth`` (uses App Engine's built in users
-#:     system to login).
+#:     system to login). To use own authentication or authentication with
+#:     OpenId, OAuth, Google Accounts, Twitter, FriendFeed or Facebook (one,
+#:     all or a mix of these), set it to ``tipfy.ext.user.MultiAuth``.
 #:   - ``user_model``: A subclass of ``db.Model`` used for authenticated users,.
 #:     as a string. Default is ``tipfy.ext.user.model:User``.
 #:   - ``cookie_max_age``: Time in seconds before the authentication cookie
@@ -261,7 +263,7 @@ class MultiAuth(BaseAuth):
         session = get_secure_cookie(key=get_config(__name__, 'cookie_key'))
 
         # Check if we are in the middle of external auth and account creation.
-        if 'to_signup' in session:
+        if session.get('to_signup'):
             # Redirect to account creation page.
             if not _is_auth_endpoint('signup_endpoint'):
                 raise RequestRedirect(create_signup_url(request.url))
@@ -320,9 +322,8 @@ class MultiAuth(BaseAuth):
     def logout(self):
         local.user = None
         if local.user_session is not None:
-            for k in local.user_session.keys():
-                del local.user_session[k]
-
+            # Clear session and set a flag to delete the cookie.
+            local.user_session.clear()
             local.user_session['to_delete'] = True
 
     def save_session(self, app, request, response):

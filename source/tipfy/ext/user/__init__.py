@@ -372,7 +372,7 @@ class AppEngineAuth(BaseAuth):
         if current_user is None:
             return
 
-        local.user = self.user_model.get_by_auth_id('google|%s' %
+        local.user = self.user_model.get_by_auth_id('gae|%s' %
             current_user.user_id())
 
         if local.user is None and not _is_auth_endpoint('signup_endpoint'):

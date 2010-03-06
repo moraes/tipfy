@@ -75,9 +75,7 @@ class User(db.Model):
             kwargs['password'] = gen_pwhash(kwargs['password'])
 
         def txn():
-            user_1 = cls.get_by_username(username)
-            user_2 = cls.get_by_auth_id(auth_id)
-            if user_1 or user_2:
+            if cls.get_by_username(username) is not None:
                 # Username already exists.
                 return None
 

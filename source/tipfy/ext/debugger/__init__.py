@@ -8,8 +8,6 @@
     :copyright: Copyright 2008 by Armin Ronacher.
     :license: BSD.
 """
-from tipfy import app
-
 # Apply patches to make the debugger fully work on development server.
 import tipfy.ext.debugger.patch
 
@@ -17,7 +15,7 @@ import tipfy.ext.debugger.patch
 _debugged_app = None
 
 
-def setup():
+def setup(app):
     """
     Setup this extension. It wraps the application by Werkzeug's debugger.
 
@@ -41,7 +39,7 @@ def setup():
         app.hooks.add('pre_run_app', set_debugger)
 
 
-def set_debugger(app=None):
+def set_debugger(app):
     global _debugged_app
 
     # Wrap app with the debugger.

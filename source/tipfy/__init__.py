@@ -35,6 +35,9 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
     'trace'])
 
 #: Default configuration values for this module. Keys are:
+#:   - ``sitename``: Name of the site, used by default in some places. Default
+#:   set to `MyApp`.
+#:   - ``admin_email``: Administrator e-mail. Default to `None`.
 #:   - ``dev``: ``True`` is this is the development server, ``False`` otherwise.
 #:     Default is the value of ``os.environ['SERVER_SOFTWARE']``.
 #:   - ``app_id``: The application id. Default is the value of
@@ -58,6 +61,8 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
 #:   - ``subdomain``: Force this subdomain to be used instead of extracting
 #:     the subdomain from the current url.
 default_config = {
+    'sitename': 'MyApp',
+    'admin_email': None,
     'dev': environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
     'app_id': environ.get('APPLICATION_ID', None),
     'version_id': environ.get('CURRENT_VERSION_ID', '1'),
@@ -74,8 +79,23 @@ default_config = {
 
 class RequestHandler(object):
     """Base request handler. Only implements the minimal interface required by
-    :class:`WSGIApplication`: the :meth:`dispatch` method.
+    :class:`WSGIApplication`:.
     """
+    def __init__(self, app, request, response):
+        """Initializes a request handler, making the WSGI app, request and
+        response objects available.
+
+        :param app:
+            The :class:`WSGIApplication` instance that initialized this handler.
+        :param request:
+            A `werkzeug.Request` object for this request.
+        :return:
+            A `werkzeug.Response` object for this request.
+        """
+        self.app = app
+        self.request = request
+        self.response = response
+
     def dispatch(self, action, *args, **kwargs):
         """Executes a handler method. This method is called by the
         WSGIApplication and must always return a response object.
@@ -119,27 +139,32 @@ class WSGIApplication(object):
 
         # Setup extensions.
         for module in self.config.get(__name__, 'extensions', []):
-            import_string(module + ':setup')()
+            import_string(module + ':setup')(self)
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
-        # Pre initialize request hook.
-        self.hooks.call('pre_init_request')
+        # Pre request hook.
+        for request in self.hooks.iter('pre_init_request', self, environ):
+            if request is not None:
+                break
+        else:
+            request = Request(environ)
 
-        # Set local variables for the request.
+        # Set local variables for a single request.
         local.app = self
-        local.request = Request(environ)
+        local.request = request
         local.response = Response()
 
         # Bind url map to the current request location.
         self.url_adapter = self.url_map.bind_to_environ(environ,
             server_name=self.config.get(__name__, 'server_name', None),
             subdomain=self.config.get(__name__, 'subdomain', None))
+
         self.rule = self.rule_args = self.handler_class = None
 
         try:
             # Check requested method.
-            method = local.request.method.lower()
+            method = request.method.lower()
             if method not in ALLOWED_METHODS:
                 raise MethodNotAllowed()
 
@@ -156,25 +181,28 @@ class WSGIApplication(object):
             self.handler_class = self.handlers[self.rule.handler]
 
             # Apply pre-dispatch middlewares.
-            for response in self.hooks.iter('pre_dispatch_handler'):
+            for response in self.hooks.iter('pre_dispatch_handler', self,
+                request):
                 if response is not None:
                     break
             else:
-                # Instantiate handler and dispatch, passing method and rule
-                # arguments.
-                response = self.handler_class().dispatch(method,
-                    **self.rule_args)
+                # Instantiate handler and dispatch request method.
+                handler = self.handler_class(self, request, local.response)
+                response = handler.dispatch(method, **self.rule_args)
 
         except RequestRedirect, e:
-            # Execute redirects set by the routing system.
+            # Execute redirects raised by the routing system or the application.
             response = e
         except Exception, e:
             # Handle http and uncaught exceptions. This will apply exception
             # middlewares if they are set.
-            response = handle_exception(self, e)
+            response = handle_exception(self, request, e)
 
         # Apply response middlewares.
-        self.hooks.call('pre_send_response', response=response)
+        for r in self.hooks.iter('pre_send_response', self, request, response):
+            if r is not None:
+                response = r
+                break
 
         # Call the response object as a WSGI application.
         return response(environ, start_response)
@@ -497,7 +525,7 @@ def run_wsgi_app(app):
         fix_sys_path()
 
     # Apply pre-run middlewares.
-    for res in app.hooks.iter('pre_run_app', app=app):
+    for res in app.hooks.iter('pre_run_app', app):
         if res is not None:
             app = res
 
@@ -505,7 +533,7 @@ def run_wsgi_app(app):
     PatchedCGIHandler().run(local_manager.make_middleware(app))
 
 
-def handle_exception(app, e):
+def handle_exception(app, request, e):
     """Handles HTTPException or uncaught exceptions raised by the WSGI
     application, optionally applying exception middlewares.
 
@@ -516,7 +544,7 @@ def handle_exception(app, e):
     :return:
         A ``werkzeug.Response`` object, if the exception is not raised.
     """
-    for response in app.hooks.call('pre_handle_exception', exception=e):
+    for response in app.hooks.call('pre_handle_exception', app, request, e):
         if response:
             return response
 
@@ -562,7 +590,10 @@ def redirect(location, code=302):
     :return:
         A ``werkzeug.Response`` object with headers set for redirection.
     """
-    response = local.response
+    response = getattr(local, 'response', None)
+    if response is None:
+        response = Response()
+
     assert code in (301, 302, 303, 305, 307), 'invalid code'
     response.data = \
         '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n' \
@@ -605,17 +636,25 @@ def render_json_response(obj):
         A ``werkzeug.Response`` object with `obj` converted to JSON in the body
         and mimetype set to ``application/json``.
     """
+    response = getattr(local, 'response', None)
+    if response is None:
+        response = Response()
+
     from django.utils import simplejson
-    local.response.data = simplejson.dumps(obj)
-    local.response.mimetype = 'application/json'
-    return local.response
+    response.data = simplejson.dumps(obj)
+    response.mimetype = 'application/json'
+    return response
 
 
-def get_config(module, key, default=None):
+_DEFAULT_CONFIG = []
+def get_config(module, key, default=_DEFAULT_CONFIG):
     """Returns a configuration value for a module. If it is not already set,
     it will load a ``default_config`` variable from the given module, update the
     app config with those default values and return the value for the given key.
     If the key is still not available, it'll return the given default value.
+
+    If a default value is not provided, the configuration is considered
+    required and an exception is raised if it is not set.
 
     Every `Tipfy`_ module that allows some kind of configuration sets a
     ``default_config`` global variable that is loaded by this function, cached
@@ -630,16 +669,21 @@ def get_config(module, key, default=None):
     :return:
         A configuration value.
     """
-    value = local.app.config.get(module, key, None)
-    if value is None:
+    value = local.app.config.get(module, key, default)
+    if value == _DEFAULT_CONFIG:
         default_config = import_string(module + ':default_config', silent=True)
         if default_config is None:
-            # Module doesn't have a default_config variable; use default value.
-            value = default
+            # Module doesn't have a default_config variable.
+            raise BadValueError("Module %s doesn't have default_config: key "
+                "%s wasn't loaded." % (module, key))
         else:
             # Update app config and get requested key with fallback to default.
             local.app.config.setdefault(module, default_config)
             value = local.app.config.get(module, key, default)
+            if value == _DEFAULT_CONFIG:
+                # Key is not set.
+                raise BadValueError("Config key %s is not set in "
+                    "%s.default_config" % (key, module))
 
     return value
 

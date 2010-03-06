@@ -17,7 +17,7 @@ from tipfy import local, HTTPException, RequestRedirect
 
 class RequestAdapter(object):
     """Adapter to transform a `werkzeug.Request` object into a request with the
-    attributes expected by `tornado.auth`.
+    attributes expected by `gaema`.
 
     It must define at least the following attributes or functions:
 
@@ -40,11 +40,12 @@ class RequestAdapter(object):
 
 
 class AuthHandler(object):
-    """Base authentication class with common functions used by the mixin
+    """Base authentication handler with common functions used by `gaema` mixin
     classes.
     """
     def __init__(self, request, **kwargs):
-        """Depending on the auth used, provide the required configuration:
+        """Depending on the auth mixins used, provide these configurations as
+        keyword arguments:
 
         'google_consumer_key'
         'google_consumer_secret'

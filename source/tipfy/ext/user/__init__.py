@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 
 from google.appengine.api import users
 
-from tipfy import cached_property, get_config, Forbidden, redirect, \
-    RequestRedirect, local, import_string
+from tipfy import cached_property, get_config, Forbidden, import_string, \
+    local, redirect, RequestRedirect, url_for
 from tipfy.ext.session import get_secure_cookie, set_secure_cookie
 
 #: Default configuration values for this module. Keys are:
@@ -284,6 +284,7 @@ class MultiAuth(BaseAuth):
     def login_with_form(self, username, password, remember=False):
         local.user = None
         local.user_session = None
+
         user = self.user_model.get_by_username(username)
         if user is not None and user.check_password(password) is True:
             local.user = user
@@ -340,7 +341,7 @@ class MultiAuth(BaseAuth):
                     # Persistent authentication.
                     max_age = cookie_max_age
                 else:
-                    # Non-persistent authentication (only lasts for this session).
+                    # Non-persistent authentication (only lasts for a session).
                     max_age = None
 
                 session_expires = now + timedelta(seconds=cookie_max_age)

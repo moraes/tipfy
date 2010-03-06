@@ -8,12 +8,18 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from tipfy import import_string, get_config, app, request, redirect, \
-    Forbidden
+from datetime import datetime, timedelta
+
+from google.appengine.api import users
+
+from tipfy import cached_property, get_config, Forbidden, redirect, \
+    RequestRedirect, local, import_string
+from tipfy.ext.session import get_secure_cookie, set_secure_cookie
 
 #: Default configuration values for this module. Keys are:
 #:   - ``auth_system``: The default authentication class, as a string. Default
-#:     is ``tipfy.ext.user.auth.google:GoogleAuth``.
+#:     is ``tipfy.ext.user.AppEngineAuth`` (uses App Engine's built in users
+#:     system to login).
 #:   - ``user_model``: A subclass of ``db.Model`` used for authenticated users,.
 #:     as a string. Default is ``tipfy.ext.user.models:User``.
 #:   - ``cookie_max_age``: Time in seconds before the authentication cookie
@@ -32,25 +38,27 @@ from tipfy import import_string, get_config, app, request, redirect, \
 #:     Default is `/`.
 #:   - ``cookie_secure``: Make the cookie only available via HTTPS.
 #:   - ``cookie_httponly``: Disallow JavaScript to access the cookie.
+#:   - ``token_max_age``: Max age in seconds for a cookie token. After that it
+#:     is automatically renewed. Default is 1 week.
 default_config = {
-    'auth_system': 'tipfy.ext.user.auth.google_account:GoogleAuth',
-    'user_model':  'tipfy.ext.user.models:User',
-    # Cookie settings
+    'auth_system': None,
+    'user_model': 'tipfy.ext.user.models:User',
     'cookie_max_age': 86400 * 7,
     'cookie_key': 'tipfy.ext.user',
     'cookie_domain': None,
     'cookie_path': '/',
     'cookie_secure': None,
     'cookie_httponly': False,
+    'token_max_age': 86400 * 7,
 }
 
 #: Configured authentication system instance, cached in the module.
 _auth_system = None
 # Let other modules initialize user.
-is_ext_set = False
+_is_ext_set = False
 
 
-def setup():
+def setup(app):
     """Setup this extension.
 
     This will authenticate users and load the related
@@ -73,17 +81,311 @@ def setup():
     :return:
         ``None``.
     """
-    global is_ext_set
-    if is_ext_set is False:
-        auth_system = get_auth_system()
+    global _is_ext_set
 
-        # Setup specific auth stuff, if needed.
-        auth_system.setup()
+    if _is_ext_set is False:
+        # Setup configured authentication system.
+        get_auth_system().setup(app)
+        _is_ext_set = True
 
-        # Add hook to load user on each request.
-        app.hooks.add('pre_dispatch_handler', auth_system.login)
 
-        is_ext_set = True
+class BaseAuth(object):
+    """Base authentication adapter."""
+    #: Endpoint to the handler that creates a new user account.
+    signup_endpoint = 'users/signup'
+
+    #: Endpoint to the handler that logs in the user.
+    login_endpoint = 'users/login'
+
+    #: Endpoint to the handler that logs out the user.
+    logout_endpoint = 'users/logout'
+
+    @cached_property
+    def user_model(self):
+        """Returns the configured user model."""
+        return import_string(get_config(__name__, 'user_model'))
+
+    def setup(self, app):
+        """Sets up this auth adapter. This is called when the user extension is
+        installed.
+
+        :param app:
+            The WSGI Application instance.
+        :return:
+            `None`.
+        """
+
+    def login_with_session(self, app, request):
+        """Authenticates the current user using sessions.
+
+        :return:
+            `None`.
+        """
+        local.user = None
+        local.user_session = None
+
+    def login_with_form(self, username, password, remember=False):
+        """Authenticates the current user using data from a form.
+
+        :param username:
+            Username.
+        :param password:
+            Password.
+        :param remember:
+            True if authentication should be persisted even if user leaves the
+            current session (the "remember me" feature).
+        :return:
+            `None`.
+        """
+        local.user = None
+        local.user_session = None
+
+    def login_with_external_data(self, data, remember=False):
+        """Authenticates using data provided by an external service, such as
+        OpenId, OAuth (Google Account, Twitter, Friendfeed) or Facebook.
+        """
+        local.user = None
+        local.user_session = None
+
+    def logout(self):
+        """Logs out the current user."""
+        local.user = None
+        local.user_session = None
+
+    def get_current_user(self):
+        """Returns the currently logged in user entity or ``None``.
+
+        :return:
+            A :class:`User` entity, if the user for the current request is
+            logged in, or ``None``.
+        """
+        return local.user
+
+    def is_current_user_admin(self):
+        """Returns ``True`` if the current user is an admin.
+
+        :return:
+            ``True`` if the user for the current request is an admin, ``False``
+            otherwise.
+        """
+        if local.user is not None:
+            return local.user.is_admin()
+
+        return False
+
+    def create_signup_url(self, dest_url):
+        """Returns the signup URL for this request and specified destination
+        URL. By default returns the URL for the endpoint
+        :attr:`signup_endpoint`.
+
+        :param dest_url:
+            String that is the desired final destination URL for the user once
+            signup is complete.
+        :return:
+            An URL to perform signup.
+        """
+        return url_for(self.signup_endpoint, redirect=dest_url, full=True)
+
+    def create_login_url(self, dest_url):
+        """Returns the login URL for this request and specified destination URL.
+         By default returns the URL for the endpoint :attr:`login_endpoint`.
+
+        :param dest_url:
+            String that is the desired final destination URL for the user once
+            login is complete.
+        :return:
+            An URL to perform login.
+        """
+        return url_for(self.login_endpoint, redirect=dest_url, full=True)
+
+    def create_logout_url(self, dest_url):
+        """Returns the logout URL for this request and specified destination
+        URL. By default returns the URL for the endpoint
+        :attr:`logout_endpoint`.
+
+        :param dest_url:
+            String that is the desired final destination URL for the user once
+            logout is complete.
+        :return:
+            An URL to perform logout.
+        """
+        return url_for(self.logout_endpoint, redirect=dest_url, full=True)
+
+    def is_authenticated(self):
+        """Returns ``True`` if the current user is logged in.
+
+        :return:
+            ``True`` if the user for the current request is authenticated,
+            ``False`` otherwise.
+        """
+        # This is not really true but it is our best bet since 3rd party auth
+        # is handled elsewhere.
+        return (local.user is not None)
+
+    def create_user(self, username, auth_id, **kwargs):
+        """Saves a new user in the datastore for the currently logged in user,
+        and returns it. If the username already exists, returns ``None``.
+
+        :param username:
+            The unique username for this user.
+        :param kwargs:
+            Extra keyword arguments accepted by
+            :class:`tipfy.ext.user.models.User`.
+        :return:
+            The new :class:`tipfy.ext.user.models.User` entity, or ``None`` if
+            the username already exists.
+        """
+        res = self.user_model.create(username, auth_id, **kwargs)
+
+        if res is not None and local.user_session is not None and \
+            'to_signup' in local.user_session:
+            # Remove temporary data.
+            del local.user_session['to_signup']
+
+        return res
+
+
+class MultiAuth(BaseAuth):
+    """Authentication using own users or third party services such as OpenId,
+    OAuth (Google, Twitter, FriendFeed) and Facebook.
+    """
+    def setup(self, app):
+        app.hooks.add('pre_dispatch_handler', self.login_with_session)
+        app.hooks.add('pre_send_response', self.save_session)
+
+    def login_with_session(self, app, request):
+        local.user = None
+        local.user_session = None
+
+        # Get the authentication id and token.
+        session = get_secure_cookie(key=get_config(__name__, 'cookie_key'))
+
+        # Check if we are in the middle of external auth and account creation.
+        if 'to_signup' in session:
+            # Redirect to account creation page.
+            if not _is_auth_endpoint('signup_endpoint'):
+                raise RequestRedirect(create_signup_url(request.url))
+
+            local.user_session = session
+            return
+
+        auth_id = session.get('id', None)
+        auth_token = session.get('token', None)
+
+        if auth_id is not None:
+            user = self.user_model.get_by_auth_id(auth_id)
+            if user is not None and user.check_token(auth_token) is True:
+                # Reset token in case it was renewed by the model.
+                session['token'] = user.auth_token
+
+                local.user = user
+                local.user_session = session
+
+    def login_with_form(self, username, password, remember=False):
+        local.user = None
+        local.user_session = None
+        user = self.user_model.get_by_username(username)
+        if user is not None and user.check_password(password) is True:
+            local.user = user
+            local.user_session = get_secure_cookie(data={
+                'id': user.auth_id,
+                'token': user.auth_token,
+                'remember': str(int(remember)),
+            })
+
+    def login_with_external_data(self, data, remember=False):
+        local.user = None
+        local.user_session = None
+
+        auth_id = data.get('auth_id', None)
+        if auth_id is None:
+            return
+
+        user = self.user_model.get_by_auth_id(auth_id)
+        if user is not None:
+            local.user = user
+            local.user_session = get_secure_cookie(data={
+                'id': user.auth_id,
+                'token': user.auth_token,
+                'remember': str(int(remember)),
+            })
+        else:
+            # Save temporary data while the user haven't created an account.
+            local.user_session = get_secure_cookie(data={'to_signup': data})
+            # Redirect to account creation page.
+            if not _is_auth_endpoint('signup_endpoint'):
+                raise RequestRedirect(create_signup_url(local.request.url))
+
+    def logout(self):
+        local.user = None
+        if local.user_session is not None:
+            for k in local.user_session.keys():
+                del local.user_session[k]
+
+            local.user_session['to_delete'] = True
+
+    def save_session(self, app, request, response):
+        if local.user_session is not None:
+            now = datetime.now()
+            to_delete = local.user_session.get('to_delete', False)
+
+            if to_delete is True:
+                max_age = -86400
+                session_expires = now - timedelta(seconds=86400)
+            else:
+                remember = local.user_session.get('remember', None)
+                cookie_max_age = get_config(__name__, 'cookie_max_age')
+
+                if remember == '1':
+                    # Persistent authentication.
+                    max_age = cookie_max_age
+                else:
+                    # Non-persistent authentication (only lasts for this session).
+                    max_age = None
+
+                session_expires = now + timedelta(seconds=cookie_max_age)
+
+            # Set the cookie on each request, resetting the idle countdown.
+            set_secure_cookie(cookie=local.user_session,
+                max_age=max_age,
+                session_expires=session_expires,
+                key=get_config(__name__, 'cookie_key'),
+                domain=get_config(__name__, 'cookie_domain'),
+                path=get_config(__name__, 'cookie_path'),
+                secure=get_config(__name__, 'cookie_secure'),
+                httponly=get_config(__name__, 'cookie_httponly'),
+                force=True
+            )
+
+
+class AppEngineAuth(BaseAuth):
+    """Authentication using App Engine's users module."""
+    def setup(self, app):
+        app.hooks.add('pre_dispatch_handler', self.login_with_session)
+
+    def login_with_session(self, app, request):
+        local.user = None
+        local.user_session = None
+
+        current_user = users.get_current_user()
+        if current_user is None:
+            return
+
+        local.user = self.user_model.get_by_auth_id('google|%s' %
+            current_user.user_id())
+
+        if local.user is None and not _is_auth_endpoint('signup_endpoint'):
+            # User is logged in, but didn't create an account yet.
+            raise RequestRedirect(create_signup_url(request.url))
+
+    def create_login_url(self, dest_url):
+        return users.create_login_url(dest_url)
+
+    def create_logout_url(self, dest_url):
+        return users.create_logout_url(dest_url)
+
+    def is_authenticated(self):
+        return (users.get_current_user() is not None)
 
 
 def get_auth_system():
@@ -94,43 +396,47 @@ def get_auth_system():
     """
     global _auth_system
     if _auth_system is None:
-        _auth_system = import_string(get_config(__name__, 'auth_system'))()
+        cls = get_config(__name__, 'auth_system', None)
+        if cls is None:
+            _auth_system = AppEngineAuth()
+        else:
+            _auth_system = import_string(cls)()
 
     return _auth_system
 
 
 def create_signup_url(dest_url):
-    """Returns the signup URL for this request and specified destination URL.
+    """Returns a URL that, when visited, prompts the user to sign up.
 
-    :param dest_url:
-        String that is the desired final destination URL for the user once
-        signup is complete.
-    :return:
-        An URL to perform login.
+    Args:
+        dest_url: str: A full URL or relative path to redirect to after signing
+        up.
+    Returns:
+        str: A URL to perform sign up.
     """
     return get_auth_system().create_signup_url(dest_url)
 
 
 def create_login_url(dest_url):
-    """Returns the login URL for this request and specified destination URL.
+    """Returns a URL that, when visited, prompts the user to sign in.
 
-    :param dest_url:
-        String that is the desired final destination URL for the user once
-        login is complete.
-    :return:
-        An URL to perform login.
+    Args:
+        dest_url: str: A full URL or relative path to redirect to after logging
+        in.
+    Returns:
+        str: A URL to perform login.
     """
     return get_auth_system().create_login_url(dest_url)
 
 
 def create_logout_url(dest_url):
-    """Returns the logout URL for this request and specified destination URL.
+    """Returns a URL that, when visited, logs out the user.
 
-    :param dest_url:
-        String that is the desired final destination URL for the user once
-        logout is complete.
-    :return:
-        An URL to perform logout.
+    Args:
+        dest_url: str: A full URL or relative path to redirect to after logging
+        out.
+    Returns:
+        str: A URL to perform logout.
     """
     return get_auth_system().create_logout_url(dest_url)
 
@@ -156,20 +462,21 @@ def is_current_user_admin():
     return get_auth_system().is_current_user_admin()
 
 
-def is_logged_in():
+def is_authenticated():
     """Returns ``True`` if the user is logged in. It is possible that an user
-    is logged in and :func:`get_current_user()` is None: it happens when the
-    user authenticated but still didn't create an account.
+    is logged in and :func:`get_current_user()` is None if the user is
+    authenticated but still haven't created an account.
 
     :return:
-        ``True`` if the user for the current request is an admin, ``False``
+        ``True`` if the user for the current request is an logged in, ``False``
         otherwise.
     """
-    return get_auth_system().is_logged_in()
+    return get_auth_system().is_authenticated()
 
 
 def login_required(func):
-    """A handler decorator to require user authentication.
+    """A handler decorator to require user authentication. Normally
+    :func:`user_required` is used instead.
 
     :param func:
         The handler method to be decorated.
@@ -177,17 +484,18 @@ def login_required(func):
         The decorated method.
     """
     def decorated(*args, **kwargs):
-        if is_logged_in():
+        if is_authenticated() or _is_auth_endpoint('login_endpoint'):
             return func(*args, **kwargs)
 
         # Redirect to login page.
-        return redirect(create_login_url(request.url))
+        return redirect(create_login_url(local.request.url))
 
     return decorated
 
 
 def user_required(func):
-    """A handler decorator to require the current user to have an account.
+    """A handler decorator to require the current user to be authenticated and
+    to have an account saved in datastore.
 
     :param func:
         The handler method to be decorated.
@@ -195,15 +503,16 @@ def user_required(func):
         The decorated method.
     """
     def decorated(*args, **kwargs):
-        if get_current_user() is not None:
+        if get_current_user() or _is_auth_endpoint(('signup_endpoint',
+            'login_endpoint')):
             return func(*args, **kwargs)
 
-        if is_logged_in():
+        if is_authenticated():
             # Redirect to signup page.
-            return redirect(create_signup_url(request.url))
-
-        # Redirect to login page.
-        return redirect(create_login_url(request.url))
+            return redirect(create_signup_url(local.request.url))
+        else:
+            # Redirect to login page.
+            return redirect(create_login_url(local.request.url))
 
     return decorated
 
@@ -217,14 +526,53 @@ def admin_required(func):
         The decorated method.
     """
     def decorated(*args, **kwargs):
-        if is_current_user_admin():
+        if is_current_user_admin() or _is_auth_endpoint('login_endpoint'):
             return func(*args, **kwargs)
 
-        if not is_logged_in():
+        if not is_authenticated():
             # Redirect to signup page.
-            return redirect(create_login_url(request.url))
+            return redirect(create_login_url(local.request.url))
 
         # Nope, user isn't an admin.
         raise Forbidden()
 
     return decorated
+
+
+def basic_auth_required(validator):
+    """A decorator to authenticate using HTTP basic/digest authorization.
+    This only wraps a handler method by a validator function.
+
+    :param validator:
+        A validator function that accepts a
+        `werkzeug.datastructures.Authorization` to validate the request, plus
+        the wrapped handler method and arguments.
+    :return:
+        The decorated method.
+    """
+    def wrapper(func):
+        def decorated(*args, **kwargs):
+            return validator(local.request.authorization, func, *args, **kwargs)
+
+        return decorated
+
+    return wrapper
+
+
+def _is_auth_endpoint(endpoints):
+    """Helper function to check if the current url is the given auth endpoint.
+
+    :endpoint:
+        An endpoint name, as a string, or a tuple of endpoint names.
+    :return:
+        `True` if the current url is the given auth endpoint.
+    """
+    if isinstance(endpoints, str):
+        endpoints = (endpoints,)
+
+    auth_system = get_auth_system()
+    for e in endpoints:
+        if local.app.rule.endpoint == getattr(auth_system, e):
+            return True
+
+    return False

@@ -10,11 +10,14 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
+import datetime
 import string
 from random import choice
 from hashlib import sha1, md5
 
 from google.appengine.ext import db
+
+from tipfy import get_config
 
 SALT_CHARS = string.ascii_letters + string.digits
 
@@ -31,52 +34,83 @@ class User(db.Model):
     username = db.StringProperty(required=True)
     #: Password, only set for own authentication.
     password = db.StringProperty(required=False)
+    #: User email
+    email = db.EmailProperty()
     #: Authentication identifier.
     #: google|google_user.user_id()
     #: db|username
-    #: openid|
+    #: openid|identifier
     auth_id = db.StringProperty(required=True)
-    email = db.EmailProperty()
+    # Cookie token for improved security.
+    auth_token = db.StringProperty(required=True)
+    # Cookie token last renewal date.
+    auth_token_date = db.DateTimeProperty(auto_now_add=True)
+    # Admin flag.
     is_admin = db.BooleanProperty(required=True, default=False)
 
     @classmethod
-    def get_key_name(cls, username):
-        return username
-
-    @classmethod
     def get_by_username(cls, username):
-        return cls.get_by_key_name(cls.get_key_name(username))
+        return cls.get_by_key_name(username)
 
     @classmethod
     def get_by_auth_id(cls, auth_id):
         return cls.all().filter('auth_id =', auth_id).get()
 
     @classmethod
-    def create(cls, username, **kwargs):
+    def create(cls, username, auth_id, **kwargs):
         """Creates a new user and returns it. If the username already exists,
         returns None.
         """
-        key_name = cls.get_key_name(username)
+        kwargs['username'] = username
+        kwargs['key_name'] = username
+        kwargs['auth_id'] = auth_id
+        # Generate an auth token.
+        kwargs['auth_token'] = gen_salt(length=32)
 
         if 'password_hash' in kwargs:
+            # Password is already hashed.
             kwargs['password'] = kwargs.pop('password_hash')
         elif 'password' in kwargs:
+            # Password is not hashed: generate a hash.
             kwargs['password'] = gen_pwhash(kwargs['password'])
 
         def txn():
-            user = cls.get_by_key_name(key_name)
-            if user:
+            user_1 = cls.get_by_username(username)
+            user_2 = cls.get_by_auth_id(auth_id)
+            if user_1 or user_2:
                 # Username already exists.
                 return None
 
-            user = cls(key_name=key_name, username=username, **kwargs)
+            user = cls(**kwargs)
             user.put()
             return user
 
         return db.run_in_transaction(txn)
 
     def check_password(self, password):
-        return check_password(self.password, password)
+        if check_password(self.password, password) != True:
+            return False
+
+        self._renew_token()
+        return True
+
+    def check_token(self, token):
+        if self.token != token:
+            return False
+
+        self._renew_token()
+        return True
+
+    def _renew_token(self):
+        now = datetime.datetime.now()
+        expires = datetime.timedelta(seconds=get_config('tipfy.ext.user',
+            'token_max_age'))
+
+        if self.auth_token_date + expires < now:
+            # Renew the token if it is too old.
+            self.auth_token = gen_salt(length=32)
+            self.auth_token_date = now
+            self.put()
 
     def __unicode__(self):
         return unicode(self.username)

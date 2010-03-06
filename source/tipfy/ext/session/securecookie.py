@@ -16,15 +16,15 @@ from datetime import datetime, timedelta
 from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import SessionStore
 
-from tipfy import local, app, get_config
+from tipfy import local, get_config
 
 # Let other modules initialize sessions.
-is_ext_set = False
+_is_ext_set = False
 # The module name from where we get configuration values.
 EXT = 'tipfy.ext.session'
 
 
-def setup():
+def setup(app):
     """
     Setup this extension.
 
@@ -48,12 +48,12 @@ def setup():
     :return:
         ``None``.
     """
-    global is_ext_set
-    if is_ext_set is False:
+    global _is_ext_set
+    if _is_ext_set is False:
         middleware = SecureCookieSessionMiddleware()
         app.hooks.add('pre_dispatch_handler', middleware.load_session)
         app.hooks.add('pre_send_response', middleware.save_session)
-        is_ext_set = True
+        _is_ext_set = True
 
 
 class SecureCookieSessionMiddleware(object):
@@ -65,15 +65,13 @@ class SecureCookieSessionMiddleware(object):
         expires = get_config(EXT, 'expiration')
         self.session_store = SecureCookieSessionStore(cookie_name, expires)
 
-    def load_session(self):
+    def load_session(self, app, request):
         local.session_store = self.session_store
         local.session = self.session_store.get(None)
 
-    def save_session(self, request=None, response=None, app=None):
+    def save_session(self, app, request, response):
         if hasattr(local, 'session'):
             self.session_store.save_if_modified(local.session)
-
-        return response
 
 
 class SecureCookieSessionStore(SessionStore):

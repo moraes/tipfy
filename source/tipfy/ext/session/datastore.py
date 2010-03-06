@@ -18,18 +18,18 @@ from google.appengine.ext import db
 
 from werkzeug.contrib.sessions import SessionStore
 
-from tipfy import local, app, get_config
+from tipfy import local, get_config
 from tipfy.ext.session.securecookie import SecureCookieSessionStore
 from tipfy.ext.db import get_entity_from_protobuf, get_protobuf_from_entity, \
     retry_on_timeout, PickleProperty
 
 # Let other modules initialize sessions.
-is_ext_set = False
+_is_ext_set = False
 # The module name from where we get configuration values.
 EXT = 'tipfy.ext.session'
 
 
-def setup():
+def setup(app):
     """
     Setup this extension.
 
@@ -53,12 +53,12 @@ def setup():
     :return:
         ``None``.
     """
-    global is_ext_set
-    if is_ext_set is False:
+    global _is_ext_set
+    if _is_ext_set is False:
         middleware = DatastoreSessionMiddleware()
         app.hooks.add('pre_dispatch_handler', middleware.load_session)
         app.hooks.add('pre_send_response', middleware.save_session)
-        is_ext_set = True
+        _is_ext_set = True
 
 
 class DatastoreSessionMiddleware(object):
@@ -69,18 +69,16 @@ class DatastoreSessionMiddleware(object):
             get_config(EXT, 'id_cookie_name'))
         self.session_store = DatastoreSessionStore()
 
-    def load_session(self):
+    def load_session(self, app, request):
         self.session_id = self.session_id_store.get(None)
         local.session_store = self.session_store
         local.session = self.session_store.get(self.session_id.get('_sid'))
 
-    def save_session(self, request=None, response=None, app=None):
+    def save_session(self, app, request, response):
         if hasattr(local, 'session'):
             self.session_id['_sid'] = local.session.sid
             self.session_store.save_if_modified(local.session)
             self.session_id_store.save_if_modified(self.session_id)
-
-        return response
 
 
 class Session(db.Model):

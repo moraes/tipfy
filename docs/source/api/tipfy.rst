@@ -38,7 +38,7 @@ module's API page, under the section `Setup`.
 
 Setting up an extension is simple: in the application configuration, under the
 module `tipfy`, you define which extensions you want to enable. For example,
-to enable the debugger and internationalization::
+to enable the debugger and internationalization:
 
 **config.py**
 

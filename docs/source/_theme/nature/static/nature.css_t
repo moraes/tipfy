@@ -183,8 +183,8 @@ div.admonition p.admonition-title + p {
     display: inline;
 }
 
-div.highlight{
-    background-color: white;
+div.highlight, div.highlight-python {
+    background-color: #FFF4E6;
 }
 
 div.note {
@@ -215,15 +215,15 @@ p.admonition-title:after {
 }
 
 pre {
-    padding: 10px;
-    background-color: White;
+    padding: 1em;
+    background-color: #FFF4E6;
     color: #222;
     line-height: 1.2em;
-    border: 1px solid #C6C9CB;
+    border: 1px solid #FF9900;
     font-size: 1.1em;
     margin: 1.5em 0 1.5em 0;
-    -webkit-box-shadow: 1px 1px 1px #d8d8d8;
-    -moz-box-shadow: 1px 1px 1px #d8d8d8;
+    /*-webkit-box-shadow: 1px 1px 1px #FFCC00;
+    -moz-box-shadow: 1px 1px 1px #FFCC00;*/
 }
 
 tt {

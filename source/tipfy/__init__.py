@@ -34,6 +34,9 @@ app, request, response = local('app'), local('request'), local('response')
 ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
     'trace'])
 
+# Value to be used for required configurations.
+REQUIRED_CONFIG = []
+
 #: Default configuration values for this module. Keys are:
 #:   - ``sitename``: Name of the site, used by default in some places. Default
 #:   set to `MyApp`.
@@ -81,21 +84,6 @@ class RequestHandler(object):
     """Base request handler. Only implements the minimal interface required by
     :class:`WSGIApplication`:.
     """
-    def __init__(self, app, request, response):
-        """Initializes a request handler, making the WSGI app, request and
-        response objects available.
-
-        :param app:
-            The :class:`WSGIApplication` instance that initialized this handler.
-        :param request:
-            A `werkzeug.Request` object for this request.
-        :return:
-            A `werkzeug.Response` object for this request.
-        """
-        self.app = app
-        self.request = request
-        self.response = response
-
     def dispatch(self, action, *args, **kwargs):
         """Executes a handler method. This method is called by the
         WSGIApplication and must always return a response object.
@@ -187,8 +175,8 @@ class WSGIApplication(object):
                     break
             else:
                 # Instantiate handler and dispatch request method.
-                handler = self.handler_class(self, request, local.response)
-                response = handler.dispatch(method, **self.rule_args)
+                response = self.handler_class().dispatch(method,
+                    **self.rule_args)
 
         except RequestRedirect, e:
             # Execute redirects raised by the routing system or the application.
@@ -670,20 +658,19 @@ def get_config(module, key, default=_DEFAULT_CONFIG):
         A configuration value.
     """
     value = local.app.config.get(module, key, default)
-    if value == _DEFAULT_CONFIG:
+    if value is REQUIRED_CONFIG:
+        raise BadValueError("Config key %s is not set in %s.default_config." %
+            (key, module))
+    elif value is _DEFAULT_CONFIG:
         default_config = import_string(module + ':default_config', silent=True)
         if default_config is None:
             # Module doesn't have a default_config variable.
             raise BadValueError("Module %s doesn't have default_config: key "
                 "%s wasn't loaded." % (module, key))
         else:
-            # Update app config and get requested key with fallback to default.
+            # Update app config and return requested key.
             local.app.config.setdefault(module, default_config)
-            value = local.app.config.get(module, key, default)
-            if value == _DEFAULT_CONFIG:
-                # Key is not set.
-                raise BadValueError("Config key %s is not set in "
-                    "%s.default_config." % (key, module))
+            return get_config(module, key, REQUIRED_CONFIG)
 
     return value
 

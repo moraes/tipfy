@@ -17,21 +17,21 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from tipfy import local, get_config
+from tipfy import local, get_config, REQUIRED_CONFIG
 from werkzeug.contrib.securecookie import SecureCookie
 
 #: Default configuration values for this module. Keys are:
 #: A dictionary of configuration options for ``tipfy.ext.session``. Keys are:
 #:   - ``secret_key``: Secret key to generate session cookies. Set this to
 #:     something random and unguessable. Default is
-#:     `please-change-me-it-is-important`.
+#:     :data:`tipfy.REQUIRED_CONFIG` (an exception is raised if it is not set).
 #:   - ``expiration``: Session expiration time in seconds. Default is `86400`.
 #:   - ``cookie_name``: Name of the cookie to save the session. Default is
 #:     `tipfy.session`.
 #:   - ``id_cookie_name``:Name of the cookie to save the session id. Default is
 #:     `tipfy.session_id`.
 default_config = {
-    'secret_key': 'please-change-me-it-is-important',
+    'secret_key': REQUIRED_CONFIG,
     'expiration': 86400,
     'cookie_name': 'tipfy.session',
     'id_cookie_name': 'tipfy.session_id',

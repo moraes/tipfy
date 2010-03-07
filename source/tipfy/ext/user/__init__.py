@@ -34,7 +34,7 @@ from tipfy.ext.session import get_secure_cookie, set_secure_cookie
 #:   - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
 #:     domain must be set to the main domain with a preceding dot, e.g., cookies
 #:     set for `.mydomain.org` will work in `foo.mydomain.org` and
-#:     `bar.mydomain.org`. Default is `None`, which means that cookies will
+#:     `bar.mydomain.org`. Default is ``None``, which means that cookies will
 #:     only work for the current subdomain.
 #:   - ``cookie_path``: Path in which the authentication cookie is valid.
 #:     Default is `/`.
@@ -104,7 +104,11 @@ class BaseAuth(object):
 
     @cached_property
     def user_model(self):
-        """Returns the configured user model."""
+        """Returns the configured user model.
+
+        :return:
+            A :class:`tipfy.ext.user.model.User` class.
+        """
         return import_string(get_config(__name__, 'user_model'))
 
     def setup(self, app):
@@ -114,14 +118,14 @@ class BaseAuth(object):
         :param app:
             The WSGI Application instance.
         :return:
-            `None`.
+            ``None``.
         """
 
     def login_with_session(self, app, request):
         """Authenticates the current user using sessions.
 
         :return:
-            `None`.
+            ``None``.
         """
         local.user = None
         local.user_session = None
@@ -137,7 +141,7 @@ class BaseAuth(object):
             True if authentication should be persisted even if user leaves the
             current session (the "remember me" feature).
         :return:
-            `True` if login was succesfull, `False` otherwise.
+            ``True`` if login was succesfull, ``False`` otherwise.
         """
         local.user = None
         local.user_session = None
@@ -146,12 +150,19 @@ class BaseAuth(object):
     def login_with_external_data(self, data, remember=False):
         """Authenticates using data provided by an external service, such as
         OpenId, OAuth (Google Account, Twitter, Friendfeed) or Facebook.
+
+        :return:
+            ``None``.
         """
         local.user = None
         local.user_session = None
 
     def logout(self):
-        """Logs out the current user."""
+        """Logs out the current user.
+
+        :return:
+            ``None``.
+        """
         local.user = None
         local.user_session = None
 
@@ -240,8 +251,7 @@ class BaseAuth(object):
         """
         res = self.user_model.create(username, auth_id, **kwargs)
 
-        if res is not None and local.user_session is not None and \
-            'to_signup' in local.user_session:
+        if res and local.user_session and local.user_session.get('to_signup'):
             # Remove temporary data.
             del local.user_session['to_signup']
 
@@ -252,6 +262,16 @@ class MultiAuth(BaseAuth):
     """Authentication using own users or third party services such as OpenId,
     OAuth (Google, Twitter, FriendFeed) and Facebook.
     """
+    @cached_property
+    def cookie_args(self):
+        """Returns the configured arguments to set an auth cookie.
+
+        :return:
+            A dictionary of keyword arguments for a cookie.
+        """
+        keys = ['key', 'domain', 'path', 'secure', 'httponly']
+        return dict((k, get_config(__name__, 'cookie_' + k)) for k in keys)
+
     def setup(self, app):
         app.hooks.add('pre_dispatch_handler', self.login_with_session)
         app.hooks.add('pre_send_response', self.save_session)
@@ -285,10 +305,6 @@ class MultiAuth(BaseAuth):
                 local.user_session = session
 
     def login_with_form(self, username, password, remember=False):
-        local.user = None
-        local.user_session = None
-        res = False
-
         user = self.user_model.get_by_username(username)
         if user is not None and user.check_password(password) is True:
             local.user = user
@@ -298,6 +314,10 @@ class MultiAuth(BaseAuth):
                 'remember': str(int(remember)),
             })
             res = True
+        else:
+            local.user = None
+            local.user_session = None
+            res = False
 
         return res
 
@@ -332,6 +352,17 @@ class MultiAuth(BaseAuth):
             local.user_session['to_delete'] = True
 
     def save_session(self, app, request, response):
+        """Pesists an authenticated user at the end of request.
+
+        :param app:
+            The current WSGI application.
+        :param request:
+            The current `werkzeug.Request` object.
+        :param response:
+            The current `werkzeug.Response` object.
+        :return:
+            ``None``.
+        """
         if local.user_session is not None:
             now = datetime.now()
             to_delete = local.user_session.get('to_delete', False)
@@ -356,12 +387,8 @@ class MultiAuth(BaseAuth):
             set_secure_cookie(cookie=local.user_session,
                 max_age=max_age,
                 session_expires=session_expires,
-                key=get_config(__name__, 'cookie_key'),
-                domain=get_config(__name__, 'cookie_domain'),
-                path=get_config(__name__, 'cookie_path'),
-                secure=get_config(__name__, 'cookie_secure'),
-                httponly=get_config(__name__, 'cookie_httponly'),
-                force=True
+                force=True,
+                **self.cookie_args
             )
 
 
@@ -572,7 +599,7 @@ def _is_auth_endpoint(endpoints):
     :endpoint:
         An endpoint name, as a string, or a tuple of endpoint names.
     :return:
-        `True` if the current url is the given auth endpoint.
+        ``True`` if the current url is the given auth endpoint.
     """
     if isinstance(endpoints, str):
         endpoints = (endpoints,)

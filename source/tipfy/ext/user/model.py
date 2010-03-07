@@ -38,7 +38,7 @@ class User(db.Model):
     email = db.EmailProperty()
     #: Authentication identifier.
     #: own|username
-    #: gae|google_user.user_id()
+    #: gae|user_id
     #: openid|identifier
     auth_id = db.StringProperty(required=True)
     # Cookie token, renewed periodically for improved security.

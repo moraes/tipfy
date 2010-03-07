@@ -23,8 +23,8 @@ SALT_CHARS = string.ascii_letters + string.digits
 
 
 class User(db.Model):
-    """Universal user model. Can be used for Google acounts or other
-    authentication systems.
+    """Universal user model. Can be used with App Engine's default users API,
+    own auth or third party authentication methods (OpenId, OAuth etc).
     """
     #: Creation date.
     created = db.DateTimeProperty(auto_now_add=True)
@@ -36,15 +36,15 @@ class User(db.Model):
     password = db.StringProperty(required=False)
     #: User email
     email = db.EmailProperty()
-    #: Authentication identifier.
+    #: Authentication identifier, depending on the auth method used.
     #: own|username
     #: gae|user_id
     #: openid|identifier
     auth_id = db.StringProperty(required=True)
-    # Cookie token, renewed periodically for improved security.
-    auth_token = db.StringProperty(required=True)
-    # Cookie token last renewal date.
-    auth_token_date = db.DateTimeProperty(auto_now_add=True)
+    # Session id, renewed periodically for improved security.
+    session_id = db.StringProperty(required=True)
+    # Session id last renewal date.
+    session_updated = db.DateTimeProperty(auto_now_add=True)
     # Admin flag.
     is_admin = db.BooleanProperty(required=True, default=False)
 
@@ -60,12 +60,21 @@ class User(db.Model):
     def create(cls, username, auth_id, **kwargs):
         """Creates a new user and returns it. If the username already exists,
         returns None.
+
+        :param username:
+            Unique username.
+        :param auth_id:
+            Authentication id, according the the authentication method used.
+        :param kwargs:
+            Additional entity attributes.
+        :return:
+            The newly created user or ``None`` if the username already exists.
         """
         kwargs['username'] = username
         kwargs['key_name'] = username
         kwargs['auth_id'] = auth_id
-        # Generate an auth token.
-        kwargs['auth_token'] = gen_salt(length=32)
+        # Generate an initial session id.
+        kwargs['session_id'] = gen_salt(length=32)
 
         if 'password_hash' in kwargs:
             # Password is already hashed.
@@ -86,28 +95,54 @@ class User(db.Model):
         return db.run_in_transaction(txn)
 
     def check_password(self, password):
+        """Checks if a password is valid. This is done with form login
+
+        :param password:
+            Password to be checked.
+        :return:
+            ``True`` is the password is valid, ``False`` otherwise.
+        """
         if check_password(self.password, password) != True:
             return False
 
-        self._renew_token()
+        # Check if session id needs to be renewed.
+        self._renew_session()
         return True
 
-    def check_token(self, token):
-        if self.auth_token != token:
+    def check_session(self, session_id):
+        """Checks if a session id is valid.
+
+        :param session_id:
+            Session id to be checked.
+        :return:
+            ``True`` is the session id is valid, ``False`` otherwise.
+        """
+        if self.session_id != session_id:
             return False
 
-        self._renew_token()
+        # Check if session id needs to be renewed.
+        self._renew_session()
         return True
 
-    def _renew_token(self):
-        now = datetime.datetime.now()
-        expires = datetime.timedelta(seconds=get_config('tipfy.ext.user',
-            'token_max_age'))
+    def _renew_session(self, force=False):
+        """Renews the session id if its expiration time has passed.
 
-        if self.auth_token_date + expires < now:
-            # Renew the token if it is too old.
-            self.auth_token = gen_salt(length=32)
-            self.auth_token_date = now
+        :param force:
+            ``True`` to force the session id to be renewed, ``False`` to check
+            if the expiration time has passed.
+        :return:
+            ``None``.
+        """
+        if force is False:
+            # Only renew the session id if it is too old.
+            expires = datetime.timedelta(seconds=get_config('tipfy.ext.user',
+                'session_max_age'))
+
+            force = (self.session_updated + expires < datetime.datetime.now())
+
+        if force is True:
+            self.session_id = gen_salt(length=32)
+            self.session_updated = datetime.datetime.now()
             self.put()
 
     def __unicode__(self):

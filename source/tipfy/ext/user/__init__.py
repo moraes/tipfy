@@ -40,8 +40,8 @@ from tipfy.ext.session import get_secure_cookie, set_secure_cookie
 #:     Default is `/`.
 #:   - ``cookie_secure``: Make the cookie only available via HTTPS.
 #:   - ``cookie_httponly``: Disallow JavaScript to access the cookie.
-#:   - ``token_max_age``: Max age in seconds for a cookie token. After that it
-#:     is automatically renewed. Default is 1 week.
+#:   - ``session_max_age``: Max age in seconds for a cookie session id. After
+#:     that it is automatically renewed. Default is 1 week.
 default_config = {
     'auth_system': None,
     'user_model': 'tipfy.ext.user.model:User',
@@ -51,7 +51,7 @@ default_config = {
     'cookie_path': '/',
     'cookie_secure': None,
     'cookie_httponly': False,
-    'token_max_age': 86400 * 7,
+    'session_max_age': 86400 * 7,
 }
 
 #: Configured authentication system instance, cached in the module.
@@ -280,7 +280,7 @@ class MultiAuth(BaseAuth):
         local.user = None
         local.user_session = None
 
-        # Get the authentication id and token.
+        # Get the current session.
         session = get_secure_cookie(key=get_config(__name__, 'cookie_key'))
 
         # Check if we are in the middle of external auth and account creation.
@@ -292,14 +292,15 @@ class MultiAuth(BaseAuth):
             local.user_session = session
             return
 
+        # Get the authentication and session ids.
         auth_id = session.get('id', None)
-        auth_token = session.get('token', None)
+        session_id = session.get('session_id', None)
 
         if auth_id is not None:
             user = self.user_model.get_by_auth_id(auth_id)
-            if user is not None and user.check_token(auth_token) is True:
-                # Reset token in case it was renewed by the model.
-                session['token'] = user.auth_token
+            if user is not None and user.check_session(session_id) is True:
+                # Reset session id in case it was renewed by the model.
+                session['session_id'] = user.session_id
 
                 local.user = user
                 local.user_session = session
@@ -310,7 +311,7 @@ class MultiAuth(BaseAuth):
             local.user = user
             local.user_session = get_secure_cookie(data={
                 'id': user.auth_id,
-                'token': user.auth_token,
+                'session_id': user.session_id,
                 'remember': str(int(remember)),
             })
             res = True
@@ -334,7 +335,7 @@ class MultiAuth(BaseAuth):
             local.user = user
             local.user_session = get_secure_cookie(data={
                 'id': user.auth_id,
-                'token': user.auth_token,
+                'session_id': user.session_id,
                 'remember': str(int(remember)),
             })
         else:

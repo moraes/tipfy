@@ -38,5 +38,3 @@ class TestSession(unittest.TestCase):
     def test_SecureCookieSessionMiddleware(self):
         # Initialize app so that get_config() is available.
         app = get_app()
-
-

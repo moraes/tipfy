@@ -1,22 +1,33 @@
 tipfy.ext.user
 ==============
-This module provides an unified user authentication system that supports a
-variety of backends. For now, only Google accounts is used, but adapters for
-OpenID and own accounts are planned.
+
+.. _OAuth: http://oauth.net/
+.. _OpenId: http://openid.net/
+.. _App Engine's standard users API: http://code.google.com/appengine/docs/python/users/
+
+This module provides an unified user accounts system that supports a
+variety of authentication methods:
+
+- Datastore ("own" users)
+- `OpenId`_ (Google, Yahoo etc)
+- `OAuth`_ (Google, Twitter, FriendFeed etc)
+- Facebook
+- `App Engine's standard users API`_
 
 The interface is similar to the one provided by ``google.appengine.api.users``,
 with functions like :func:`get_current_user`, :func:`create_login_url`, and
 some extra ones.
 
-The functions authenticate the user using the configured backend. The default
-backend uses Google acccounts for authentication.
+When this extension is enabled, users are authenticated on each request using
+the configured auth system. By default, it uses App Engine's standard users API
+for authentication.
 
-The current logged in user always has a record in datastore, no matter which
-backend is being used. After first log in, the user is redirected to create an
-account.
+Logged in users are redirected to create an account on first login. All logged
+in users have a record in datastore, no matter which authentication method is
+being used.
 
-Appropriate handlers for signup, log in and log out must be set for this
-extension, depending on the auth method used.
+Appropriate handlers for signup, login and logout must be set for this
+extension, depending on the auth method in use.
 
 .. module:: tipfy.ext.user
 
@@ -39,8 +50,8 @@ Functions
 .. autofunction:: create_logout_url
 .. autofunction:: get_current_user
 .. autofunction:: is_current_user_admin
-.. autofunction:: is_logged_in
+.. autofunction:: is_authenticated
 .. autofunction:: login_required
 .. autofunction:: user_required
 .. autofunction:: admin_required
-
+.. autofunction:: basic_auth_required

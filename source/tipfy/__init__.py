@@ -39,7 +39,7 @@ REQUIRED_CONFIG = []
 
 #: Default configuration values for this module. Keys are:
 #:   - ``sitename``: Name of the site, used by default in some places. Default
-#:   set to `MyApp`.
+#:     set to `MyApp`.
 #:   - ``admin_email``: Administrator e-mail. Default to `None`.
 #:   - ``dev``: ``True`` is this is the development server, ``False`` otherwise.
 #:     Default is the value of ``os.environ['SERVER_SOFTWARE']``.

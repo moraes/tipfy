@@ -659,13 +659,13 @@ def get_config(module, key, default=_DEFAULT_CONFIG):
     """
     value = local.app.config.get(module, key, default)
     if value is REQUIRED_CONFIG:
-        raise BadValueError("Config key %s is not set in %s.default_config." %
+        raise ValueError("Config key %s is not set in %s.default_config." %
             (key, module))
     elif value is _DEFAULT_CONFIG:
         default_config = import_string(module + ':default_config', silent=True)
         if default_config is None:
             # Module doesn't have a default_config variable.
-            raise BadValueError("Module %s doesn't have default_config: key "
+            raise ValueError("Module %s doesn't have default_config: key "
                 "%s wasn't loaded." % (module, key))
         else:
             # Update app config and return requested key.

@@ -49,6 +49,8 @@ def get_secure_cookie(key=None, data=None):
         Secure cookie key. If not provided, simply returns a new `SecureCookie`.
         If the key is provided and the cookie is not set,also returns a new
         `SecureCookie` instance.
+    :param data:
+        Dictionary of values to be added to the cookie.
     :return:
         A SecureCookie instance.
     """
@@ -76,7 +78,7 @@ def set_secure_cookie(key, data=None, cookie=None, **kwargs):
     :param key:
         Secure cookie key.
     :param data:
-        Dictionary of values to be saved in a new cookie.
+        Dictionary of values to be added to the cookie.
     :param cookie:
         A `SecureCookie` instance to save the data instead of creating a new
         one.

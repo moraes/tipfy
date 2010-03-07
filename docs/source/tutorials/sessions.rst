@@ -1,10 +1,10 @@
-How to use sessions
-===================
+Sessions Tutorial
+=================
 
 .. _Tipfy: http://code.google.com/p/tipfy/
 
 `Tipfy`_ provides sessions using secure cookies or the datastore. Once enabled,
-sessions become available to the application and are persisted transparently.
+sessions become available to the application and are persisted automatically.
 Let's see how to use them.
 
 Configuration
@@ -25,13 +25,15 @@ will initialize the session middleware. It can be
        },
    }
 
-That's all! Now we can use sessions.
+That's all! Now we can start using sessions in our handlers.
 
 Using sessions
 --------------
 After the extension is set, session will be available on each request. You can
 import the ``session`` variable from the extension module and use it like a
-dictionary. A simple example:
+dictionary.
+
+Here we create a simple "shopping cart" as example:
 
 **session_test.py**
 

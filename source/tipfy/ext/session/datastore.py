@@ -50,6 +50,8 @@ def setup(app):
            },
        }
 
+    :param app:
+        The WSGI application instance.
     :return:
         ``None``.
     """
@@ -62,7 +64,7 @@ def setup(app):
 
 
 class DatastoreSessionMiddleware(object):
-    """Enables sessions using the datastore."""
+    """Handles sessions using the datastore."""
     def __init__(self):
         # The session id is stored in a secure cookie.
         self.session_id_store = SecureCookieSessionStore(

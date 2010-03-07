@@ -45,6 +45,8 @@ def setup(app):
            },
        }
 
+    :param app:
+        The WSGI application instance.
     :return:
         ``None``.
     """
@@ -57,7 +59,7 @@ def setup(app):
 
 
 class SecureCookieSessionMiddleware(object):
-    """Enables sessions using secure cookies."""
+    """Handles sessions using secure cookies."""
     def __init__(self, cookie_name=None):
         if cookie_name is None:
             cookie_name = get_config(EXT, 'cookie_name')

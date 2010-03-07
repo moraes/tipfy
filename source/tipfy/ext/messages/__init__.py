@@ -154,28 +154,38 @@ class Messages(object):
         })
 
 
-def get_flash():
+def get_flash(key=None):
     """Reads and deletes a flash message. Flash messages are stored in a cookie
     and automatically deleted when read.
 
+    :param key:
+        Cookie name. If not provided, uses the 'cookie_name' configured for
+        this module.
     :return:
         The data stored in a flash, in any.
     """
-    key = get_config(__name__, 'cookie_name')
+    if key is None:
+        key = get_config(__name__, 'cookie_name')
+
     if key in local.request.cookies:
         data = simplejson.loads(b64decode(local.request.cookies[key]))
         local.response.delete_cookie(key)
         return data
 
 
-def set_flash(data):
+def set_flash(data, key=None):
     """Sets a flash message. Flash messages are stored in a cookie
     and automatically deleted when read.
 
     :param data:
         Flash data to be serialized and stored as JSON.
+    :param key:
+        Cookie name. If not provided, uses the 'cookie_name' configured for
+        this module.
     :return:
         ``None``.
     """
-    key = get_config(__name__, 'cookie_name')
+    if key is None:
+        key = get_config(__name__, 'cookie_name')
+
     local.response.set_cookie(key, value=b64encode(simplejson.dumps(data)))

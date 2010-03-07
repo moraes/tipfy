@@ -32,6 +32,8 @@ def setup(app):
            },
        }
 
+    :param app:
+        The WSGI application instance.
     :return:
         ``None``.
     """

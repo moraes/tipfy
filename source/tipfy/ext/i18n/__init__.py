@@ -66,6 +66,8 @@ def setup(app):
     internationalization. Normally it is the first or one of the first
     extensions to be set.
 
+    :param app:
+        The WSGI application instance.
     :return:
         ``None``.
     """

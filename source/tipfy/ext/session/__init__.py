@@ -28,8 +28,8 @@ from werkzeug.contrib.securecookie import SecureCookie
 #:   - ``expiration``: Session expiration time in seconds. Default is `86400`.
 #:   - ``cookie_name``: Name of the cookie to save the session. Default is
 #:     `tipfy.session`.
-#:   - ``id_cookie_name``:Name of the cookie to save the session id. Default is
-#:     `tipfy.session_id`.
+#:   - ``id_cookie_name``: Name of the cookie to save the session id. Default
+#:     is `tipfy.session_id`.
 default_config = {
     'secret_key': REQUIRED_CONFIG,
     'expiration': 86400,

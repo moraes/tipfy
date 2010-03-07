@@ -146,23 +146,49 @@ class User(db.Model):
             self.put()
 
     def __unicode__(self):
+        """Returns this entity's username.
+
+        :return:
+            Username, as unicode.
+        """
         return unicode(self.username)
 
     def __str__(self):
+        """Returns this entity's username.
+
+        :return:
+            Username, as unicode.
+        """
         return self.__unicode__()
 
     def __eq__(self, obj):
+        """Compares this user entity with another one.
+
+        :return:
+            ``True`` if both entities have same key, ``False`` otherwise.
+        """
         if not obj:
             return False
 
         return str(self.key()) == str(obj.key())
 
     def __ne__(self, obj):
+        """Compares this user entity with another one.
+
+        :return:
+            ``True`` if both entities don't have same key, ``False`` otherwise.
+        """
         return not self.__eq__(obj)
 
 
 def gen_salt(length=10):
-    """Generate a random string of SALT_CHARS with specified ``length``."""
+    """Generates a random string of SALT_CHARS with specified ``length``.
+
+    :param length:
+        Length of the salt.
+    :return:
+        A random salt.
+    """
     if length <= 0:
         raise ValueError('requested salt of length <= 0')
 
@@ -170,7 +196,13 @@ def gen_salt(length=10):
 
 
 def gen_pwhash(password):
-    """Return the password encrypted in sha1 format with a random salt."""
+    """Returns the password encrypted in sha1 format with a random salt.
+
+    :param password:
+        Password to e hashed and formatted.
+    :return:
+        A hashed and formatted password.
+    """
     if isinstance(password, unicode):
         password = password.encode('utf-8')
 
@@ -182,7 +214,7 @@ def gen_pwhash(password):
 
 
 def check_password(pwhash, password):
-    """Check a password against a given hash value. Since  many systems save
+    """Checks a password against a given hash value. Since  many systems save
     md5 passwords with no salt and it's technically impossible to convert this
     to a sha hash with a salt we use this to be able to check for legacy plain
     or salted md5 passwords as well as salted sha passwords::
@@ -213,6 +245,13 @@ def check_password(pwhash, password):
     False
     >>> check_password('md42$xyz$bcc27016b4fdceb2bd1b369d5dc46c3f', 'example')
     False
+
+    :param pwhash:
+        Hash to be checked.
+    :param password:
+        Password to be checked.
+    :return:
+        ``True`` if the password is valid, ``False`` otherwise.
     """
     if isinstance(password, unicode):
         password = password.encode('utf-8')

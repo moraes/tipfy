@@ -173,6 +173,18 @@ def populate_entity(entity, **kwargs):
             setattr(entity, key, value)
 
 
+def get_properties_dict(entity):
+    """Returns a dictionary with all the properties in an entity, as a dict.
+
+    :param entity:
+        A ``db.Model`` instance.
+    :return:
+        A dictionary of property names and values.
+    """
+    properties = entity.properties().keys() + entity.dynamic_properties()
+    return dict((k, getattr(entity, k)) for k in properties)
+
+
 def get_or_insert_with_flag(model, key_name, **kwargs):
     """Transactionally retrieve or create an instance of ``db.Model`` class.
 

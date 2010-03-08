@@ -5,25 +5,36 @@ Sessions Tutorial
 
 `Tipfy`_ provides sessions using secure cookies or the datastore. Once enabled,
 sessions become available to the application and are persisted automatically.
-Let's see how to use them.
+In this tutorial, we will see how to use sessions in `Tipfy`_.
+
+Also check :ref:`tipfy.ext.session` for a complete reference.
+
 
 Configuration
 -------------
-First, add a session module to the list of extensions in ``config.py``. This
-will initialize the session middleware. It can be
-``tipfy.ext.session.datastore`` or ``tipfy.ext.session.securecookie``:
+To enable sessions, we need to add a session module to the list of extensions
+in ``config.py``. This will initialize and persiste sessions on each request.
+The options are ``tipfy.ext.session.datastore``, to save sessions in datastore,
+or ``tipfy.ext.session.securecookie``, to save sessions in secure cookies.
+Either way, we also need to configure a ``secret_key`` that will be used to
+generate an ``HMAC`` for the session id and data:
 
 **config.py**
 
 .. code-block:: python
 
-   config = {
-       'tipfy': {
-           'extensions': [
-               'tipfy.ext.session.securecookie',
-            ],
-       },
+   config = {}
+
+   config['tipfy'] = {
+       'extensions': [
+           'tipfy.ext.session.securecookie',
+       ],
    }
+
+   config['tipfy.ext.session'] = {
+       'secret_key': 'my_secret_key',
+   }
+
 
 That's all! Now we can start using sessions in our handlers.
 
@@ -31,9 +42,34 @@ Using sessions
 --------------
 After the extension is set, session will be available on each request. You can
 import the ``session`` variable from the extension module and use it like a
-dictionary.
+dictionary. A simple example:
 
-Here we create a simple "shopping cart" as example:
+**session_test.py**
+
+.. code-block:: python
+
+   from tipfy import RequestHandler, request, response
+   from tipfy.ext.session import session
+
+   class MyHandler(RequestHandler):
+      def get(self, **kwargs):
+          # Check if a key is set in session.
+          if session.get('foo'):
+              # Add the session value to our response.
+              response.data = session.get('foo')
+          else:
+              response.data = 'Session was not set!'
+
+          # Set a value in the session, like in a dictionary.
+          session['foo'] = 'bar'
+
+          return response
+
+
+When you first access this handler, the response will be empty. But on the
+second time it'll present the value of the saved session.
+
+Here's another example. Let's create a very simple "shopping cart":
 
 **session_test.py**
 

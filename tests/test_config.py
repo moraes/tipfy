@@ -3,7 +3,7 @@
     Tests for tipfy.Config and tipfy.get_config.
 """
 import unittest
-from nose.tools import assert_raises
+from nose.tools import assert_raises, raises
 
 from _base import get_app
 from tipfy import Config, get_config, default_config
@@ -91,6 +91,7 @@ class TestConfig(unittest.TestCase):
         assert_raises(AssertionError, setitem, 'foo', 'bar')
         assert_raises(AssertionError, setitem, 'foo', None)
 
+
 class TestGetConfig(unittest.TestCase):
     def test_default_config(self):
         app = get_app()
@@ -128,3 +129,13 @@ class TestGetConfig(unittest.TestCase):
 
         assert get_config('tipfy.ext.i18n', 'locale') == 'en_US'
         assert get_config('tipfy.ext.i18n', 'timezone') == 'America/Sao_Paulo'
+
+    @raises(ValueError)
+    def test_missing_config(self):
+        app = get_app()
+        assert get_config('tipfy.ext.i18n', 'i_dont_exist') == 'en_US'
+
+    @raises(ValueError)
+    def test_missing_module(self):
+        app = get_app()
+        assert get_config('i_dont_exist', 'i_dont_exist') == 'en_US'

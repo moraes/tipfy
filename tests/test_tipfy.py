@@ -39,3 +39,10 @@ class TestMiscelaneous(unittest.TestCase):
         assert isinstance(response, Response)
         assert response.mimetype == 'application/json'
         assert response.data == '{"foo": "bar"}'
+
+    def test_render_json_response_no_local_response(self):
+        local.response = None
+        response = render_json_response({'foo': 'bar'})
+        assert isinstance(response, Response)
+        assert response.mimetype == 'application/json'
+        assert response.data == '{"foo": "bar"}'

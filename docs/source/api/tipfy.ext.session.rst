@@ -1,3 +1,5 @@
+.. _tipfy.ext.session:
+
 tipfy.ext.session
 =================
 This module provides sessions using secure cookies or the datastore.

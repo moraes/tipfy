@@ -173,7 +173,7 @@ def populate_entity(entity, **kwargs):
             setattr(entity, key, value)
 
 
-def get_properties_dict(entity):
+def get_property_dict(entity):
     """Returns a dictionary with all the properties in an entity, as a dict.
 
     :param entity:

@@ -174,12 +174,12 @@ def populate_entity(entity, **kwargs):
 
 
 def get_property_dict(entity):
-    """Returns a dictionary with all the properties in an entity, as a dict.
+    """Returns a dictionary with all the properties and values in an entity.
 
     :param entity:
         A ``db.Model`` instance.
     :return:
-        A dictionary of property names and values.
+        A dictionary mapping property names to values.
     """
     properties = entity.properties().keys() + entity.dynamic_properties()
     return dict((k, getattr(entity, k)) for k in properties)

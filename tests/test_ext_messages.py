@@ -33,10 +33,10 @@ def get_rules():
 def get_app_environ_request_response(**kwargs):
     app = get_app({
         'tipfy': {
-            'hooks': {
-                'pos_init_app': ['tipfy.ext.i18n:set_app_hooks'],
-                'pre_dispatch_handler': ['tipfy.ext.messages:set_messages'],
-            },
+            'extensions': [
+                'tipfy.ext.i18n',
+                'tipfy.ext.messages',
+            ],
             'urls': '%s:get_rules' % __name__
         },
     })
@@ -47,11 +47,11 @@ def get_app_environ_request_response(**kwargs):
 
 
 class TestMessages(unittest.TestCase):
-    def test_set_messages(self):
+    def test_setup(self):
         app, environ, request, response = get_app_environ_request_response()
         local.request = request
 
-        set_messages(request, app)
+        set_messages(app, request)
         assert isinstance(local.messages, Messages) is True
 
     def test_messages_init(self):

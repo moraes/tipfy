@@ -11,7 +11,7 @@ from _base import get_app, get_environ, get_request, get_response
 from tipfy import local
 from tipfy.ext.i18n import locale, translations, set_locale, gettext, _, \
     ngettext, lazy_gettext, lazy_ngettext, format_datetime, format_time, \
-    format_date, get_tzinfo, to_local_timezone, to_utc, pytz, set_app_hooks
+    format_date, get_tzinfo, to_local_timezone, to_utc, pytz
 
 
 class TestI18n(unittest.TestCase):
@@ -190,17 +190,3 @@ class TestI18n(unittest.TestCase):
         localtime = to_utc(base)
         result = localtime.strftime(format)
         assert result == '2002-10-27 11:00:00'
-
-    #===========================================================================
-    # App hooks
-    #===========================================================================
-    def test_set_app_hooks(self):
-        app = get_app()
-
-        assert 'pre_dispatch_handler' not in app.hooks.hooks
-        assert 'pre_send_response' not in app.hooks.hooks
-
-        set_app_hooks(app)
-
-        assert 'pre_dispatch_handler' in app.hooks.hooks
-        assert 'pre_send_response' in app.hooks.hooks

@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-  easy_install nose
-  easy_install nose-gae
-  easy_install webtest
-  easy_install gaetestbed
-  apt-get install coverage
+To run the tests, first install the following packages:
 
-  nosetests -d --with-gae --without-sandbox --with-coverage --cover-package=tipfy --gae-application=./source/
+    easy_install nose
+    easy_install nosegae==0.1.7
+    easy_install webtest
+    easy_install gaetestbed
+    easy_install coverage
+
+Then run the tests from the repository root:
+
+    nosetests -d --with-gae --without-sandbox --with-coverage --cover-package=tipfy --gae-application=./source/
 """
 import os, sys
 APP_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',

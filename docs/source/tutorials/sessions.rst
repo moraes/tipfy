@@ -7,7 +7,7 @@ Sessions Tutorial
 sessions become available to the application and are persisted automatically.
 In this tutorial, we will see how to use sessions in `Tipfy`_.
 
-Also check :ref:`tipfy.ext.session` for a complete reference.
+Also check :ref:`tipfy.ext.session-module` for a complete reference.
 
 
 Configuration

@@ -429,7 +429,7 @@ def get_auth_system():
     """Returns the configured authentication system.
 
     :return:
-        An instance of :class:`tipfy.ext.user.auth.BaseAuth`.
+        An instance of :class:`tipfy.ext.user.BaseAuth`.
     """
     global _auth_system
     if _auth_system is None:

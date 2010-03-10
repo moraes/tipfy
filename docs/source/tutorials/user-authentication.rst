@@ -18,14 +18,17 @@ You can choose one, all or a mix of the available authentication systems, or
 plug new authentication methods into the user system.
 
 Independently of the chosen method, `Tipfy`_ will require the authenticated
-user to create an account in the site, so that an ``User`` entity is saved in the
-datastore and becomes available for the application to reference existing users.
-`Tipfy`_ provides a default user model in :class:`tipfy.ext.user.model.User`,
-but you can configure it to use a custom model if needed.
+user to create an account in the site, so that an ``User`` entity is saved in
+the datastore and becomes available for the application to reference existing
+users. `Tipfy`_ provides a default user model in
+:class:`tipfy.ext.user.model.User`, but you can configure it to use a custom
+model if needed.
 
 In this tutorial, we will see what is needed to implement each of the
-authentication systems listed above. Create a new App Engine project with
-`Tipfy`_ files in it, and let's start!
+authentication systems listed above. We will basically create handlers for
+login, logout, and signup.
+
+Create a new App Engine project with `Tipfy`_ files in it, and let's start!
 
 
 Authentication with App Engine's users API
@@ -52,20 +55,31 @@ All you need is to add ``tipfy.ext.user`` to the list of extensions in
    }
 
 
+.. note::
+   You can find a complete list of the available configuration keys in the
+   :ref:`tipfy-module` module documentation.
+
+
 Now let's create an app to manage our users. In your application dir create a
 directory ``apps`` and inside it, create a directory ``users``. Then create an
 empty ``__init__.py`` for both directories. And finally, create empty
-``urls.py`` and ``handler.py`` in the ``users`` dir. This is the skeleton for
+``urls.py`` and ``handlers.py`` in the ``users`` dir. This is the skeleton for
 our users app. In the end you'll have::
 
 
   /apps
     |__ /users
     |     |__ __init__.py
-    |     |__ handler.py
+    |     |__ handlers.py
     |     |__ urls.py
     |
     |__ __init__.py
+
+
+.. note::
+   You don't **need** to follow a specific directory structure for your apps
+   when using Tipfy. There are various ways to organize an application and the
+   schema above is just one that we consider convenient.
 
 
 We need a "signup" handler to save logged in users in datastore. We don't need
@@ -76,7 +90,7 @@ username an provide an email address. You could extend the user model and add
 more fields to the form; we are just sticking to the basics. So, here we create
 our signup form:
 
-**handler.py**
+**handlers.py**
 
 .. code-block:: python
 
@@ -91,7 +105,26 @@ it looks like:
 
 .. code-block:: html
 
-   <html></html>
+   <html>
+       <body>
+           <h1>Please choose an username and confirm your e-mail:</h1>
+           <form method="post" action="{{ current_url }}">
+               <label for="username">Username</label>
+               <input type="text" id="username" name="username">
+
+               <label for="email">E-mail</label>
+               <input type="text" id="email" name="email">
+
+               <input type="submit" name="submit" value="save">
+           </form>
+       </body>
+   </html>
+
+
+.. note::
+   To keep things more simple and objective, we decided to not use any form
+   library in this tutorial, or tipfy's internationalization utilities.
+   Form handling and i18n may be the subject for a new tutorial. :)
 
 
 That's it! Now we can handle signup requests properly, and save new users to
@@ -106,19 +139,31 @@ used by the user system. Here's how we define the URL rule:
 
 .. code-block:: python
 
-   foo = {}
+   from tipfy import Rule
+
+   def get_rules():
+       rules = [
+           Rule('/accounts/signup', endpoint='users/signup', handler='apps.users.handlers.SignupHandler'),
+       ]
+
+       return rules
 
 
 Done! Now our app will know that it needs to serve the ``SignupHandler`` when
 the URL ``accounts/signup`` is accessed. To see it in action, create a simple
 "home" handler to link to login and logout as needed. Add our ``HomeHandler``
-to ``handler.py``:
+to ``handlers.py``:
 
-**handler.py**
+**handlers.py**
 
 .. code-block:: python
 
-   foo = {}
+   class HomeHandler(RequestHandler):
+       def get(self, **kwargs):
+           context = {
+               'login_url': create_login_url(request.url),
+           }
+           return render_response('home.html', **context)
 
 
 Also add a simple template for our home in ``templates/home.html``:
@@ -127,21 +172,37 @@ Also add a simple template for our home in ``templates/home.html``:
 
 .. code-block:: html
 
-   <html></html>
+   <html>
+       <body>
+           <a href="{{ login_url }}">Login</a>
+       </body>
+   </html>
 
 
-And finally add an URL rule for the ``HomeHandler`` in ``urls.py``:
+And finally add an URL rule for the ``HomeHandler`` in ``urls.py``, in addition
+to the existing rule for the ``SignupHandler``:
 
 **urls.py**
 
 .. code-block:: python
 
-   foo = {}
+   from tipfy import Rule
+
+   def get_rules():
+       rules = [
+           Rule('/', endpoint='home', handler='apps.users.handlers.HomeHandler'),
+           Rule('/accounts/signup', endpoint='users/signup', handler='apps.users.handlers.SignupHandler'),
+       ]
+
+       return rules
+
+Time to test if it works! Open ``config.py`` one more time and tell `Tipfy`_ to
+load our users app. We do this adding our ``apps.users`` to the list of
+``apps_installed`` in the configuration. `Tipfy`_ will then automatically load
+the URLs we defined.
 
 
-Now let's open ``config.py`` one more time and tell `Tipfy`_ to load our users
-app. `Tipfy`_ will then automatically load the URLs we defined. Here's how it
-should look like:
+Here's how our config should look like:
 
 **config.py**
 

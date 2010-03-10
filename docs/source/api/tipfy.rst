@@ -1,3 +1,5 @@
+.. _tipfy-module:
+
 tipfy
 =====
 This is the main module for the WSGI application and base utilities. It provides

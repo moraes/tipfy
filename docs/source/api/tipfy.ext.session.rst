@@ -1,4 +1,4 @@
-.. _tipfy.ext.session:
+.. _tipfy.ext.session-module:
 
 tipfy.ext.session
 =================

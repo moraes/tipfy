@@ -17,8 +17,8 @@ variety of authentication methods:
 - `App Engine's standard users API`_
 
 The interface is similar to the one provided by ``google.appengine.api.users``,
-with functions like :func:`get_current_user`, :func:`create_login_url`, and
-some extra ones.
+with functions like :func:`get_current_user`, :func:`create_login_url`, and so
+on.
 
 When this extension is enabled, users are authenticated on each request using
 the configured auth system. By default, it uses App Engine's standard users API
@@ -30,6 +30,10 @@ being used.
 
 Appropriate handlers for signup, login and logout must be set for this
 extension, depending on the auth method in use.
+
+.. note::
+   For examples on how to use this module, see the :ref:`user-auth-tutorial`.
+
 
 .. module:: tipfy.ext.user
 

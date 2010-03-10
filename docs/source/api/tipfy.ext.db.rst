@@ -1,3 +1,5 @@
+.. _tipfy.ext.db-module:
+
 tipfy.ext.db
 ============
 This module provides several utilities to work with ``google.appengine.ext.db``,

@@ -1,3 +1,5 @@
+.. _tipfy.ext.mako-module:
+
 tipfy.ext.mako
 ==============
 This module provides functions to render templates using the `Mako`_ template

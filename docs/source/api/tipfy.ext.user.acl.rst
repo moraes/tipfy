@@ -1,3 +1,5 @@
+.. _tipfy.ext.user.acl-module:
+
 tipfy.ext.user.acl
 ==================
 This module provides a lightweight Access Control List implementation to check

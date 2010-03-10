@@ -1,3 +1,5 @@
+.. _tipfy.ext.taskqueue-module:
+
 tipfy.ext.taskqueue
 ===================
 This module provides utilities to work with

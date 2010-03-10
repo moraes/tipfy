@@ -1,3 +1,5 @@
+.. _user-auth-tutorial:
+
 User Authentication Tutorial
 ============================
 
@@ -30,6 +32,18 @@ login, logout, and signup.
 
 Create a new App Engine project with `Tipfy`_ files in it, and let's start!
 
+
+- :ref:`user-auth-gae-tutorial`
+- :ref:`user-auth-own-tutorial`
+- :ref:`user-auth-external-tutorial`
+
+.. note::
+   The source code for all these examples is compiled in the
+   `tipfy-examples <http://code.google.com/p/tipfy-examples/source/browse/#hg/tutorials>`_
+   project.
+
+
+.. _user-auth-gae-tutorial:
 
 Authentication with App Engine's users API
 ------------------------------------------
@@ -112,6 +126,7 @@ our signup form:
        def post(self, **kwargs):
            username = request.form.get('username').strip()
            email = request.form.get('email').strip()
+           error = None
 
            if username and email:
                # Create an unique auth id for this user.
@@ -124,16 +139,19 @@ our signup form:
                    'is_admin': users.is_current_user_admin(),
                }
 
-               # Save user to datastore. If the username already exists, return
-               # value will be None.
+               # Save user to datastore.
                user = get_auth_system().create_user(username, auth_id, **kwargs)
 
-               if user is not None:
+               if user is None:
+                   # If no user is returned, the username already exists.
+                   error = 'Username already exists. Please choose a different one.'
+               else:
                    # User was saved: redirect to the previous URL.
                    return redirect(request.args.get('redirect', '/'))
 
            context = {
                'current_url': request.url,
+               'error': error,
            }
            return render_response('users/signup.html', **context)
 
@@ -149,6 +167,9 @@ it looks like:
    <html>
        <body>
            <h1>Please choose an username and confirm your e-mail:</h1>
+           {% if error %}
+               <h3>{{ error }}</h3>
+           {% endif %}
            <form method="post" action="{{ current_url }}">
                <p><label for="username">Username</label>
                <input type="text" id="username" name="username"><p>
@@ -284,6 +305,8 @@ And then access the app in a browser:
 That's it!
 
 
+.. _user-auth-own-tutorial:
+
 Authentication with "own" users
 -------------------------------
 Authenticating with "own" users is not much different than using App Engine's
@@ -389,6 +412,8 @@ oh, also import ``create_signup_url`` from ``tipfy.ext.user``):
                # Don't allow existing users to access this page.
                return redirect(request.args.get('redirect', '/'))
 
+           error = None
+
            # Get all posted data.
            username = request.form.get('username', '').strip()
            password = request.form.get('password', '').strip()
@@ -397,16 +422,29 @@ oh, also import ``create_signup_url`` from ``tipfy.ext.user``):
            if get_auth_system().login_with_form(username, password, remember):
                # Redirect to the original URL after login.
                return redirect(request.args.get('redirect', '/'))
+           else:
+               error = 'Username or password invalid. Please try again.'
 
-           return self._render_response()
+           return self._render_response(error=error)
 
-       def _render_response(self):
+       def _render_response(self, error=None):
            context = {
                'current_url': request.url,
                'signup_url': create_signup_url(request.url),
+               'error': error,
            }
 
            return render_response('users/login.html', **context)
+
+The function that authenticates the user is
+``login_with_form(username, password, remember)``. If the username and password
+are valid, the user system will recognize and persist the current user s logged
+in.
+
+If "Remember me on this computer" is checked, the user will be kept login even
+if it ends the current session closing the browsing window. This is done using
+secure cookies and an unique token that is renewed from time to time, to
+conform with best safety practices.
 
 
 The login handler uses a template that we will save in
@@ -419,6 +457,9 @@ The login handler uses a template that we will save in
    <html>
        <body>
            <h1>Login</h1>
+           {% if error %}
+               <h3>{{ error }}</h3>
+           {% endif %}
            <form method="post" action="{{ current_url }}">
                <p><label for="username">Username</label>
                <input type="text" id="username" name="username"></p>
@@ -452,9 +493,11 @@ the user defining a password. Let's do it:
            email = request.form.get('email').strip()
            password = request.form.get('password').strip()
            confirm_password = request.form.get('confirm_password').strip()
+           error = None
 
            if password != confirm_password:
-               return self._render_response()
+               error = 'Passwords didn\'t match. Please try again.'
+               return self._render_response(error=error)
 
            if username and email:
                # Create an unique auth id for this user.
@@ -471,18 +514,25 @@ the user defining a password. Let's do it:
                # value will be None.
                user = get_auth_system().create_user(username, auth_id, **kwargs)
 
-               if user is not None:
+               if user is None:
+                   # If no user is returned, the username already exists.
+                   error = 'Username already exists. Please choose a different one.'
+               else:
                    # User was saved: redirect to the previous URL.
                    return redirect(request.args.get('redirect', '/'))
 
-           return self._render_response()
+           return self._render_response(error=error)
 
-       def _render_response(self):
+       def _render_response(self, error=None):
            context = {
                'current_url': request.url,
+               'error': error,
            }
            return render_response('users/signup.html', **context)
 
+
+The key here is the function ``create_user()``, which will generate a hash for
+the password and save the new user to datastore.
 
 Also adapt the template in ``templates/users/signup.html`` to add fields for
 password and password confirmation:
@@ -494,6 +544,9 @@ password and password confirmation:
    <html>
        <body>
            <h1>Please choose an username and password and confirm your e-mail:</h1>
+           {% if error %}
+               <h3>{{ error }}</h3>
+           {% endif %}
            <form method="post" action="{{ current_url }}">
                <p><label for="username">Username</label>
                <input type="text" id="username" name="username"><p>
@@ -532,6 +585,8 @@ And then access the app in a browser:
 Cool, uh?
 
 
+.. _user-auth-external-tutorial:
+
 Authentication with OpenId, OAuth and Facebook
 ----------------------------------------------
-Coming soon!
+This tutorial is coming soon!

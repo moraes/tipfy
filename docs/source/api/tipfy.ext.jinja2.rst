@@ -1,3 +1,5 @@
+.. _tipfy.ext.jinja2-module:
+
 tipfy.ext.jinja2
 =================
 This module provides functions to render templates using the `Jinja2`_ template

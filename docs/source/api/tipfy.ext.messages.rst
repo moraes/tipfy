@@ -1,3 +1,5 @@
+.. _tipfy.ext.messages-module:
+
 tipfy.ext.messages
 ==================
 This module provides an unified container for application status messages such

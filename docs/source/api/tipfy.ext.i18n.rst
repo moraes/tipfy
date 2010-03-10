@@ -1,3 +1,5 @@
+.. _tipfy.ext.i18n-module:
+
 tipfy.ext.i18n
 ==============
 This module provides internationalization utilities: a translations store,

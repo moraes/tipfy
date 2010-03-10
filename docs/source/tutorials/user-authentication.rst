@@ -17,7 +17,9 @@ User Authentication Tutorial
 - `App Engine's standard users API`_
 
 You can choose one, all or a mix of the available authentication systems, or
-plug new authentication methods into the user system.
+plug new authentication methods into the user system. Check out the
+:ref:`tipfy.ext.user-module` module for the API reference and configuration
+options for the user system.
 
 Independently of the chosen method, `Tipfy`_ will require the authenticated
 user to create an account in the site, so that an ``User`` entity is saved in

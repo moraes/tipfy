@@ -1,3 +1,5 @@
+.. _tipfy.ext.user-module:
+
 tipfy.ext.user
 ==============
 

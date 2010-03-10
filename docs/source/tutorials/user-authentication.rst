@@ -150,13 +150,13 @@ it looks like:
        <body>
            <h1>Please choose an username and confirm your e-mail:</h1>
            <form method="post" action="{{ current_url }}">
-               <label for="username">Username</label>
-               <input type="text" id="username" name="username">
+               <p><label for="username">Username</label>
+               <input type="text" id="username" name="username"><p>
 
-               <label for="email">E-mail</label>
-               <input type="text" id="email" name="email">
+               <p><label for="email">E-mail</label>
+               <input type="text" id="email" name="email"></p>
 
-               <input type="submit" name="submit" value="save">
+               <p><input type="submit" name="submit" value="save"></p>
            </form>
        </body>
    </html>
@@ -286,7 +286,250 @@ That's it!
 
 Authentication with "own" users
 -------------------------------
-Coming soon!
+Authenticating with "own" users is not much different than using App Engine's
+users API. We will only need to add handlers for login and logout, and we can
+reuse the ``users`` app we made above with few small changes.
+
+Let's start configuring auth system to ``tipfy.ext.user.MultiAuth``, instead of
+the default one that uses App Engine's auth. This is also the same system used
+for OpenId, OAuth, Facebook and others, but we will see this later.
+Additionally, we need to provide a secret key for the sessions that will keep
+users logged in. This is important.
+
+Open ``config.py`` and change the configuration for the user and session
+extensions:
+
+**config.py**
+
+.. code-block:: python
+
+   config = {}
+
+   config['tipfy'] = {
+       'extensions': [
+           'tipfy.ext.user',
+       ],
+       'apps_installed': [
+            'apps.users',
+        ],
+   }
+
+   config['tipfy.ext.user'] = {
+       'auth_system': 'tipfy.ext.user.MultiAuth',
+   }
+
+   config['tipfy.ext.session'] = {
+       'secret_key': 'my very very very secret phrase',
+   }
+
+
+.. note::
+   All modules that have configuration options list them in the session
+   ``Default configuration`` in the module documentation. Take a look at the
+   ones we just configured: :ref:`tipfy.ext.user-module` and
+   :ref:`tipfy.ext.session-module`.
+
+
+In the ``urls.py`` we created for the users app, add URL rules for login and
+logout, in addition to the previous rules we have set:
+
+**urls.py**
+
+.. code-block:: python
+
+   from tipfy import Rule
+
+   def get_rules():
+       rules = [
+           Rule('/', endpoint='home', handler='apps.users.handlers.HomeHandler'),
+           Rule('/accounts/signup', endpoint='users/signup', handler='apps.users.handlers.SignupHandler'),
+           Rule('/accounts/login', endpoint='users/login', handler='apps.users.handlers.LoginHandler'),
+           Rule('/accounts/logout', endpoint='users/logout', handler='apps.users.handlers.LogoutHandler'),
+       ]
+
+       return rules
+
+
+The logout handler is the easiest, so let's start with it. Open ``handlers.py``
+and add our ``LogoutHandler`` to the end of the file:
+
+**handlers.py**
+
+.. code-block:: python
+
+   class LogoutHandler(RequestHandler):
+       """Logout the user."""
+       def get(self, **kwargs):
+           get_auth_system().logout()
+           return redirect(request.args.get('redirect', '/'))
+
+
+It is that simple! It just asks the auth system to logout the current user, and
+then redirects to the previous URL we have set in the GET parameters, with
+fallback to redirect to the home page.
+
+The login handler is not much harder: we just need to display a login form
+and then verify an username and password. Add it to your ``handlers.py`` (and,
+oh, also import ``create_signup_url`` from ``tipfy.ext.user``):
+
+**handlers.py**
+
+.. code-block:: python
+
+   class LoginHandler(RequestHandler):
+       def get(self, **kwargs):
+           if get_current_user() is not None:
+               # Don't allow existing users to access this page.
+               return redirect(request.args.get('redirect', '/'))
+
+           return self._render_response()
+
+       def post(self, **kwargs):
+           if get_current_user() is not None:
+               # Don't allow existing users to access this page.
+               return redirect(request.args.get('redirect', '/'))
+
+           # Get all posted data.
+           username = request.form.get('username', '').strip()
+           password = request.form.get('password', '').strip()
+           remember = request.form.get('remember', '') == 'y'
+
+           if get_auth_system().login_with_form(username, password, remember):
+               # Redirect to the original URL after login.
+               return redirect(request.args.get('redirect', '/'))
+
+           return self._render_response()
+
+       def _render_response(self):
+           context = {
+               'current_url': request.url,
+               'signup_url': create_signup_url(request.url),
+           }
+
+           return render_response('users/login.html', **context)
+
+
+The login handler uses a template that we will save in
+``templates/users/login.html``. Here it is:
+
+**home.html**
+
+.. code-block:: html
+
+   <html>
+       <body>
+           <h1>Login</h1>
+           <form method="post" action="{{ current_url }}">
+               <p><label for="username">Username</label>
+               <input type="text" id="username" name="username"></p>
+
+               <p><label for="password">Password</label>
+               <input type="password" id="password" name="password"></p>
+
+               <p><input type="checkbox" name="remember" value="y"> Remember me on this computer</p>
+
+               <p><input type="submit" name="submit" value="login"></p>
+
+               <p>Don't have an account? <a href="{{ signup_url }}">Signup here</a>.</p>
+           </form>
+       </body>
+   </html>
+
+
+One step left! Now we only need to adapt our previous signup handler to support
+the user defining a password. Let's do it:
+
+**handlers.py**
+
+.. code-block:: python
+
+   class SignupHandler(RequestHandler):
+       def get(self, **kwargs):
+           return self._render_response()
+
+       def post(self, **kwargs):
+           username = request.form.get('username').strip()
+           email = request.form.get('email').strip()
+           password = request.form.get('password').strip()
+           confirm_password = request.form.get('confirm_password').strip()
+
+           if password != confirm_password:
+               return self._render_response()
+
+           if username and email:
+               # Create an unique auth id for this user.
+               # For own auth, we use 'own|' + the username.
+               auth_id = 'own|%s' % username
+
+               # Set the properties of our user.
+               kwargs = {
+                   'email': email,
+                   'password': password,
+               }
+
+               # Save user to datastore. If the username already exists, return
+               # value will be None.
+               user = get_auth_system().create_user(username, auth_id, **kwargs)
+
+               if user is not None:
+                   # User was saved: redirect to the previous URL.
+                   return redirect(request.args.get('redirect', '/'))
+
+           return self._render_response()
+
+       def _render_response(self):
+           context = {
+               'current_url': request.url,
+           }
+           return render_response('users/signup.html', **context)
+
+
+Also adapt the template in ``/templates/users/signup.html`` to add fields for
+password and password confirmation:
+
+**home.html**
+
+.. code-block:: html
+
+   <html>
+       <body>
+           <h1>Please choose an username and password and confirm your e-mail:</h1>
+           <form method="post" action="{{ current_url }}">
+               <p><label for="username">Username</label>
+               <input type="text" id="username" name="username"><p>
+
+               <p><label for="email">E-mail</label>
+               <input type="text" id="email" name="email"></p>
+
+               <p><label for="password">Password</label>
+               <input type="password" id="password" name="password"></p>
+
+               <p><label for="confirm_password">Confirm Password</label>
+               <input type="password" id="confirm_password" name="confirm_password"></p>
+
+               <p><input type="submit" name="submit" value="save"></p>
+           </form>
+       </body>
+   </html>
+
+
+And we are all set. We have an own users system in place, with "remember me"
+feature and all that jazz. Start the dev server pointing to the app dir to
+test it:
+
+.. code-block:: text
+
+   dev_appserver.py /path/to/app/dir
+
+
+And then access the app in a browser:
+
+.. code-block:: text
+
+   http://localhost:8080/
+
+
+Cool, uh?
 
 
 Authentication with OpenId, OAuth and Facebook

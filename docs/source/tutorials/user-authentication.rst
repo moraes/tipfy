@@ -78,7 +78,7 @@ our users app. In the end you'll have::
 
 .. note::
    You don't **need** to follow a specific directory structure for your apps
-   when using Tipfy. There are various ways to organize an application and the
+   when using `Tipfy`_. There are various ways to organize an application and the
    schema above is just one that we consider convenient.
 
 
@@ -164,7 +164,7 @@ it looks like:
 
 .. note::
    To keep things more simple and objective, we decided to not use any form
-   library in this tutorial, or tipfy's internationalization utilities.
+   library in this tutorial, or `Tipfy`_'s internationalization utilities.
    Form handling and i18n may be the subject for a new tutorial. :)
 
 
@@ -484,7 +484,7 @@ the user defining a password. Let's do it:
            return render_response('users/signup.html', **context)
 
 
-Also adapt the template in ``/templates/users/signup.html`` to add fields for
+Also adapt the template in ``templates/users/signup.html`` to add fields for
 password and password confirmation:
 
 **home.html**

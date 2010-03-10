@@ -126,8 +126,8 @@ our signup form:
            return render_response('users/signup.html', **context)
 
        def post(self, **kwargs):
-           username = request.form.get('username').strip()
-           email = request.form.get('email').strip()
+           username = request.form.get('username', '').strip()
+           email = request.form.get('email', '').strip()
            error = None
 
            if username and email:
@@ -491,13 +491,16 @@ the user defining a password. Let's do it:
            return self._render_response()
 
        def post(self, **kwargs):
-           username = request.form.get('username').strip()
-           email = request.form.get('email').strip()
-           password = request.form.get('password').strip()
-           confirm_password = request.form.get('confirm_password').strip()
+           username = request.form.get('username', '').strip()
+           email = request.form.get('email', '').strip()
+           password = request.form.get('password', '').strip()
+           confirm_password = request.form.get('confirm_password', '').strip()
            error = None
 
-           if password != confirm_password:
+           if not password:
+               error = 'Please provide a password.'
+               return self._render_response(error=error)
+           elif password != confirm_password:
                error = 'Passwords didn\'t match. Please try again.'
                return self._render_response(error=error)
 

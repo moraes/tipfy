@@ -94,7 +94,48 @@ our signup form:
 
 .. code-block:: python
 
-   foo = {}
+   from google.appengine.api import users
+
+   from tipfy import RequestHandler, request, response, redirect
+   from tipfy.ext.jinja2 import render_response
+   from tipfy.ext.user import create_login_url, create_logout_url, \
+       get_auth_system, get_current_user
+
+
+   class SignupHandler(RequestHandler):
+       def get(self, **kwargs):
+           context = {
+               'current_url': request.url,
+           }
+           return render_response('users/signup.html', **context)
+
+       def post(self, **kwargs):
+           username = request.form.get('username').strip()
+           email = request.form.get('email').strip()
+
+           if username and email:
+               # Create an unique auth id for this user.
+               # For GAE auth, we use 'gae|' + the gae user id.
+               auth_id = 'gae|%s' % users.get_current_user().user_id()
+
+               # Set the properties of our user.
+               kwargs = {
+                   'email': email,
+                   'is_admin': users.is_current_user_admin(),
+               }
+
+               # Save user to datastore. If the username already exists, return
+               # value will be None.
+               user = get_auth_system().create_user(username, auth_id, **kwargs)
+
+               if user is not None:
+                   # User was saved: redirect to the previous URL.
+                   return redirect(request.args.get('redirect', '/'))
+
+           context = {
+               'current_url': request.url,
+           }
+           return render_response('users/signup.html', **context)
 
 
 This handler requires a template in ``templates/users/signup.html``. Here's how
@@ -174,7 +215,11 @@ Also add a simple template for our home in ``templates/home.html``:
 
    <html>
        <body>
-           <a href="{{ login_url }}">Login</a>
+           {% if user %}
+               <p>Logged in as {{ user.username }}. <a href="{{ logout_url }}">Logout</a></p>
+           {% else %}
+               <p><a href="{{ login_url }}">Login</a></p>
+           {% endif %}
        </body>
    </html>
 

@@ -193,7 +193,7 @@ used by the user system. Here's how we define the URL rule:
 Done! Now our app will know that it needs to serve the ``SignupHandler`` when
 the URL ``accounts/signup`` is accessed. To see it in action, create a simple
 "home" handler to link to login and logout as needed. Add our ``HomeHandler``
-to ``handlers.py``:
+to the end ``handlers.py``:
 
 **handlers.py**
 
@@ -202,7 +202,9 @@ to ``handlers.py``:
    class HomeHandler(RequestHandler):
        def get(self, **kwargs):
            context = {
-               'login_url': create_login_url(request.url),
+               'user':       get_current_user(),
+               'login_url':  create_login_url(request.url),
+               'logout_url': create_logout_url(request.url),
            }
            return render_response('home.html', **context)
 

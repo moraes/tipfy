@@ -452,7 +452,7 @@ conform with best safety practices.
 The login handler uses a template that we will save in
 ``templates/users/login.html``. Here it is:
 
-**home.html**
+**login.html**
 
 .. code-block:: html
 
@@ -539,7 +539,7 @@ the password and save the new user to datastore.
 Also adapt the template in ``templates/users/signup.html`` to add fields for
 password and password confirmation:
 
-**home.html**
+**signup.html**
 
 .. code-block:: html
 

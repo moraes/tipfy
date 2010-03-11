@@ -20,11 +20,7 @@ Flash functions
 ---------------
 .. autofunction:: get_flash
 .. autofunction:: set_flash
-
-
-Messages setup
---------------
-.. autofunction:: setup
+.. autofunction:: set_messages
 
 
 Messages container

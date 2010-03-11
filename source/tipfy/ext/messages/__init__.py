@@ -22,57 +22,75 @@ default_config = {
     'cookie_name': 'tipfy.flash',
 }
 
-# Proxies to the messages variables set on each request.
-local.messages = None
-messages = local('messages')
 
+def get_flash(key=None):
+    """Reads and deletes a flash message. Flash messages are stored in a cookie
+    and automatically deleted when read.
 
-def setup(app):
+    :param key:
+        Cookie name. If not provided, uses the ``cookie_name`` value configured
+        for this module.
+    :return:
+        The data stored in a flash, in any.
     """
-    Setup this extension.
+    if key is None:
+        key = get_config(__name__, 'cookie_name')
 
-    It initializes the messages system.
+    if key in local.request.cookies:
+        data = simplejson.loads(b64decode(local.request.cookies[key]))
+        local.response.delete_cookie(key)
+        return data
 
-    To enable it, add this module to the list of extensions in ``config.py``:
 
-    .. code-block:: python
+def set_flash(data, key=None):
+    """Sets a flash message. Flash messages are stored in a cookie
+    and automatically deleted when read.
 
-       config = {
-           'tipfy': {
-               'extensions': [
-                   'tipfy.ext.messages',
-                   # ...
-               ],
-           },
-       }
-
-    :param app:
-        The WSGI application instance.
+    :param data:
+        Flash data to be serialized and stored as JSON.
+    :param key:
+        Cookie name. If not provided, uses the ``cookie_name`` value configured
+        for this module.
     :return:
         ``None``.
     """
-    app.hooks.add('pre_dispatch_handler', set_messages)
+    if key is None:
+        key = get_config(__name__, 'cookie_name')
+
+    local.response.set_cookie(key, value=b64encode(simplejson.dumps(data)))
 
 
-def set_messages(app, request):
-    """Initializes the messages container.
+def set_messages(key=None):
+    """A decorator for :class:`tipfy.RequestHandler` methods. Sets a
+    :class:`Messages` instance in the request handler as the attribute
+    ``messages``.
 
+    :param key:
+        Cookie name. If not provided, uses the ``cookie_name`` value configured
+        for this module.
     :return:
         ``None``.
     """
-    local.messages = Messages()
+    def get_decorator(method):
+        def decorator(self, *args, **kwargs):
+            self.messages = Messages(key)
+            return method(self, *args, **kwargs)
+
+        return decorator
+    return get_decorator
 
 
 class Messages(object):
-    def __init__(self):
+    def __init__(self, key=None):
         """Initializes the messages container, loading a possibly existing
         flash message.
         """
         # Set the messages container.
+        self.key = key
         self.messages = []
 
         # Check for flashes on each request.
-        flash = get_flash()
+        flash = get_flash(self.key)
         if flash:
             self.messages.append(flash)
 
@@ -151,41 +169,4 @@ class Messages(object):
             'title': title,
             'body':  body,
             'life':  life
-        })
-
-
-def get_flash(key=None):
-    """Reads and deletes a flash message. Flash messages are stored in a cookie
-    and automatically deleted when read.
-
-    :param key:
-        Cookie name. If not provided, uses the 'cookie_name' configured for
-        this module.
-    :return:
-        The data stored in a flash, in any.
-    """
-    if key is None:
-        key = get_config(__name__, 'cookie_name')
-
-    if key in local.request.cookies:
-        data = simplejson.loads(b64decode(local.request.cookies[key]))
-        local.response.delete_cookie(key)
-        return data
-
-
-def set_flash(data, key=None):
-    """Sets a flash message. Flash messages are stored in a cookie
-    and automatically deleted when read.
-
-    :param data:
-        Flash data to be serialized and stored as JSON.
-    :param key:
-        Cookie name. If not provided, uses the 'cookie_name' configured for
-        this module.
-    :return:
-        ``None``.
-    """
-    if key is None:
-        key = get_config(__name__, 'cookie_name')
-
-    local.response.set_cookie(key, value=b64encode(simplejson.dumps(data)))
+        }, self.key)

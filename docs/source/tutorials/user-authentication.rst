@@ -106,6 +106,7 @@ username an provide an email address. You could extend the user model and add
 more fields to the form; we are just sticking to the basics. So, here we create
 our signup form:
 
+
 **handlers.py**
 
 .. code-block:: python
@@ -119,16 +120,18 @@ our signup form:
 
 
    class SignupHandler(RequestHandler):
+       error = None
+
        def get(self, **kwargs):
            context = {
                'current_url': request.url,
+               'error': self.error,
            }
            return render_response('users/signup.html', **context)
 
        def post(self, **kwargs):
            username = request.form.get('username', '').strip()
            email = request.form.get('email', '').strip()
-           error = None
 
            if username and email:
                # Create an unique auth id for this user.
@@ -146,16 +149,12 @@ our signup form:
 
                if user is None:
                    # If no user is returned, the username already exists.
-                   error = 'Username already exists. Please choose a different one.'
+                   self.error = 'Username already exists. Please choose a different one.'
                else:
                    # User was saved: redirect to the previous URL.
                    return redirect(request.args.get('redirect', '/'))
 
-           context = {
-               'current_url': request.url,
-               'error': error,
-           }
-           return render_response('users/signup.html', **context)
+           return self.get()
 
 
 This handler requires a template in ``templates/users/signup.html``. Here's how
@@ -402,19 +401,25 @@ oh, also import ``create_signup_url`` from ``tipfy.ext.user``):
 .. code-block:: python
 
    class LoginHandler(RequestHandler):
+       error = None
+
        def get(self, **kwargs):
            if get_current_user() is not None:
                # Don't allow existing users to access this page.
                return redirect(request.args.get('redirect', '/'))
 
-           return self._render_response()
+           context = {
+               'current_url': request.url,
+               'signup_url': create_signup_url(request.url),
+               'error': self.error,
+           }
+
+           return render_response('users/login.html', **context)
 
        def post(self, **kwargs):
            if get_current_user() is not None:
                # Don't allow existing users to access this page.
                return redirect(request.args.get('redirect', '/'))
-
-           error = None
 
            # Get all posted data.
            username = request.form.get('username', '').strip()
@@ -425,18 +430,10 @@ oh, also import ``create_signup_url`` from ``tipfy.ext.user``):
                # Redirect to the original URL after login.
                return redirect(request.args.get('redirect', '/'))
            else:
-               error = 'Username or password invalid. Please try again.'
+               self.error = 'Username or password invalid. Please try again.'
 
-           return self._render_response(error=error)
+           return self.get()
 
-       def _render_response(self, error=None):
-           context = {
-               'current_url': request.url,
-               'signup_url': create_signup_url(request.url),
-               'error': error,
-           }
-
-           return render_response('users/login.html', **context)
 
 The function that authenticates the user is
 ``login_with_form(username, password, remember)``. If the username and password
@@ -487,22 +484,27 @@ the user defining a password. Let's do it:
 .. code-block:: python
 
    class SignupHandler(RequestHandler):
+       error = None
+
        def get(self, **kwargs):
-           return self._render_response()
+           context = {
+               'current_url': request.url,
+               'error': self.error,
+           }
+           return render_response('users/signup.html', **context)
 
        def post(self, **kwargs):
            username = request.form.get('username', '').strip()
            email = request.form.get('email', '').strip()
            password = request.form.get('password', '').strip()
            confirm_password = request.form.get('confirm_password', '').strip()
-           error = None
 
            if not password:
-               error = 'Please provide a password.'
-               return self._render_response(error=error)
+               self.error = 'Please provide a password.'
+               return self.get()
            elif password != confirm_password:
-               error = 'Passwords didn\'t match. Please try again.'
-               return self._render_response(error=error)
+               self.error = 'Passwords didn\'t match. Please try again.'
+               return self.get()
 
            if username and email:
                # Create an unique auth id for this user.
@@ -521,19 +523,12 @@ the user defining a password. Let's do it:
 
                if user is None:
                    # If no user is returned, the username already exists.
-                   error = 'Username already exists. Please choose a different one.'
+                   self.error = 'Username already exists. Please choose a different one.'
                else:
                    # User was saved: redirect to the previous URL.
                    return redirect(request.args.get('redirect', '/'))
 
-           return self._render_response(error=error)
-
-       def _render_response(self, error=None):
-           context = {
-               'current_url': request.url,
-               'error': error,
-           }
-           return render_response('users/signup.html', **context)
+           return self.get()
 
 
 The key here is the function ``create_user()``, which will generate a hash for

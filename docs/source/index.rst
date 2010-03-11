@@ -8,9 +8,6 @@ the basic concepts of `web.py`_ and `webapp`_. It is built on top of
 
 See also other `App Engine frameworks`_.
 
-.. note::
-   This a work in progress.
-
 
 Tutorials
 =========

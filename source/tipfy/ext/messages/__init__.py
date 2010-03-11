@@ -69,15 +69,15 @@ def set_messages(key=None):
         Cookie name. If not provided, uses the ``cookie_name`` value configured
         for this module.
     :return:
-        ``None``.
+        A decorator function.
     """
-    def get_decorator(method):
-        def decorator(self, *args, **kwargs):
+    def decorator(method):
+        def decorated(self, *args, **kwargs):
             self.messages = Messages(key)
             return method(self, *args, **kwargs)
 
-        return decorator
-    return get_decorator
+        return decorated
+    return decorator
 
 
 class Messages(object):

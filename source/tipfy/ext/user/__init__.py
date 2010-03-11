@@ -350,9 +350,12 @@ class MultiAuth(BaseAuth):
     def logout(self):
         local.user = None
         if local.user_session is not None:
-            # Clear session and set a flag to delete the cookie.
+            # Clear session and delete the cookie.
             local.user_session.clear()
-            local.user_session['to_delete'] = True
+            args = self.cookie_args
+            local.response.delete_cookie(args['key'], path=args['path'],
+                domain=args['domain'])
+            local.user_session = None
 
     def save_session(self, app, request, response):
         """Pesists an authenticated user at the end of request.
@@ -367,24 +370,17 @@ class MultiAuth(BaseAuth):
             ``None``.
         """
         if local.user_session is not None:
-            now = datetime.now()
-            to_delete = local.user_session.get('to_delete', False)
+            remember = local.user_session.get('remember', None)
+            cookie_max_age = get_config(__name__, 'cookie_max_age')
 
-            if to_delete is True:
-                max_age = -86400
-                session_expires = now - timedelta(seconds=86400)
+            if remember == '1':
+                # Persistent authentication.
+                max_age = cookie_max_age
             else:
-                remember = local.user_session.get('remember', None)
-                cookie_max_age = get_config(__name__, 'cookie_max_age')
+                # Non-persistent authentication (only lasts for a session).
+                max_age = None
 
-                if remember == '1':
-                    # Persistent authentication.
-                    max_age = cookie_max_age
-                else:
-                    # Non-persistent authentication (only lasts for a session).
-                    max_age = None
-
-                session_expires = now + timedelta(seconds=cookie_max_age)
+            session_expires = datetime.now() + timedelta(seconds=cookie_max_age)
 
             # Set the cookie on each request, resetting the idle countdown.
             set_secure_cookie(cookie=local.user_session,

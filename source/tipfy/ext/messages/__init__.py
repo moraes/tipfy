@@ -60,26 +60,6 @@ def set_flash(data, key=None):
     local.response.set_cookie(key, value=b64encode(simplejson.dumps(data)))
 
 
-def set_messages(key=None):
-    """A decorator for :class:`tipfy.RequestHandler` methods. Sets a
-    :class:`Messages` instance in the request handler as the attribute
-    ``messages``.
-
-    :param key:
-        Cookie name. If not provided, uses the ``cookie_name`` value configured
-        for this module.
-    :return:
-        A decorator function.
-    """
-    def decorator(method):
-        def decorated(self, *args, **kwargs):
-            self.messages = Messages(key)
-            return method(self, *args, **kwargs)
-
-        return decorated
-    return decorator
-
-
 class Messages(object):
     def __init__(self, key=None):
         """Initializes the messages container, loading a possibly existing

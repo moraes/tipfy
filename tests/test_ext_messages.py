@@ -10,19 +10,21 @@ from django.utils import simplejson
 from werkzeug import Request, Response
 from werkzeug.test import Client
 
-from _base import get_app, get_environ, get_request, get_response
+from _base import get_app, get_environ, get_request, get_response, teardown
 from tipfy import local, request, response, Rule, RequestHandler
-from tipfy.ext.messages import Messages, set_messages, set_flash, get_flash
+from tipfy.ext.messages import Messages, get_flash, set_flash
 
 
 class SetFlashHandler_1(RequestHandler):
     def get(self, **kwargs):
+        self.messages = Messages()
+
         if request.args.get('set-messages-flash', None) == '1':
-            local.messages.set_flash('error', 'An error occurred.')
+            self.messages.set_flash('error', 'An error occurred.')
         elif request.args.get('set-flash', None) == '1':
             set_flash({'foo': 'bar'})
 
-        response.data = str(local.messages)
+        response.data = str(self.messages)
         return response
 
 
@@ -35,7 +37,6 @@ def get_app_environ_request_response(**kwargs):
         'tipfy': {
             'extensions': [
                 'tipfy.ext.i18n',
-                'tipfy.ext.messages',
             ],
             'urls': '%s:get_rules' % __name__
         },
@@ -47,19 +48,17 @@ def get_app_environ_request_response(**kwargs):
 
 
 class TestMessages(unittest.TestCase):
-    def test_setup(self):
-        app, environ, request, response = get_app_environ_request_response()
-        local.request = request
-
-        set_messages(app, request)
-        assert isinstance(local.messages, Messages) is True
+    def tearDown(self):
+        teardown()
 
     def test_messages_init(self):
         pass
 
     def test_messages_len(self):
         app, environ, request, response = get_app_environ_request_response()
+        local.app = app
         local.request = request
+        local.response = response
 
         messages = Messages()
         assert len(messages) == 0
@@ -75,7 +74,9 @@ class TestMessages(unittest.TestCase):
 
     def test_messages_str(self):
         app, environ, request, response = get_app_environ_request_response()
+        local.app = app
         local.request = request
+        local.response = response
 
         messages = Messages()
         assert str(messages) == ''
@@ -126,6 +127,7 @@ class TestMessages(unittest.TestCase):
         pass
 
     def test_set_flash(self):
+        app = get_app()
         local.response = Response()
         data = {'foo': 'bar'}
         set_flash(data)

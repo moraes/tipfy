@@ -21,13 +21,17 @@ if APP_PATH not in sys.path:
     sys.path.insert(0, APP_PATH)
 
 
-def get_app(config=None):
-    from tipfy import make_wsgi_app
-    if config is None:
-        import config
-        config = config.config
+def teardown():
+    from tipfy import local_manager
+    local_manager.cleanup()
 
-    return make_wsgi_app(config)
+
+def get_app(config=None):
+    from tipfy import WSGIApplication
+    if config is None:
+        from config import config
+
+    return WSGIApplication(config)
 
 
 def get_environ(*args, **kwargs):

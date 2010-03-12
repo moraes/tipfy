@@ -104,7 +104,7 @@ class RequestHandler(object):
 
 
 class WSGIApplication(object):
-    def __init__(self, config):
+    def __init__(self, config=None):
         """Initializes the application.
 
         :param config:
@@ -673,15 +673,11 @@ def get_config(module, key, default=_DEFAULT_CONFIG):
         raise ValueError('Module %s requires the config key "%s" to be set.' %
             (module, key))
     elif value is _DEFAULT_CONFIG:
-        default_config = import_string(module + ':default_config', silent=True)
-        if default_config is None:
-            # Module doesn't have a default_config variable.
-            raise ValueError('Module %s doesn\'t have default_config: key '
-                '"%s" wasn\'t loaded.' % (module, key))
-        else:
-            # Update app config and return requested key.
-            local.app.config.setdefault(module, default_config)
-            return get_config(module, key, REQUIRED_CONFIG)
+        # Update app config. If import fails or the default_config attribute
+        # doesn't exist, an exception will be raised.
+        local.app.config.setdefault(module, import_string(module +
+            ':default_config'))
+        return get_config(module, key, REQUIRED_CONFIG)
 
     return value
 

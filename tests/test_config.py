@@ -5,18 +5,20 @@
 import unittest
 from nose.tools import assert_raises, raises
 
-from _base import get_app
-from tipfy import Config, get_config, default_config
+from _base import get_app, teardown
+from tipfy import Config, default_config, get_config, REQUIRED_CONFIG
 
 
 class TestConfig(unittest.TestCase):
-    def test_get(self):
+    def tearDown(self):
+        teardown()
+
+    def test_get_existing_keys(self):
         config = Config({'foo': {
             'bar': 'baz',
             'doo': 'ding',
         }})
 
-        assert config.get('bar') is None
         assert config.get('foo') == {
             'bar': 'baz',
             'doo': 'ding',
@@ -24,8 +26,18 @@ class TestConfig(unittest.TestCase):
 
         assert config.get('foo', 'bar') == 'baz'
         assert config.get('foo', 'doo') == 'ding'
-        assert config.get('foo', 'hmm') is None
-        assert config.get('foo', 'hmm', 'default') == 'default'
+
+    def test_get_non_existing_keys(self):
+        config = Config()
+
+        assert config.get('bar') is None
+        assert config.get('foo', 'bar') is None
+
+    def test_get_with_default(self):
+        config = Config()
+
+        assert config.get('foo', 'bar', 'ooops') == 'ooops'
+        assert config.get('foo', 'doo', 'wooo') == 'wooo'
 
     def test_update(self):
         config = Config({'foo': {
@@ -93,13 +105,19 @@ class TestConfig(unittest.TestCase):
 
 
 class TestGetConfig(unittest.TestCase):
+    def tearDown(self):
+        teardown()
+
     def test_default_config(self):
-        app = get_app()
+        app = get_app({})
+
+        from tipfy.ext.jinja2 import default_config as jinja2_config
+        from tipfy.ext.i18n import default_config as i18n_config
 
         assert get_config('tipfy', 'dev') == default_config['dev']
-        assert get_config('tipfy.ext.jinja2', 'templates_dir') == 'templates'
-        assert get_config('tipfy.ext.i18n', 'locale') == 'en_US'
-        assert get_config('tipfy.ext.i18n', 'timezone') == 'America/Chicago'
+        assert get_config('tipfy.ext.jinja2', 'templates_dir') == jinja2_config['templates_dir']
+        assert get_config('tipfy.ext.i18n', 'locale') == i18n_config['locale']
+        assert get_config('tipfy.ext.i18n', 'timezone') == i18n_config['timezone']
 
     def test_override_config(self):
         app = get_app({
@@ -132,10 +150,15 @@ class TestGetConfig(unittest.TestCase):
 
     @raises(ValueError)
     def test_missing_config(self):
-        app = get_app()
+        app = get_app({})
         assert get_config('tipfy.ext.i18n', 'i_dont_exist') == 'en_US'
 
-    @raises(ValueError)
+    @raises(AttributeError)
+    def test_missing_default_config(self):
+        app = get_app({})
+        assert get_config('tipfy.ext.db', 'foo') == 'en_US'
+
+    @raises(ImportError)
     def test_missing_module(self):
-        app = get_app()
+        app = get_app({})
         assert get_config('i_dont_exist', 'i_dont_exist') == 'en_US'

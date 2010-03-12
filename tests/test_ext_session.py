@@ -14,7 +14,7 @@ class TestSession(unittest.TestCase):
     def test_set_datastore_session(self):
         app = get_app({'tipfy': {'extensions': []}})
         assert app.hooks.get('pre_dispatch_handler', None) is None, app.hooks.get('pre_dispatch_handler', None)
-        assert app.hooks.get('pre_send_response', None) is None
+        assert app.hooks.get('post_dispatch_handler', None) is None
 
         app = get_app({
             'tipfy': {
@@ -26,12 +26,12 @@ class TestSession(unittest.TestCase):
         })
 
         assert app.hooks.get('pre_dispatch_handler', None) is not None
-        assert app.hooks.get('pre_send_response', None) is not None
+        assert app.hooks.get('post_dispatch_handler', None) is not None
 
     def test_set_securecookie_session(self):
         app = get_app({'tipfy': {'extensions': []}})
         assert app.hooks.get('pre_dispatch_handler', None) is None, app.hooks.get('pre_dispatch_handler', None)
-        assert app.hooks.get('pre_send_response', None) is None
+        assert app.hooks.get('post_dispatch_handler', None) is None
 
         app = get_app({
             'tipfy': {
@@ -43,7 +43,7 @@ class TestSession(unittest.TestCase):
         })
 
         assert app.hooks.get('pre_dispatch_handler', None) is not None
-        assert app.hooks.get('pre_send_response', None) is not None
+        assert app.hooks.get('post_dispatch_handler', None) is not None
 
     def test_SecureCookieSessionMiddleware(self):
         # Initialize app so that get_config() is available.

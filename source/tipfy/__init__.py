@@ -8,7 +8,8 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from os import environ
+import logging
+import os
 from wsgiref.handlers import CGIHandler
 
 # Werkzeug swiss knife.
@@ -66,9 +67,9 @@ REQUIRED_CONFIG = []
 default_config = {
     'sitename': 'MyApp',
     'admin_email': None,
-    'dev': environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
-    'app_id': environ.get('APPLICATION_ID', None),
-    'version_id': environ.get('CURRENT_VERSION_ID', '1'),
+    'dev': os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
+    'app_id': os.environ.get('APPLICATION_ID', None),
+    'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
     'apps_installed': [],
     'apps_entry_points': {},
     'extensions': [],
@@ -492,7 +493,6 @@ def get_url_map(app):
         try:
             memcache.set(key, rules)
         except:
-            import logging
             logging.info('Failed to save wsgi_app.rules to memcache.')
 
     return Map(rules, **app.config.get(__name__, 'map_kwargs'))
@@ -541,12 +541,14 @@ def handle_exception(app, request, e):
     :return:
         A ``werkzeug.Response`` object, if the exception is not raised.
     """
-    for response in app.hooks.call('pre_handle_exception', app, request, e):
+    for response in app.hooks.iter('pre_handle_exception', app, request, e):
         if response:
             return response
 
     if app.config.get(__name__, 'dev'):
         raise
+
+    logging.exception(e)
 
     if isinstance(e, HTTPException):
         return e

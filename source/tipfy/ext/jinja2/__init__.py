@@ -37,7 +37,6 @@ def get_env():
     """
     global _environment
     if _environment is None:
-        force_compiled = get_config(__name__, 'force_compiled')
         templates_compiled_dir = get_config(__name__, 'templates_compiled_dir')
 
         if templates_compiled_dir is not None:

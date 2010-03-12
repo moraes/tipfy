@@ -59,7 +59,7 @@ def setup(app):
     if _is_ext_set is False:
         middleware = DatastoreSessionMiddleware()
         app.hooks.add('pre_dispatch_handler', middleware.load_session)
-        app.hooks.add('pre_send_response', middleware.save_session)
+        app.hooks.add('post_dispatch_handler', middleware.save_session)
         _is_ext_set = True
 
 

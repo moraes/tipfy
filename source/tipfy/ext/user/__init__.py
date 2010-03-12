@@ -276,7 +276,7 @@ class MultiAuth(BaseAuth):
 
     def setup(self, app):
         app.hooks.add('pre_dispatch_handler', self.login_with_session)
-        app.hooks.add('pre_send_response', self.save_session)
+        app.hooks.add('post_dispatch_handler', self.save_session)
 
     def login_with_session(self, app, request):
         local.user = None
@@ -352,9 +352,9 @@ class MultiAuth(BaseAuth):
         if local.user_session is not None:
             # Clear session and delete the cookie.
             local.user_session.clear()
-            args = self.cookie_args
-            local.response.delete_cookie(args['key'], path=args['path'],
-                domain=args['domain'])
+            kwargs = self.cookie_args
+            local.response.delete_cookie(kwargs['key'], path=kwargs['path'],
+                domain=kwargs['domain'])
             local.user_session = None
 
     def save_session(self, app, request, response):

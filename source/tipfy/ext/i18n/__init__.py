@@ -72,7 +72,7 @@ def setup(app):
         ``None``.
     """
     app.hooks.add('pre_dispatch_handler', set_requested_locale, 0)
-    app.hooks.add('pre_send_response', persist_requested_locale, 0)
+    app.hooks.add('post_dispatch_handler', persist_requested_locale, 0)
 
 
 def set_requested_locale(app, request):

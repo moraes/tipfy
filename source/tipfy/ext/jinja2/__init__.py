@@ -12,14 +12,14 @@
 """
 from os import path
 
-from jinja2 import Environment, ChoiceLoader, FileSystemLoader, ModuleLoader
+from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from tipfy import local, get_config, url_for
 
 #: Default configuration values for this module. Keys are:
 #:   - ``templates_dir``: Directory for templates. Default is `templates`.
-#:   - ``templates_compiled_dir``: Directory for compiled templates. If set to
-#:     ``None``, don't use compiled templates. Default is ``None``.
+#:   - ``templates_compiled_dir``: Directory for compiled templates. If set,
+#:     uses the loader for compiled templates. Default is ``None``.
 default_config = {
     'templates_dir': 'templates',
     'templates_compiled_dir': None,
@@ -41,11 +41,10 @@ def get_env():
         templates_compiled_dir = get_config(__name__, 'templates_compiled_dir')
 
         if templates_compiled_dir is not None:
-            # In production, use precompiled templates loaded from a module.
+            # Use precompiled templates loaded from a module.
             loader = ModuleLoader(templates_compiled_dir)
         else:
-            # In development or if compiled dir is not set, parse templates on
-            # every request.
+            # Parse templates on every request.
             loader = FileSystemLoader(get_config(__name__, 'templates_dir'))
 
         # Initialize the environment.
@@ -70,9 +69,9 @@ def _set_i18n(environment):
     from tipfy.ext.i18n import translations, format_date, format_datetime, \
         format_time
     environment.globals.update({
-        'format_date': format_date,
+        'format_date':     format_date,
+        'format_time':     format_time,
         'format_datetime': format_datetime,
-        'format_time': format_time,
     })
     environment.install_gettext_translations(translations)
 

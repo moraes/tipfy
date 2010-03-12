@@ -540,8 +540,8 @@ class Environment(object):
                     info.external_attr = 0755 << 16L
                     f.writestr(info, code)
                 else:
-                    f = open(os.path.join(target, module), 'w')
                     #f = open(filename, 'w')
+                    f = open(os.path.join(target, module), 'w')
                     try:
                         f.write(code)
                     finally:

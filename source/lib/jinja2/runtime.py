@@ -5,13 +5,13 @@
 
     Runtime helpers.
 
-    :copyright: (c) 2009 by the Jinja Team.
+    :copyright: (c) 2010 by the Jinja Team.
     :license: BSD.
 """
 import sys
 from itertools import chain, imap
 from jinja2.utils import Markup, partial, soft_unicode, escape, missing, \
-     concat, MethodType, FunctionType, internalcode
+     concat, MethodType, FunctionType, internalcode, next
 from jinja2.exceptions import UndefinedError, TemplateRuntimeError, \
      TemplateNotFound
 
@@ -19,11 +19,17 @@ from jinja2.exceptions import UndefinedError, TemplateRuntimeError, \
 # these variables are exported to the template runtime
 __all__ = ['LoopContext', 'TemplateReference', 'Macro', 'Markup',
            'TemplateRuntimeError', 'missing', 'concat', 'escape',
-           'markup_join', 'unicode_join', 'TemplateNotFound']
+           'markup_join', 'unicode_join', 'to_string',
+           'TemplateNotFound']
 
 
 #: the types we support for context functions
 _context_function_types = (FunctionType, MethodType)
+
+#: the name of the function that is used to convert something into
+#: a string.  2to3 will adopt that automatically and the generated
+#: code can take advantage of it.
+to_string = unicode
 
 
 def markup_join(seq):
@@ -105,7 +111,7 @@ class Context(object):
 
     def __init__(self, environment, parent, name, blocks):
         self.parent = parent
-        self.vars = vars = {}
+        self.vars = {}
         self.environment = environment
         self.exported_vars = set()
         self.name = name
@@ -188,9 +194,12 @@ class Context(object):
     keys = _all('keys')
     values = _all('values')
     items = _all('items')
-    iterkeys = _all('iterkeys')
-    itervalues = _all('itervalues')
-    iteritems = _all('iteritems')
+
+    # not available on python 3
+    if hasattr(dict, 'iterkeys'):
+        iterkeys = _all('iterkeys')
+        itervalues = _all('itervalues')
+        iteritems = _all('iteritems')
     del _all
 
     def __contains__(self, name):
@@ -292,7 +301,8 @@ class LoopContext(object):
 
     # a nifty trick to enhance the error message if someone tried to call
     # the the loop without or with too many arguments.
-    __call__ = loop; del loop
+    __call__ = loop
+    del loop
 
     @property
     def length(self):
@@ -327,7 +337,7 @@ class LoopContextIterator(object):
     def next(self):
         ctx = self.context
         ctx.index0 += 1
-        return ctx._iterator.next(), ctx
+        return next(ctx._iterator), ctx
 
 
 class Macro(object):
@@ -375,7 +385,7 @@ class Macro(object):
             arguments.append(kwargs)
         elif kwargs:
             raise TypeError('macro %r takes no keyword argument %r' %
-                            (self.name, iter(kwargs).next()))
+                            (self.name, next(iter(kwargs))))
         if self.catch_varargs:
             arguments.append(args[self._argument_count:])
         elif len(args) > self._argument_count:
@@ -445,6 +455,10 @@ class Undefined(object):
     def __str__(self):
         return unicode(self).encode('utf-8')
 
+    # unicode goes after __str__ because we configured 2to3 to rename
+    # __unicode__ to __str__.  because the 2to3 tree is not designed to
+    # remove nodes from it, we leave the above __str__ around and let
+    # it override at runtime.
     def __unicode__(self):
         return u''
 
@@ -508,8 +522,8 @@ class StrictUndefined(Undefined):
     UndefinedError: 'foo' is undefined
     """
     __slots__ = ()
-    __iter__ = __unicode__ = __len__ = __nonzero__ = __eq__ = __ne__ = \
-        Undefined._fail_with_undefined_error
+    __iter__ = __unicode__ = __str__ = __len__ = __nonzero__ = __eq__ = \
+        __ne__ = Undefined._fail_with_undefined_error
 
 
 # remove remaining slots attributes, after the metaclass did the magic they

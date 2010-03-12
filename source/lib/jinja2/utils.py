@@ -5,7 +5,7 @@
 
     Utility functions.
 
-    :copyright: (c) 2009 by the Jinja Team.
+    :copyright: (c) 2010 by the Jinja Team.
     :license: BSD, see LICENSE for more details.
 """
 import re
@@ -63,23 +63,37 @@ except TypeError, _error:
     del _test_gen_bug, _error
 
 
-# ironpython without stdlib doesn't have keyword
+# for python 2.x we create outselves a next() function that does the
+# basics without exception catching.
 try:
-    from keyword import iskeyword as is_python_keyword
-except ImportError:
-    _py_identifier_re = re.compile(r'^[a-zA-Z_][a-zA-Z0-9]*$')
-    def is_python_keyword(name):
-        if _py_identifier_re.search(name) is None:
-            return False
-        try:
-            exec name + " = 42"
-        except SyntaxError:
-            return False
-        return True
+    next = next
+except NameError:
+    def next(x):
+        return x.next()
+
+
+# if this python version is unable to deal with unicode filenames
+# when passed to encode we let this function encode it properly.
+# This is used in a couple of places.  As far as Jinja is concerned
+# filenames are unicode *or* bytestrings in 2.x and unicode only in
+# 3.x because compile cannot handle bytes
+if sys.version_info < (3, 0):
+    def _encode_filename(filename):
+        if isinstance(filename, unicode):
+            return filename.encode('utf-8')
+        return filename
+else:
+    def _encode_filename(filename):
+        assert filename is None or isinstance(filename, str), \
+            'filenames must be strings'
+        return filename
+
+from keyword import iskeyword as is_python_keyword
 
 
 # common types.  These do exist in the special types module too which however
-# does not exist in IronPython out of the box.
+# does not exist in IronPython out of the box.  Also that way we don't have
+# to deal with implementation specific stuff here
 class _C(object):
     def method(self): pass
 def _func():
@@ -189,12 +203,12 @@ def import_string(import_name, silent=False):
             raise
 
 
-def open_if_exists(filename, mode='r'):
+def open_if_exists(filename, mode='rb'):
     """Returns a file descriptor for the filename if that file exists,
     otherwise `None`.
     """
     try:
-        return file(filename, mode)
+        return open(filename, mode)
     except IOError, e:
         if e.errno not in (errno.ENOENT, errno.EISDIR):
             raise
@@ -259,7 +273,7 @@ def urlize(text, trim_url_limit=None, nofollow=False):
 def generate_lorem_ipsum(n=5, html=True, min=20, max=100):
     """Generate some lorem impsum for the template."""
     from jinja2.constants import LOREM_IPSUM_WORDS
-    from random import choice, random, randrange
+    from random import choice, randrange
     words = LOREM_IPSUM_WORDS.split()
     result = []
 
@@ -460,7 +474,7 @@ class Markup(unicode):
         func.__doc__ = orig.__doc__
         return func
 
-    for method in '__getitem__', '__getslice__', 'capitalize', \
+    for method in '__getitem__', 'capitalize', \
                   'title', 'lower', 'upper', 'replace', 'ljust', \
                   'rjust', 'lstrip', 'rstrip', 'center', 'strip', \
                   'translate', 'expandtabs', 'swapcase', 'zfill':
@@ -474,6 +488,10 @@ class Markup(unicode):
     # new in python 2.6
     if hasattr(unicode, 'format'):
         format = make_wrapper('format')
+
+    # not in python 3
+    if hasattr(unicode, '__getslice__'):
+        __getslice__ = make_wrapper('__getslice__')
 
     del method, make_wrapper
 
@@ -493,8 +511,8 @@ class _MarkupEscapeHelper(object):
         self.obj = obj
 
     __getitem__ = lambda s, x: _MarkupEscapeHelper(s.obj[x])
-    __unicode__ = lambda s: unicode(escape(s.obj))
     __str__ = lambda s: str(escape(s.obj))
+    __unicode__ = lambda s: unicode(escape(s.obj))
     __repr__ = lambda s: str(escape(repr(s.obj)))
     __int__ = lambda s: int(s.obj)
     __float__ = lambda s: float(s.obj)
@@ -600,7 +618,7 @@ class LRUCache(object):
         if self._queue[-1] != key:
             try:
                 self._remove(key)
-            except:
+            except ValueError:
                 # if something removed the key from the container
                 # when we read, ignore the ValueError that we would
                 # get otherwise.
@@ -615,7 +633,11 @@ class LRUCache(object):
         self._wlock.acquire()
         try:
             if key in self._mapping:
-                self._remove(key)
+                try:
+                    self._remove(key)
+                except ValueError:
+                    # __getitem__ is not locked, it might happen
+                    pass
             elif len(self._mapping) == self.capacity:
                 del self._mapping[self._popleft()]
             self._append(key)
@@ -630,7 +652,11 @@ class LRUCache(object):
         self._wlock.acquire()
         try:
             del self._mapping[key]
-            self._remove(key)
+            try:
+                self._remove(key)
+            except ValueError:
+                # __getitem__ is not locked, it might happen
+                pass
         finally:
             self._wlock.release()
 

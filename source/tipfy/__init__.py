@@ -76,13 +76,13 @@ default_config = {
     'server_name': None,
     'subdomain': None,
     # Undocumented for now.
-    'url_map_kwargs': {},
+    'map_kwargs': {},
 }
 
 
 class RequestHandler(object):
     """Base request handler. Only implements the minimal interface required by
-    :class:`WSGIApplication`:.
+    :class:`WSGIApplication`.
     """
     def dispatch(self, action, *args, **kwargs):
         """Executes a handler method. This method is called by the
@@ -131,7 +131,7 @@ class WSGIApplication(object):
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
-        # Pre request hook.
+        # Apply pre-init-request hooks.
         for request in self.hooks.iter('pre_init_request', self, environ):
             if request is not None:
                 break
@@ -148,46 +148,56 @@ class WSGIApplication(object):
             server_name=self.config.get(__name__, 'server_name', None),
             subdomain=self.config.get(__name__, 'subdomain', None))
 
-        self.rule = self.rule_args = self.handler_class = None
+        self.rule = self.rule_args = None
 
         try:
-            # Check requested method.
-            method = request.method.lower()
-            if method not in ALLOWED_METHODS:
-                raise MethodNotAllowed()
+            # Apply pre-match-url hooks.
+            for res in self.hooks.iter('pre_match_url', self, request):
+                if res is not None:
+                    self.rule, self.rule_args = res
+                    break
+            else:
+                # Check requested method.
+                method = request.method.lower()
+                if method not in ALLOWED_METHODS:
+                    raise MethodNotAllowed()
 
-            # Match the path against registered rules.
-            self.rule, self.rule_args = self.url_adapter.match(request.path,
-                return_rule=True)
+                # Match the path against registered rules.
+                self.rule, self.rule_args = self.url_adapter.match(request.path,
+                    return_rule=True)
 
-            # Import handler set in matched rule.
-            if self.rule.handler not in self.handlers:
-                self.handlers[self.rule.handler] = import_string(
-                    self.rule.handler)
-
-            # Set an accessor to the current handler.
-            self.handler_class = self.handlers[self.rule.handler]
-
-            # Apply pre-dispatch middlewares.
+            # Apply pre-dispatch hooks.
             for response in self.hooks.iter('pre_dispatch_handler', self,
                 request):
                 if response is not None:
                     break
             else:
+                # Import handler set in matched rule.
+                if self.rule.handler not in self.handlers:
+                    self.handlers[self.rule.handler] = import_string(
+                        self.rule.handler)
+
                 # Instantiate handler and dispatch request method.
-                response = self.handler_class().dispatch(method,
+                response = self.handlers[self.rule.handler]().dispatch(method,
                     **self.rule_args)
+
+            # Apply post-dispatch hooks.
+            for res in self.hooks.iter('post_dispatch_handler', self, request,
+                response):
+                if res is not None:
+                    response = res
+                    break
 
         except RequestRedirect, e:
             # Execute redirects raised by the routing system or the application.
             response = e
         except Exception, e:
             # Handle http and uncaught exceptions. This will apply exception
-            # middlewares if they are set.
+            # hooks if they are set.
             response = handle_exception(self, request, e)
 
-        # Apply response middlewares.
-        for r in self.hooks.iter('pre_send_response', self, request, response):
+        # Apply pre-end-request hooks.
+        for r in self.hooks.iter('pre_end_request', self, request, response):
             if r is not None:
                 response = r
                 break
@@ -474,10 +484,10 @@ def get_url_map(app):
         A ``werkzeug.Map`` instance with the loaded URL rules.
     """
     from google.appengine.api import memcache
-    key = 'wsgi_app.rules.%s' % get_config(__name__, 'version_id')
+    key = 'wsgi_app.rules.%s' % app.config.get(__name__, 'version_id')
     rules = memcache.get(key)
-    if not rules or get_config(__name__, 'dev'):
-        rules = import_string(get_config(__name__, 'urls'))()
+    if not rules or app.config.get(__name__, 'dev'):
+        rules = import_string(app.config.get(__name__, 'urls'))()
 
         try:
             memcache.set(key, rules)
@@ -485,12 +495,11 @@ def get_url_map(app):
             import logging
             logging.info('Failed to save wsgi_app.rules to memcache.')
 
-    return Map(rules, **get_config(__name__, 'url_map_kwargs', {}))
+    return Map(rules, **app.config.get(__name__, 'map_kwargs'))
 
 
 def make_wsgi_app(config):
-    """Returns a instance of :class:`WSGIApplication`, optionally applying
-    middlewares.
+    """Returns a instance of :class:`WSGIApplication`.
 
     :param config:
         A dictionary of configuration values.
@@ -501,7 +510,7 @@ def make_wsgi_app(config):
 
 
 def run_wsgi_app(app):
-    """Executes the application, optionally wrapping it by middlewares.
+    """Executes the application, optionally wrapping it by hooks.
 
     :param app:
         A :class:`WSGIApplication` instance.
@@ -512,7 +521,7 @@ def run_wsgi_app(app):
     if app.config.get(__name__, 'dev'):
         fix_sys_path()
 
-    # Apply pre-run middlewares.
+    # Apply pre-run hooks.
     for res in app.hooks.iter('pre_run_app', app):
         if res is not None:
             app = res
@@ -523,7 +532,7 @@ def run_wsgi_app(app):
 
 def handle_exception(app, request, e):
     """Handles HTTPException or uncaught exceptions raised by the WSGI
-    application, optionally applying exception middlewares.
+    application, optionally applying exception hooks.
 
     :param app:
         The :class:`WSGIApplication` instance.
@@ -536,7 +545,7 @@ def handle_exception(app, request, e):
         if response:
             return response
 
-    if get_config(__name__, 'dev'):
+    if app.config.get(__name__, 'dev'):
         raise
 
     if isinstance(e, HTTPException):

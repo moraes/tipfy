@@ -7,13 +7,22 @@
     ugly stuff with the Python traceback system in order to achieve tracebacks
     with correct line numbers, locals and contents.
 
-    :copyright: (c) 2009 by the Jinja Team.
+    :copyright: (c) 2010 by the Jinja Team.
     :license: BSD, see LICENSE for more details.
 """
 import sys
 import traceback
 from jinja2.utils import CodeType, missing, internal_code
 from jinja2.exceptions import TemplateSyntaxError
+
+
+# how does the raise helper look like?
+try:
+    exec "raise TypeError, 'foo'"
+except SyntaxError:
+    raise_helper = 'raise __jinja_exception__[1]'
+except TypeError:
+    raise_helper = 'raise __jinja_exception__[0], __jinja_exception__[1]'
 
 
 class TracebackFrameProxy(object):
@@ -104,7 +113,7 @@ def translate_syntax_error(error, source=None):
     """Rewrites a syntax error to please traceback systems."""
     error.source = source
     error.translated = True
-    exc_info = (type(error), error, None)
+    exc_info = (error.__class__, error, None)
     filename = error.filename
     if filename is None:
         filename = '<unknown>'
@@ -193,8 +202,7 @@ def fake_exc_info(exc_info, filename, lineno):
     }
 
     # and fake the exception
-    code = compile('\n' * (lineno - 1) + 'raise __jinja_exception__[0], ' +
-                   '__jinja_exception__[1]', filename, 'exec')
+    code = compile('\n' * (lineno - 1) + raise_helper, filename, 'exec')
 
     # if it's possible, change the name of the code.  This won't work
     # on some python environments such as google appengine

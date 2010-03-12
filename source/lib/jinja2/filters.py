@@ -5,7 +5,7 @@
 
     Bundled jinja filters.
 
-    :copyright: (c) 2009 by the Jinja Team.
+    :copyright: (c) 2010 by the Jinja Team.
     :license: BSD, see LICENSE for more details.
 """
 import re
@@ -18,7 +18,7 @@ from jinja2.runtime import Undefined
 from jinja2.exceptions import FilterArgumentError, SecurityError
 
 
-_word_re = re.compile(r'\w+')
+_word_re = re.compile(r'\w+(?u)')
 
 
 def contextfilter(f):
@@ -531,9 +531,17 @@ def do_round(value, precision=0, method='common'):
     .. sourcecode:: jinja
 
         {{ 42.55|round }}
-            -> 43
+            -> 43.0
         {{ 42.55|round(1, 'floor') }}
             -> 42.5
+
+    Note that even if rounded to 0 precision, a float is returned.  If
+    you need a real integer, pipe it through `int`:
+
+    .. sourcecode:: jinja
+
+        {{ 42.55|round|int }}
+            -> 43
     """
     if not method in ('common', 'ceil', 'floor'):
         raise FilterArgumentError('method must be common, ceil or floor')

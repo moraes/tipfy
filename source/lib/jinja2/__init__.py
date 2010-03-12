@@ -23,7 +23,7 @@
         {% endblock %}
 
 
-    :copyright: (c) 2009 by the Jinja Team.
+    :copyright: (c) 2010 by the Jinja Team.
     :license: BSD, see LICENSE for more details.
 """
 __docformat__ = 'restructuredtext en'
@@ -38,7 +38,8 @@ from jinja2.environment import Environment, Template
 
 # loaders
 from jinja2.loaders import BaseLoader, FileSystemLoader, PackageLoader, \
-     DictLoader, FunctionLoader, PrefixLoader, ChoiceLoader
+     DictLoader, FunctionLoader, PrefixLoader, ChoiceLoader, \
+     ModuleLoader
 
 # bytecode caches
 from jinja2.bccache import BytecodeCache, FileSystemBytecodeCache, \
@@ -49,7 +50,8 @@ from jinja2.runtime import Undefined, DebugUndefined, StrictUndefined
 
 # exceptions
 from jinja2.exceptions import TemplateError, UndefinedError, \
-     TemplateNotFound, TemplateSyntaxError, TemplateAssertionError
+     TemplateNotFound, TemplatesNotFound, TemplateSyntaxError, \
+     TemplateAssertionError
 
 # decorators and public utilities
 from jinja2.filters import environmentfilter, contextfilter
@@ -62,7 +64,7 @@ __all__ = [
     'ChoiceLoader', 'BytecodeCache', 'FileSystemBytecodeCache',
     'MemcachedBytecodeCache', 'Undefined', 'DebugUndefined',
     'StrictUndefined', 'TemplateError', 'UndefinedError', 'TemplateNotFound',
-    'TemplateSyntaxError', 'TemplateAssertionError', 'environmentfilter',
-    'contextfilter', 'Markup', 'escape', 'environmentfunction',
-    'contextfunction', 'clear_caches', 'is_undefined'
+    'TemplatesNotFound', 'TemplateSyntaxError', 'TemplateAssertionError',
+    'ModuleLoader', 'environmentfilter', 'contextfilter', 'Markup', 'escape',
+    'environmentfunction', 'contextfunction', 'clear_caches', 'is_undefined'
 ]

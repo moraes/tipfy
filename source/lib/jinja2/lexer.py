@@ -11,14 +11,14 @@
     operators we don't allow in templates. On the other hand it separates
     template code and python code in expressions.
 
-    :copyright: (c) 2009 by the Jinja Team.
+    :copyright: (c) 2010 by the Jinja Team.
     :license: BSD, see LICENSE for more details.
 """
 import re
 from operator import itemgetter
 from collections import deque
 from jinja2.exceptions import TemplateSyntaxError
-from jinja2.utils import LRUCache
+from jinja2.utils import LRUCache, next
 
 
 # cache for the lexers. Exists in order to be able to have multiple
@@ -30,7 +30,18 @@ whitespace_re = re.compile(r'\s+', re.U)
 string_re = re.compile(r"('([^'\\]*(?:\\.[^'\\]*)*)'"
                        r'|"([^"\\]*(?:\\.[^"\\]*)*)")', re.S)
 integer_re = re.compile(r'\d+')
-name_re = re.compile(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b')
+
+# we use the unicode identifier rule if this python version is able
+# to handle unicode identifiers, otherwise the standard ASCII one.
+try:
+    compile('föö', '<unknown>', 'eval')
+except SyntaxError:
+    name_re = re.compile(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b')
+else:
+    from jinja2 import _stringdefs
+    name_re = re.compile(r'[%s][%s]*' % (_stringdefs.xid_start,
+                                         _stringdefs.xid_continue))
+
 float_re = re.compile(r'(?<!\.)\d+\.\d+')
 newline_re = re.compile(r'(\r\n|\r|\n)')
 
@@ -126,6 +137,43 @@ ignored_tokens = frozenset([TOKEN_COMMENT_BEGIN, TOKEN_COMMENT,
                             TOKEN_LINECOMMENT_END, TOKEN_LINECOMMENT])
 ignore_if_empty = frozenset([TOKEN_WHITESPACE, TOKEN_DATA,
                              TOKEN_COMMENT, TOKEN_LINECOMMENT])
+
+
+def _describe_token_type(token_type):
+    if token_type in reverse_operators:
+        return reverse_operators[token_type]
+    return {
+        TOKEN_COMMENT_BEGIN:        'begin of comment',
+        TOKEN_COMMENT_END:          'end of comment',
+        TOKEN_COMMENT:              'comment',
+        TOKEN_LINECOMMENT:          'comment',
+        TOKEN_BLOCK_BEGIN:          'begin of statement block',
+        TOKEN_BLOCK_END:            'end of statement block',
+        TOKEN_VARIABLE_BEGIN:       'begin of print statement',
+        TOKEN_VARIABLE_END:         'end of print statement',
+        TOKEN_LINESTATEMENT_BEGIN:  'begin of line statement',
+        TOKEN_LINESTATEMENT_END:    'end of line statement',
+        TOKEN_DATA:                 'template data / text',
+        TOKEN_EOF:                  'end of template'
+    }.get(token_type, token_type)
+
+
+def describe_token(token):
+    """Returns a description of the token."""
+    if token.type == 'name':
+        return token.value
+    return _describe_token_type(token.type)
+
+
+def describe_token_expr(expr):
+    """Like `describe_token` but for token expressions."""
+    if ':' in expr:
+        type, value = expr.split(':', 1)
+        if type == 'name':
+            return value
+    else:
+        type = expr
+    return _describe_token_type(type)
 
 
 def count_newlines(value):
@@ -230,7 +278,7 @@ class TokenStreamIterator(object):
         if token.type is TOKEN_EOF:
             self.stream.close()
             raise StopIteration()
-        self.stream.next()
+        next(self.stream)
         return token
 
 
@@ -247,16 +295,15 @@ class TokenStream(object):
         self.filename = filename
         self.closed = False
         self.current = Token(1, TOKEN_INITIAL, '')
-        self.next()
+        next(self)
 
     def __iter__(self):
         return TokenStreamIterator(self)
 
     def __nonzero__(self):
-        """Are we at the end of the stream?"""
         return bool(self._pushed) or self.current.type is not TOKEN_EOF
 
-    eos = property(lambda x: not x.__nonzero__(), doc=__nonzero__.__doc__)
+    eos = property(lambda x: not x, doc="Are we at the end of the stream?")
 
     def push(self, token):
         """Push a token back to the stream."""
@@ -264,7 +311,7 @@ class TokenStream(object):
 
     def look(self):
         """Look at the next token."""
-        old_token = self.next()
+        old_token = next(self)
         result = self.current
         self.push(result)
         self.current = old_token
@@ -273,14 +320,14 @@ class TokenStream(object):
     def skip(self, n=1):
         """Got n tokens ahead."""
         for x in xrange(n):
-            self.next()
+            next(self)
 
     def next_if(self, expr):
         """Perform the token test and return the token if it matched.
         Otherwise the return value is `None`.
         """
         if self.current.test(expr):
-            return self.next()
+            return next(self)
 
     def skip_if(self, expr):
         """Like :meth:`next_if` but only returns `True` or `False`."""
@@ -309,21 +356,20 @@ class TokenStream(object):
         argument as :meth:`jinja2.lexer.Token.test`.
         """
         if not self.current.test(expr):
-            if ':' in expr:
-                expr = expr.split(':')[1]
+            expr = describe_token_expr(expr)
             if self.current.type is TOKEN_EOF:
                 raise TemplateSyntaxError('unexpected end of template, '
                                           'expected %r.' % expr,
                                           self.current.lineno,
                                           self.name, self.filename)
             raise TemplateSyntaxError("expected token %r, got %r" %
-                                      (expr, str(self.current)),
+                                      (expr, describe_token(self.current)),
                                       self.current.lineno,
                                       self.name, self.filename)
         try:
             return self.current
         finally:
-            self.next()
+            next(self)
 
 
 def get_lexer(environment):
@@ -484,7 +530,8 @@ class Lexer(object):
                     raise TemplateSyntaxError(msg, lineno, name, filename)
                 # if we can express it as bytestring (ascii only)
                 # we do that for support of semi broken APIs
-                # as datetime.datetime.strftime
+                # as datetime.datetime.strftime.  On python 3 this
+                # call becomes a noop thanks to 2to3
                 try:
                     value = str(value)
                 except UnicodeError:
@@ -572,13 +619,13 @@ class Lexer(object):
                             balancing_stack.append(']')
                         elif data in ('}', ')', ']'):
                             if not balancing_stack:
-                                raise TemplateSyntaxError('unexpected "%s"' %
+                                raise TemplateSyntaxError('unexpected \'%s\'' %
                                                           data, lineno, name,
                                                           filename)
                             expected_op = balancing_stack.pop()
                             if expected_op != data:
-                                raise TemplateSyntaxError('unexpected "%s", '
-                                                          'expected "%s"' %
+                                raise TemplateSyntaxError('unexpected \'%s\', '
+                                                          'expected \'%s\'' %
                                                           (data, expected_op),
                                                           lineno, name,
                                                           filename)

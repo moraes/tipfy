@@ -8,6 +8,7 @@
     :copyright: (c) 2010 by the Jinja Team.
     :license: BSD, see LICENSE for more details.
 """
+import os
 import sys
 from jinja2 import nodes
 from jinja2.defaults import *
@@ -539,7 +540,8 @@ class Environment(object):
                     info.external_attr = 0755 << 16L
                     f.writestr(info, code)
                 else:
-                    f = open(filename, 'w')
+                    f = open(os.path.join(target, module), 'w')
+                    #f = open(filename, 'w')
                     try:
                         f.write(code)
                     finally:

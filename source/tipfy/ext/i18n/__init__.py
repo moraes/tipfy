@@ -104,7 +104,11 @@ def persist_requested_locale(app, request, response):
     :return:
         ``None``.
     """
-    if local.locale and local.locale != get_config(__name__, 'locale'):
+    if not getattr(local, 'locale'):
+        # Locale isn't set.
+        return
+
+    if not is_default_locale():
         # Persist locale using a cookie when it differs from default.
         response.set_cookie('tipfy.locale', value=local.locale,
             max_age=(86400 * 30))
@@ -128,6 +132,11 @@ def set_locale(locale):
 
     local.locale = locale
     local.translations = _translations[locale]
+
+
+def is_default_locale():
+    """Returns ``True`` if locale is set to the default locale."""
+    return getattr(local, 'locale', None) == get_config(__name__, 'locale')
 
 
 def gettext(string):

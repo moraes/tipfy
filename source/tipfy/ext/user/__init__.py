@@ -600,7 +600,7 @@ def _is_auth_endpoint(endpoints):
     :return:
         ``True`` if the current url is the given auth endpoint.
     """
-    if isinstance(endpoints, str):
+    if isinstance(endpoints, basestring):
         endpoints = (endpoints,)
 
     auth_system = get_auth_system()

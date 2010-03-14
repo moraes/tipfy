@@ -682,6 +682,25 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
     return value
 
 
+def normalize_callable(spec):
+    """Many `Tipfy`_ configurations expect a callable or optionally a string
+    with a callable definition to be lazily imported. This function normalizes
+    those definitions, importing the callable if necessary.
+
+    :param spec:
+        A callable or a string with a callable definition to be imported.
+    :return:
+        A callable.
+    """
+    if isinstance(spec, basestring):
+        spec = import_string(spec)
+
+    if not callable(spec):
+        raise ValueError('%s is not a callable.' % str(spec))
+
+    return spec
+
+
 ultimate_sys_path = None
 def fix_sys_path():
     """A fix for issue 772. We must keep this here until it is fixed in the dev

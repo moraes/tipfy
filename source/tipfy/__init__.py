@@ -646,7 +646,7 @@ def render_json_response(obj):
 
 
 _DEFAULT_CONFIG = []
-def get_config(module, key, default=_DEFAULT_CONFIG):
+def get_config(module, key=None, default=_DEFAULT_CONFIG):
     """Returns a configuration value for a module. If it is not already set,
     it will load a ``default_config`` variable from the given module, update the
     app config with those default values and return the value for the given key.

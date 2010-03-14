@@ -8,6 +8,7 @@ import datetime
 from nose.tools import raises
 
 from _base import get_app, get_environ, get_request, get_response
+import tipfy
 from tipfy import local
 from tipfy.ext.i18n import locale, translations, set_locale, gettext, _, \
     ngettext, lazy_gettext, lazy_ngettext, format_datetime, format_time, \
@@ -16,16 +17,14 @@ from tipfy.ext.i18n import locale, translations, set_locale, gettext, _, \
 
 class TestI18n(unittest.TestCase):
     def tearDown(self):
-        local.app = None
-        local.locale = None
-        local.translations = None
+        tipfy.local_manager.cleanup()
 
     #===========================================================================
     # Translations
     #===========================================================================
     def test_set_locale(self):
-        assert local.locale is None
-        assert local.translations is None
+        assert getattr(local, 'locale', None) is None
+        assert getattr(local, 'translations', None) is None
 
         set_locale('pt_BR')
         assert local.locale == 'pt_BR'

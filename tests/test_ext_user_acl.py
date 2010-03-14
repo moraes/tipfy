@@ -8,6 +8,7 @@ from google.appengine.api import memcache
 from gaetestbed import DataStoreTestCase, MemcacheTestCase
 from nose.tools import assert_raises
 
+import tipfy
 from tipfy.ext.user.acl import Acl, AclRules, _rules_map
 
 
@@ -24,6 +25,7 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         _rules_map.clear()
 
     def tearDown(self):
+        tipfy.local_manager.cleanup()
         self.app.config['tipfy']['dev'] = True
 
         Acl.roles_map = {}
@@ -112,7 +114,7 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         Acl.roles_lock = None
         acl2 = Acl('foo', 'foo')
 
-        assert Acl.roles_lock == self.app.config.get('tipfy', 'version_id')
+        assert acl2.roles_lock == self.app.config.get('tipfy', 'version_id')
 
     def test_set_invalid_rules(self):
         rules = {}

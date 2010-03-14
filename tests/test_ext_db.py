@@ -9,6 +9,7 @@ from nose.tools import raises, assert_raises
 from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase
 
+import tipfy
 from tipfy import NotFound
 from tipfy.ext.db import get_entity_from_protobuf, get_protobuf_from_entity, \
     populate_entity, get_by_key_name_or_404, get_by_id_or_404, get_or_404, \
@@ -67,6 +68,9 @@ def test_timeout_3(**kwargs):
 
 
 class TestModel(DataStoreTestCase, unittest.TestCase):
+    def tearDown(self):
+        tipfy.local_manager.cleanup()
+
     def test_no_protobuf_from_entity(self):
         res_1 = get_protobuf_from_entity([])
         assert res_1 is None

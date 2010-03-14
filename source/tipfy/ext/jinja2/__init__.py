@@ -10,8 +10,6 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from os import path
-
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from tipfy import local, get_config, url_for

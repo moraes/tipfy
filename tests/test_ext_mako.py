@@ -6,7 +6,7 @@ import os
 import unittest
 from _base import get_app, get_environ, get_request, get_response
 
-
+import tipfy
 from tipfy import local, Response
 from tipfy.ext.mako import get_lookup, render_template, render_response, \
     TemplateLookup
@@ -17,6 +17,9 @@ templates_dir = os.path.join(current_dir, 'files', 'mako')
 
 
 class TestMako(unittest.TestCase):
+    def tearDown(self):
+        tipfy.local_manager.cleanup()
+
     def test_get_lookup(self):
         app = get_app({'tipfy.ext.mako': {'templates_dir': templates_dir}})
         assert isinstance(get_lookup(), TemplateLookup)

@@ -11,6 +11,7 @@ from werkzeug import Request, Response
 from werkzeug.test import Client
 
 from _base import get_app, get_environ, get_request, get_response, teardown
+import tipfy
 from tipfy import local, request, response, Rule, RequestHandler
 from tipfy.ext.messages import Messages, get_flash, set_flash
 
@@ -49,7 +50,7 @@ def get_app_environ_request_response(**kwargs):
 
 class TestMessages(unittest.TestCase):
     def tearDown(self):
-        teardown()
+        tipfy.local_manager.cleanup()
 
     def test_messages_init(self):
         pass

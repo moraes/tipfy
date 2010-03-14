@@ -6,6 +6,7 @@ import unittest
 from nose.tools import raises
 
 from _base import get_app, get_environ, get_request, get_response
+import tipfy
 from tipfy import local, render_json_response, Response, RequestHandler, \
     MethodNotAllowed
 
@@ -18,6 +19,9 @@ class Handler1(RequestHandler):
 
 
 class TestRequestHandler(unittest.TestCase):
+    def tearDown(self):
+        tipfy.local_manager.cleanup()
+
     def test_dispatch(self):
         handler = Handler1()
         assert handler.dispatch('get', some_arg='test') == 'handler1-get-test'
@@ -32,6 +36,9 @@ class TestRequestHandler(unittest.TestCase):
 
 
 class TestMiscelaneous(unittest.TestCase):
+    def tearDown(self):
+        tipfy.local_manager.cleanup()
+
     def test_render_json_response(self):
         local.response = get_response()
         response = render_json_response({'foo': 'bar'})

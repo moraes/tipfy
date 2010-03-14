@@ -60,7 +60,7 @@
 from google.appengine.ext import db
 from google.appengine.api import memcache
 
-from tipfy import app, get_config
+from tipfy import get_config
 from tipfy.ext.db import PickleProperty
 
 #: Cache for loaded rules.
@@ -124,11 +124,9 @@ class AclRules(db.Model):
         return db.run_in_transaction(txn)
 
     @classmethod
-    def get_roles_and_rules(cls, area, user, roles_map):
+    def get_roles_and_rules(cls, area, user, roles_map, roles_lock):
         """Returns a tuple (roles, rules) for a given user in a given area."""
         res = None
-        roles_lock = 'undefined'
-
         cache_key = cls.get_key_name(area, user)
         if cache_key in _rules_map:
             res = _rules_map[cache_key]
@@ -136,13 +134,12 @@ class AclRules(db.Model):
             res = memcache.get(cache_key, namespace=cls.__name__)
 
         if res is not None:
-            roles_lock, roles, rules = res
+            lock, roles, rules = res
 
-        if res is None or roles_lock != Acl.roles_lock or \
-            get_config('tipfy', 'dev'):
+        if res is None or lock != roles_lock or get_config('tipfy', 'dev'):
             entity = cls.get_by_key_name(cache_key)
             if entity is None:
-                res = (Acl.roles_lock, [], [])
+                res = (roles_lock, [], [])
             else:
                 rules = []
                 # Apply role rules.
@@ -156,7 +153,7 @@ class AclRules(db.Model):
                 rules.reverse()
 
                 # Set results for cache, applying current roles_lock.
-                res = (Acl.roles_lock, entity.roles, rules)
+                res = (roles_lock, entity.roles, rules)
 
             cls.set_cache(cache_key, res)
 
@@ -212,31 +209,39 @@ class Acl(object):
         can_edit = acl.has_access('EditReview', 'approve')
     """
     #: Dictionary of available role names mapping to list of rules.
-    #: This is a class attribute.
     roles_map = {}
 
     #: Lock for role changes. This is needed because if role definitions change
     #: we must invalidate existing cache that applied the previous definitions.
-    #: This is a class attribute.
     roles_lock = None
 
-    def __init__(self, area, user):
+    def __init__(self, area, user, roles_map=None, roles_lock=None):
         """Loads access privileges and roles for a given user in a given area.
 
         :param area:
             An area identifier, as a string.
         :param user:
             An user identifier, as a string.
+        :param roles_map:
+            A dictionary of roles mapping to a list of rule tuples.
+        :param roles_lock:
+            Roles lock string to validate cache. If not set, uses the
+            application version id.
         """
+        if roles_map is not None:
+            self.roles_map = roles_map
+
+        if roles_lock is not None:
+            self.roles_lock = roles_lock
+        elif self.roles_lock is None:
+            # Set roles_lock default.
+            self.roles_lock = get_config('tipfy', 'version_id')
+
         if area and user:
             self._roles, self._rules = AclRules.get_roles_and_rules(area, user,
-                self.roles_map)
+                self.roles_map, self.roles_lock)
         else:
             self.reset()
-
-        # Set roles_lock default..
-        if self.__class__.roles_lock is None:
-           self.__class__.roles_lock = app.config.get('tipfy', 'version_id')
 
     def reset(self):
         """Resets the currently loaded access rules and user roles.

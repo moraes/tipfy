@@ -3,18 +3,32 @@
     Tests for tipfy.Config and tipfy.get_config.
 """
 import unittest
+
 from nose.tools import assert_raises, raises
 
-from _base import get_app, teardown
-from tipfy import Config, default_config, get_config, REQUIRED_CONFIG
+import tipfy
 
 
 class TestConfig(unittest.TestCase):
     def tearDown(self):
-        teardown()
+        tipfy.local_manager.cleanup()
 
     def test_get_existing_keys(self):
-        config = Config({'foo': {
+        config = tipfy.Config({'foo': {
+            'bar': 'baz',
+            'doo': 'ding',
+        }})
+
+        assert config.get('foo', 'bar') == 'baz'
+        assert config.get('foo', 'doo') == 'ding'
+
+    def test_get_non_existing_keys(self):
+        config = tipfy.Config()
+
+        assert config.get('foo', 'bar') is None
+
+    def test_get_dict_existing_keys(self):
+        config = tipfy.Config({'foo': {
             'bar': 'baz',
             'doo': 'ding',
         }})
@@ -24,37 +38,33 @@ class TestConfig(unittest.TestCase):
             'doo': 'ding',
         }
 
-        assert config.get('foo', 'bar') == 'baz'
-        assert config.get('foo', 'doo') == 'ding'
-
-    def test_get_non_existing_keys(self):
-        config = Config()
+    def test_get_dict_non_existing_keys(self):
+        config = tipfy.Config()
 
         assert config.get('bar') is None
-        assert config.get('foo', 'bar') is None
 
     def test_get_with_default(self):
-        config = Config()
+        config = tipfy.Config()
 
         assert config.get('foo', 'bar', 'ooops') == 'ooops'
         assert config.get('foo', 'doo', 'wooo') == 'wooo'
 
     def test_update(self):
-        config = Config({'foo': {
+        config = tipfy.Config({'foo': {
             'bar': 'baz',
             'doo': 'ding',
         }})
 
-        assert config['foo']['bar'] == 'baz'
-        assert config['foo']['doo'] == 'ding'
+        assert config.get('foo', 'bar') == 'baz'
+        assert config.get('foo', 'doo') == 'ding'
 
         config.update('foo', {'bar': 'other'})
 
-        assert config['foo']['bar'] == 'other'
-        assert config['foo']['doo'] == 'ding'
+        assert config.get('foo', 'bar') == 'other'
+        assert config.get('foo', 'doo') == 'ding'
 
     def test_setdefault(self):
-        config = Config()
+        config = tipfy.Config()
 
         assert config.get('foo') is None
 
@@ -63,11 +73,28 @@ class TestConfig(unittest.TestCase):
             'doo': 'ding',
         })
 
-        assert config['foo']['bar'] == 'baz'
-        assert config['foo']['doo'] == 'ding'
+        assert config.get('foo', 'bar') == 'baz'
+        assert config.get('foo', 'doo') == 'ding'
+
+    def test_setdefault2(self):
+        config = tipfy.Config({'foo': {
+            'bar': 'baz',
+        }})
+
+        assert config.get('foo') == {
+            'bar': 'baz',
+        }
+
+        config.setdefault('foo', {
+            'bar': 'wooo',
+            'doo': 'ding',
+        })
+
+        assert config.get('foo', 'bar') == 'baz'
+        assert config.get('foo', 'doo') == 'ding'
 
     def test_setitem(self):
-        config = Config()
+        config = tipfy.Config()
 
         def setitem(key, value):
             config[key] = value
@@ -76,25 +103,25 @@ class TestConfig(unittest.TestCase):
         assert setitem('foo', {'bar': 'baz'}) == {'foo': {'bar': 'baz'}}
 
     def test_init_no_dict_values(self):
-        assert_raises(AssertionError, Config, {'foo': 'bar'})
-        assert_raises(AssertionError, Config, {'foo': None})
-        assert_raises(AssertionError, Config, 'foo')
+        assert_raises(AssertionError, tipfy.Config, {'foo': 'bar'})
+        assert_raises(AssertionError, tipfy.Config, {'foo': None})
+        assert_raises(AssertionError, tipfy.Config, 'foo')
 
     def test_update_no_dict_values(self):
-        config = Config()
+        config = tipfy.Config()
 
         assert_raises(AssertionError, config.update, {'foo': 'bar'}, 'baz')
         assert_raises(AssertionError, config.update, {'foo': None}, 'baz')
         assert_raises(AssertionError, config.update, 'foo', 'bar')
 
     def test_setdefault_no_dict_values(self):
-        config = Config()
+        config = tipfy.Config()
 
         assert_raises(AssertionError, config.setdefault, 'foo', 'bar')
         assert_raises(AssertionError, config.setdefault, 'foo', None)
 
     def test_setitem_no_dict_values(self):
-        config = Config()
+        config = tipfy.Config()
 
         def setitem(key, value):
             config[key] = value
@@ -106,21 +133,21 @@ class TestConfig(unittest.TestCase):
 
 class TestGetConfig(unittest.TestCase):
     def tearDown(self):
-        teardown()
+        tipfy.local_manager.cleanup()
 
     def test_default_config(self):
-        app = get_app({})
+        app = tipfy.WSGIApplication()
 
         from tipfy.ext.jinja2 import default_config as jinja2_config
         from tipfy.ext.i18n import default_config as i18n_config
 
-        assert get_config('tipfy', 'dev') == default_config['dev']
-        assert get_config('tipfy.ext.jinja2', 'templates_dir') == jinja2_config['templates_dir']
-        assert get_config('tipfy.ext.i18n', 'locale') == i18n_config['locale']
-        assert get_config('tipfy.ext.i18n', 'timezone') == i18n_config['timezone']
+        assert tipfy.get_config('tipfy', 'dev') == tipfy.default_config['dev']
+        assert tipfy.get_config('tipfy.ext.jinja2', 'templates_dir') == jinja2_config['templates_dir']
+        assert tipfy.get_config('tipfy.ext.i18n', 'locale') == i18n_config['locale']
+        assert tipfy.get_config('tipfy.ext.i18n', 'timezone') == i18n_config['timezone']
 
     def test_override_config(self):
-        app = get_app({
+        app = tipfy.WSGIApplication({
             'tipfy': {
                 'dev': True,
             },
@@ -133,32 +160,42 @@ class TestGetConfig(unittest.TestCase):
             },
         })
 
-        assert get_config('tipfy', 'dev') is True
-        assert get_config('tipfy.ext.jinja2', 'templates_dir') == 'apps/templates'
-        assert get_config('tipfy.ext.i18n', 'locale') == 'pt_BR'
-        assert get_config('tipfy.ext.i18n', 'timezone') == 'America/Sao_Paulo'
+        assert tipfy.get_config('tipfy', 'dev') is True
+        assert tipfy.get_config('tipfy.ext.jinja2', 'templates_dir') == 'apps/templates'
+        assert tipfy.get_config('tipfy.ext.i18n', 'locale') == 'pt_BR'
+        assert tipfy.get_config('tipfy.ext.i18n', 'timezone') == 'America/Sao_Paulo'
 
     def test_override_config2(self):
-        app = get_app({
+        app = tipfy.WSGIApplication({
             'tipfy.ext.i18n': {
                 'timezone': 'America/Sao_Paulo',
             },
         })
 
-        assert get_config('tipfy.ext.i18n', 'locale') == 'en_US'
-        assert get_config('tipfy.ext.i18n', 'timezone') == 'America/Sao_Paulo'
+        assert tipfy.get_config('tipfy.ext.i18n', 'locale') == 'en_US'
+        assert tipfy.get_config('tipfy.ext.i18n', 'timezone') == 'America/Sao_Paulo'
+
+    @raises(ValueError)
+    def test_required_config(self):
+        app = tipfy.WSGIApplication()
+        assert tipfy.get_config('foo', 'bar', tipfy.REQUIRED_CONFIG) == 'baz'
+
+    @raises(ValueError)
+    def test_required_config2(self):
+        app = tipfy.WSGIApplication()
+        assert tipfy.get_config('tipfy.ext.session', 'secret_key') == 'baz'
 
     @raises(ValueError)
     def test_missing_config(self):
-        app = get_app({})
-        assert get_config('tipfy.ext.i18n', 'i_dont_exist') == 'en_US'
+        app = tipfy.WSGIApplication()
+        assert tipfy.get_config('tipfy.ext.i18n', 'i_dont_exist') == 'baz'
 
     @raises(AttributeError)
     def test_missing_default_config(self):
-        app = get_app({})
-        assert get_config('tipfy.ext.db', 'foo') == 'en_US'
+        app = tipfy.WSGIApplication()
+        assert tipfy.get_config('tipfy.ext.db', 'foo') == 'baz'
 
     @raises(ImportError)
     def test_missing_module(self):
-        app = get_app({})
-        assert get_config('i_dont_exist', 'i_dont_exist') == 'en_US'
+        app = tipfy.WSGIApplication()
+        assert tipfy.get_config('i_dont_exist', 'i_dont_exist') == 'baz'

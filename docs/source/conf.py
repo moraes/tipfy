@@ -18,11 +18,12 @@ import sys, os
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 source_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'source'))
 lib_path = os.path.join(source_path, 'lib')
-sys.path.append(source_path)
-sys.path.append(lib_path)
-sys.path.append('/usr/local/google_appengine')
-sys.path.append('/usr/local/google_appengine/lib/yaml/lib')
-sys.path.append('/usr/local/google_appengine/lib/django')
+
+sys.path.insert(0, '/usr/local/google_appengine/lib/django')
+sys.path.insert(0, '/usr/local/google_appengine/lib/yaml/lib')
+sys.path.insert(0, '/usr/local/google_appengine')
+sys.path.insert(0, source_path)
+sys.path.insert(0, lib_path)
 
 # -- General configuration -----------------------------------------------------
 

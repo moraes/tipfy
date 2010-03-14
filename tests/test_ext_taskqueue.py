@@ -10,7 +10,7 @@ from gaetestbed import DataStoreTestCase, TaskQueueTestCase
 
 from _base import get_app, get_environ, get_request
 from tipfy import url_for, Rule
-
+import tipfy
 
 def get_rules():
     # Fake get_rules() for testing.
@@ -28,3 +28,5 @@ class FooModel(db.Model):
 
 class TestTasks(DataStoreTestCase, TaskQueueTestCase, unittest.TestCase):
     """TODO"""
+    def tearDown(self):
+        tipfy.local_manager.cleanup()

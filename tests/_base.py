@@ -20,36 +20,34 @@ if APP_PATH not in sys.path:
     sys.path.insert(0, LIB_PATH)
     sys.path.insert(0, APP_PATH)
 
+import tipfy
+import werkzeug
 
 def teardown():
-    from tipfy import local_manager
-    local_manager.cleanup()
+    tipfy.local_manager.cleanup()
 
 
 def get_app(config=None):
-    from tipfy import WSGIApplication
     if config is None:
         from config import config
 
-    return WSGIApplication(config)
+    return tipfy.WSGIApplication(config)
 
 
 def get_environ(*args, **kwargs):
-    from os import environ
     from werkzeug.test import create_environ
     path = kwargs.get('path', '/')
     if 'base_url' not in kwargs:
-        kwargs['base_url'] = 'http://%s%s' % (environ.get('HTTP_HOST',
+        kwargs['base_url'] = 'http://%s%s' % (os.environ.get('HTTP_HOST',
             'localhost:8080'), path)
 
     return create_environ(*args, **kwargs)
 
 
 def get_request(environ):
-    from werkzeug import Request
-    return Request(environ)
+    return werkzeug.Request(environ)
 
 
 def get_response():
-    from werkzeug import Response
-    return Response()
+
+    return werkzeug.Response()

@@ -6,6 +6,7 @@ import unittest
 from types import FunctionType
 
 from _base import get_app, get_environ, get_request, get_response
+import tipfy
 from tipfy import HookHandler, LazyCallable
 
 
@@ -23,6 +24,9 @@ def event_callable_4(name):
 
 
 class TestLazyCallable(unittest.TestCase):
+    def tearDown(self):
+        tipfy.local_manager.cleanup()
+
     def test_hook_init(self):
         hook_spec = 'foo'
         event_hook = LazyCallable(hook_spec)

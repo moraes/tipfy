@@ -12,7 +12,7 @@ from werkzeug.test import Client
 
 from _base import get_app, get_environ, get_request, get_response, teardown
 import tipfy
-from tipfy import local, request, response, Rule, RequestHandler
+from tipfy import local, request, response, Rule, RequestHandler, Map
 from tipfy.ext.messages import Messages, get_flash, set_flash
 
 
@@ -28,10 +28,13 @@ class SetFlashHandler_1(RequestHandler):
         response.data = str(self.messages)
         return response
 
+def get_url_map():
+    # Fake get_rules() for testing.
+    rules = [
+        Rule('/', endpoint='home', handler='%s:SetFlashHandler_1' % __name__),
+    ]
 
-def get_rules():
-    return [Rule('/', endpoint='home', handler='%s:SetFlashHandler_1' % __name__)]
-
+    return Map(rules)
 
 def get_app_environ_request_response(**kwargs):
     app = get_app({
@@ -39,7 +42,7 @@ def get_app_environ_request_response(**kwargs):
             'extensions': [
                 'tipfy.ext.i18n',
             ],
-            'urls': '%s:get_rules' % __name__
+            'url_map': get_url_map(),
         },
     })
     environ = get_environ(**kwargs)

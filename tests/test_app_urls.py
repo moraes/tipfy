@@ -7,22 +7,24 @@ import unittest
 from nose.tools import raises
 
 from _base import get_app, get_environ, get_request, get_response
-from tipfy import local, redirect, redirect_to, url_for, NotFound, Rule
+from tipfy import local, redirect, redirect_to, url_for, NotFound, Rule, Map
 import tipfy
 
-def get_rules():
+def get_url_map():
     # Fake get_rules() for testing.
-    return [
+    rules = [
         Rule('/', endpoint='home', handler='test.home:HomeHandler'),
         Rule('/people/<string:username>', endpoint='profile',
             handler='test.profile:ProfileHandler'),
     ]
 
+    return Map(rules)
+
 
 def get_app_environ_request(**kwargs):
     app = get_app({
         'tipfy': {
-            'urls': '%s:get_rules' % __name__
+            'url_map': get_url_map(),
         },
     })
     environ = get_environ(**kwargs)

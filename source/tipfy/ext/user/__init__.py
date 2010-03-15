@@ -317,6 +317,10 @@ class MultiAuth(BaseAuth):
                 'remember': str(int(remember)),
             })
             res = True
+
+            import logging
+            logging.info('$' * 500)
+            logging.info(local.user_session)
         else:
             local.user = None
             local.user_session = None

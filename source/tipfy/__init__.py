@@ -20,8 +20,8 @@ from werkzeug.exceptions import HTTPException, BadRequest, Unauthorized, \
     Gone, LengthRequired, PreconditionFailed, RequestEntityTooLarge, \
     RequestURITooLarge, UnsupportedMediaType, InternalServerError, \
     NotImplemented, BadGateway, ServiceUnavailable
-from werkzeug.routing import Map, Rule as WerkzeugRule, Submount, \
-    EndpointPrefix, RuleTemplate, RequestRedirect
+from werkzeug.routing import BaseConverter, EndpointPrefix, Map, \
+    Rule as WerkzeugRule, RequestRedirect, RuleTemplate, Submount
 
 # Variable store for a single request.
 local = Local()
@@ -57,13 +57,13 @@ REQUIRED_CONFIG = []
 #:     initialized. Extensions can then setup app hooks or perform other
 #:     initializations. See `Extensions` in the documentation for a
 #:     complete explanation. Default is an empty list.
-#:   - ``urls``: A lazy callable, defined as a string, that returns the list of
-#:     URL rules to be used by the application. Default is `urls:get_rules`.
 #:   - ``server_name``: A server name hint, used to calculate current subdomain.
 #:     If you plan to use dynamic subdomains, you must define the main domain
 #:     here so that the subdomain can be extracted and applied to URL rules..
 #:   - ``subdomain``: Force this subdomain to be used instead of extracting
 #:     the subdomain from the current url.
+#:   - ``url_map``: A ``werkzeug.routing.Map`` with the URL rules defined for
+#:     the application. If not set, build one with rules defined in ``urls.py``.
 default_config = {
     'sitename': 'MyApp',
     'admin_email': None,
@@ -73,11 +73,11 @@ default_config = {
     'apps_installed': [],
     'apps_entry_points': {},
     'extensions': [],
-    'urls': 'urls:get_rules',
     'server_name': None,
     'subdomain': None,
+    'url_map': None,
     # Undocumented for now.
-    'map_kwargs': {},
+    'url_map_kwargs': {},
 }
 
 
@@ -104,6 +104,11 @@ class RequestHandler(object):
 
 
 class WSGIApplication(object):
+    #: Default class for requests.
+    request_class = Request
+    #: Default class for responses.
+    response_class = Response
+
     def __init__(self, config=None):
         """Initializes the application.
 
@@ -118,7 +123,9 @@ class WSGIApplication(object):
         self.config.setdefault(__name__, default_config)
 
         # Set the url rules.
-        self.url_map = get_url_map(self)
+        self.url_map = self.config.get(__name__, 'url_map')
+        if not self.url_map:
+            self.url_map = self.get_url_map()
 
         # Cache for loaded handler classes.
         self.handlers = {}
@@ -137,12 +144,12 @@ class WSGIApplication(object):
             if request is not None:
                 break
         else:
-            request = Request(environ)
+            request = self.request_class(environ)
 
         # Set local variables for a single request.
         local.app = self
         local.request = request
-        local.response = Response()
+        local.response = self.response_class()
 
         # Bind url map to the current request location.
         self.url_adapter = self.url_map.bind_to_environ(environ,
@@ -205,6 +212,27 @@ class WSGIApplication(object):
 
         # Call the response object as a WSGI application.
         return response(environ, start_response)
+
+    def get_url_map(self):
+        """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
+        application. Rules are cached in production; the cache is automatically
+        renewed on each deployment.
+
+        :return:
+            A ``werkzeug.routing.Map`` instance.
+        """
+        from google.appengine.api import memcache
+        config = self.config.get(__name__)
+        key = 'wsgi_app.rules.%s' % config.get('version_id')
+        rules = memcache.get(key)
+        if not rules or config.get('dev'):
+            rules = import_string('urls:get_rules')()
+            try:
+                memcache.set(key, rules)
+            except:
+                logging.info('Failed to save wsgi_app.rules to memcache.')
+
+        return Map(rules, **config.get('url_map_kwargs'))
 
 
 class Config(dict):
@@ -463,7 +491,21 @@ class Rule(WerkzeugRule):
             defaults = dict(self.defaults)
         return Rule(self.rule, defaults, self.subdomain, self.methods,
                     self.build_only, self.endpoint, self.strict_slashes,
-                    self.redirect_to, handler=self.handler)
+                    self.redirect_to, self.handler)
+
+
+# Extra URL rule converter from
+# http://groups.google.com/group/pocoo-libs/browse_thread/thread/ff5a3fddee12a955/
+class RegexConverter(BaseConverter):
+    """Matches a regular expression::
+
+       Rule('/<regex(".*$"):name>')
+    """
+    def __init__(self, map, *items):
+        BaseConverter.__init__(self, map)
+        self.regex = items[0]
+Map.default_converters = dict(Map.default_converters)
+Map.default_converters['regex'] = RegexConverter
 
 
 class PatchedCGIHandler(CGIHandler):
@@ -473,29 +515,6 @@ class PatchedCGIHandler(CGIHandler):
     def __init__(self):
         self.os_environ = {}
         CGIHandler.__init__(self)
-
-
-def get_url_map(app):
-    """Returns a ``werkzeug.routing.Map`` with the URL rules defined for the
-    application. Rules are cached in production and renewed on each deployment.
-
-    :param app:
-        A :class:`WSGIApplication` instance.
-    :return:
-        A ``werkzeug.Map`` instance with the loaded URL rules.
-    """
-    from google.appengine.api import memcache
-    key = 'wsgi_app.rules.%s' % app.config.get(__name__, 'version_id')
-    rules = memcache.get(key)
-    if not rules or app.config.get(__name__, 'dev'):
-        rules = import_string(app.config.get(__name__, 'urls'))()
-
-        try:
-            memcache.set(key, rules)
-        except:
-            logging.info('Failed to save wsgi_app.rules to memcache.')
-
-    return Map(rules, **app.config.get(__name__, 'map_kwargs'))
 
 
 def make_wsgi_app(config):
@@ -715,3 +734,6 @@ def fix_sys_path():
     else:
         if sys.path != ultimate_sys_path:
             sys.path[:] = ultimate_sys_path
+
+
+# Old imports.

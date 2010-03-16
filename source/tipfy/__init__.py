@@ -491,7 +491,7 @@ class Rule(WerkzeugRule):
             defaults = dict(self.defaults)
         return Rule(self.rule, defaults, self.subdomain, self.methods,
                     self.build_only, self.endpoint, self.strict_slashes,
-                    self.redirect_to, self.handler)
+                    self.redirect_to, handler=self.handler)
 
 
 # Extra URL rule converter from

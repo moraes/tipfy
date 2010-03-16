@@ -13,6 +13,7 @@
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from tipfy import local, get_config, url_for
+from tipfy.ext import i18n
 
 #: Default configuration values for this module. Keys are:
 #:   - ``templates_dir``: Directory for templates. Default is `templates`.
@@ -51,26 +52,25 @@ def get_env():
         # Add url_for() by default.
         _environment.globals.update({'url_for': url_for})
 
-        try:
-            # Install i18n conditionally.
-            _set_i18n(_environment)
-        except (ImportError, AttributeError), e:
-            # i18n is not available.
-            pass
+        # Install i18n.
+        _set_i18n(_environment)
 
     return _environment
 
 
 def _set_i18n(environment):
     """Add the internationalization extension to Jinja2 environment."""
-    from tipfy.ext.i18n import translations, format_date, format_datetime, \
-        format_time
+    if getattr(local, 'locale', None) is None:
+        # At this point i18n should be set, but if it is not let's set it and
+        # avoid errors.
+        i18n.set_requested_locale(local.app, local.request)
+
     environment.globals.update({
-        'format_date':     format_date,
-        'format_time':     format_time,
-        'format_datetime': format_datetime,
+        'format_date':     i18n.format_date,
+        'format_time':     i18n.format_time,
+        'format_datetime': i18n.format_datetime,
     })
-    environment.install_gettext_translations(translations)
+    environment.install_gettext_translations(i18n.translations)
 
 
 def render_template(filename, **context):

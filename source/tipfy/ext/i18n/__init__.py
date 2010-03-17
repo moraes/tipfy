@@ -72,7 +72,43 @@ def setup(app):
         ``None``.
     """
     app.hooks.add('pre_dispatch_handler', set_requested_locale, 0)
-    app.hooks.add('post_dispatch_handler', persist_requested_locale, 0)
+    app.hooks.add('post_dispatch_handler', save_locale_cookie, 0)
+
+
+def get_translations():
+    """Returns the current translations object. Forces loading translations for
+    the current request if it was not set already.
+
+    :return:
+        A ``babel.support.Translations`` object.
+    """
+    if getattr(local, 'translations') is None:
+        try:
+            set_requested_locale(local.app, local.request)
+        except AttributeError, e:
+            set_translations(get_config(__name__, 'locale'))
+
+    return local.translations
+
+
+def set_translations(locale):
+    """Sets the locale and loads a translation for the current request, if not
+    already loaded. Most functions in this module depends on the locale being
+    set to work properly.
+
+    This is called by :func:`pre_dispatch_handler` on each request.
+
+    :param locale:
+        The locale code. For example, ``en_US`` or ``pt_BR``.
+    :return:
+        ``None``.
+    """
+    if locale not in _translations:
+        options = list(set([locale, get_config(__name__, 'locale')]))
+        _translations[locale] = Translations.load('locale', options, 'messages')
+
+    local.locale = locale
+    local.translations = _translations[locale]
 
 
 def set_requested_locale(app, request):
@@ -89,10 +125,10 @@ def set_requested_locale(app, request):
     locale = request.args.get('lang', request.cookies.get(
         'tipfy.locale', get_config(__name__, 'locale')))
 
-    set_locale(locale)
+    set_translations(locale)
 
 
-def persist_requested_locale(app, request, response):
+def save_locale_cookie(app, request, response):
     """Application hook executed right before the response is returned by the
     WSGI application.
 
@@ -114,26 +150,6 @@ def persist_requested_locale(app, request, response):
             max_age=(86400 * 30))
 
 
-def set_locale(locale):
-    """Sets the locale and loads a translation for the current request, if not
-    already loaded. Most functions in this module depends on the locale being
-    set to work properly.
-
-    This is called by :func:`pre_dispatch_handler` on each request.
-
-    :param locale:
-        The locale code. For example, 'en_US' or 'pt_BR'.
-    :return:
-        ``None``.
-    """
-    if locale not in _translations:
-        options = list(set([locale, get_config(__name__, 'locale')]))
-        _translations[locale] = Translations.load('locale', options, 'messages')
-
-    local.locale = locale
-    local.translations = _translations[locale]
-
-
 def is_default_locale():
     """Returns ``True`` if locale is set to the default locale."""
     return getattr(local, 'locale', None) == get_config(__name__, 'locale')
@@ -147,7 +163,7 @@ def gettext(string):
     :return:
         The translated string.
     """
-    return unicode(local.translations.gettext(string), 'utf-8')
+    return unicode(get_translations().gettext(string), 'utf-8')
 
 
 def ngettext(singular, plural, n):
@@ -163,7 +179,7 @@ def ngettext(singular, plural, n):
     :return:
         The translated string.
     """
-    return unicode(local.translations.ngettext(singular, plural, n), 'utf-8')
+    return unicode(get_translations().ngettext(singular, plural, n), 'utf-8')
 
 
 def lazy_gettext(string):
@@ -329,3 +345,6 @@ def to_utc(datetime, timezone=None):
 
 # Common alias to gettext.
 _ = gettext
+# Old names, kept here for backwards compatibility.
+set_locale = set_translations
+persist_requested_locale = save_locale_cookie

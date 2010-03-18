@@ -82,9 +82,16 @@ default_config = {
 
 
 class RequestHandler(object):
-    """Base request handler. Only implements the minimal interface required by
-    :class:`WSGIApplication`.
+    """Base request handler. Implements the minimal interface required by
+    :class:`WSGIApplication`: the ``dispatch()`` method.
     """
+    #: A list of classes or callables that return a middleware object. A
+    #: middleware can implement two methods that are called before and after
+    #: the current request method is executed in the handler:
+    #: ``pre_dispatch()`` and ``post_dispatch()``. They are useful to
+    #: initialize features and post-process the response in a per handler basis.
+    middleware = []
+
     def dispatch(self, action, *args, **kwargs):
         """Executes a handler method. This method is called by the
         WSGIApplication and must always return a response object.
@@ -97,10 +104,31 @@ class RequestHandler(object):
             A ``werkzeug.Response`` object.
         """
         method = getattr(self, action, None)
-        if method:
+        if method is None:
+            raise MethodNotAllowed()
+
+        if not self.middleware:
+            # No middleware defined; simply execute the requested method.
             return method(*args, **kwargs)
 
-        raise MethodNotAllowed()
+        # Initialize every middleware.
+        middleware = [m() for m in self.middleware]
+
+        # Run pre_dispatch() hook on every middleware that implements it.
+        for m in middleware:
+            if getattr(m, 'pre_dispatch', None):
+                m.pre_dispatch(self, action, *args, **kwargs)
+
+        # Execute the requested method.
+        response = method(*args, **kwargs)
+
+        # Run post_dispatch() hook on every middleware that implements it.
+        for m in middleware:
+            if getattr(m, 'post_dispatch', None):
+                m.post_dispatch(self, action, *args, **kwargs)
+
+        # Done!
+        return response
 
 
 class WSGIApplication(object):
@@ -159,20 +187,14 @@ class WSGIApplication(object):
         self.rule = self.rule_args = None
 
         try:
-            # Apply pre-match-url hooks.
-            for res in self.hooks.iter('pre_match_url', self, request):
-                if res is not None:
-                    self.rule, self.rule_args = res
-                    break
-            else:
-                # Check requested method.
-                method = request.method.lower()
-                if method not in ALLOWED_METHODS:
-                    raise MethodNotAllowed()
+            # Check requested method.
+            method = request.method.lower()
+            if method not in ALLOWED_METHODS:
+                raise MethodNotAllowed()
 
-                # Match the path against registered rules.
-                self.rule, self.rule_args = self.url_adapter.match(request.path,
-                    return_rule=True)
+            # Match the path against registered rules.
+            self.rule, self.rule_args = self.url_adapter.match(request.path,
+                return_rule=True)
 
             # Apply pre-dispatch hooks.
             for response in self.hooks.iter('pre_dispatch_handler', self,

@@ -187,14 +187,20 @@ class WSGIApplication(object):
         self.rule = self.rule_args = None
 
         try:
-            # Check requested method.
-            method = request.method.lower()
-            if method not in ALLOWED_METHODS:
-                raise MethodNotAllowed()
+            # Apply pre-match-url hooks.
+            for res in self.hooks.iter('pre_match_url', self, request):
+                if res is not None:
+                    self.rule, self.rule_args = res
+                    break
+            else:
+                # Check requested method.
+                method = request.method.lower()
+                if method not in ALLOWED_METHODS:
+                    raise MethodNotAllowed()
 
-            # Match the path against registered rules.
-            self.rule, self.rule_args = self.url_adapter.match(request.path,
-                return_rule=True)
+                # Match the path against registered rules.
+                self.rule, self.rule_args = self.url_adapter.match(request.path,
+                    return_rule=True)
 
             # Apply pre-dispatch hooks.
             for response in self.hooks.iter('pre_dispatch_handler', self,

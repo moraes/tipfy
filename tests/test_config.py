@@ -201,6 +201,13 @@ class TestGetConfig(unittest.TestCase):
 
         assert tipfy.get_config('foo', 'bar', 'ooops') == None
 
+    def test_get_with_default_and_module_load(self):
+        app = tipfy.WSGIApplication()
+        assert tipfy.get_config('tipfy.ext.i18n', 'locale') == 'en_US'
+
+        app = tipfy.WSGIApplication()
+        assert tipfy.get_config('tipfy.ext.i18n', 'locale', 'foo') == 'foo'
+
     @raises(ValueError)
     def test_required_config(self):
         app = tipfy.WSGIApplication()

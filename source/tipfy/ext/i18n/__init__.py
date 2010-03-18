@@ -24,15 +24,20 @@ from babel.dates import format_date as _format_date, \
     format_datetime as _format_datetime, format_time as _format_time
 from pytz.gae import pytz
 
-from tipfy import local, get_config
+from tipfy import local, get_config, normalize_callable
 
 #: Default configuration values for this module. Keys are:
-#:   - ``locale``: The default locale code. Default is `en_US`.
+#:   - ``locale``: The default locale code. Default is ``en_US``.
 #:   - ``timezone``: The application timezone according to the Olson database.
-#:     Default is `America/Chicago`.
+#:     Default is ``America/Chicago``.
+#:   - ``set_translations_function``: a callable or lazy callable to set the
+#:     translations object used in the current request. This is called
+#:     automatically when translations are needed; if not set,
+#:     :func:`set_translations_from_request` is used. Default is ``None``.
 default_config = {
     'locale':   'en_US',
     'timezone': 'America/Chicago',
+    'set_translations_function': None,
 }
 
 # Proxies to the i18n variables set on each request.
@@ -71,8 +76,22 @@ def setup(app):
     :return:
         ``None``.
     """
-    app.hooks.add('pre_dispatch_handler', set_requested_locale, 0)
+    app.hooks.add('pre_dispatch_handler', _get_set_translations_funtion(), 0)
     app.hooks.add('post_dispatch_handler', save_locale_cookie, 0)
+
+
+def _get_set_translations_funtion():
+    """Returns the function responsible for setting the current translations
+    object.
+
+    :return:
+        A callable.
+    """
+    func = get_config(__name__, 'set_translations_function')
+    if func is None:
+        return set_translations_from_request
+
+    return normalize_callable(func)
 
 
 def get_translations():
@@ -82,19 +101,21 @@ def get_translations():
     :return:
         A ``babel.support.Translations`` object.
     """
-    if getattr(local, 'translations') is None:
+    if getattr(local, 'translations', None) is None:
         try:
-            set_requested_locale(local.app, local.request)
+            # Try to set translations based on the current request.
+            _get_set_translations_funtion()(local.app, local.request)
         except AttributeError, e:
+            # Simply set translations using default locale.
             set_translations(get_config(__name__, 'locale'))
 
     return local.translations
 
 
 def set_translations(locale):
-    """Sets the locale and loads a translation for the current request, if not
-    already loaded. Most functions in this module depends on the locale being
-    set to work properly.
+    """Sets the locale and translations object for the current request. Most
+    functions in this module depends on the translations object being set to
+    work properly.
 
     This is called by :func:`pre_dispatch_handler` on each request.
 
@@ -111,17 +132,15 @@ def set_translations(locale):
     local.translations = _translations[locale]
 
 
-def set_requested_locale(app, request):
-    """Application hook executed right before the handler is dispatched.
+def set_translations_from_request(app, request):
+    """Sets a translations object for the current request.
 
-    It reads the locale from a `lang` GET variable or from a cookie to set the
-    current locale.
+    It gets the locale from a ``lang`` GET parameter, and if not set tries to
+    get it from a cookie. As last option, uses the locale set in config.
 
     :return:
         ``None``.
     """
-    # Get locale from a 'lang' query parameter, and if not set try to get
-    # from a cookie. As last option, use the locale set in config.
     locale = request.args.get('lang', request.cookies.get(
         'tipfy.locale', get_config(__name__, 'locale')))
 
@@ -347,4 +366,5 @@ def to_utc(datetime, timezone=None):
 _ = gettext
 # Old names, kept here for backwards compatibility.
 set_locale = set_translations
+set_requested_locale = set_translations_from_request
 persist_requested_locale = save_locale_cookie

@@ -88,8 +88,9 @@ class RequestHandler(object):
     #: A list of classes or callables that return a middleware object. A
     #: middleware can implement two methods that are called before and after
     #: the current request method is executed in the handler:
-    #: ``pre_dispatch()`` and ``post_dispatch()``. They are useful to
-    #: initialize features and post-process the response in a per handler basis.
+    #: ``pre_dispatch(handler)`` and ``post_dispatch(handler, response)``.
+    #: They are useful to initialize features and post-process the response in
+    #: a per handler basis.
     middleware = []
 
     def dispatch(self, action, *args, **kwargs):
@@ -117,7 +118,7 @@ class RequestHandler(object):
         # Run pre_dispatch() hook on every middleware that implements it.
         for m in middleware:
             if getattr(m, 'pre_dispatch', None):
-                response = m.pre_dispatch(self, action, *args, **kwargs)
+                response = m.pre_dispatch(self)
                 if response is not None:
                     break
         else:
@@ -127,7 +128,7 @@ class RequestHandler(object):
         # Run post_dispatch() hook on every middleware that implements it.
         for m in middleware:
             if getattr(m, 'post_dispatch', None):
-                res = m.post_dispatch(response, self, action, *args, **kwargs)
+                res = m.post_dispatch(self, response)
                 if res is not None:
                     return res
 

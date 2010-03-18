@@ -49,6 +49,13 @@ class TestConfig(unittest.TestCase):
         assert config.get('foo', 'bar', 'ooops') == 'ooops'
         assert config.get('foo', 'doo', 'wooo') == 'wooo'
 
+    def test_get_with_default_and_none(self):
+        config = tipfy.Config({'foo': {
+            'bar': None,
+        }})
+
+        assert config.get('foo', 'bar', 'ooops') == None
+
     def test_update(self):
         config = tipfy.Config({'foo': {
             'bar': 'baz',
@@ -174,6 +181,25 @@ class TestGetConfig(unittest.TestCase):
 
         assert tipfy.get_config('tipfy.ext.i18n', 'locale') == 'en_US'
         assert tipfy.get_config('tipfy.ext.i18n', 'timezone') == 'America/Sao_Paulo'
+
+    def test_get(self):
+        app = tipfy.WSGIApplication({'foo': {
+            'bar': 'baz',
+        }})
+
+        assert tipfy.get_config('foo', 'bar') == 'baz'
+
+    def test_get_with_default(self):
+        app = tipfy.WSGIApplication()
+
+        assert tipfy.get_config('foo', 'bar', 'baz') == 'baz'
+
+    def test_get_with_default_and_none(self):
+        app = tipfy.WSGIApplication({'foo': {
+            'bar': None,
+        }})
+
+        assert tipfy.get_config('foo', 'bar', 'ooops') == None
 
     @raises(ValueError)
     def test_required_config(self):

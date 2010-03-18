@@ -63,7 +63,11 @@ REQUIRED_CONFIG = []
 #:   - ``subdomain``: Force this subdomain to be used instead of extracting
 #:     the subdomain from the current url.
 #:   - ``url_map``: A ``werkzeug.routing.Map`` with the URL rules defined for
-#:     the application. If not set, build one with rules defined in ``urls.py``.
+#:     the application. If not set, build one with rules defined in ``urls.py``
+#:   - ``wsgi_app_id``: An identifier for this WSGIApplication instance, in
+#:     case multiple instances are being used by the same app. This is used
+#:     to identify instance specific data such as cached URL rules. Default is
+#:    ``main``.
 default_config = {
     'sitename': 'MyApp',
     'admin_email': None,
@@ -76,6 +80,7 @@ default_config = {
     'server_name': None,
     'subdomain': None,
     'url_map': None,
+    'wsgi_app_id': 'main',
     # Undocumented for now.
     'url_map_kwargs': {},
 }
@@ -256,7 +261,8 @@ class WSGIApplication(object):
         """
         from google.appengine.api import memcache
         config = self.config.get(__name__)
-        key = 'wsgi_app.rules.%s' % config.get('version_id')
+        key = 'wsgi_app.rules.%s.%s' % (config.get('wsgi_app_id'),
+            config.get('version_id'))
         rules = memcache.get(key)
         if not rules or config.get('dev'):
             rules = import_string('urls:get_rules')()

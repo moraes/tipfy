@@ -19,7 +19,7 @@ WSGI application and base request handler
 .. autoclass:: WSGIApplication
    :members: __init__
 .. autoclass:: RequestHandler
-   :members: dispatch
+   :members: middleware, dispatch
 
 
 Extensions
@@ -68,15 +68,20 @@ Hooks
 Custom extensions can make use of the hook system to plug functionality into
 the application. The defined events are the following:
 
-  - ``pos_init_app``: called after the :class:`tipfy.WSGIApplication`
-    initializes.
-  - ``pre_run_app``: called before the :class:`tipfy.WSGIApplication` instance
-    is executed, on each request.
-  - ``pre_init_request``: called in the start of a new request.
-  - ``pre_dispatch_handler``: called before the current handler is dispatched.
-  - ``pre_send_response``: called before the current response is returned by
-    the :class:`tipfy.WSGIApplication`.
-  - ``pre_handle_exception``: called before an exception is raised.
+  - ``pre_run_app(app)``: called before the :class:`tipfy.WSGIApplication`
+    instance is called, on each request.
+  - ``pre_init_request(app, environ)``: called right at the beginning of a
+    request.
+  - ``pre_match_url(app, request)``: called right before the current URL is
+    matched.
+  - ``pre_dispatch_handler(app, request)``: called before the current handler
+    is dispatched.
+  - ``post_dispatch_handler(app, request, response)``: called after the current
+    handler is dispatched.
+  - ``pre_end_request(app, request, response)``: called right at the end of the
+    request.
+  - ``pre_handle_exception(app, request, exception)``: called before an
+    exception is raised.
 
 You can add many hooks to the same event; they will be executed in order.
 

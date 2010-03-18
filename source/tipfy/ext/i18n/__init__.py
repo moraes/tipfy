@@ -152,9 +152,7 @@ def set_translations_from_request(app, request):
         ``None``.
     """
     locale = None
-    locale_request_lookup = get_config(__name__, 'locale_request_lookup')
-
-    for method, key in locale_request_lookup:
+    for method, key in get_config(__name__, 'locale_request_lookup'):
         if method in ('args', 'form', 'cookies'):
             # Get locale from GET, POST or cookies.
             locale = getattr(request, method).get(key, None)

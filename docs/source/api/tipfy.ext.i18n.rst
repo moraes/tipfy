@@ -27,7 +27,11 @@ Translation functions
 These functions provide functionality to translate strings in templates or in
 the app code.
 
-.. autofunction:: set_locale
+.. autofunction:: get_translations
+.. autofunction:: set_translations
+.. autofunction:: set_translations_from_request
+.. autofunction:: save_locale_cookie
+.. autofunction:: is_default_locale
 .. autofunction:: gettext
 .. autofunction:: ngettext
 .. autofunction:: lazy_gettext

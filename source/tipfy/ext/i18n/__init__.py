@@ -27,17 +27,31 @@ from pytz.gae import pytz
 from tipfy import local, get_config, normalize_callable
 
 #: Default configuration values for this module. Keys are:
-#:   - ``locale``: The default locale code. Default is ``en_US``.
-#:   - ``timezone``: The application timezone according to the Olson database.
-#:     Default is ``America/Chicago``.
-#:   - ``set_translations_function``: a callable or lazy callable to set the
-#:     translations object used in the current request. This is called
-#:     automatically when translations are needed; if not set,
-#:     :func:`set_translations_from_request` is used. Default is ``None``.
+#:   - ``locale``: The application default locale code. Default is ``en_US``.
+#:   - ``timezone``: The application default timezone according to the Olson
+#:     database. Default is ``America/Chicago``.
+#:   - ``cookie_name``: Cookie name used to save requested locale, in case
+#:     cookies are used.
+#:   - ``locale_request_lookup``: A list of tuples ``(method, key)`` to search
+#:     for the locale to be loaded for the current request. The methods are
+#:     searched in order until a locale is found. Available methods are:
+#:
+#:     - ``args``: gets the locale code from ``GET`` arguments.
+#:     - ``form``: gets the locale code from ``POST`` arguments.
+#:     - ``cookies``: gets the locale code from a cookie.
+#:     - ``rule_args``: gets the locale code from the keywords in the current
+#:       URL rule.
+#:
+#:     If none of the methods find a locale code, uses the default locale.
+#:
+#:     Default is ``[('args', 'lang'), ('cookies', 'tipfy.locale')]``: gets the
+#:     locale from a ``lang`` parameter set in ``GET``, and if not set tries to
+#:     get it from a cookie named ``tipfy.locale``.
 default_config = {
     'locale':   'en_US',
     'timezone': 'America/Chicago',
-    'set_translations_function': None,
+    'cookie_name': 'tipfy.locale',
+    'locale_request_lookup': [('args', 'lang'), ('cookies', 'tipfy.locale')],
 }
 
 # Proxies to the i18n variables set on each request.
@@ -76,22 +90,8 @@ def setup(app):
     :return:
         ``None``.
     """
-    app.hooks.add('pre_dispatch_handler', _get_set_translations_funtion(), 0)
+    app.hooks.add('pre_dispatch_handler', set_translations_from_request, 0)
     app.hooks.add('post_dispatch_handler', save_locale_cookie, 0)
-
-
-def _get_set_translations_funtion():
-    """Returns the function responsible for setting the current translations
-    object.
-
-    :return:
-        A callable.
-    """
-    func = get_config(__name__, 'set_translations_function')
-    if func is None:
-        return set_translations_from_request
-
-    return normalize_callable(func)
 
 
 def get_translations():
@@ -104,7 +104,7 @@ def get_translations():
     if getattr(local, 'translations', None) is None:
         try:
             # Try to set translations based on the current request.
-            _get_set_translations_funtion()(local.app, local.request)
+            set_translations_from_request(local.app, local.request)
         except AttributeError, e:
             # Simply set translations using default locale.
             set_translations(get_config(__name__, 'locale'))
@@ -135,14 +135,33 @@ def set_translations(locale):
 def set_translations_from_request(app, request):
     """Sets a translations object for the current request.
 
-    It gets the locale from a ``lang`` GET parameter, and if not set tries to
-    get it from a cookie. As last option, uses the locale set in config.
+    It will use the configuration for ``locale_request_lookup`` to search for
+    a key in ``GET``, ``POST``, cookie or keywords in the current URL rule.
+    The configuration defines the search order. If no locale is set in any of
+    these, uses the default locale set in config.
+
+    By default it gets the locale from a ``lang`` GET parameter, and if not set
+    tries to get it from a cookie. This is represented by the default
+    configuration value ``[('args', 'lang'), ('cookies', 'tipfy.locale')]``.
 
     :return:
         ``None``.
     """
-    locale = request.args.get('lang', request.cookies.get(
-        'tipfy.locale', get_config(__name__, 'locale')))
+    locale = None
+    locale_request_lookup = get_config(__name__, 'locale_request_lookup')
+
+    for method, key in locale_request_lookup:
+        if method in ('args', 'form', 'cookies'):
+            # Get locale from GET, POST or cookies.
+            locale = getattr(request, method).get(key, None)
+        elif method == 'rule_args':
+            # Get locale from current URL rule keywords.
+            locale = app.rule_args.get(key, None)
+
+        if locale is not None:
+            break
+    else:
+        locale = get_config(__name__, 'locale')
 
     set_translations(locale)
 
@@ -165,12 +184,16 @@ def save_locale_cookie(app, request, response):
 
     if not is_default_locale():
         # Persist locale using a cookie when it differs from default.
-        response.set_cookie('tipfy.locale', value=local.locale,
-            max_age=(86400 * 30))
+        response.set_cookie(get_config(__name__, 'cookie_name'),
+            value=local.locale, max_age=(86400 * 30))
 
 
 def is_default_locale():
-    """Returns ``True`` if locale is set to the default locale."""
+    """Returns ``True`` if locale is set to the default locale.
+
+    :return:
+        ``True`` if locale is set to the default locale, ``False`` otherwise.
+    """
     return getattr(local, 'locale', None) == get_config(__name__, 'locale')
 
 

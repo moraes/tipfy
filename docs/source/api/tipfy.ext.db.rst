@@ -15,6 +15,7 @@ classes.
 .. autofunction:: get_entity_from_protobuf
 .. autofunction:: get_reference_key
 .. autofunction:: populate_entity
+.. autofunction:: get_property_dict
 .. autofunction:: get_or_insert_with_flag
 .. autofunction:: get_or_404
 .. autofunction:: get_by_id_or_404

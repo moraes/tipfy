@@ -11,6 +11,13 @@ from nose.tools import raises
 import tipfy
 from tipfy.ext import i18n
 
+class Request(object):
+    """A fake request object with GET, POST and cookies."""
+    def __init__(self, args=None, form=None, cookies=None):
+        self.args = args or {}
+        self.form = form or {}
+        self.cookies= cookies or {}
+
 
 class TestI18n(unittest.TestCase):
     def tearDown(self):
@@ -26,6 +33,61 @@ class TestI18n(unittest.TestCase):
         i18n.set_translations('pt_BR')
         assert tipfy.local.locale == 'pt_BR'
         assert isinstance(tipfy.local.translations, gettext_stdlib.NullTranslations)
+
+    def test_set_translations_from_reuest(self):
+        app = tipfy.WSGIApplication({
+            'tipfy.ext.i18n': {
+                'locale': 'jp_JP',
+            },
+        })
+        request = Request()
+
+        i18n.set_translations_from_request(app, request)
+        assert tipfy.local.locale == 'jp_JP'
+
+    def test_set_translations_from_request_args(self):
+        app = tipfy.WSGIApplication({
+            'tipfy.ext.i18n': {
+                'locale_request_lookup': [('args', 'language')],
+            },
+        })
+        request = Request(args={'language': 'es_ES'})
+
+        i18n.set_translations_from_request(app, request)
+        assert tipfy.local.locale == 'es_ES'
+
+    def test_set_translations_from_request_form(self):
+        app = tipfy.WSGIApplication({
+            'tipfy.ext.i18n': {
+                'locale_request_lookup': [('form', 'language')],
+            },
+        })
+        request = Request(form={'language': 'es_ES'})
+
+        i18n.set_translations_from_request(app, request)
+        assert tipfy.local.locale == 'es_ES'
+
+    def test_set_translations_from_request_cookies(self):
+        app = tipfy.WSGIApplication({
+            'tipfy.ext.i18n': {
+                'locale_request_lookup': [('cookies', 'language')],
+            },
+        })
+        request = Request(cookies={'language': 'es_ES'})
+
+        i18n.set_translations_from_request(app, request)
+        assert tipfy.local.locale == 'es_ES'
+
+    def test_set_translations_from_request_args_form_cookies(self):
+        app = tipfy.WSGIApplication({
+            'tipfy.ext.i18n': {
+                'locale_request_lookup': [('args', 'foo'), ('form', 'bar'), ('cookies', 'language')],
+            },
+        })
+        request = Request(cookies={'language': 'es_ES'})
+
+        i18n.set_translations_from_request(app, request)
+        assert tipfy.local.locale == 'es_ES'
 
     @raises(AttributeError)
     def test_translations_not_set(self):

@@ -144,6 +144,10 @@ def set_translations_from_request(app, request):
     tries to get it from a cookie. This is represented by the default
     configuration value ``[('args', 'lang'), ('cookies', 'tipfy.locale')]``.
 
+    :param app:
+        The WSGI application instance.
+    :param request:
+        The ``werkzeug.Request`` instance.
     :return:
         ``None``.
     """
@@ -173,6 +177,10 @@ def save_locale_cookie(app, request, response):
     It saves the current locale in a cookie so that the same locale is used in
     subsequent requests.
 
+    :param app:
+        The WSGI application instance.
+    :param request:
+        The ``werkzeug.Request`` instance.
     :param response:
         A ``werkzeug.Response`` instance.
     :return:

@@ -117,15 +117,19 @@ class RequestHandler(object):
         # Run pre_dispatch() hook on every middleware that implements it.
         for m in middleware:
             if getattr(m, 'pre_dispatch', None):
-                m.pre_dispatch(self, action, *args, **kwargs)
-
-        # Execute the requested method.
-        response = method(*args, **kwargs)
+                response = m.pre_dispatch(self, action, *args, **kwargs)
+                if response is not None:
+                    break
+        else:
+            # Execute the requested method.
+            response = method(*args, **kwargs)
 
         # Run post_dispatch() hook on every middleware that implements it.
         for m in middleware:
             if getattr(m, 'post_dispatch', None):
-                m.post_dispatch(self, action, *args, **kwargs)
+                res = m.post_dispatch(self, response, action, *args, **kwargs)
+                if res is not None:
+                    return res
 
         # Done!
         return response

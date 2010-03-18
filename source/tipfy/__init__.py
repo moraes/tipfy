@@ -127,7 +127,7 @@ class RequestHandler(object):
         # Run post_dispatch() hook on every middleware that implements it.
         for m in middleware:
             if getattr(m, 'post_dispatch', None):
-                res = m.post_dispatch(self, response, action, *args, **kwargs)
+                res = m.post_dispatch(response, self, action, *args, **kwargs)
                 if res is not None:
                     return res
 

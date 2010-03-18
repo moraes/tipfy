@@ -50,27 +50,17 @@ def get_env():
             extensions=['jinja2.ext.i18n'])
 
         # Add url_for() by default.
-        _environment.globals.update({'url_for': url_for})
+        _environment.globals.update({
+            'url_for':         url_for,
+            'format_date':     i18n.format_date,
+            'format_time':     i18n.format_time,
+            'format_datetime': i18n.format_datetime,
+        })
 
         # Install i18n.
-        _set_i18n(_environment)
+        _environment.install_gettext_translations(i18n.translations)
 
     return _environment
-
-
-def _set_i18n(environment):
-    """Add the internationalization extension to Jinja2 environment."""
-    if getattr(local, 'locale', None) is None:
-        # At this point i18n should be set, but if it is not let's set it and
-        # avoid errors.
-        i18n.set_requested_locale(local.app, local.request)
-
-    environment.globals.update({
-        'format_date':     i18n.format_date,
-        'format_time':     i18n.format_time,
-        'format_datetime': i18n.format_datetime,
-    })
-    environment.install_gettext_translations(i18n.translations)
 
 
 def render_template(filename, **context):

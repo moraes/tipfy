@@ -67,6 +67,25 @@ from tipfy.ext.db import PickleProperty
 _rules_map = {}
 
 
+class AclMixin(object):
+    """A mixin that adds an ``acl`` property to a :class:`tipfy.RequestHandler`.
+
+    The handler must have the properties ``area`` and ``current_user`` set for
+    it to work.
+    """
+    roles_map = None
+    roles_lock = None
+
+    @cached_property
+    def acl(self):
+        """Loads and returns the access permission for the currently logged in
+        user. This requires the handler to have an ``area`` and ``current_user``
+        attributes. Casted to a string they must return the object identifiers.
+        """
+        return Acl(str(self.area.key()), str(self.current_user.key()),
+            self.roles_map, self.roles_lock)
+
+
 def validate_rules(rules):
     """Ensures that the list of rule tuples is set correctly."""
     assert isinstance(rules, list), 'Rules must be a list'

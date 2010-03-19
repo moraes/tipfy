@@ -71,7 +71,8 @@ def get_env():
             'format_datetime': i18n.format_datetime,
         })
 
-        # Install i18n.
+        # Install i18n, first forcing it to be loaded if not yet.
+        i18n.get_translations()
         _environment.install_gettext_translations(i18n.translations)
 
     return _environment

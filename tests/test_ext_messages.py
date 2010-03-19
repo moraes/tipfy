@@ -7,12 +7,12 @@ import pickle
 from base64 import b64encode, b64decode
 from django.utils import simplejson
 
-from werkzeug import Request, Response
+import werkzeug
 from werkzeug.test import Client
 
 from _base import get_app, get_environ, get_request, get_response, teardown
 import tipfy
-from tipfy import local, request, response, Rule, RequestHandler, Map
+from tipfy import local, request, response, Rule, RequestHandler
 from tipfy.ext.messages import Messages, get_flash, set_flash
 
 
@@ -34,7 +34,7 @@ def get_url_map():
         Rule('/', endpoint='home', handler='%s:SetFlashHandler_1' % __name__),
     ]
 
-    return Map(rules)
+    return werkzeug.routing.Map(rules)
 
 def get_app_environ_request_response(**kwargs):
     app = get_app({
@@ -118,7 +118,7 @@ class TestMessages(unittest.TestCase):
 
     def test_messages_set_flash(self):
         app, environ, request, response = get_app_environ_request_response()
-        client = Client(app, Response)
+        client = Client(app, werkzeug.Response)
 
         response = client.get('/?set-messages-flash=1')
 
@@ -132,7 +132,7 @@ class TestMessages(unittest.TestCase):
 
     def test_set_flash(self):
         app = get_app()
-        local.response = Response()
+        local.response = werkzeug.Response()
         data = {'foo': 'bar'}
         set_flash(data)
 

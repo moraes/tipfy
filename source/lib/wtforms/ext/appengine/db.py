@@ -93,7 +93,7 @@ class:
 
 """
 from wtforms import Form, validators, widgets, fields as f
-from wtforms.ext.appengine.fields import ReferencePropertyField, StringListPropertyField 
+from wtforms.ext.appengine.fields import ReferencePropertyField, StringListPropertyField
 
 
 def get_TextField(kwargs):

@@ -6,8 +6,10 @@
 import unittest
 from nose.tools import raises
 
-from _base import get_app, get_environ, get_request, get_response
-from tipfy import local, redirect, redirect_to, url_for, NotFound, Rule, Map
+import werkzeug
+
+from _base import get_environ
+from tipfy import local, redirect, redirect_to, url_for, NotFound, Rule
 import tipfy
 
 def get_url_map():
@@ -18,17 +20,17 @@ def get_url_map():
             handler='test.profile:ProfileHandler'),
     ]
 
-    return Map(rules)
+    return werkzeug.routing.Map(rules)
 
 
 def get_app_environ_request(**kwargs):
-    app = get_app({
+    app = tipfy.WSGIApplication({
         'tipfy': {
             'url_map': get_url_map(),
         },
     })
     environ = get_environ(**kwargs)
-    request = get_request(environ)
+    request = werkzeug.Request(environ)
     return app, environ, request
 
 
@@ -104,7 +106,7 @@ class TestUrls(unittest.TestCase):
     #===========================================================================
     def test_redirect_to(self):
         app, environ, request = get_app_environ_request()
-        local.response = get_response()
+        local.response = werkzeug.Response()
         app.url_adapter = app.url_map.bind_to_environ(environ)
         host = 'http://%s' % environ['HTTP_HOST']
 
@@ -114,7 +116,7 @@ class TestUrls(unittest.TestCase):
 
     def test_redirect_to2(self):
         app, environ, request = get_app_environ_request()
-        local.response = get_response()
+        local.response = werkzeug.Response()
         app.url_adapter = app.url_map.bind_to_environ(environ)
         host = 'http://%s' % environ['HTTP_HOST']
 
@@ -132,7 +134,7 @@ class TestUrls(unittest.TestCase):
 
     def test_redirect_to_301(self):
         app, environ, request = get_app_environ_request()
-        local.response = get_response()
+        local.response = werkzeug.Response()
         app.url_adapter = app.url_map.bind_to_environ(environ)
         host = 'http://%s' % environ['HTTP_HOST']
 
@@ -143,7 +145,7 @@ class TestUrls(unittest.TestCase):
     @raises(AssertionError)
     def test_redirect_to_invalid_code(self):
         app, environ, request = get_app_environ_request()
-        local.response = get_response()
+        local.response = werkzeug.Response()
         app.url_adapter = app.url_map.bind_to_environ(environ)
 
         redirect_to('home', code=405)
@@ -152,21 +154,37 @@ class TestUrls(unittest.TestCase):
     # redirect()
     #===========================================================================
     def test_redirect(self):
-        local.response = get_response()
+        local.response = werkzeug.Response()
         response = redirect('http://www.google.com/')
 
+        assert response == local.response
         assert response.headers['location'] == 'http://www.google.com/'
         assert response.status_code == 302
 
     def test_redirect_301(self):
-        local.response = get_response()
+        local.response = werkzeug.Response()
         response = redirect('http://www.google.com/', 301)
 
+        assert response == local.response
+        assert response.headers['location'] == 'http://www.google.com/'
+        assert response.status_code == 301
+
+    def test_redirect_no_response(self):
+        response = redirect('http://www.google.com/')
+
+        assert isinstance(response, werkzeug.Response)
+        assert response.headers['location'] == 'http://www.google.com/'
+        assert response.status_code == 302
+
+    def test_redirect_no_response_301(self):
+        response = redirect('http://www.google.com/', 301)
+
+        assert isinstance(response, werkzeug.Response)
         assert response.headers['location'] == 'http://www.google.com/'
         assert response.status_code == 301
 
     @raises(AssertionError)
     def test_redirect_invalid_code(self):
-        local.response = get_response()
+        local.response = werkzeug.Response()
 
         redirect('http://www.google.com/', 404)

@@ -39,7 +39,7 @@ class Jinja2Mixin(object):
         """Renders requested templates, adding common variables."""
         context = dict(self.context)
         context.update(values)
-        return jinja2.render_response(template, **context)
+        return render_response(template, **context)
 
 
 def get_env():

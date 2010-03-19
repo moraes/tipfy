@@ -30,7 +30,7 @@ class MessagesMixin(object):
     @cached_property
     def messages(self):
         """Loads and returns the messages system."""
-        msg = self.context['messages'] = msg = messages.Messages()
+        msg = self.context['messages'] = Messages()
         return msg
 
 

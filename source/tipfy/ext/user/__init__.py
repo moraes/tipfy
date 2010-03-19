@@ -609,7 +609,7 @@ def _is_auth_endpoint(endpoints):
 
     auth_system = get_auth_system()
     for e in endpoints:
-        if local.app.rule.endpoint == getattr(auth_system, e):
+        if local.app.rule.endpoint == getattr(auth_system, e, None):
             return True
 
     return False

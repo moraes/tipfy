@@ -205,7 +205,7 @@ def save_locale_cookie(app, request, response):
     :return:
         ``None``.
     """
-    if not getattr(local, 'locale'):
+    if getattr(local, 'locale', None) is None:
         # Locale isn't set.
         return
 

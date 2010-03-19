@@ -23,6 +23,17 @@ default_config = {
 }
 
 
+class MessagesMixin(object):
+    """:class:`tipfy.RequestHandler` mixin to start and provide a messages
+    system.
+    """
+    @cached_property
+    def messages(self):
+        """Loads and returns the messages system."""
+        msg = self.context['messages'] = msg = messages.Messages()
+        return msg
+
+
 def get_flash(key=None):
     """Reads and deletes a flash message. Flash messages are stored in a cookie
     and automatically deleted when read.

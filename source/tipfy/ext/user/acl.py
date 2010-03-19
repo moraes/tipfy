@@ -60,7 +60,7 @@
 from google.appengine.ext import db
 from google.appengine.api import memcache
 
-from tipfy import get_config
+from tipfy import get_config, cached_property
 from tipfy.ext.db import PickleProperty
 
 #: Cache for loaded rules.

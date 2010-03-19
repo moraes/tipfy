@@ -23,15 +23,18 @@ default_config = {
 }
 
 
-class MessagesMixin(object):
-    """:class:`tipfy.RequestHandler` mixin to start and provide a messages
+class MessagesMiddleware(object):
+    """:class:`tipfy.RequestHandler` middleware to start and provide a messages
     system.
     """
-    @cached_property
-    def messages(self):
-        """Loads and returns the messages system."""
-        msg = self.context['messages'] = Messages()
-        return msg
+    def pre_dispatch(self, handler):
+        """Starts user session and adds user variables to context.
+
+        :param handler:
+            The current :class:`tipfy.RequestHandler` instance.
+        """
+        handler.context['messages'] = Messages()
+        setattr(handler, 'messages', handler.context['messages'])
 
 
 def get_flash(key=None):

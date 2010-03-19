@@ -63,6 +63,21 @@ _translations = {}
 _timezones = {}
 
 
+class I18nMiddleware(object):
+    """:class:`tipfy.RequestHandler` middleware that saves the current locale
+    in a cookie at the end of request, if it differs from the default locale.
+    """
+    def post_dispatch(self, handler, response):
+        """Persists internationalization.
+
+        :param handler:
+            The current :class:`tipfy.RequestHandler` instance.
+        :param response:
+            The current ``werkzeug.Response`` instance.
+        """
+        save_locale_cookie(local.app, local.request, response)
+
+
 def setup(app):
     """Setup this extension.
 
@@ -84,6 +99,12 @@ def setup(app):
     It must be placed before any other extension that will make use of
     internationalization. Normally it is the first or one of the first
     extensions to be set.
+
+    This is deprecated. I18n is set automatically with several configurable
+    options to load the current locate through
+    :func:`set_translations_from_request`. Use that instead in conjunction with
+    :class:`I18nMiddleware` to save the current locale at the end of request,
+    if needed.
 
     :param app:
         The WSGI application instance.

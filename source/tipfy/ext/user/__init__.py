@@ -75,8 +75,8 @@ class UserMiddleware(object):
 
         # Set template variables.
         current_url = local.request.url
-        current_user = user.get_current_user()
-        is_logged_in = user.is_authenticated()
+        current_user = get_current_user()
+        is_logged_in = is_authenticated()
 
         handler.context.update({
             'current_user': current_user,

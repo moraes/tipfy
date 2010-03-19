@@ -28,6 +28,20 @@ default_config = {
 _environment = None
 
 
+class Jinja2Mixin(object):
+    """:class:`tipfy.RequestHandler` mixing to add a convenient
+    ``render_response`` function to handlers. It expects a ``context``
+    dictionary to be set in the handler, so that the passed values are added to
+    the context. The idea is that other mixins can use this context to set
+    template values.
+    """
+    def render_response(self, template, **values):
+        """Renders requested templates, adding common variables."""
+        context = dict(self.context)
+        context.update(values)
+        return jinja2.render_response(template, **context)
+
+
 def get_env():
     """Returns the Jinja2 environment, a singleton.
 

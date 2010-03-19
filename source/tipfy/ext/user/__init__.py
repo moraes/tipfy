@@ -60,6 +60,47 @@ _auth_system = None
 _is_ext_set = False
 
 
+class UserMiddleware(object):
+    """:class:`tipfy.RequestHandler` middleware that loads and persists a
+    an user.
+    """
+    def pre_dispatch(self, handler):
+        """Starts user session and adds user variables to context.
+
+        :param handler:
+            The current :class:`tipfy.RequestHandler` instance.
+        """
+        # Start user session.
+        get_auth_system().login_with_session(local.app, local.request)
+
+        # Set template variables.
+        current_url = local.request.url
+        current_user = user.get_current_user()
+        is_logged_in = user.is_authenticated()
+
+        handler.context.update({
+            'current_user': current_user,
+            'is_authenticated': is_logged_in,
+        })
+
+        if current_user is not None or is_logged_in is True:
+            handler.context['logout_url'] = create_logout_url(current_url)
+        else:
+            handler.context['login_url'] = create_login_url(current_url)
+
+        setattr(handler, 'current_user', current_user)
+
+    def post_dispatch(self, handler, response):
+        """Persists current user session, if needed.
+
+        :param handler:
+            The current :class:`tipfy.RequestHandler` instance.
+        :param response:
+            The current ``werkzeug.Response`` instance.
+        """
+        get_auth_system().save_session(local.app, local.request, response)
+
+
 def setup(app):
     """Setup this extension.
 

@@ -12,7 +12,7 @@
 from base64 import b64encode, b64decode
 from django.utils import simplejson
 
-from tipfy import local, get_config
+from tipfy import cached_property, get_config, local
 from tipfy.ext.i18n import _
 
 #: Default configuration values for this module. Keys are:

@@ -94,6 +94,16 @@ class User(db.Model):
 
         return db.run_in_transaction(txn)
 
+    def set_password(self, new_password):
+        """Sets a new, plain password.
+
+        :param new_password:
+            A plain, not yet hashed password.
+        :return:
+            ``None``
+        """
+        self.password = gen_pwhash(new_password)
+
     def check_password(self, password):
         """Checks if a password is valid. This is done with form login
 

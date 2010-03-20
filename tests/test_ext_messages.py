@@ -101,7 +101,7 @@ class TestMessages(unittest.TestCase):
         app, environ, request, response = get_app_environ_request_response()
         local.request = request
 
-        app.hooks.call('pre_dispatch_handler', request=local.request, app=app)
+        app.hooks.call('pre_dispatch_handler')
 
         messages = Messages()
         assert str(messages) == ''

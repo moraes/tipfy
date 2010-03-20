@@ -75,7 +75,7 @@ class I18nMiddleware(object):
         :param response:
             The current ``werkzeug.Response`` instance.
         """
-        save_locale_cookie(local.app, local.request, response)
+        save_locale_cookie(response)
 
 
 def setup(app):
@@ -125,7 +125,7 @@ def get_translations():
     if getattr(local, 'translations', None) is None:
         try:
             # Try to set translations based on the current request.
-            set_translations_from_request(local.app, local.request)
+            set_translations_from_request()
         except AttributeError, e:
             # Simply set translations using default locale.
             set_translations(get_config(__name__, 'locale'))
@@ -137,8 +137,6 @@ def set_translations(locale):
     """Sets the locale and translations object for the current request. Most
     functions in this module depends on the translations object being set to
     work properly.
-
-    This is called by :func:`pre_dispatch_handler` on each request.
 
     :param locale:
         The locale code. For example, ``en_US`` or ``pt_BR``.
@@ -153,7 +151,7 @@ def set_translations(locale):
     local.translations = _translations[locale]
 
 
-def set_translations_from_request(app, request):
+def set_translations_from_request():
     """Sets a translations object for the current request.
 
     It will use the configuration for ``locale_request_lookup`` to search for
@@ -173,6 +171,8 @@ def set_translations_from_request(app, request):
         ``None``.
     """
     locale = None
+    request = local.request
+    app = local.app
     for method, key in get_config(__name__, 'locale_request_lookup'):
         if method in ('args', 'form', 'cookies'):
             # Get locale from GET, POST or cookies.
@@ -189,7 +189,7 @@ def set_translations_from_request(app, request):
     set_translations(locale)
 
 
-def save_locale_cookie(app, request, response):
+def save_locale_cookie(response):
     """Application hook executed right before the response is returned by the
     WSGI application.
 

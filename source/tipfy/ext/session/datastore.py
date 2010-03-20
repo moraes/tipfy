@@ -71,12 +71,12 @@ class DatastoreSessionMiddleware(object):
             get_config(EXT, 'id_cookie_name'))
         self.session_store = DatastoreSessionStore()
 
-    def load_session(self, app, request):
+    def load_session(self):
         self.session_id = self.session_id_store.get(None)
         local.session_store = self.session_store
         local.session = self.session_store.get(self.session_id.get('_sid'))
 
-    def save_session(self, app, request, response):
+    def save_session(self, response):
         if hasattr(local, 'session'):
             self.session_id['_sid'] = local.session.sid
             self.session_store.save_if_modified(local.session)

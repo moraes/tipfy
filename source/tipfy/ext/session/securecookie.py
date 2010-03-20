@@ -67,11 +67,11 @@ class SecureCookieSessionMiddleware(object):
         expires = get_config(EXT, 'expiration')
         self.session_store = SecureCookieSessionStore(cookie_name, expires)
 
-    def load_session(self, app, request):
+    def load_session(self):
         local.session_store = self.session_store
         local.session = self.session_store.get(None)
 
-    def save_session(self, app, request, response):
+    def save_session(self, response):
         if hasattr(local, 'session'):
             self.session_store.save_if_modified(local.session)
 

@@ -117,7 +117,7 @@ class WSGIApplication(object):
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         # Apply pre-init-request hooks.
-        for request in self.hooks.iter('pre_init_request', self, environ):
+        for request in self.hooks.iter('pre_init_request', environ):
             if request is not None:
                 break
         else:
@@ -137,7 +137,7 @@ class WSGIApplication(object):
 
         try:
             # Apply pre-match-url hooks.
-            for res in self.hooks.iter('pre_match_url', self, request):
+            for res in self.hooks.iter('pre_match_url'):
                 if res is not None:
                     self.rule, self.rule_args = res
                     break
@@ -152,8 +152,7 @@ class WSGIApplication(object):
                     return_rule=True)
 
             # Apply pre-dispatch hooks.
-            for response in self.hooks.iter('pre_dispatch_handler', self,
-                request):
+            for response in self.hooks.iter('pre_dispatch_handler'):
                 if response is not None:
                     break
             else:
@@ -167,8 +166,7 @@ class WSGIApplication(object):
                     **self.rule_args)
 
             # Apply post-dispatch hooks.
-            for res in self.hooks.iter('post_dispatch_handler', self, request,
-                response):
+            for res in self.hooks.iter('post_dispatch_handler', response):
                 if res is not None:
                     response = res
                     break
@@ -182,7 +180,7 @@ class WSGIApplication(object):
             response = self.handle_exception(request, e)
 
         # Apply pre-end-request hooks.
-        for r in self.hooks.iter('pre_end_request', self, request, response):
+        for r in self.hooks.iter('pre_end_request', response):
             if r is not None:
                 response = r
                 break
@@ -221,9 +219,9 @@ class WSGIApplication(object):
         :return:
             A ``werkzeug.Response`` object, if the exception is not raised.
         """
-        for res in self.hooks.iter('pre_handle_exception', self, request, e):
-            if res:
-                return res
+        for response in self.hooks.iter('pre_handle_exception', e):
+            if response:
+                return response
 
         if self.config.get('tipfy', 'dev'):
             raise

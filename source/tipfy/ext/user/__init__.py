@@ -71,7 +71,7 @@ class UserMiddleware(object):
             The current :class:`tipfy.RequestHandler` instance.
         """
         # Start user session.
-        get_auth_system().login_with_session(local.app, local.request)
+        get_auth_system().login_with_session()
 
         # Set template variables.
         current_url = local.request.url
@@ -98,7 +98,7 @@ class UserMiddleware(object):
         :param response:
             The current ``werkzeug.Response`` instance.
         """
-        get_auth_system().save_session(local.app, local.request, response)
+        get_auth_system().save_session(response)
 
 
 def setup(app):
@@ -320,7 +320,7 @@ class MultiAuth(BaseAuth):
         app.hooks.add('pre_dispatch_handler', self.login_with_session)
         app.hooks.add('post_dispatch_handler', self.save_session)
 
-    def login_with_session(self, app, request):
+    def login_with_session(self):
         local.user = None
         local.user_session = None
 
@@ -399,7 +399,7 @@ class MultiAuth(BaseAuth):
                 domain=kwargs['domain'])
             local.user_session = None
 
-    def save_session(self, app, request, response):
+    def save_session(self, response):
         """Pesists an authenticated user at the end of request.
 
         :param app:

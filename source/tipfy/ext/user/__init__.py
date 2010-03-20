@@ -216,7 +216,7 @@ class BaseAuth(object):
             A :class:`User` entity, if the user for the current request is
             logged in, or ``None``.
         """
-        return local.user
+        return getattr(local, 'user', None)
 
     def is_current_user_admin(self):
         """Returns ``True`` if the current user is an admin.
@@ -225,7 +225,7 @@ class BaseAuth(object):
             ``True`` if the user for the current request is an admin, ``False``
             otherwise.
         """
-        if local.user is not None:
+        if getattr(local, 'user', None) is not None:
             return local.user.is_admin()
 
         return False
@@ -277,7 +277,7 @@ class BaseAuth(object):
         """
         # This is not really true but it is our best bet since 3rd party auth
         # is handled elsewhere.
-        return (local.user is not None)
+        return (getattr(local, 'user', None) is not None)
 
     def create_user(self, username, auth_id, **kwargs):
         """Saves a new user in the datastore for the currently logged in user,
@@ -294,7 +294,8 @@ class BaseAuth(object):
         """
         res = self.user_model.create(username, auth_id, **kwargs)
 
-        if res and local.user_session and local.user_session.get('to_signup'):
+        if res and getattr(local, 'user_session', None) and \
+            local.user_session.get('to_signup'):
             # Remove temporary data.
             del local.user_session['to_signup']
 
@@ -358,10 +359,6 @@ class MultiAuth(BaseAuth):
                 'remember': str(int(remember)),
             })
             res = True
-
-            import logging
-            logging.info('$' * 500)
-            logging.info(local.user_session)
         else:
             local.user = None
             local.user_session = None
@@ -394,7 +391,7 @@ class MultiAuth(BaseAuth):
 
     def logout(self):
         local.user = None
-        if local.user_session is not None:
+        if getattr(local, 'user_session', None) is not None:
             # Clear session and delete the cookie.
             local.user_session.clear()
             kwargs = self.cookie_args
@@ -414,7 +411,7 @@ class MultiAuth(BaseAuth):
         :return:
             ``None``.
         """
-        if local.user_session is not None:
+        if getattr(local, 'user_session', None) is not None:
             remember = local.user_session.get('remember', None)
             cookie_max_age = get_config(__name__, 'cookie_max_age')
 

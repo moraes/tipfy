@@ -17,15 +17,22 @@
 
 """Handler library for Blobstore API.
 
+Based on original App Engine library and the adaptation made by Kay framework.
+
 Contains handlers to help with uploading and downloading blobs.
 
   BlobstoreDownloadHandler: Has helper method for easily sending blobs
     to client.
   BlobstoreUploadHandler: Handler for receiving upload notification requests.
 """
+import logging
 import cgi
+import email
+
+from werkzeug import FileStorage
 
 from google.appengine.ext import blobstore
+from google.appengine.api import blobstore as api_blobstore
 
 from tipfy import local
 
@@ -106,20 +113,78 @@ class BlobstoreUploadMixin(object):
         """
         if getattr(self, '__uploads', None) is None:
             self.__uploads = {}
-            for key, value in local.request.values.items():
-                if isinstance(value, cgi.FieldStorage):
-                    if 'blob-key' in value.type_options:
-                        self.__uploads.setdefault(key, []).append(
-                            blobstore.parse_blob_info(value))
+            for key, value in local.request.files.items():
+                if isinstance(value, FileStorage):
+                    for option in value.headers['Content-Type'].split(';'):
+                        if 'blob-key' in option:
+                            self.__uploads.setdefault(key, []).append(
+                                parse_blob_info(value))
 
-        if field_name:
-            try:
-                return list(self.__uploads[field_name])
-            except KeyError:
-                return []
-        else:
-            results = []
-            for uploads in self.__uploads.itervalues():
-                results += uploads
+            if field_name:
+                try:
+                    return list(self.__uploads[field_name])
+                except KeyError:
+                    return []
+            else:
+                results = []
+                for uploads in self.__uploads.itervalues():
+                    results += uploads
 
             return results
+
+
+def parse_blob_info(file_storage):
+  """Parse a BlobInfo record from file upload field_storage.
+
+  Args:
+    file_storage: werkzeug.FileStorage that represents uploaded blob.
+
+  Returns:
+    BlobInfo record as parsed from the field-storage instance.
+    None if there was no field_storage.
+
+  Raises:
+    BlobInfoParseError when provided field_storage does not contain enough
+    information to construct a BlobInfo object.
+  """
+  if file_storage is None:
+    return None
+
+  field_name = file_storage.name
+
+  def get_value(dict, name):
+    value = dict.get(name, None)
+    if value is None:
+      raise blobstore.BlobInfoParseError(
+        'Field %s has no %s.' % (field_name, name))
+    return value
+
+  filename = file_storage.filename
+  content_type, cdict = cgi.parse_header(file_storage.headers['Content-Type'])
+  blob_key = blobstore.BlobKey(get_value(cdict, 'blob-key'))
+
+  upload_content = email.message_from_file(file_storage.stream)
+  content_type = get_value(upload_content, 'content-type')
+  size = get_value(upload_content, 'content-length')
+  creation_string = get_value(upload_content,
+                              blobstore.UPLOAD_INFO_CREATION_HEADER)
+
+  try:
+    size = int(size)
+  except (TypeError, ValueError):
+    raise blobstore.BlobInfoParseError(
+      '%s is not a valid value for %s size.' % (size, field_name))
+
+  try:
+    creation = api_blobstore.parse_creation(creation_string)
+  except blobstore.CreationFormatError, e:
+    raise blobstore.BlobInfoParseError(
+      'Could not parse creation for %s: %s' % (
+        field_name, str(e)))
+
+  return blobstore.BlobInfo(blob_key,
+                            {'content_type': content_type,
+                             'creation': creation,
+                             'filename': filename,
+                             'size': size,
+                             })

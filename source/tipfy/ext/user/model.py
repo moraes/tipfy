@@ -100,7 +100,7 @@ class User(db.Model):
         :param new_password:
             A plain, not yet hashed password.
         :return:
-            ``None``
+            ``None``.
         """
         self.password = gen_pwhash(new_password)
 

@@ -1,29 +1,24 @@
-#!/usr/bin/env python
-#
-# Copyright 2007 Google Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+# -*- coding: utf-8 -*-
+"""
+    tipfy.ext.blobstore
+    ~~~~~~~~~~~~~~~~~~~
 
-"""Handler library for Blobstore API.
+    Handler library for Blobstore API.
 
-Based on original App Engine library and the adaptation made by Kay framework.
+    Contains handler mixins to help with uploading and downloading blobs.
 
-Contains handlers to help with uploading and downloading blobs.
-
-  BlobstoreDownloadHandler: Has helper method for easily sending blobs
+    BlobstoreDownloadMixin: Has helper method for easily sending blobs
     to client.
-  BlobstoreUploadHandler: Handler for receiving upload notification requests.
+
+    BlobstoreUploadMixin: mixin for receiving upload notification requests.
+
+    Based on original App Engine library and the adaptation to Werkzeug made by
+    the Kay framework.
+
+    :copyright: 2007 Google Inc.
+    :copyright: 2009 Accense Technology, Inc. All rights reserved.
+    :copyright: 2010 tipfy.org.
+    :license: Apache License, see LICENSE.txt for more details.
 """
 import logging
 import cgi
@@ -41,23 +36,26 @@ _CONTENT_DISPOSITION_FORMAT = 'attachment; filename="%s"'
 
 
 class BlobstoreDownloadMixin(object):
-    """Base class for creating handlers that may send blobs to users."""
+    """Mixin for handlers that may send blobs to users."""
     def send_blob(self, blob_key_or_info, content_type=None, save_as=None):
-        """Send a blob-response based on a blob_key.
+        """Sends a blob-response based on a blob_key.
 
         Sets the correct response header for serving a blob.  If BlobInfo
         is provided and no content_type specified, will set request content type
         to BlobInfo's content type.
 
-        Args:
-          blob_key_or_info: BlobKey or BlobInfo record to serve.
-          content_type: Content-type to override when known.
-          save_as: If True, and BlobInfo record is provided, use BlobInfos
-            filename to save-as.  If string is provided, use string as filename.
-            If None or False, do not send as attachment.
-
-          Raises:
-            ValueError on invalid save_as parameter.
+        :param blob_key_or_info:
+            BlobKey or BlobInfo record to serve.
+        :param content_type:
+            Content-type to override when known.
+        :param save_as:
+            If ``True``, and BlobInfo record is provided, use BlobInfos filename
+            to save-as. If string is provided, use string as filename. If
+            ``None`` or ``False``, do not send as attachment.
+        :return:
+            A ``werkzeug.Response`` object.
+        :raise:
+            ``ValueError`` on invalid save_as parameter.
         """
         if isinstance(blob_key_or_info, blobstore.BlobInfo):
             blob_key = blob_key_or_info.key()
@@ -100,16 +98,15 @@ class BlobstoreDownloadMixin(object):
 
 
 class BlobstoreUploadMixin(object):
-    """Mixin for creation blob upload handlers."""
+    """Mixin for blob upload handlers."""
     def get_uploads(self, field_name=None):
-        """Get uploads sent to this handler.
+        """Returns uploads sent to this handler.
 
-        Args:
-          field_name: Only select uploads that were sent as a specific field.
-
-        Returns:
-          A list of BlobInfo records corresponding to each upload.
-          Empty list if there are no blob-info records for field_name.
+        :param field_name:
+            Only select uploads that were sent as a specific field.
+        :return:
+            A list of BlobInfo records corresponding to each upload. Empty list
+            if there are no blob-info records for field_name.
         """
         if getattr(self, '__uploads', None) is None:
             self.__uploads = {}
@@ -134,57 +131,55 @@ class BlobstoreUploadMixin(object):
 
 
 def parse_blob_info(file_storage):
-  """Parse a BlobInfo record from file upload field_storage.
+    """Parse a BlobInfo record from file upload field_storage.
 
-  Args:
-    file_storage: werkzeug.FileStorage that represents uploaded blob.
+    :param file_storage:
+        ``werkzeug.FileStorage`` that represents uploaded blob.
+    :return:
+        BlobInfo record as parsed from the field-storage instance.
+        ``None`` if there was no field_storage.
+    :raise:
+        BlobInfoParseError when provided field_storage does not contain enough
+        information to construct a BlobInfo object.
+    """
+    if file_storage is None:
+        return None
 
-  Returns:
-    BlobInfo record as parsed from the field-storage instance.
-    None if there was no field_storage.
+    field_name = file_storage.name
 
-  Raises:
-    BlobInfoParseError when provided field_storage does not contain enough
-    information to construct a BlobInfo object.
-  """
-  if file_storage is None:
-    return None
+    def get_value(dict, name):
+        value = dict.get(name, None)
+        if value is None:
+            raise blobstore.BlobInfoParseError('Field %s has no %s.' %
+                (field_name, name))
 
-  field_name = file_storage.name
+        return value
 
-  def get_value(dict, name):
-    value = dict.get(name, None)
-    if value is None:
-      raise blobstore.BlobInfoParseError(
-        'Field %s has no %s.' % (field_name, name))
-    return value
+    filename = file_storage.filename
+    content_type, cdict = cgi.parse_header(file_storage.headers['Content-Type'])
+    blob_key = blobstore.BlobKey(get_value(cdict, 'blob-key'))
 
-  filename = file_storage.filename
-  content_type, cdict = cgi.parse_header(file_storage.headers['Content-Type'])
-  blob_key = blobstore.BlobKey(get_value(cdict, 'blob-key'))
+    upload_content = email.message_from_file(file_storage.stream)
+    content_type = get_value(upload_content, 'content-type')
+    size = get_value(upload_content, 'content-length')
+    creation_string = get_value(upload_content,
+        blobstore.UPLOAD_INFO_CREATION_HEADER)
 
-  upload_content = email.message_from_file(file_storage.stream)
-  content_type = get_value(upload_content, 'content-type')
-  size = get_value(upload_content, 'content-length')
-  creation_string = get_value(upload_content,
-                              blobstore.UPLOAD_INFO_CREATION_HEADER)
+    try:
+        size = int(size)
+    except (TypeError, ValueError):
+        raise blobstore.BlobInfoParseError(
+            '%s is not a valid value for %s size.' % (size, field_name))
 
-  try:
-    size = int(size)
-  except (TypeError, ValueError):
-    raise blobstore.BlobInfoParseError(
-      '%s is not a valid value for %s size.' % (size, field_name))
+    try:
+        creation = api_blobstore.parse_creation(creation_string)
+    except blobstore.CreationFormatError, e:
+        raise blobstore.BlobInfoParseError(
+            'Could not parse creation for %s: %s' % (field_name, str(e)))
 
-  try:
-    creation = api_blobstore.parse_creation(creation_string)
-  except blobstore.CreationFormatError, e:
-    raise blobstore.BlobInfoParseError(
-      'Could not parse creation for %s: %s' % (
-        field_name, str(e)))
-
-  return blobstore.BlobInfo(blob_key,
-                            {'content_type': content_type,
-                             'creation': creation,
-                             'filename': filename,
-                             'size': size,
-                             })
+    return blobstore.BlobInfo(blob_key, {
+        'content_type': content_type,
+        'creation': creation,
+        'filename': filename,
+        'size': size,
+    })

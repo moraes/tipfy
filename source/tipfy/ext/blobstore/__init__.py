@@ -24,12 +24,10 @@ import logging
 import cgi
 import email
 
-from werkzeug import FileStorage
+from werkzeug import FileStorage, Response
 
 from google.appengine.ext import blobstore
 from google.appengine.api import blobstore as api_blobstore
-
-from tipfy import local
 
 
 _CONTENT_DISPOSITION_FORMAT = 'attachment; filename="%s"'
@@ -64,21 +62,21 @@ class BlobstoreDownloadMixin(object):
             blob_key = blob_key_or_info
             blob_info = None
 
-        local.response.headers[blobstore.BLOB_KEY_HEADER] = str(blob_key)
+        headers = {blobstore.BLOB_KEY_HEADER: str(blob_key)}
 
         if content_type:
             if isinstance(content_type, unicode):
                 content_type = content_type.encode('utf-8')
 
-            local.response.content_type = content_type
+            headers['Content-Type'] = content_type
         else:
-            del local.response.content_type
+            headers['Content-Type'] = ''
 
         def send_attachment(filename):
             if isinstance(filename, unicode):
                 filename = filename.encode('utf-8')
 
-            local.response.headers['Content-Disposition'] = (
+            headers['Content-Disposition'] = (
                 _CONTENT_DISPOSITION_FORMAT % filename)
 
         if save_as:
@@ -93,8 +91,7 @@ class BlobstoreDownloadMixin(object):
                 else:
                     raise ValueError('Unexpected value for save_as')
 
-        local.response.data = ''
-        return local.response
+        return Response('', headers=headers)
 
 
 class BlobstoreUploadMixin(object):

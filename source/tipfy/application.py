@@ -25,6 +25,9 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
 class RequestHandler(object):
     """Base request handler. Implements the minimal interface required by
     :class:`WSGIApplication`: the ``dispatch()`` method.
+
+    Additionally, implements a middleware system to pre and post process
+    requests and handle exceptions.
     """
     #: A list of classes or callables that return a middleware object. A
     #: middleware can implement two methods that are called before and after
@@ -49,7 +52,7 @@ class RequestHandler(object):
         if method is None:
             raise MethodNotAllowed()
 
-        # Initialize every middleware.
+        # Initialize all middleware.
         middleware = [m() for m in self.middleware]
 
         # Execute pre_dispatch() middleware.

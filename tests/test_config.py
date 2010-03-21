@@ -208,20 +208,15 @@ class TestGetConfig(unittest.TestCase):
         app = tipfy.WSGIApplication()
         assert tipfy.get_config('tipfy.ext.i18n', 'locale', 'foo') == 'en_US'
 
-    @raises(ValueError)
+    @raises(KeyError)
     def test_required_config(self):
         app = tipfy.WSGIApplication()
         i_dont_exist = tipfy.get_config('tipfy.ext.i18n', 'i_dont_exist')
 
-    @raises(ValueError)
+    @raises(KeyError)
     def test_required_config2(self):
         app = tipfy.WSGIApplication()
         assert tipfy.get_config('tipfy.ext.session', 'secret_key') == 'baz'
-
-    @raises(ValueError)
-    def test_missing_config(self):
-        app = tipfy.WSGIApplication()
-        assert tipfy.get_config('tipfy.ext.i18n', 'i_dont_exist') == 'baz'
 
     @raises(AttributeError)
     def test_missing_default_config(self):

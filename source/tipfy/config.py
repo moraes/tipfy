@@ -24,7 +24,11 @@ class Config(dict):
     and applies updates and default values to the inner dictionaries instead of
     the first level one.
     """
+    #: Loaded module configurations.
+    modules = None
+
     def __init__(self, value=None):
+        self.modules = []
         if value is not None:
             assert isinstance(value, dict)
             for module in value.keys():
@@ -129,10 +133,8 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
     """Returns a configuration value for a module. If it is not already set,
     loads a ``default_config`` variable from the given module, update the app
     config with those default values and return the value for the given key.
-    If the key is still not available, it'll return the given default value.
-
-    If a default value is not provided, the configuration is considered
-    required and an exception is raised if it is not set.
+    If the key is still not available, returns the provided default value or
+    raises an exception if no default was provided.
 
     Every `Tipfy`_ module that allows some kind of configuration sets a
     ``default_config`` global variable that is loaded by this function, cached
@@ -142,28 +144,31 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
         The configured module.
     :param key:
         The config key.
-    :param default:
-        The default value to be returned in case the key is not set.
     :return:
         A configuration value.
     """
     value = tipfy.local.app.config.get(module, key, _DEFAULT_CONFIG)
-    if value is not _DEFAULT_CONFIG:
+    if value not in (_DEFAULT_CONFIG, REQUIRED_CONFIG):
         return value
 
-    # The key is required if default was not set.
-    if default is _DEFAULT_CONFIG:
-        default = REQUIRED_CONFIG
+    if value is _DEFAULT_CONFIG:
+        if default is _DEFAULT_CONFIG:
+            # If no default was provided, the config is required.
+            default = REQUIRED_CONFIG
 
-    # Update app config. If import fails or the default_config attribute
-    # doesn't exist, an exception will be raised.
-    tipfy.local.app.config.setdefault(module, werkzeug.import_string(
-        module + ':default_config'))
+        if module not in tipfy.local.app.config.modules:
+            # Update app config. If import fails or the default_config attribute
+            # doesn't exist, an exception will be raised.
+            tipfy.local.app.config.setdefault(module, werkzeug.import_string(
+                module + ':default_config'))
+            tipfy.local.app.config.modules.append(module)
 
-    value = tipfy.local.app.config.get(module, key, default)
+            value = tipfy.local.app.config.get(module, key, default)
+        else:
+            value = default
 
     if value is REQUIRED_CONFIG:
-        raise ValueError('Module %s requires the config key "%s" to be set.' %
+        raise KeyError('Module %s requires the config key "%s" to be set.' %
             (module, key))
 
     return value

@@ -154,7 +154,9 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
     if value is _DEFAULT_CONFIG:
         if default is _DEFAULT_CONFIG:
             # If no default was provided, the config is required.
-            default = REQUIRED_CONFIG
+            default_tmp = REQUIRED_CONFIG
+        else:
+            default_tmp = default
 
         if module not in tipfy.local.app.config.modules:
             # Update app config. If import fails or the default_config attribute
@@ -163,11 +165,14 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
                 module + ':default_config'))
             tipfy.local.app.config.modules.append(module)
 
-            value = tipfy.local.app.config.get(module, key, default)
+            value = tipfy.local.app.config.get(module, key, default_tmp)
         else:
-            value = default
+            value = default_tmp
 
     if value is REQUIRED_CONFIG:
+        if default is not _DEFAULT_CONFIG:
+            return default
+
         raise KeyError('Module %s requires the config key "%s" to be set.' %
             (module, key))
 

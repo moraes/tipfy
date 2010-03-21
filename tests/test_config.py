@@ -211,7 +211,7 @@ class TestGetConfig(unittest.TestCase):
     @raises(KeyError)
     def test_required_config(self):
         app = tipfy.WSGIApplication()
-        i_dont_exist = tipfy.get_config('tipfy.ext.i18n', 'i_dont_exist')
+        assert tipfy.get_config('tipfy.ext.i18n', 'i_dont_exist') == 'baz'
 
     @raises(KeyError)
     def test_required_config2(self):

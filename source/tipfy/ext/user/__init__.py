@@ -164,7 +164,7 @@ class BaseAuth(object):
             ``None``.
         """
 
-    def login_with_session(self, app, request):
+    def login_with_session(self):
         """Authenticates the current user using sessions.
 
         :return:
@@ -438,7 +438,7 @@ class AppEngineAuth(BaseAuth):
     def setup(self, app):
         app.hooks.add('pre_dispatch_handler', self.login_with_session)
 
-    def login_with_session(self, app, request):
+    def login_with_session(self):
         local.user = None
         local.user_session = None
 

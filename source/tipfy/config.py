@@ -147,16 +147,24 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
     :return:
         A configuration value.
     """
+    value = tipfy.local.app.config.get(module, key, _DEFAULT_CONFIG)
+    if value is not _DEFAULT_CONFIG:
+        return value
+
+    # The key is required if default was not set.
+    if default is _DEFAULT_CONFIG:
+        default = REQUIRED_CONFIG
+
+    # Update app config. If import fails or the default_config attribute
+    # doesn't exist, an exception will be raised.
+    tipfy.local.app.config.setdefault(module, werkzeug.import_string(
+        module + ':default_config'))
+
     value = tipfy.local.app.config.get(module, key, default)
+
     if value is REQUIRED_CONFIG:
         raise ValueError('Module %s requires the config key "%s" to be set.' %
             (module, key))
-    elif value is _DEFAULT_CONFIG:
-        # Update app config. If import fails or the default_config attribute
-        # doesn't exist, an exception will be raised.
-        tipfy.local.app.config.setdefault(module, werkzeug.import_string(
-            module + ':default_config'))
-        return get_config(module, key, REQUIRED_CONFIG)
 
     return value
 

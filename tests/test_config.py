@@ -192,7 +192,7 @@ class TestGetConfig(unittest.TestCase):
     def test_get_with_default(self):
         app = tipfy.WSGIApplication()
 
-        assert tipfy.get_config('foo', 'bar', 'baz') == 'baz'
+        assert tipfy.get_config('tipfy.ext.i18n', 'bar', 'baz') == 'baz'
 
     def test_get_with_default_and_none(self):
         app = tipfy.WSGIApplication({'foo': {
@@ -206,12 +206,12 @@ class TestGetConfig(unittest.TestCase):
         assert tipfy.get_config('tipfy.ext.i18n', 'locale') == 'en_US'
 
         app = tipfy.WSGIApplication()
-        assert tipfy.get_config('tipfy.ext.i18n', 'locale', 'foo') == 'foo'
+        assert tipfy.get_config('tipfy.ext.i18n', 'locale', 'foo') == 'en_US'
 
     @raises(ValueError)
     def test_required_config(self):
         app = tipfy.WSGIApplication()
-        assert tipfy.get_config('foo', 'bar', tipfy.REQUIRED_CONFIG) == 'baz'
+        i_dont_exist = tipfy.get_config('tipfy.ext.i18n', 'i_dont_exist')
 
     @raises(ValueError)
     def test_required_config2(self):

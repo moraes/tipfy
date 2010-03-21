@@ -12,7 +12,8 @@ import os
 
 # Werkzeug swiss knife.
 import werkzeug
-from werkzeug import cached_property, escape, import_string, Request, Response
+from werkzeug import (cached_property, escape, import_string, redirect, Request,
+    Response)
 from werkzeug.exceptions import (BadGateway, BadRequest, Forbidden, Gone,
     HTTPException, InternalServerError, LengthRequired, MethodNotAllowed,
     NotAcceptable, NotFound, NotImplemented, PreconditionFailed,

@@ -9,40 +9,7 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 import werkzeug
-
-import tipfy
 from tipfy import routing
-
-
-def redirect(location, code=302):
-    """Return a response object (a WSGI application) that, if called,
-    redirects the client to the target location.  Supported codes are 301,
-    302, 303, 305, and 307.  300 is not supported because it's not a real
-    redirect and 304 because it's the answer for a request with a request
-    with defined If-Modified-Since headers.
-
-    :param location:
-        The location the response should redirect to.
-    :param code:
-        The redirect status code.
-    :return:
-        A ``werkzeug.Response`` object with headers set for redirection.
-    """
-    response = getattr(tipfy.local, 'response', None)
-    if response is None:
-        response = werkzeug.Response()
-
-    assert code in (301, 302, 303, 305, 307), 'invalid code'
-    response.data = \
-        '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n' \
-        '<title>Redirecting...</title>\n' \
-        '<h1>Redirecting...</h1>\n' \
-        '<p>You should be redirected automatically to target URL: ' \
-        '<a href="%s">%s</a>.  If not click the link.' % \
-        ((werkzeug.escape(location),) * 2)
-    response.status_code = code
-    response.headers['Location'] = location
-    return response
 
 
 def redirect_to(endpoint, method=None, code=302, **kwargs):
@@ -61,7 +28,7 @@ def redirect_to(endpoint, method=None, code=302, **kwargs):
     :return:
         A ``werkzeug.Response`` object with headers set for redirection.
     """
-    return redirect(routing.url_for(endpoint, full=True, method=method,
+    return werkzeug.redirect(routing.url_for(endpoint, full=True, method=method,
         **kwargs), code=code)
 
 
@@ -74,14 +41,8 @@ def render_json_response(obj):
         A ``werkzeug.Response`` object with `obj` converted to JSON in the body
         and mimetype set to ``application/json``.
     """
-    response = getattr(tipfy.local, 'response', None)
-    if response is None:
-        response = werkzeug.Response()
-
     from django.utils import simplejson
-    response.data = simplejson.dumps(obj)
-    response.mimetype = 'application/json'
-    return response
+    return werkzeug.Response(simplejson.dumps(obj), mimetype='application/json')
 
 
 def normalize_callable(spec):
@@ -103,5 +64,4 @@ def normalize_callable(spec):
     return spec
 
 
-__all__ = ['normalize_callable', 'redirect', 'redirect_to',
-    'render_json_response']
+__all__ = ['normalize_callable', 'redirect_to', 'render_json_response']

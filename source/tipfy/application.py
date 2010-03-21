@@ -49,29 +49,33 @@ class RequestHandler(object):
         if method is None:
             raise tipfy.MethodNotAllowed()
 
-        if not self.middleware:
-            # No middleware defined; simply execute the requested method.
-            return method(*args, **kwargs)
-
         # Initialize every middleware.
         middleware = [m() for m in self.middleware]
 
-        # Run pre_dispatch() hook on every middleware that implements it.
+        # Execute pre_dispatch() middleware.
         for m in middleware:
             if getattr(m, 'pre_dispatch', None):
                 response = m.pre_dispatch(self)
                 if response is not None:
                     break
         else:
-            # Execute the requested method.
-            response = method(*args, **kwargs)
+            try:
+                # Execute the requested method.
+                response = method(*args, **kwargs)
+            except Exception, e:
+                # Execute handle_exception() middleware.
+                for m in reversed(middleware):
+                    if getattr(m, 'handle_exception', None):
+                        response = m.handle_exception(self, e)
+                        if response:
+                            return response
+                else:
+                    raise
 
-        # Run post_dispatch() hook on every middleware that implements it.
-        for m in middleware:
+        # Execute post_dispatch() middleware.
+        for m in reversed(middleware):
             if getattr(m, 'post_dispatch', None):
-                res = m.post_dispatch(self, response)
-                if res is not None:
-                    return res
+                response = m.post_dispatch(self, response)
 
         # Done!
         return response

@@ -177,7 +177,7 @@ class WSGIApplication(object):
         except Exception, e:
             # Handle http and uncaught exceptions. This will apply exception
             # hooks if they are set.
-            response = self.handle_exception(request, e)
+            response = self.handle_exception(e)
 
         # Apply pre-end-request hooks.
         for r in self.hooks.iter('pre_end_request', response):
@@ -210,7 +210,7 @@ class WSGIApplication(object):
 
         return werkzeug.routing.Map(rules, **config.get('url_map_kwargs'))
 
-    def handle_exception(self, request, e):
+    def handle_exception(self, e):
         """Handles HTTPException or uncaught exceptions raised by the WSGI
         application, optionally applying exception hooks.
 

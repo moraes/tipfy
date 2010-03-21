@@ -154,32 +154,28 @@ class TestUrls(unittest.TestCase):
     # redirect()
     #===========================================================================
     def test_redirect(self):
-        local.response = werkzeug.Response()
         response = redirect('http://www.google.com/')
 
-        assert response == local.response
         assert response.headers['location'] == 'http://www.google.com/'
         assert response.status_code == 302
 
     def test_redirect_301(self):
-        local.response = werkzeug.Response()
         response = redirect('http://www.google.com/', 301)
 
-        assert response == local.response
         assert response.headers['location'] == 'http://www.google.com/'
         assert response.status_code == 301
 
     def test_redirect_no_response(self):
         response = redirect('http://www.google.com/')
 
-        assert isinstance(response, werkzeug.Response)
+        assert isinstance(response, werkzeug.BaseResponse)
         assert response.headers['location'] == 'http://www.google.com/'
         assert response.status_code == 302
 
     def test_redirect_no_response_301(self):
         response = redirect('http://www.google.com/', 301)
 
-        assert isinstance(response, werkzeug.Response)
+        assert isinstance(response, werkzeug.BaseResponse)
         assert response.headers['location'] == 'http://www.google.com/'
         assert response.status_code == 301
 

@@ -23,20 +23,6 @@ default_config = {
 }
 
 
-class MessagesMiddleware(object):
-    """:class:`tipfy.RequestHandler` middleware to start and provide a messages
-    system.
-    """
-    def pre_dispatch(self, handler):
-        """Starts user session and adds user variables to context.
-
-        :param handler:
-            The current :class:`tipfy.RequestHandler` instance.
-        """
-        handler.context['messages'] = Messages()
-        setattr(handler, 'messages', handler.context['messages'])
-
-
 def get_flash(key=None):
     """Reads and deletes a flash message. Flash messages are stored in a cookie
     and automatically deleted when read.
@@ -51,9 +37,8 @@ def get_flash(key=None):
         key = get_config(__name__, 'cookie_name')
 
     if key in local.request.cookies:
-        data = simplejson.loads(b64decode(local.request.cookies[key]))
-        local.response.delete_cookie(key)
-        return data
+        local.ext_messages_delete = key
+        return simplejson.loads(b64decode(local.request.cookies[key]))
 
 
 def set_flash(data, key=None):
@@ -71,34 +56,41 @@ def set_flash(data, key=None):
     if key is None:
         key = get_config(__name__, 'cookie_name')
 
-    local.response.set_cookie(key, value=b64encode(simplejson.dumps(data)))
+    local.ext_messages_set = (key, data)
 
 
-class Messages(object):
-    def __init__(self, key=None):
-        """Initializes the messages container, loading a possibly existing
-        flash message.
-        """
-        # Set the messages container.
-        self.key = key
-        self.messages = []
+class FlashMiddleware(object):
+    """:class:`tipfy.RequestHandler` middleware to start and persist flash
+    messages.
+    """
+    def post_dispatch(self, handler, response):
+        to_delete = getattr(local, 'ext_messages_delete', None)
+        to_set = getattr(local, 'ext_messages_set', None)
 
-        # Check for flashes on each request.
-        flash = get_flash(self.key)
-        if flash:
-            self.messages.append(flash)
+        if to_delete and (not to_set or to_set[0] != to_delete):
+            response.delete_cookie(to_delete)
 
-    def __len__(self):
-        return len(self.messages)
+        if to_set:
+            data = b64encode(simplejson.dumps(to_set[1]))
+            response.set_cookie(to_set[0], value=data)
 
-    def __unicode__(self):
-        return unicode('\n'.join(unicode(sorted(msg.items())) for msg in
-            self.messages))
+        return response
 
-    def __str__(self):
-        return self.__unicode__()
 
-    def add(self, level, body, title=None, life=5000):
+class MessagesMixin(object):
+    """:class:`tipfy.RequestHandler` mixin for system messages."""
+    @property
+    def messages(self):
+        if getattr(self, '__ext_messages', None) is None:
+            self.__ext_messages = []
+            # Check for flashes on first access.
+            flash = get_flash()
+            if flash:
+                self.__ext_messages.append(flash)
+
+        return self.__ext_messages
+
+    def set_message(self, level, body, title=None, life=5000):
         """Adds a status message.
 
         :param level:
@@ -122,7 +114,7 @@ class Messages(object):
             'life':  life
         })
 
-    def add_form_error(self, body=None, title=None):
+    def set_form_error(self, body=None, title=None):
         """Adds a form error message.
 
         :param body:
@@ -139,7 +131,7 @@ class Messages(object):
         if title is None:
             title = _('Error')
 
-        self.add('error', body, title=title, life=None)
+        self.set_message('error', body, title=title, life=None)
 
     def set_flash(self, level, body, title=None, life=5000):
         """Sets a flash message.
@@ -162,5 +154,5 @@ class Messages(object):
             'level': level,
             'title': title,
             'body':  body,
-            'life':  life
-        }, self.key)
+            'life':  life,
+        })

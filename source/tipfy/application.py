@@ -11,9 +11,9 @@
 import logging
 from wsgiref.handlers import CGIHandler
 
-import werkzeug
-
-import tipfy
+from tipfy import (default_config, local, local_manager, HTTPException,
+    import_string, InternalServerError, Map, MethodNotAllowed, Request,
+    RequestRedirect, Response)
 from tipfy import config
 from tipfy import hooks
 
@@ -47,7 +47,7 @@ class RequestHandler(object):
         """
         method = getattr(self, action, None)
         if method is None:
-            raise tipfy.MethodNotAllowed()
+            raise MethodNotAllowed()
 
         # Initialize every middleware.
         middleware = [m() for m in self.middleware]
@@ -86,9 +86,9 @@ class WSGIApplication(object):
     and hooks for an App Rngine app.
     """
     #: Default class for requests.
-    request_class = werkzeug.Request
+    request_class = Request
     #: Default class for responses.
-    response_class = werkzeug.Response
+    response_class = Response
 
     def __init__(self, app_config=None):
         """Initializes the application.
@@ -97,11 +97,11 @@ class WSGIApplication(object):
             Dictionary with configuration for the application modules.
         """
         # Set an accessor to this instance.
-        tipfy.local.app = self
+        local.app = self
 
         # Load default config and update with values for this instance.
         self.config = config.Config(app_config)
-        self.config.setdefault('tipfy', tipfy.default_config)
+        self.config.setdefault('tipfy', default_config)
 
         # Set the url rules.
         self.url_map = self.config.get('tipfy', 'url_map')
@@ -116,7 +116,7 @@ class WSGIApplication(object):
 
         # Setup extensions.
         for module in self.config.get('tipfy', 'extensions', []):
-            werkzeug.import_string(module + ':setup')(self)
+            import_string(module + ':setup')(self)
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
@@ -128,9 +128,9 @@ class WSGIApplication(object):
             request = self.request_class(environ)
 
         # Set local variables for a single request.
-        tipfy.local.app = self
-        tipfy.local.request = request
-        tipfy.local.response = self.response_class()
+        local.app = self
+        local.request = request
+        local.response = self.response_class()
 
         # Bind url map to the current request location.
         self.url_adapter = self.url_map.bind_to_environ(environ,
@@ -149,7 +149,7 @@ class WSGIApplication(object):
                 # Check requested method.
                 method = request.method.lower()
                 if method not in ALLOWED_METHODS:
-                    raise tipfy.MethodNotAllowed()
+                    raise MethodNotAllowed()
 
                 # Match the path against registered rules.
                 self.rule, self.rule_args = self.url_adapter.match(request.path,
@@ -162,7 +162,7 @@ class WSGIApplication(object):
             else:
                 # Import handler set in matched rule.
                 if self.rule.handler not in self.handlers:
-                    self.handlers[self.rule.handler] = werkzeug.import_string(
+                    self.handlers[self.rule.handler] = import_string(
                         self.rule.handler)
 
                 # Instantiate handler and dispatch request method.
@@ -175,7 +175,7 @@ class WSGIApplication(object):
                     response = res
                     break
 
-        except werkzeug.routing.RequestRedirect, e:
+        except RequestRedirect, e:
             # Execute redirects raised by the routing system or the application.
             response = e
         except Exception, e:
@@ -206,13 +206,13 @@ class WSGIApplication(object):
             config.get('version_id'))
         rules = memcache.get(key)
         if not rules or config.get('dev'):
-            rules = werkzeug.import_string('urls:get_rules')()
+            rules = import_string('urls:get_rules')()
             try:
                 memcache.set(key, rules)
             except:
                 logging.info('Failed to save wsgi_app.rules to memcache.')
 
-        return werkzeug.routing.Map(rules, **config.get('url_map_kwargs'))
+        return Map(rules, **config.get('url_map_kwargs'))
 
     def handle_exception(self, e):
         """Handles HTTPException or uncaught exceptions raised by the WSGI
@@ -232,10 +232,10 @@ class WSGIApplication(object):
 
         logging.exception(e)
 
-        if isinstance(e, werkzeug.exceptions.HTTPException):
+        if isinstance(e, HTTPException):
             return e
 
-        return werkzeug.exceptions.InternalServerError()
+        return InternalServerError()
 
 
 class PatchedCGIHandler(CGIHandler):
@@ -276,7 +276,7 @@ def run_wsgi_app(app):
             app = res
 
     # Wrap app by local_manager so that local is cleaned after each request.
-    PatchedCGIHandler().run(tipfy.local_manager.make_middleware(app))
+    PatchedCGIHandler().run(local_manager.make_middleware(app))
 
 
 _ULTIMATE_SYS_PATH = None

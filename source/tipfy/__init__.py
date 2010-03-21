@@ -19,8 +19,8 @@ from werkzeug.exceptions import (BadGateway, BadRequest, Forbidden, Gone,
     NotAcceptable, NotFound, NotImplemented, PreconditionFailed,
     RequestEntityTooLarge, RequestTimeout, RequestURITooLarge,
     ServiceUnavailable, Unauthorized, UnsupportedMediaType)
-from werkzeug.routing import (EndpointPrefix, RequestRedirect, RuleTemplate,
-    Subdomain, Submount)
+from werkzeug.routing import (EndpointPrefix, Map, RequestRedirect,
+    RuleTemplate, Subdomain, Submount)
 
 # Variable store for a single request.
 local = werkzeug.Local()
@@ -78,5 +78,4 @@ from tipfy.application import (make_wsgi_app, RequestHandler, run_wsgi_app,
 from tipfy.config import Config, get_config, REQUIRED_CONFIG
 from tipfy.hooks import HookHandler, LazyCallable
 from tipfy.routing import Rule, url_for
-from tipfy.utils import (normalize_callable, redirect, redirect_to,
-    render_json_response)
+from tipfy.utils import normalize_callable, redirect_to, render_json_response

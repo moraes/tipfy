@@ -8,8 +8,7 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-import werkzeug
-from tipfy import routing
+from tipfy import import_string, redirect, Response, url_for
 
 
 def redirect_to(endpoint, method=None, code=302, **kwargs):
@@ -28,8 +27,8 @@ def redirect_to(endpoint, method=None, code=302, **kwargs):
     :return:
         A ``werkzeug.Response`` object with headers set for redirection.
     """
-    return werkzeug.redirect(routing.url_for(endpoint, full=True, method=method,
-        **kwargs), code=code)
+    return redirect(url_for(endpoint, full=True, method=method, **kwargs),
+        code=code)
 
 
 def render_json_response(obj):
@@ -42,7 +41,7 @@ def render_json_response(obj):
         and mimetype set to ``application/json``.
     """
     from django.utils import simplejson
-    return werkzeug.Response(simplejson.dumps(obj), mimetype='application/json')
+    return Response(simplejson.dumps(obj), mimetype='application/json')
 
 
 def normalize_callable(spec):
@@ -56,7 +55,7 @@ def normalize_callable(spec):
         A callable.
     """
     if isinstance(spec, basestring):
-        spec = werkzeug.import_string(spec)
+        spec = import_string(spec)
 
     if not callable(spec):
         raise ValueError('%s is not a callable.' % str(spec))

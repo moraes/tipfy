@@ -99,6 +99,7 @@ class UserMiddleware(object):
             The current ``werkzeug.Response`` instance.
         """
         get_auth_system().save_session(response)
+        return response
 
 
 def setup(app):

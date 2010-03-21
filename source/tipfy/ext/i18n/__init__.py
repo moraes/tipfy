@@ -76,6 +76,7 @@ class I18nMiddleware(object):
             The current ``werkzeug.Response`` instance.
         """
         save_locale_cookie(response)
+        return response
 
 
 def setup(app):

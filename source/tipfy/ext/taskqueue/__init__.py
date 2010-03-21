@@ -14,7 +14,7 @@ from google.appengine.ext import db
 from google.appengine.ext.deferred import defer, run, PermanentTaskFailure
 from google.appengine.runtime import DeadlineExceededError
 
-from tipfy import local, RequestHandler
+from tipfy import local, RequestHandler, Response
 
 
 class DeferredHandler(RequestHandler):
@@ -50,7 +50,7 @@ class DeferredHandler(RequestHandler):
         except PermanentTaskFailure, e:
             logging.exception('Permanent failure attempting to execute task')
 
-        return local.response
+        return Response()
 
 
 class Mapper(object):

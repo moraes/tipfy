@@ -37,10 +37,9 @@ def get_flash(key=None):
         key = get_config(__name__, 'cookie_name')
 
     if key in local.request.cookies:
-        if getattr(local, 'ext_messages_delete', None) is None:
-            local.ext_messages_delete = []
-
-        local.ext_messages_delete.append(key)
+        local.ext_messages_delete = getattr(local, 'ext_messages_delete', [])
+        if key not in local.ext_messages_delete:
+            local.ext_messages_delete.append(key)
         return simplejson.loads(b64decode(local.request.cookies[key]))
 
 
@@ -59,53 +58,63 @@ def set_flash(data, key=None):
     if key is None:
         key = get_config(__name__, 'cookie_name')
 
-    if getattr(local, 'ext_messages_set', None) is None:
-        local.ext_messages_set = []
-
+    local.ext_messages_set = getattr(local, 'ext_messages_set', [])
     local.ext_messages_set.append((key, data))
 
 
 class FlashMiddleware(object):
-    """:class:`tipfy.RequestHandler` middleware to start and persist flash
+    """A :class:`tipfy.RequestHandler` middleware to set and delete flash
     messages.
     """
     def post_dispatch(self, handler, response):
-        to_set = getattr(local, 'ext_messages_set', None)
-        to_delete = getattr(local, 'ext_messages_delete', None)
+        """Executes after a :class:`tipfy.RequestHandler` is dispatched. It
+        must always return a response object, be it the one passed in the
+        arguments or a new one.
+
+        :param handler:
+            A :class:`tipfy.RequestHandler` instance.
+        :param response:
+            A ``werkzeug.Response`` instance.
+        :return:
+            A ``werkzeug.Response`` instance.
+        """
+        to_set = getattr(local, 'ext_messages_set', [])
+        to_delete = getattr(local, 'ext_messages_delete', [])
 
         keys = []
-        if to_set:
-            for key, data in to_set:
+        for key, data in reversed(to_set):
+            # Only set a same key once.
+            if key not in keys:
                 keys.append(key)
                 response.set_cookie(key, b64encode(simplejson.dumps(data)))
 
-        if to_delete:
-            for key in to_delete:
-                if key not in keys:
-                    response.delete_cookie(key)
+        for key in to_delete:
+            # Don't delete keys that were just set.
+            if key not in keys:
+                response.delete_cookie(key)
 
         return response
 
 
 class MessagesMixin(object):
-    """:class:`tipfy.RequestHandler` mixin for system messages."""
+    """A :class:`tipfy.RequestHandler` mixin for system messages."""
     @property
     def messages(self):
-        if getattr(self, '__ext_messages', None) is None:
-            self.__ext_messages = []
-            # Check for flashes on first access.
+        if getattr(self, '_MessagesMixin__messages', None) is None:
+            # Initialize messages list and check for flashes on first access.
+            self.__messages = []
             flash = get_flash()
             if flash:
-                self.__ext_messages.append(flash)
+                self.__messages.append(flash)
 
-        return self.__ext_messages
+        return self.__messages
 
-    def set_message(self, level, body, title=None, life=5000):
+    def set_message(self, level, body, title=None, life=5000, flash=False):
         """Adds a status message.
 
         :param level:
-            Message level. Common values are "info", "alert", "error"
-            and "success".
+            Message level. Common values are "success", "error", "info" or
+            "alert".
         :param body:
             Message contents.
         :param title:
@@ -117,12 +126,11 @@ class MessagesMixin(object):
         :return:
             ``None``.
         """
-        self.messages.append({
-            'level': level,
-            'title': title,
-            'body':  body,
-            'life':  life
-        })
+        message = {'level': level, 'title': title, 'body': body, 'life': life}
+        if flash is True:
+            set_flash(message)
+        else:
+            self.messages.append(message)
 
     def set_form_error(self, body=None, title=None):
         """Adds a form error message.
@@ -143,26 +151,26 @@ class MessagesMixin(object):
 
         self.set_message('error', body, title=title, life=None)
 
-    def set_flash(self, level, body, title=None, life=5000):
+    def get_flash(self, key=None):
+        """Returns a flash message, if set.
+
+        :param key:
+            Cookie name. If not provided, uses the default cookie value for
+            flashes.
+        :return:
+            The data stored in a flash, in any.
+        """
+        return get_flash(key)
+
+    def set_flash(self, data, key=None):
         """Sets a flash message.
 
-        :param level:
-            Message level. Common values are "info", "alert", "error"
-            and "success".
-        :param body:
-            Message contents.
-        :param title:
-            Optional message title.
-        :life:
-            Message life time in milliseconds. User interface can implement
-            a mechanism to make the message disappear after the elapsed time.
-            If not set, the message is permanent.
+        :param data:
+            Flash data to be serialized and stored as JSON.
+        :param key:
+            Cookie name. If not provided, uses the default cookie value for
+            flashes.
         :return:
             ``None``.
         """
-        set_flash({
-            'level': level,
-            'title': title,
-            'body':  body,
-            'life':  life,
-        })
+        set_flash(data, key)

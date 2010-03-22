@@ -1,143 +1,252 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.EventHandler and tipfy.EventManager.
+    Tests for tipfy.ext.messages.
 """
 import unittest
-import pickle
 from base64 import b64encode, b64decode
+
 from django.utils import simplejson
 
-import werkzeug
-from werkzeug.test import Client
-
-from _base import get_app, get_environ, get_request, get_response, teardown
 import tipfy
-from tipfy import local, request, response, Rule, RequestHandler
-from tipfy.ext.messages import Messages, get_flash, set_flash
+from tipfy import local, local_manager
+from tipfy.ext import messages
 
 
-class SetFlashHandler_1(RequestHandler):
-    def get(self, **kwargs):
-        self.messages = Messages()
+# Some dummy values for cookies.
+value_1 = b64encode(simplejson.dumps({'foo': 'baz'}))
+value_2 = b64encode(simplejson.dumps({'bar': 'ding'}))
 
-        if request.args.get('set-messages-flash', None) == '1':
-            self.messages.set_flash('error', 'An error occurred.')
-        elif request.args.get('set-flash', None) == '1':
-            set_flash({'foo': 'bar'})
 
-        response.data = str(self.messages)
-        return response
+class Request(object):
+    """A fake request object with cookies."""
+    def __init__(self, cookies=None):
+        self.cookies = cookies or {}
 
-def get_url_map():
-    # Fake get_rules() for testing.
-    rules = [
-        Rule('/', endpoint='home', handler='%s:SetFlashHandler_1' % __name__),
-    ]
 
-    return werkzeug.routing.Map(rules)
+class Response(object):
+    """A fake response object with cookies."""
+    def __init__(self):
+        self.cookies_to_set = []
+        self.cookies_to_delete = []
 
-def get_app_environ_request_response(**kwargs):
-    app = get_app({
-        'tipfy': {
-            'extensions': [
-                'tipfy.ext.i18n',
-            ],
-            'url_map': get_url_map(),
-        },
-    })
-    environ = get_environ(**kwargs)
-    request = get_request(environ)
-    response = get_response()
-    return app, environ, request, response
+    def set_cookie(self, key, value):
+        self.cookies_to_set.append((key, value))
+
+    def delete_cookie(self, key):
+        self.cookies_to_delete.append(key)
 
 
 class TestMessages(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
-
-    def test_messages_init(self):
-        pass
-
-    def test_messages_len(self):
-        app, environ, request, response = get_app_environ_request_response()
-        local.app = app
-        local.request = request
-        local.response = response
-
-        messages = Messages()
-        assert len(messages) == 0
-
-        messages.add('error', 'foo', 'bar')
-        assert len(messages) == 1
-
-        messages.add_form_error('baz', 'ding')
-        assert len(messages) == 2
-
-        messages.set_flash('baz', 'ding', 'weee')
-        assert len(messages) == 2
-
-    def test_messages_str(self):
-        app, environ, request, response = get_app_environ_request_response()
-        local.app = app
-        local.request = request
-        local.response = response
-
-        messages = Messages()
-        assert str(messages) == ''
-
-        messages.add('error', 'foo', 'bar')
-        assert str(messages) == "[('body', 'foo'), ('level', 'error'), ('life', 5000), ('title', 'bar')]"
-
-        messages.add_form_error('baz', 'ding')
-        assert str(messages) == "[('body', 'foo'), ('level', 'error'), ('life', 5000), ('title', 'bar')]\n[('body', 'baz'), ('level', 'error'), ('life', None), ('title', 'ding')]"
-
-        messages.set_flash('baz', 'ding', 'weee')
-        assert str(messages) == "[('body', 'foo'), ('level', 'error'), ('life', 5000), ('title', 'bar')]\n[('body', 'baz'), ('level', 'error'), ('life', None), ('title', 'ding')]"
-
-    def test_messages_add(self):
-        pass
-
-    def test_messages_add_form_error(self):
-        app, environ, request, response = get_app_environ_request_response()
-        local.request = request
-
-        app.hooks.call('pre_dispatch_handler')
-
-        messages = Messages()
-        assert str(messages) == ''
-
-        messages.add_form_error('foo', 'bar')
-        assert str(messages) == "[('body', 'foo'), ('level', 'error'), ('life', None), ('title', 'bar')]"
-
-        messages.add_form_error('baz')
-        assert str(messages) == "[('body', 'foo'), ('level', 'error'), ('life', None), ('title', 'bar')]\n[('body', 'baz'), ('level', 'error'), ('life', None), ('title', u'Error')]"
-
-        messages = Messages()
-        messages.add_form_error()
-        assert str(messages) == "[('body', u'A problem occurred. Please correct the errors listed in the form.'), ('level', 'error'), ('life', None), ('title', u'Error')]"
-
-    def test_messages_set_flash(self):
-        app, environ, request, response = get_app_environ_request_response()
-        client = Client(app, werkzeug.Response)
-
-        response = client.get('/?set-messages-flash=1')
-
-        # next request must have a flash set.
-        response = client.get('/')
-        res = response.data
-        assert res == "[(u'body', u'An error occurred.'), (u'level', u'error'), (u'life', 5000), (u'title', None)]"
+        local_manager.cleanup()
 
     def test_get_flash(self):
-        pass
+        local.app = tipfy.WSGIApplication()
+        local.request = Request(cookies={'tipfy.flash': value_1})
+
+        assert messages.get_flash() == {'foo': 'baz'}
+        assert local.ext_messages_delete == ['tipfy.flash']
+
+        assert messages.get_flash('tipfy.flash') == {'foo': 'baz'}
+        assert local.ext_messages_delete == ['tipfy.flash']
+
+    def test_get_flash_with_custom_key(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request(cookies={'foo': value_1, 'bar': value_2})
+
+        assert messages.get_flash('foo') == {'foo': 'baz'}
+        assert local.ext_messages_delete == ['foo']
+
+        assert messages.get_flash('bar') == {'bar': 'ding'}
+        assert local.ext_messages_delete == ['foo', 'bar']
+
+    def test_get_flash_with_configured_key(self):
+        local.app = tipfy.WSGIApplication({'tipfy.ext.messages': {'cookie_name': 'my_flash'}})
+        local.request = Request(cookies={'my_flash': value_1})
+
+        assert messages.get_flash() == {'foo': 'baz'}
+        assert local.ext_messages_delete == ['my_flash']
+
+        assert messages.get_flash('my_flash') == {'foo': 'baz'}
+        assert local.ext_messages_delete == ['my_flash']
 
     def test_set_flash(self):
-        app = get_app()
-        local.response = werkzeug.Response()
-        data = {'foo': 'bar'}
-        set_flash(data)
+        local.app = tipfy.WSGIApplication()
+        assert getattr(local, 'ext_messages_set', None) is None
 
-        res = local.response.headers.to_list()
-        expected = [('Content-Type', 'text/plain; charset=utf-8'),
-                    ('Set-Cookie', 'tipfy.flash="%s"; Path=/' % b64encode(simplejson.dumps(data)))]
+        messages.set_flash({'foo': 'baz'})
+        assert local.ext_messages_set == [
+            ('tipfy.flash', {'foo': 'baz'}),
+        ]
 
-        assert res == expected
+    def test_set_flash_with_custom_key(self):
+        local.app = tipfy.WSGIApplication()
+        assert getattr(local, 'ext_messages_set', None) is None
+
+        messages.set_flash({'foo': 'baz'}, 'foo')
+        assert local.ext_messages_set == [
+            ('foo', {'foo': 'baz'}),
+        ]
+
+        messages.set_flash({'bar': 'ding'}, 'bar')
+        assert local.ext_messages_set == [
+            ('foo', {'foo': 'baz'}),
+            ('bar', {'bar': 'ding'}),
+        ]
+
+    def test_set_flash_with_configured_key(self):
+        local.app = tipfy.WSGIApplication({'tipfy.ext.messages': {'cookie_name': 'my_flash'}})
+        assert getattr(local, 'ext_messages_set', None) is None
+
+        messages.set_flash({'foo': 'baz'})
+        assert local.ext_messages_set == [
+            ('my_flash', {'foo': 'baz'}),
+        ]
+
+    def test_flash_middleware(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request(cookies={'my_flash': value_1})
+        response = Response()
+
+        middleware = messages.FlashMiddleware()
+        response = middleware.post_dispatch(None, response)
+
+        assert getattr(local, 'ext_messages_set', None) is None
+        assert response.cookies_to_set == []
+        assert response.cookies_to_delete == []
+
+        # Add one, remove one.
+        messages.set_flash({'bar': 'ding'}, 'bar')
+        assert messages.get_flash('my_flash') == {'foo': 'baz'}
+
+        response = middleware.post_dispatch(None, response)
+
+        assert response.cookies_to_set == [('bar', value_2)]
+        assert response.cookies_to_delete == ['my_flash']
+
+    def test_flash_middleware_set_same_key_twice(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request()
+        response = Response()
+
+        middleware = messages.FlashMiddleware()
+        response = middleware.post_dispatch(None, response)
+
+        assert response.cookies_to_set == []
+        assert response.cookies_to_delete == []
+
+        # value_1 won't be set
+        messages.set_flash({'foo': 'baz'}, 'my_flash')
+        # value_2 will be set (reversal order)
+        messages.set_flash({'bar': 'ding'}, 'my_flash')
+
+        response = middleware.post_dispatch(None, response)
+
+        assert response.cookies_to_set == [('my_flash', value_2)]
+        assert response.cookies_to_delete == []
+
+    def test_flash_middleware_set_and_delete(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request(cookies={'my_flash': value_1})
+        response = Response()
+
+        middleware = messages.FlashMiddleware()
+        response = middleware.post_dispatch(None, response)
+
+        assert response.cookies_to_set == []
+        assert response.cookies_to_delete == []
+
+        # Add one, remove one.
+        messages.set_flash({'bar': 'ding'}, 'my_flash')
+        assert messages.get_flash('my_flash') == {'foo': 'baz'}
+
+        response = middleware.post_dispatch(None, response)
+
+        assert response.cookies_to_set == [('my_flash', value_2)]
+        assert response.cookies_to_delete == []
+
+    def test_messages_mixin(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request()
+        mixin = messages.MessagesMixin()
+        assert mixin.messages == []
+
+    def test_messages_mixin_with_flash(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request(cookies={'tipfy.flash': value_1})
+        mixin = messages.MessagesMixin()
+        assert mixin.messages == [{'foo': 'baz'}]
+
+    def test_messages_mixin_set_message(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request(cookies={'tipfy.flash': value_1})
+
+        mixin = messages.MessagesMixin()
+        mixin.set_message('success', 'Hello, world!', title='HAI', life=5000, flash=False)
+
+        assert mixin.messages == [{'foo': 'baz'}, {'level': 'success', 'title': 'HAI', 'body': 'Hello, world!', 'life': 5000}]
+
+    def test_messages_mixin_set_flash_message(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request(cookies={'tipfy.flash': value_1})
+
+        assert getattr(local, 'ext_messages_set', None) is None
+
+        mixin = messages.MessagesMixin()
+        mixin.set_message('success', 'Hello, world!', title='HAI', life=5000, flash=True)
+
+        assert mixin.messages == [{'foo': 'baz'}]
+        assert local.ext_messages_set == [
+            ('tipfy.flash', {'level': 'success', 'title': 'HAI', 'body': 'Hello, world!', 'life': 5000}),
+        ]
+
+    def test_messages_mixin_get_flash(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request(cookies={'tipfy.flash': value_1})
+
+        mixin = messages.MessagesMixin()
+        assert mixin.get_flash() == {'foo': 'baz'}
+        assert mixin.get_flash('tipfy.flash') == {'foo': 'baz'}
+
+    def test_messages_mixin_get_flash_with_custom_key(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request(cookies={'foo': value_1, 'bar': value_2})
+
+        mixin = messages.MessagesMixin()
+        assert mixin.get_flash('foo') == {'foo': 'baz'}
+        assert mixin.get_flash('bar') == {'bar': 'ding'}
+
+    def test_messages_mixin_set_flash(self):
+        local.app = tipfy.WSGIApplication()
+        assert getattr(local, 'ext_messages_set', None) is None
+
+        mixin = messages.MessagesMixin()
+        mixin.set_flash({'foo': 'baz'})
+        assert local.ext_messages_set == [
+            ('tipfy.flash', {'foo': 'baz'}),
+        ]
+
+    def test_messages_mixin_set_flash_with_custom_key(self):
+        local.app = tipfy.WSGIApplication()
+        assert getattr(local, 'ext_messages_set', None) is None
+
+        mixin = messages.MessagesMixin()
+        mixin.set_flash({'foo': 'baz'}, 'foo')
+        assert local.ext_messages_set == [
+            ('foo', {'foo': 'baz'}),
+        ]
+
+        mixin.set_flash({'bar': 'ding'}, 'bar')
+        assert local.ext_messages_set == [
+            ('foo', {'foo': 'baz'}),
+            ('bar', {'bar': 'ding'}),
+        ]
+
+    def test_messages_mixin_set_form_error(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request(cookies={'tipfy.flash': value_1})
+
+        mixin = messages.MessagesMixin()
+        mixin.set_form_error('Hello, world!', title='HAI')
+
+        assert mixin.messages == [{'foo': 'baz'}, {'level': 'error', 'title': 'HAI', 'body': 'Hello, world!', 'life': None}]

@@ -28,6 +28,28 @@ default_config = {
 _lookup = None
 
 
+class MakoMixin(object):
+    """:class:`tipfy.RequestHandler` mixing to add a convenient
+    ``render_response`` function to handlers. It expects a ``context``
+    dictionary to be set in the handler, so that the passed values are added to
+    the context. The idea is that other mixins can use this context to set
+    template values.
+    """
+    def render_response(self, filename, **values):
+        """Renders a template and returns a response object.
+
+        :param filename:
+            The template filename, related to the templates directory.
+        :param context:
+            Keyword arguments used as variables in the rendered template.
+        :return:
+            A ``werkzeug.Response`` object with the rendered template.
+        """
+        context = dict(self.context)
+        context.update(values)
+        return render_response(filename, **context)
+
+
 def get_lookup():
     global _lookup
     if _lookup is None:
@@ -39,7 +61,15 @@ def get_lookup():
 
 
 def render_template(filename, **context):
-    """Renders a template."""
+    """Renders a template.
+
+    :param filename:
+        The template filename, related to the templates directory.
+    :param context:
+        Keyword arguments used as variables in the rendered template.
+    :return:
+        A rendered template, in unicode.
+    """
     template = get_lookup().get_template(filename)
     buf = StringIO()
     template.render_context(Context(buf, **context))
@@ -47,5 +77,13 @@ def render_template(filename, **context):
 
 
 def render_response(filename, **context):
-    """Renders a template and returns a response object."""
+    """Renders a template and returns a response object.
+
+    :param filename:
+        The template filename, related to the templates directory.
+    :param context:
+        Keyword arguments used as variables in the rendered template.
+    :return:
+        A ``werkzeug.Response`` object with the rendered template.
+    """
     return Response(render_template(filename, **context), mimetype='text/html')

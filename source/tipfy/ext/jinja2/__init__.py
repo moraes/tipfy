@@ -35,11 +35,19 @@ class Jinja2Mixin(object):
     the context. The idea is that other mixins can use this context to set
     template values.
     """
-    def render_response(self, template, **values):
-        """Renders requested templates, adding common variables."""
+    def render_response(self, filename, **values):
+        """Renders a template and returns a response object.
+
+        :param filename:
+            The template filename, related to the templates directory.
+        :param context:
+            Keyword arguments used as variables in the rendered template.
+        :return:
+            A ``werkzeug.Response`` object with the rendered template.
+        """
         context = dict(self.context)
         context.update(values)
-        return render_response(template, **context)
+        return render_response(filename, **context)
 
 
 def get_env():

@@ -17,7 +17,7 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from tipfy import local, get_config, REQUIRED_CONFIG
+from tipfy import cached_property, local, get_config, REQUIRED_CONFIG
 from werkzeug.contrib.securecookie import SecureCookie
 
 #: Default configuration values for this module. Keys are:
@@ -98,4 +98,82 @@ def set_secure_cookie(key, data=None, cookie=None, **kwargs):
         # Always force it to save when data is passed.
         cookie.modified = True
 
-    cookie.save_cookie(local.response, key=key, **kwargs)
+    local.ext_session_cookies = getattr(local, 'ext_session_cookies', {})
+    local.ext_session_cookies[key] = (cookie, kwargs)
+
+
+def delete_secure_cookie(key, path='/', domain=None):
+    """Deletes a secure cookie.
+
+    :param key:
+        The key (name) of the cookie to be deleted.
+    :param path:
+        If the cookie that should be deleted was limited to a path, the path
+        has to be defined here.
+    :param domain:
+        If the cookie that should be deleted was limited to a domain, that
+        domain has to be defined here.
+    """
+    local.ext_session_cookies = getattr(local, 'ext_session_cookies', {})
+    local.ext_session_cookies[key] = (None, {
+        'path':    path,
+        'domain':  domain,
+        'expires': 0,
+        'max_age': 0,
+    })
+
+
+class SecureCookieMiddleware(object):
+    """:class:`tipfy.RequestHandler` middleware that loads and persists a
+    an user.
+    """
+    def pre_dispatch(self, handler):
+        """Executes before a :class:`tipfy.RequestHandler` is dispatched. If
+        it returns a response object, it will stop the pre_dispatch middlewares
+        chain and won't run the requested handler method, using the returned
+        response instead. However, post_dispatch hooks will still be executed.
+
+        :param handler:
+            A :class:`tipfy.RequestHandler` instance.
+        :return:
+            A ``werkzeug.Response`` instance or None.
+        """
+        pass
+
+    def post_dispatch(self, handler, response):
+        """Executes after a :class:`tipfy.RequestHandler` is dispatched. It
+        must always return a response object, be it the one passed in the
+        arguments or a new one.
+
+        :param handler:
+            A :class:`tipfy.RequestHandler` instance.
+        :param response:
+            A ``werkzeug.Response`` instance.
+        :return:
+            A ``werkzeug.Response`` instance.
+        """
+        to_set = getattr(local, 'ext_session_cookies', {})
+        if to_set:
+            for key, values in to_set.iteritems():
+                cookie, kwargs = values
+                if cookie is None:
+                    response.set_cookie(key, **kwargs)
+                else:
+                    cookie.save_cookie(response, key=key, **kwargs)
+
+            local.ext_session_cookies = {}
+
+        return response
+
+
+class SecureCookieSessionMixin(object):
+    @cached_property
+    def session(self):
+        if getattr(self, '_SecureCookieSessionMixin__session', None) is None:
+            key = get_config(__name__, 'cookie_name')
+            self.__session = get_secure_cookie(key)
+            local.ext_session_cookies = getattr(local, 'ext_session_cookies',
+                {})
+            local.ext_session_cookies[key] = (self.__session, None)
+
+        return self.__session

@@ -101,11 +101,12 @@ def setup(app):
     internationalization. Normally it is the first or one of the first
     extensions to be set.
 
-    This is deprecated. I18n is set automatically with several configurable
-    options to load the current locate through
-    :func:`set_translations_from_request`. Use that instead in conjunction with
-    :class:`I18nMiddleware` to save the current locale at the end of request,
-    if needed.
+    .. note::
+       This is deprecated. I18n is set automatically using configurable
+       methods to load the current locate. (see
+       :func:`set_translations_from_request`). Configure a load method and use
+       :class:`I18nMiddleware` to save the current locale at the end of
+       request,if needed.
 
     :param app:
         The WSGI application instance.

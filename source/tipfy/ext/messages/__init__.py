@@ -81,24 +81,28 @@ class FlashMiddleware(object):
         to_set = getattr(local, 'ext_messages_set', [])
         to_delete = getattr(local, 'ext_messages_delete', [])
 
-        keys = []
-        for key, data in reversed(to_set):
-            # Only set a same key once.
-            if key not in keys:
-                keys.append(key)
-                response.set_cookie(key, b64encode(simplejson.dumps(data)))
+        if to_set or to_delete:
+            keys = []
+            for key, data in reversed(to_set):
+                # Only set a same key once.
+                if key not in keys:
+                    keys.append(key)
+                    response.set_cookie(key, b64encode(simplejson.dumps(data)))
 
-        for key in to_delete:
-            # Don't delete keys that were just set.
-            if key not in keys:
-                response.delete_cookie(key)
+            for key in to_delete:
+                # Don't delete keys that were just set.
+                if key not in keys:
+                    response.delete_cookie(key)
+
+            local.ext_messages_set = []
+            local.ext_messages_delete = []
 
         return response
 
 
 class MessagesMixin(object):
     """A :class:`tipfy.RequestHandler` mixin for system messages."""
-    @property
+    @cached_property
     def messages(self):
         if getattr(self, '_MessagesMixin__messages', None) is None:
             # Initialize messages list and check for flashes on first access.

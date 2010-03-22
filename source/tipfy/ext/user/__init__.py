@@ -12,9 +12,9 @@ from datetime import datetime, timedelta
 
 from google.appengine.api import users
 
-from tipfy import cached_property, get_config, Forbidden, import_string, \
-    local, redirect, RequestRedirect, url_for
-from tipfy.ext.session import get_secure_cookie, set_secure_cookie
+from tipfy import (cached_property, get_config, Forbidden, import_string,
+    local, redirect, RequestRedirect, url_for)
+from tipfy.ext import session
 
 #: Default configuration values for this module. Keys are:
 #:   - ``auth_system``: The default authentication class, as a string. Default
@@ -65,10 +65,15 @@ class UserMiddleware(object):
     an user.
     """
     def pre_dispatch(self, handler):
-        """Starts user session and adds user variables to context.
+        """Executes before a :class:`tipfy.RequestHandler` is dispatched. If
+        it returns a response object, it will stop the pre_dispatch middlewares
+        chain and won't run the requested handler method, using the returned
+        response instead. However, post_dispatch hooks will still be executed.
 
         :param handler:
-            The current :class:`tipfy.RequestHandler` instance.
+            A :class:`tipfy.RequestHandler` instance.
+        :return:
+            A ``werkzeug.Response`` instance or None.
         """
         # Start user session.
         get_auth_system().login_with_session()
@@ -91,12 +96,16 @@ class UserMiddleware(object):
         setattr(handler, 'current_user', current_user)
 
     def post_dispatch(self, handler, response):
-        """Persists current user session, if needed.
+        """Executes after a :class:`tipfy.RequestHandler` is dispatched. It
+        must always return a response object, be it the one passed in the
+        arguments or a new one.
 
         :param handler:
-            The current :class:`tipfy.RequestHandler` instance.
+            A :class:`tipfy.RequestHandler` instance.
         :param response:
-            The current ``werkzeug.Response`` instance.
+            A ``werkzeug.Response`` instance.
+        :return:
+            A ``werkzeug.Response`` instance.
         """
         get_auth_system().save_session(response)
         return response
@@ -326,35 +335,35 @@ class MultiAuth(BaseAuth):
         local.ext_user_session = None
 
         # Get the current session.
-        session = get_secure_cookie(key=get_config(__name__, 'cookie_key'))
+        data = session.get_secure_cookie(key=get_config(__name__, 'cookie_key'))
 
         # Check if we are in the middle of external auth and account creation.
-        if session.get('to_signup'):
+        if data.get('to_signup'):
             # Redirect to account creation page.
             if not _is_auth_endpoint('signup_endpoint'):
                 raise RequestRedirect(create_signup_url(request.url))
 
-            local.ext_user_session = session
+            local.ext_user_session = data
             return
 
         # Get the authentication and session ids.
-        auth_id = session.get('id', None)
-        session_id = session.get('session_id', None)
+        auth_id = data.get('id', None)
+        session_id = data.get('session_id', None)
 
         if auth_id is not None:
             user = self.user_model.get_by_auth_id(auth_id)
             if user is not None and user.check_session(session_id) is True:
                 # Reset session id in case it was renewed by the model.
-                session['session_id'] = user.session_id
+                data['session_id'] = user.session_id
 
                 local.ext_user = user
-                local.ext_user_session = session
+                local.ext_user_session = data
 
     def login_with_form(self, username, password, remember=False):
         user = self.user_model.get_by_username(username)
         if user is not None and user.check_password(password) is True:
             local.ext_user = user
-            local.ext_user_session = get_secure_cookie(data={
+            local.ext_user_session = session.get_secure_cookie(data={
                 'id': user.auth_id,
                 'session_id': user.session_id,
                 'remember': str(int(remember)),
@@ -378,14 +387,15 @@ class MultiAuth(BaseAuth):
         user = self.user_model.get_by_auth_id(auth_id)
         if user is not None:
             local.ext_user = user
-            local.ext_user_session = get_secure_cookie(data={
+            local.ext_user_session = session.get_secure_cookie(data={
                 'id': user.auth_id,
                 'session_id': user.session_id,
                 'remember': str(int(remember)),
             })
         else:
             # Save temporary data while the user haven't created an account.
-            local.ext_user_session = get_secure_cookie(data={'to_signup': data})
+            local.ext_user_session = session.get_secure_cookie(
+                data={'to_signup': data})
             # Redirect to account creation page.
             if not _is_auth_endpoint('signup_endpoint'):
                 raise RequestRedirect(create_signup_url(local.request.url))
@@ -396,7 +406,7 @@ class MultiAuth(BaseAuth):
             # Clear session and delete the cookie.
             local.ext_user_session.clear()
             kwargs = self.cookie_args
-            local.response.delete_cookie(kwargs['key'], path=kwargs['path'],
+            session.delete_secure_cookie(kwargs['key'], path=kwargs['path'],
                 domain=kwargs['domain'])
             local.ext_user_session = None
 
@@ -426,7 +436,7 @@ class MultiAuth(BaseAuth):
             session_expires = datetime.now() + timedelta(seconds=cookie_max_age)
 
             # Set the cookie on each request, resetting the idle countdown.
-            set_secure_cookie(cookie=local.ext_user_session,
+            session.set_secure_cookie(cookie=local.ext_user_session,
                 max_age=max_age,
                 session_expires=session_expires,
                 force=True,

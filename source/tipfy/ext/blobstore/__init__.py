@@ -94,8 +94,6 @@ class BlobstoreDownloadMixin(object):
                     raise ValueError('Unexpected value for save_as')
 
         response = Response('', headers=headers, status=302)
-        setattr(response, 'status_code', 302)
-        setattr(response, 'body', None)
         return response
 
 

@@ -37,7 +37,10 @@ def get_flash(key=None):
         key = get_config(__name__, 'cookie_name')
 
     if key in local.request.cookies:
-        local.ext_messages_delete = key
+        if getattr(local, 'ext_messages_delete', None) is None:
+            local.ext_messages_delete = []
+
+        local.ext_messages_delete.append(key)
         return simplejson.loads(b64decode(local.request.cookies[key]))
 
 
@@ -56,7 +59,10 @@ def set_flash(data, key=None):
     if key is None:
         key = get_config(__name__, 'cookie_name')
 
-    local.ext_messages_set = (key, data)
+    if getattr(local, 'ext_messages_set', None) is None:
+        local.ext_messages_set = []
+
+    local.ext_messages_set.append((key, data))
 
 
 class FlashMiddleware(object):
@@ -64,15 +70,19 @@ class FlashMiddleware(object):
     messages.
     """
     def post_dispatch(self, handler, response):
-        to_delete = getattr(local, 'ext_messages_delete', None)
         to_set = getattr(local, 'ext_messages_set', None)
+        to_delete = getattr(local, 'ext_messages_delete', None)
 
-        if to_delete and (not to_set or to_set[0] != to_delete):
-            response.delete_cookie(to_delete)
-
+        keys = []
         if to_set:
-            data = b64encode(simplejson.dumps(to_set[1]))
-            response.set_cookie(to_set[0], value=data)
+            for key, data in to_set:
+                keys.append(key)
+                response.set_cookie(key, b64encode(simplejson.dumps(data)))
+
+        if to_delete:
+            for key in to_delete:
+                if key not in keys:
+                    response.delete_cookie(key)
 
         return response
 

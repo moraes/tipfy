@@ -171,8 +171,8 @@ class BaseAuth(object):
         :return:
             ``None``.
         """
-        local.user = None
-        local.user_session = None
+        local.ext_user = None
+        local.ext_user_session = None
 
     def login_with_form(self, username, password, remember=False):
         """Authenticates the current user using data from a form.
@@ -187,8 +187,8 @@ class BaseAuth(object):
         :return:
             ``True`` if login was succesfull, ``False`` otherwise.
         """
-        local.user = None
-        local.user_session = None
+        local.ext_user = None
+        local.ext_user_session = None
         return False
 
     def login_with_external_data(self, data, remember=False):
@@ -198,8 +198,8 @@ class BaseAuth(object):
         :return:
             ``None``.
         """
-        local.user = None
-        local.user_session = None
+        local.ext_user = None
+        local.ext_user_session = None
 
     def logout(self):
         """Logs out the current user.
@@ -207,8 +207,8 @@ class BaseAuth(object):
         :return:
             ``None``.
         """
-        local.user = None
-        local.user_session = None
+        local.ext_user = None
+        local.ext_user_session = None
 
     def get_current_user(self):
         """Returns the currently logged in user entity or ``None``.
@@ -217,7 +217,7 @@ class BaseAuth(object):
             A :class:`User` entity, if the user for the current request is
             logged in, or ``None``.
         """
-        return getattr(local, 'user', None)
+        return getattr(local, 'ext_user', None)
 
     def is_current_user_admin(self):
         """Returns ``True`` if the current user is an admin.
@@ -226,8 +226,8 @@ class BaseAuth(object):
             ``True`` if the user for the current request is an admin, ``False``
             otherwise.
         """
-        if getattr(local, 'user', None) is not None:
-            return local.user.is_admin()
+        if getattr(local, 'ext_user', None) is not None:
+            return local.ext_user.is_admin()
 
         return False
 
@@ -278,7 +278,7 @@ class BaseAuth(object):
         """
         # This is not really true but it is our best bet since 3rd party auth
         # is handled elsewhere.
-        return (getattr(local, 'user', None) is not None)
+        return (getattr(local, 'ext_user', None) is not None)
 
     def create_user(self, username, auth_id, **kwargs):
         """Saves a new user in the datastore for the currently logged in user,
@@ -295,10 +295,10 @@ class BaseAuth(object):
         """
         res = self.user_model.create(username, auth_id, **kwargs)
 
-        if res and getattr(local, 'user_session', None) and \
-            local.user_session.get('to_signup'):
+        if res and getattr(local, 'ext_user_session', None) and \
+            local.ext_user_session.get('to_signup'):
             # Remove temporary data.
-            del local.user_session['to_signup']
+            del local.ext_user_session['to_signup']
 
         return res
 
@@ -322,8 +322,8 @@ class MultiAuth(BaseAuth):
         app.hooks.add('post_dispatch_handler', self.save_session)
 
     def login_with_session(self):
-        local.user = None
-        local.user_session = None
+        local.ext_user = None
+        local.ext_user_session = None
 
         # Get the current session.
         session = get_secure_cookie(key=get_config(__name__, 'cookie_key'))
@@ -334,7 +334,7 @@ class MultiAuth(BaseAuth):
             if not _is_auth_endpoint('signup_endpoint'):
                 raise RequestRedirect(create_signup_url(request.url))
 
-            local.user_session = session
+            local.ext_user_session = session
             return
 
         # Get the authentication and session ids.
@@ -347,29 +347,29 @@ class MultiAuth(BaseAuth):
                 # Reset session id in case it was renewed by the model.
                 session['session_id'] = user.session_id
 
-                local.user = user
-                local.user_session = session
+                local.ext_user = user
+                local.ext_user_session = session
 
     def login_with_form(self, username, password, remember=False):
         user = self.user_model.get_by_username(username)
         if user is not None and user.check_password(password) is True:
-            local.user = user
-            local.user_session = get_secure_cookie(data={
+            local.ext_user = user
+            local.ext_user_session = get_secure_cookie(data={
                 'id': user.auth_id,
                 'session_id': user.session_id,
                 'remember': str(int(remember)),
             })
             res = True
         else:
-            local.user = None
-            local.user_session = None
+            local.ext_user = None
+            local.ext_user_session = None
             res = False
 
         return res
 
     def login_with_external_data(self, data, remember=False):
-        local.user = None
-        local.user_session = None
+        local.ext_user = None
+        local.ext_user_session = None
 
         auth_id = data.get('auth_id', None)
         if auth_id is None:
@@ -377,28 +377,28 @@ class MultiAuth(BaseAuth):
 
         user = self.user_model.get_by_auth_id(auth_id)
         if user is not None:
-            local.user = user
-            local.user_session = get_secure_cookie(data={
+            local.ext_user = user
+            local.ext_user_session = get_secure_cookie(data={
                 'id': user.auth_id,
                 'session_id': user.session_id,
                 'remember': str(int(remember)),
             })
         else:
             # Save temporary data while the user haven't created an account.
-            local.user_session = get_secure_cookie(data={'to_signup': data})
+            local.ext_user_session = get_secure_cookie(data={'to_signup': data})
             # Redirect to account creation page.
             if not _is_auth_endpoint('signup_endpoint'):
                 raise RequestRedirect(create_signup_url(local.request.url))
 
     def logout(self):
-        local.user = None
-        if getattr(local, 'user_session', None) is not None:
+        local.ext_user = None
+        if getattr(local, 'ext_user_session', None) is not None:
             # Clear session and delete the cookie.
-            local.user_session.clear()
+            local.ext_user_session.clear()
             kwargs = self.cookie_args
             local.response.delete_cookie(kwargs['key'], path=kwargs['path'],
                 domain=kwargs['domain'])
-            local.user_session = None
+            local.ext_user_session = None
 
     def save_session(self, response):
         """Pesists an authenticated user at the end of request.
@@ -412,8 +412,8 @@ class MultiAuth(BaseAuth):
         :return:
             ``None``.
         """
-        if getattr(local, 'user_session', None) is not None:
-            remember = local.user_session.get('remember', None)
+        if getattr(local, 'ext_user_session', None) is not None:
+            remember = local.ext_user_session.get('remember', None)
             cookie_max_age = get_config(__name__, 'cookie_max_age')
 
             if remember == '1':
@@ -426,7 +426,7 @@ class MultiAuth(BaseAuth):
             session_expires = datetime.now() + timedelta(seconds=cookie_max_age)
 
             # Set the cookie on each request, resetting the idle countdown.
-            set_secure_cookie(cookie=local.user_session,
+            set_secure_cookie(cookie=local.ext_user_session,
                 max_age=max_age,
                 session_expires=session_expires,
                 force=True,
@@ -440,17 +440,17 @@ class AppEngineAuth(BaseAuth):
         app.hooks.add('pre_dispatch_handler', self.login_with_session)
 
     def login_with_session(self):
-        local.user = None
-        local.user_session = None
+        local.ext_user = None
+        local.ext_user_session = None
 
         current_user = users.get_current_user()
         if current_user is None:
             return
 
-        local.user = self.user_model.get_by_auth_id('gae|%s' %
+        local.ext_user = self.user_model.get_by_auth_id('gae|%s' %
             current_user.user_id())
 
-        if local.user is None and not _is_auth_endpoint('signup_endpoint'):
+        if local.ext_user is None and not _is_auth_endpoint('signup_endpoint'):
             # User is logged in, but didn't create an account yet.
             raise RequestRedirect(create_signup_url(request.url))
 

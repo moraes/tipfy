@@ -24,10 +24,12 @@ import logging
 import cgi
 import email
 
-from werkzeug import FileStorage, Response
-
 from google.appengine.ext import blobstore
 from google.appengine.api import blobstore as api_blobstore
+
+from werkzeug import FileStorage, Response
+
+from tipfy import local
 
 
 _CONTENT_DISPOSITION_FORMAT = 'attachment; filename="%s"'
@@ -91,7 +93,10 @@ class BlobstoreDownloadMixin(object):
                 else:
                     raise ValueError('Unexpected value for save_as')
 
-        return Response('', headers=headers)
+        response = Response('', headers=headers, status=302)
+        setattr(response, 'status_code', 302)
+        setattr(response, 'body', None)
+        return response
 
 
 class BlobstoreUploadMixin(object):

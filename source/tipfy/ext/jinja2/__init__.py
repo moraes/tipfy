@@ -18,10 +18,13 @@ from tipfy.ext import i18n
 #: Default configuration values for this module. Keys are:
 #:   - ``templates_dir``: Directory for templates. Default is `templates`.
 #:   - ``templates_compiled_dir``: Directory for compiled templates. If set,
-#:     uses the loader for compiled templates. Default is ``None``.
+#:     uses the loader for compiled templates when deployed. Default is ``None``.
+#:   - ``force_use_compiled_templates``: Forces the use of compiled templates
+#:     even in the development server
 default_config = {
     'templates_dir': 'templates',
     'templates_compiled_dir': None,
+    'force_use_compiled_templates': False,
 }
 
 # Jinja2 Environment, cached in the module.
@@ -60,7 +63,10 @@ def get_env():
     if _environment is None:
         templates_compiled_dir = get_config(__name__, 'templates_compiled_dir')
 
-        if templates_compiled_dir is not None:
+        use_compiled = not get_config('tipfy', 'dev') or get_config(__name__,
+            'force_use_compiled_templates')
+
+        if templates_compiled_dir is not None and use_compiled:
             # Use precompiled templates loaded from a module.
             loader = ModuleLoader(templates_compiled_dir)
         else:

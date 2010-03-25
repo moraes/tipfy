@@ -73,6 +73,26 @@ class TestHookHandler(unittest.TestCase):
 
         assert event_3[0].hook_spec == 'ding'
 
+    def test_add_with_pos(self):
+        hook_handler = HookHandler()
+
+        hook_handler.add('before_request_init', 'foo')
+        hook_handler.add('before_request_init', 'bar')
+        hook_handler.add('before_request_init', 'baz')
+
+        event_1 = hook_handler.hooks.get('before_request_init', None)
+        assert event_1[0].hook_spec == 'foo'
+        assert event_1[1].hook_spec == 'bar'
+        assert event_1[2].hook_spec == 'baz'
+
+        hook_handler.add('before_request_init', 'ding', 1)
+
+        event_1 = hook_handler.hooks.get('before_request_init', None)
+        assert event_1[0].hook_spec == 'foo'
+        assert event_1[1].hook_spec == 'ding'
+        assert event_1[2].hook_spec == 'bar'
+        assert event_1[3].hook_spec == 'baz'
+
     def test_get(self):
         hook_handler = HookHandler()
 

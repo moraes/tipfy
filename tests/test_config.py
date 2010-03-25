@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.Config and tipfy.get_config.
+    Tests for tipfy.config
 """
 import unittest
 
@@ -152,6 +152,17 @@ class TestGetConfig(unittest.TestCase):
         assert tipfy.get_config('tipfy.ext.jinja2', 'templates_dir') == jinja2_config['templates_dir']
         assert tipfy.get_config('tipfy.ext.i18n', 'locale') == i18n_config['locale']
         assert tipfy.get_config('tipfy.ext.i18n', 'timezone') == i18n_config['timezone']
+
+    def test_default_config_with_non_existing_key(self):
+        app = tipfy.WSGIApplication()
+
+        from tipfy.ext.i18n import default_config as i18n_config
+
+        # In the first time the module config will be loaded normally.
+        assert tipfy.get_config('tipfy.ext.i18n', 'locale') == i18n_config['locale']
+
+        # In the second time it won't be loaded, but won't find the value and then use the default.
+        assert tipfy.get_config('tipfy.ext.i18n', 'i_dont_exist', 'foo') == 'foo'
 
     def test_override_config(self):
         app = tipfy.WSGIApplication({

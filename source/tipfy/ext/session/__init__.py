@@ -15,7 +15,8 @@ from datetime import datetime, timedelta
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
-from werkzeug.contrib.securecookie import ModificationTrackingDict, SecureCookie
+from werkzeug.contrib.securecookie import SecureCookie
+from werkzeug.contrib.sessions import generate_key, ModificationTrackingDict
 
 from tipfy import cached_property, local, get_config, REQUIRED_CONFIG
 from tipfy.ext.db import (get_entity_from_protobuf, get_protobuf_from_entity,
@@ -418,21 +419,72 @@ class Session(db.Model):
 
 class DatastoreSession(ModificationTrackingDict):
     """A dictionary-like object with values loaded from datastore."""
-    def __init__(self, secure_cookie=None):
-        data = None
-        ModificationTrackingDict.__init__(self, data or ())
+    def __init__(self, provider=None, secure_cookie=None):
+        self.provider = provider
         self.cookie = secure_cookie
+        self.entity = None
+        ModificationTrackingDict.__init__(self, self._get_data() or ())
+
+    @property
+    def sid(self):
+        return self.cookie.get('sid', None)
 
     @property
     def should_save(self):
         """``True`` if the session should be saved."""
         return self.modified
 
+    def get_entity(self):
+        if self.sid is None:
+            return None
+
+        return Session.get_by_key_name(self.sid)
+
+    def _get_data(self):
+        if self.sid is None:
+            return None
+
+        data = memcache.get(self.sid, namespace=self.__class__.__name__)
+
+        if data is None:
+            self.entity = self.get_entity()
+            if self.entity:
+                # TODO: check expiration date.
+                data = self.entity.data
+
+        if data is None:
+            del self.cookie['sid']
+
+        return data
+
     def delete_entity(self):
-        pass
+        if self.sid is not None:
+            memcache.delete(self.sid, namespace=self.__class__.__name__)
+
+            if not self.entity:
+                self.entity = self.get_entity()
+
+            if self.entity:
+                db.delete(self.entity)
+                del self.cookie['sid']
+                self.entity = None
 
     def save_cookie(self, response, key, **kwargs):
-        pass
+        if self.should_save:
+            data = dict(self)
+
+            if self.sid is None:
+                self.cookie['sid'] = generate_key(self.provider.secret_key)
+
+            if self.entity is None:
+                self.entity = Session(key_name=self.sid, data=data)
+            else:
+                self.entity.data = data
+
+            self.entity.put()
+            memcache.set(self.sid, data, namespace=self.__class__.__name__)
+
+        self.cookie.save_cookie(response, key=key, **kwargs)
 
 
 class DatastoreSessionStore(SessionStore):
@@ -450,7 +502,8 @@ class DatastoreSessionStore(SessionStore):
         :return:
             A dictionary-like session object.
         """
-        return DatastoreSession(secure_cookie=self.load_secure_cookie(key))
+        cookie = self.load_secure_cookie(key)
+        return DatastoreSession(provider=self.provider, secure_cookie=cookie)
 
     def _delete_session(self, session):
         """Deletes a session for a given key.

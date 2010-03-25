@@ -510,6 +510,32 @@ class EtagProperty(db.Property):
         return hashlib.sha1(v).hexdigest()
 
 
+class JsonProperty(db.UnindexedProperty):
+    """Stores a value automatically encoding to JSON on set and decoding
+    on get.
+    """
+    data_type = db.Text
+
+    def get_value_for_datastore(self, model_instance):
+        """Encodes the value to JSON."""
+        value = super(JsonProperty, self).get_value_for_datastore(
+            model_instance)
+        if value is not None:
+            return db.Text(simplejson.dumps(value))
+
+    def make_value_from_datastore(self, value):
+        """Decodes the value from JSON."""
+        if value is not None:
+            return simplejson.loads(value)
+
+    def validate(self, value):
+        if value is not None and not isinstance(value, (dict, list, tuple)):
+            raise db.BadValueError('Property %s must be a dict, list or '
+                'tuple.' % self.name)
+
+        return value
+
+
 class PickleProperty(db.Property):
     """A property for storing complex objects in the datastore in pickled form.
 

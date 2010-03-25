@@ -33,23 +33,3 @@ class TestRequestHandler(unittest.TestCase):
     def test_dispatch_not_allowed(self):
         handler = Handler1()
         handler.dispatch('put', some_arg='test')
-
-
-class TestMiscelaneous(unittest.TestCase):
-    def tearDown(self):
-        tipfy.local_manager.cleanup()
-
-    def test_render_json_response(self):
-        local.response = get_response()
-        response = render_json_response({'foo': 'bar'})
-
-        assert isinstance(response, Response)
-        assert response.mimetype == 'application/json'
-        assert response.data == '{"foo": "bar"}'
-
-    def test_render_json_response_no_local_response(self):
-        local.response = None
-        response = render_json_response({'foo': 'bar'})
-        assert isinstance(response, Response)
-        assert response.mimetype == 'application/json'
-        assert response.data == '{"foo": "bar"}'

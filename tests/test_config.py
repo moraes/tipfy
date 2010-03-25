@@ -6,6 +6,8 @@ import unittest
 
 from nose.tools import assert_raises, raises
 
+import _base
+
 import tipfy
 
 

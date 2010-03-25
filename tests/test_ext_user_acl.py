@@ -3,19 +3,24 @@
     Tests for tipfy.ext.user.acl
 """
 import unittest
-from _base import get_app
-from google.appengine.api import memcache
-from gaetestbed import DataStoreTestCase, MemcacheTestCase
+
 from nose.tools import assert_raises
+from gaetestbed import DataStoreTestCase, MemcacheTestCase
+
+from google.appengine.api import memcache
+
+from _base import get_app
 
 import tipfy
-from tipfy.ext.user.acl import Acl, AclRules, _rules_map
+from tipfy.ext.user.acl import Acl, AclRules, _rules_map, AclMixin
 
 
 class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def setUp(self):
         # Clean up datastore.
         super(TestAcl, self).setUp()
+
+        tipfy.local_manager.cleanup()
 
         self.app = get_app()
         self.app.config['tipfy']['dev'] = False
@@ -367,3 +372,32 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         assert acl2.has_access('content', 'add') is False
         assert acl2.has_access('content', 'edit') is True
         assert acl2.has_access('content', 'delete') is False
+
+    def test_acl_mixin(self):
+        roles_map1 = {
+            'editor':      [('content', '*', True),],
+            'contributor': [('content', '*', True), ('content', 'delete', False)],
+        }
+        AclRules.insert_or_update(area='my_area', user='user_1', roles=['editor'])
+
+        class Area(object):
+            def key(self):
+                return 'my_area'
+
+        class User(object):
+            def key(self):
+                return 'user_1'
+
+        class MyHandler(AclMixin):
+            roles_map = roles_map1
+            roles_lock = 'foo'
+
+            def __init__(self):
+                self.area = Area()
+                self.current_user = User()
+
+        handler = MyHandler()
+        assert handler.acl.has_access('content', 'add') is True
+        assert handler.acl.has_access('content', 'edit') is True
+        assert handler.acl.has_access('content', 'delete') is True
+        assert handler.acl.has_access('foo', 'delete') is False

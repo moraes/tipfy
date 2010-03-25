@@ -4,12 +4,10 @@
 """
 import os
 import unittest
-from _base import get_app, get_environ, get_request, get_response
 
 import tipfy
 from tipfy import local, Response
-from tipfy.ext.mako import get_lookup, render_template, render_response, \
-    TemplateLookup
+from tipfy.ext import mako
 
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -21,19 +19,34 @@ class TestMako(unittest.TestCase):
         tipfy.local_manager.cleanup()
 
     def test_get_lookup(self):
-        app = get_app({'tipfy.ext.mako': {'templates_dir': templates_dir}})
-        assert isinstance(get_lookup(), TemplateLookup)
+        app = tipfy.WSGIApplication({'tipfy.ext.mako': {'templates_dir': templates_dir}})
+        assert isinstance(mako.get_lookup(), mako.TemplateLookup)
 
     def test_render_template(self):
-        app = get_app({'tipfy.ext.mako': {'templates_dir': templates_dir}})
+        app = tipfy.WSGIApplication({'tipfy.ext.mako': {'templates_dir': templates_dir}})
         message = 'Hello, World!'
-        res = render_template('template1.html', message=message)
+        res = mako.render_template('template1.html', message=message)
         assert res == message + '\n'
 
     def test_render_response(self):
-        local.response = get_response()
+        app = tipfy.WSGIApplication({'tipfy.ext.mako': {'templates_dir': templates_dir}})
+
         message = 'Hello, World!'
-        response = render_response('template1.html', message=message)
+        response = mako.render_response('template1.html', message=message)
         assert isinstance(response, Response)
+        assert response.mimetype == 'text/html'
+        assert response.data == message + '\n'
+
+    def test_mako_mixin(self):
+        class MyHandler(mako.MakoMixin):
+            def __init__(self):
+                self.context = {}
+
+        app = tipfy.WSGIApplication({'tipfy.ext.mako': {'templates_dir': templates_dir}})
+        message = 'Hello, World!'
+
+        handler = MyHandler()
+        response = handler.render_response('template1.html', message=message)
+        assert isinstance(response, tipfy.Response)
         assert response.mimetype == 'text/html'
         assert response.data == message + '\n'

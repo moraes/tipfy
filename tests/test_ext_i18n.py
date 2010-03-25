@@ -8,6 +8,8 @@ import unittest
 
 from nose.tools import raises
 
+import _base
+
 import tipfy
 from tipfy.ext import i18n
 
@@ -18,10 +20,36 @@ class Request(object):
         self.form = form or {}
         self.cookies= cookies or {}
 
+class Response(object):
+    """A dummy response to test setting locale cookies."""
+    def __init__(self):
+        self.cookies = {}
+
+    def set_cookie(self, name, value, **kwargs):
+        self.cookies[name] = value
+
 
 class TestI18n(unittest.TestCase):
     def tearDown(self):
         tipfy.local_manager.cleanup()
+
+    def test_i18n_middleware(self):
+        middleware = i18n.I18nMiddleware()
+
+        tipfy.local.app = tipfy.WSGIApplication({
+            'tipfy.ext.i18n': {
+                'locale': 'jp_JP',
+            },
+        })
+
+        response = Response()
+        middleware.post_dispatch(None, response)
+        assert response.cookies == {}
+
+        tipfy.local.locale = 'ru_RU'
+        response = Response()
+        middleware.post_dispatch(None, response)
+        assert response.cookies == {'tipfy.locale': 'ru_RU'}
 
     #===========================================================================
     # Translations
@@ -34,7 +62,7 @@ class TestI18n(unittest.TestCase):
         assert tipfy.local.locale == 'pt_BR'
         assert isinstance(tipfy.local.translations, gettext_stdlib.NullTranslations)
 
-    def test_set_translations_from_reuest(self):
+    def test_set_translations_from_request(self):
         tipfy.local.app = tipfy.WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale': 'jp_JP',
@@ -88,6 +116,39 @@ class TestI18n(unittest.TestCase):
 
         i18n.set_translations_from_request()
         assert tipfy.local.locale == 'es_ES'
+
+    def test_set_translations_from_rule_args(self):
+        tipfy.local.app = tipfy.WSGIApplication({
+            'tipfy.ext.i18n': {
+                'locale_request_lookup': [('rule_args', 'locale'),],
+            },
+        })
+        tipfy.local.request = Request()
+
+        tipfy.local.app.rule_args = {'locale': 'es_ES'}
+        i18n.set_translations_from_request()
+        assert tipfy.local.locale == 'es_ES'
+
+        tipfy.local.app.rule_args = {'locale': 'pt_BR'}
+        i18n.set_translations_from_request()
+        assert tipfy.local.locale == 'pt_BR'
+
+    def test_is_default_locale(self):
+        app = tipfy.WSGIApplication()
+        tipfy.local.locale = 'en_US'
+        assert i18n.is_default_locale() is True
+        tipfy.local.locale = 'pt_BR'
+        assert i18n.is_default_locale() is False
+
+        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'locale': 'pt_BR'}})
+        tipfy.local.locale = 'en_US'
+        assert i18n.is_default_locale() is False
+        tipfy.local.locale = 'pt_BR'
+        assert i18n.is_default_locale() is True
+
+    #===========================================================================
+    # gettext(), ngettext(), lazy_gettext(), lazy_ngettext()
+    #===========================================================================
 
     @raises(AttributeError)
     def test_translations_not_set(self):

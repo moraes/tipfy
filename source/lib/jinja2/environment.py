@@ -158,8 +158,8 @@ class Environment(object):
             `None` implicitly into an empty string here.
 
         `autoescape`
-            If set to true the XML/HTML autoescaping feature is enabled.
-            For more details about auto escaping see
+            If set to true the XML/HTML autoescaping feature is enabled by
+            default.  For more details about auto escaping see
             :class:`~jinja2.utils.Markup`.
 
         `loader`
@@ -493,6 +493,7 @@ class Environment(object):
                 raise TemplateSyntaxError('chunk after expression',
                                           parser.stream.current.lineno,
                                           None, None)
+            expr.set_environment(self)
         except TemplateSyntaxError:
             exc_info = sys.exc_info()
         if exc_info is not None:
@@ -531,15 +532,16 @@ class Environment(object):
 
         if py_compile:
             import imp, struct, marshal
-            py_header = imp.get_magic() + '\xff\xff\xff\xff'
+            py_header = imp.get_magic() + \
+                u'\xff\xff\xff\xff'.encode('iso-8859-15')
 
-        def write_file(filename, data):
+        def write_file(filename, data, mode):
             if zip:
                 info = ZipInfo(filename)
                 info.external_attr = 0755 << 16L
                 zip_file.writestr(info, data)
             else:
-                f = open(os.path.join(target, filename), 'wb')
+                f = open(os.path.join(target, filename), mode)
                 try:
                     f.write(data)
                 finally:
@@ -570,11 +572,12 @@ class Environment(object):
 
                 if py_compile:
                     c = compile(code, _encode_filename(filename), 'exec')
-                    write_file(filename + 'c', py_header + marshal.dumps(c))
+                    write_file(filename + 'c', py_header +
+                               marshal.dumps(c), 'wb')
                     log_function('Byte-compiled "%s" as %s' %
                                  (name, filename + 'c'))
                 else:
-                    write_file(filename, code)
+                    write_file(filename, code, 'w')
                     log_function('Compiled "%s" as %s' % (name, filename))
         finally:
             if zip:

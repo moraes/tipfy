@@ -127,6 +127,19 @@ def contextfunction(f):
     return f
 
 
+def evalcontextfunction(f):
+    """This decoraotr can be used to mark a function or method as an eval
+    context callable.  This is similar to the :func:`contextfunction`
+    but instead of passing the context, an evaluation context object is
+    passed.  For more information about the eval context, see
+    :ref:`eval-context`.
+
+    .. versionadded:: 2.4
+    """
+    f.evalcontextfunction = True
+    return f
+
+
 def environmentfunction(f):
     """This decorator can be used to mark a function or method as environment
     callable.  This decorator works exactly like the :func:`contextfunction`

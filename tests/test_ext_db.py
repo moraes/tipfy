@@ -9,6 +9,8 @@ from nose.tools import raises, assert_raises
 from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase
 
+import _base
+
 import tipfy
 from tipfy import NotFound
 from tipfy.ext import db as ext_db

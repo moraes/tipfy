@@ -8,14 +8,12 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-import werkzeug
-
-import tipfy
+from tipfy import import_string, local
 
 # Value to be used for required configuration values.
-REQUIRED_CONFIG = []
+REQUIRED_CONFIG = object()
 # Value used internally for missing default configuration values.
-_DEFAULT_CONFIG = []
+_DEFAULT_CONFIG = object()
 
 
 class Config(dict):
@@ -147,32 +145,27 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
     :return:
         A configuration value.
     """
-    value = tipfy.local.app.config.get(module, key, _DEFAULT_CONFIG)
+    value = local.app.config.get(module, key, _DEFAULT_CONFIG)
     if value not in (_DEFAULT_CONFIG, REQUIRED_CONFIG):
         return value
 
-    if value is _DEFAULT_CONFIG:
-        if default is _DEFAULT_CONFIG:
-            # If no default was provided, the config is required.
-            default_tmp = REQUIRED_CONFIG
-        else:
-            default_tmp = default
+    if default is _DEFAULT_CONFIG:
+        # If no default was provided, the config is required.
+        default = REQUIRED_CONFIG
 
-        if module not in tipfy.local.app.config.modules:
+    if value is _DEFAULT_CONFIG:
+        if module not in local.app.config.modules:
             # Update app config. If import fails or the default_config attribute
             # doesn't exist, an exception will be raised.
-            tipfy.local.app.config.setdefault(module, werkzeug.import_string(
+            local.app.config.setdefault(module, import_string(
                 module + ':default_config'))
-            tipfy.local.app.config.modules.append(module)
+            local.app.config.modules.append(module)
 
-            value = tipfy.local.app.config.get(module, key, default_tmp)
+            value = local.app.config.get(module, key, default)
         else:
-            value = default_tmp
+            value = default
 
     if value is REQUIRED_CONFIG:
-        if default is not _DEFAULT_CONFIG:
-            return default
-
         raise KeyError('Module %s requires the config key "%s" to be set.' %
             (module, key))
 

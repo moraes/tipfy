@@ -363,4 +363,3 @@ _ = gettext
 # Old names, kept here for backwards compatibility.
 set_locale = set_translations
 set_requested_locale = set_translations_from_request
-persist_requested_locale = save_locale_cookie

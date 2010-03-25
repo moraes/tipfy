@@ -68,53 +68,23 @@ class I18nMiddleware(object):
     in a cookie at the end of request, if it differs from the default locale.
     """
     def post_dispatch(self, handler, response):
-        """Persists internationalization.
+        """Saves current locale in a cookie if it is different from the default.
 
         :param handler:
             The current :class:`tipfy.RequestHandler` instance.
         :param response:
             The current ``werkzeug.Response`` instance.
         """
-        save_locale_cookie(response)
+        if getattr(local, 'locale', None) is None:
+            # Locale isn't set.
+            return
+
+        if not is_default_locale():
+            # Persist locale using a cookie when it differs from default.
+            response.set_cookie(get_config(__name__, 'cookie_name'),
+                value=local.locale, max_age=(86400 * 30))
+
         return response
-
-
-def setup(app):
-    """Setup this extension.
-
-    This will set hooks to initialize and persist internationalization.
-
-    To enable it, add this module to the list of extensions in ``config.py``:
-
-    .. code-block:: python
-
-       config = {
-           'tipfy': {
-               'extensions': [
-                   'tipfy.ext.i18n',
-                   # ...
-               ],
-           },
-       }
-
-    It must be placed before any other extension that will make use of
-    internationalization. Normally it is the first or one of the first
-    extensions to be set.
-
-    .. note::
-       This is deprecated. I18n is set automatically using configurable
-       methods to load the current locate. (see
-       :func:`set_translations_from_request`). Configure a load method and use
-       :class:`I18nMiddleware` to save the current locale at the end of
-       request,if needed.
-
-    :param app:
-        The WSGI application instance.
-    :return:
-        ``None``.
-    """
-    app.hooks.add('pre_dispatch_handler', set_translations_from_request, 0)
-    app.hooks.add('post_dispatch_handler', save_locale_cookie, 0)
 
 
 def get_translations():
@@ -189,32 +159,6 @@ def set_translations_from_request():
         locale = get_config(__name__, 'locale')
 
     set_translations(locale)
-
-
-def save_locale_cookie(response):
-    """Application hook executed right before the response is returned by the
-    WSGI application.
-
-    It saves the current locale in a cookie so that the same locale is used in
-    subsequent requests.
-
-    :param app:
-        The WSGI application instance.
-    :param request:
-        The ``werkzeug.Request`` instance.
-    :param response:
-        A ``werkzeug.Response`` instance.
-    :return:
-        ``None``.
-    """
-    if getattr(local, 'locale', None) is None:
-        # Locale isn't set.
-        return
-
-    if not is_default_locale():
-        # Persist locale using a cookie when it differs from default.
-        response.set_cookie(get_config(__name__, 'cookie_name'),
-            value=local.locale, max_age=(86400 * 30))
 
 
 def is_default_locale():

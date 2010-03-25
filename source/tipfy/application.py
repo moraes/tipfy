@@ -52,36 +52,99 @@ class RequestHandler(object):
         if method is None:
             raise MethodNotAllowed()
 
-        # Initialize all middleware.
-        middleware = [m() for m in self.middleware]
+        if not self.middleware:
+            return method(*args, **kwargs)
 
-        # Execute pre_dispatch() middleware.
-        for m in middleware:
-            if getattr(m, 'pre_dispatch', None):
-                response = m.pre_dispatch(self)
-                if response is not None:
-                    break
+        # Get middleware for this handler.
+        middleware = local.app.middleware.get_handler_middleware(self)
+
+        # Execute pre_dispatch middleware.
+        for func in middleware.get('pre_dispatch'):
+            response = func(self)
+            if response is not None:
+                break
         else:
             try:
                 # Execute the requested method.
                 response = method(*args, **kwargs)
             except Exception, e:
-                # Execute handle_exception() middleware.
-                for m in reversed(middleware):
-                    if getattr(m, 'handle_exception', None):
-                        response = m.handle_exception(self, e)
-                        if response:
-                            return response
+                # Execute handle_exception middleware.
+                for func in middleware.get('handle_exception'):
+                    response = func(self, e)
+                    if response:
+                        return response
                 else:
                     raise
 
         # Execute post_dispatch() middleware.
-        for m in reversed(middleware):
-            if getattr(m, 'post_dispatch', None):
-                response = m.post_dispatch(self, response)
+        for func in middleware.get('post_dispatch'):
+            response = func(self, response)
 
         # Done!
         return response
+
+
+class MiddlewareFactory(object):
+    """A factory and registry for handler middleware instances in use."""
+    types = ('pre_dispatch', 'handle_exception', 'post_dispatch')
+
+    def __init__(self):
+        self.middleware = {}
+        self.middleware_methods = {}
+        self.handler_middleware = {}
+
+    def get_methods(self, cls):
+        """Returns the instance methods of a given middleware class.
+
+        :param cls:
+            A middleware class.
+        :return:
+            A list with the instance methods ``[pre_dispatch, handle_exception,
+            post_dispatch]`` from the given middleware class. If the class
+            doesn't have a method, the position is set to ``None``.
+        """
+        if isinstance(cls, basestring):
+            cls = import_string(cls)
+
+        id = cls.__module__ + '.' + cls.__name__
+
+        if id not in self.middleware:
+            obj = cls()
+            self.middleware[id] = obj
+            self.middleware_methods[id] = [getattr(obj, t, None) for t in \
+                self.types]
+
+        return self.middleware_methods[id]
+
+    def get_handler_middleware(self, handler):
+        """Returns the a dictionary of middleware instance methods for a
+        handler.
+
+        :param handler:
+            A class:`tipfy.RequestHandler` instance.
+        :return:
+            A dictionary with handler middleware methods.
+        """
+        id = handler.__module__ + '.' + handler.__class__.__name__
+
+        if id not in self.handler_middleware:
+            res = {
+                'pre_dispatch': [],
+                'handle_exception': [],
+                'post_dispatch': []
+            }
+
+            for cls in handler.middleware:
+                methods = self.get_methods(cls)
+                for i, name in enumerate(self.types):
+                    if methods[i]:
+                        res[name].append(methods[i])
+
+            res['handle_exception'].reverse()
+            res['post_dispatch'].reverse()
+            self.handler_middleware[id] = res
+
+        return self.handler_middleware[id]
 
 
 class WSGIApplication(object):
@@ -116,6 +179,9 @@ class WSGIApplication(object):
 
         # Set the hook handler.
         self.hooks = hooks.HookHandler()
+
+        # Start a middleware manager for handlers.
+        self.middleware = MiddlewareFactory()
 
         # Setup extensions.
         for module in self.config.get('tipfy', 'extensions', []):

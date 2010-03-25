@@ -18,6 +18,8 @@ import unicodedata
 from google.appengine.ext import db
 from google.appengine.datastore import entity_pb
 
+from pytz.gae import pytz
+
 from tipfy import NotFound
 
 
@@ -571,6 +573,28 @@ class SlugProperty(db.Property):
             return self.default
 
         return _slugify(v, max_length=self.max_length, default=self.default)
+
+
+class TimezoneProperty(db.Property):
+    """Stores a timezone value."""
+    data_type = str
+
+    def get_value_for_datastore(self, model_instance):
+        return super(TimezoneProperty, self).get_value_for_datastore(
+            model_instance).zone
+
+    def make_value_from_datastore(self, value):
+        return pytz.timezone(value)
+
+    def validate(self, value):
+        value = super(TimezoneProperty, self).validate(value)
+        if value is None or hasattr(value, 'zone'):
+            return value
+        elif isinstance(value, basestring):
+            return pytz.timezone(value)
+
+        raise db.BadValueError("Property %s must be a pytz timezone or string."
+            % self.name)
 
 
 def _slugify(value, max_length=None, default=None):

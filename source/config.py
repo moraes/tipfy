@@ -16,7 +16,5 @@ config['tipfy'] = {
     # internationalization and user accounts.
     'extensions': [
         'tipfy.ext.debugger',
-        'tipfy.ext.i18n',
-        'tipfy.ext.user',
     ],
 }

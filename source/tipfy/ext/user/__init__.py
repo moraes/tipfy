@@ -344,7 +344,11 @@ class MultiAuth(BaseAuth):
         local.ext_user_session = None
 
         # Get the current session.
-        data = session.get_secure_cookie(key=get_config(__name__, 'cookie_key'))
+        #data = session.get_secure_cookie(key=get_config(__name__, 'cookie_key'))
+        session_key = get_config(__name__, 'cookie_key')
+        session = local.session_store.get_session(session_key, force=False)
+        if session is None:
+            return
 
         # Check if we are in the middle of external auth and account creation.
         if data.get('to_signup'):

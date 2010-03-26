@@ -173,34 +173,34 @@ class TestMiddlewareFactory(unittest.TestCase):
     def tearDown(self):
         local_manager.cleanup()
 
-    def test_get_methods(self):
+    def test_get_instance_methods(self):
         from tipfy.ext import session
 
         factory = MiddlewareFactory()
-        res = factory.get_methods(session.SessionMiddleware)
+        res = factory.get_instance_methods(session.SessionMiddleware)
         assert len(res) == 3
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.middleware
-        instance = factory.middleware['tipfy.ext.session.SessionMiddleware']
+        assert 'tipfy.ext.session.SessionMiddleware' in factory.instances
+        instance = factory.instances['tipfy.ext.session.SessionMiddleware']
         assert isinstance(instance, session.SessionMiddleware)
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.middleware_methods
+        assert 'tipfy.ext.session.SessionMiddleware' in factory.instance_methods
         assert res[0] == getattr(instance, 'pre_dispatch')
         assert res[1] is None
         assert res[2] == getattr(instance, 'post_dispatch')
 
-    def test_get_methods_using_string(self):
+    def test_get_instance_methods_using_string(self):
         from tipfy.ext import session
 
         factory = MiddlewareFactory()
-        res = factory.get_methods('tipfy.ext.session.SessionMiddleware')
+        res = factory.get_instance_methods('tipfy.ext.session.SessionMiddleware')
         assert len(res) == 3
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.middleware
-        instance = factory.middleware['tipfy.ext.session.SessionMiddleware']
+        assert 'tipfy.ext.session.SessionMiddleware' in factory.instances
+        instance = factory.instances['tipfy.ext.session.SessionMiddleware']
         assert isinstance(instance, session.SessionMiddleware)
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.middleware_methods
+        assert 'tipfy.ext.session.SessionMiddleware' in factory.instance_methods
         assert res[0] == getattr(instance, 'pre_dispatch')
         assert res[1] is None
         assert res[2] == getattr(instance, 'post_dispatch')
@@ -225,10 +225,10 @@ class TestMiddlewareFactory(unittest.TestCase):
         assert len(res['handle_exception']) == 0
         assert len(res['post_dispatch']) == 2
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.middleware
-        assert 'tipfy.ext.i18n.I18nMiddleware' in factory.middleware
-        instance_1 = factory.middleware['tipfy.ext.session.SessionMiddleware']
-        instance_2 = factory.middleware['tipfy.ext.i18n.I18nMiddleware']
+        assert 'tipfy.ext.session.SessionMiddleware' in factory.instances
+        assert 'tipfy.ext.i18n.I18nMiddleware' in factory.instances
+        instance_1 = factory.instances['tipfy.ext.session.SessionMiddleware']
+        instance_2 = factory.instances['tipfy.ext.i18n.I18nMiddleware']
         assert isinstance(instance_1, session.SessionMiddleware)
         assert isinstance(instance_2, i18n.I18nMiddleware)
 
@@ -257,10 +257,10 @@ class TestMiddlewareFactory(unittest.TestCase):
         assert len(res['handle_exception']) == 0
         assert len(res['post_dispatch']) == 2
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.middleware
-        assert 'tipfy.ext.i18n.I18nMiddleware' in factory.middleware
-        instance_1 = factory.middleware['tipfy.ext.session.SessionMiddleware']
-        instance_2 = factory.middleware['tipfy.ext.i18n.I18nMiddleware']
+        assert 'tipfy.ext.session.SessionMiddleware' in factory.instances
+        assert 'tipfy.ext.i18n.I18nMiddleware' in factory.instances
+        instance_1 = factory.instances['tipfy.ext.session.SessionMiddleware']
+        instance_2 = factory.instances['tipfy.ext.i18n.I18nMiddleware']
         assert isinstance(instance_1, session.SessionMiddleware)
         assert isinstance(instance_2, i18n.I18nMiddleware)
 

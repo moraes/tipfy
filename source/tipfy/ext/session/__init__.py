@@ -248,8 +248,7 @@ class SessionStore(object):
         kwargs = self.provider.default_cookie_args
 
         for key, value in self._data.iteritems():
-            # Cookie was set.
-            #cookie, cookie_args = self._data[key]
+            #cookie, cookie_args = value
             #cookie_args = cookie_args or kwargs
             cookie = value
 
@@ -262,19 +261,23 @@ class SessionStore(object):
                 # Cookie will only be saved if it was changed.
                 cookie.save_cookie(response, key=key, **kwargs)
 
-    def get_session(self, key=None):
+    def get_session(self, key=None, force=True):
         """Returns a session for a given key. If the session doesn't exist, a
         new session is returned.
 
         :param key:
             Cookie unique name. If not provided, uses the
             ``session_cookie_name`` value configured for this module.
+        :param force:
+            If ``True``, returns a new session even if a session with the
+            given key doesn't exist. If ``False``, only returns sessions
+            created on previous requests.
         :return:
             A dictionary-like session object.
         """
         key = key or self.provider.default_session_key
 
-        if key not in self._data:
+        if key not in self._data or self._data[key] is None:
             self._data[key] = self._get_session(key)
 
         return self._data[key]

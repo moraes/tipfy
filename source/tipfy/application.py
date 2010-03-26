@@ -11,9 +11,10 @@
 import logging
 from wsgiref.handlers import CGIHandler
 
+from werkzeug import ClosingIterator, Request, Response
+
 from tipfy import (default_config, local, local_manager, HTTPException,
-    import_string, InternalServerError, Map, MethodNotAllowed, Request,
-    RequestRedirect, Response)
+    import_string, InternalServerError, Map, MethodNotAllowed, RequestRedirect)
 from tipfy import config
 from tipfy import hooks
 
@@ -89,11 +90,14 @@ class MiddlewareFactory(object):
     types = ('pre_dispatch', 'handle_exception', 'post_dispatch')
 
     def __init__(self):
-        self.middleware = {}
-        self.middleware_methods = {}
+        # Instantiated middleware.
+        self.instances = {}
+        # Methods from instantiated middleware.
+        self.instance_methods = {}
+        # Middleware methods for a given handler.
         self.handler_middleware = {}
 
-    def get_methods(self, cls):
+    def get_instance_methods(self, cls):
         """Returns the instance methods of a given middleware class.
 
         :param cls:
@@ -108,13 +112,13 @@ class MiddlewareFactory(object):
 
         id = cls.__module__ + '.' + cls.__name__
 
-        if id not in self.middleware:
+        if id not in self.instances:
             obj = cls()
-            self.middleware[id] = obj
-            self.middleware_methods[id] = [getattr(obj, t, None) for t in \
+            self.instances[id] = obj
+            self.instance_methods[id] = [getattr(obj, t, None) for t in \
                 self.types]
 
-        return self.middleware_methods[id]
+        return self.instance_methods[id]
 
     def get_handler_middleware(self, handler):
         """Returns the a dictionary of middleware instance methods for a
@@ -135,7 +139,7 @@ class MiddlewareFactory(object):
             }
 
             for cls in handler.middleware:
-                methods = self.get_methods(cls)
+                methods = self.get_instance_methods(cls)
                 for i, name in enumerate(self.types):
                     if methods[i]:
                         res[name].append(methods[i])
@@ -259,7 +263,8 @@ class WSGIApplication(object):
                 break
 
         # Call the response object as a WSGI application.
-        return response(environ, start_response)
+        return ClosingIterator(response(environ, start_response),
+            local_manager.cleanup)
 
     def get_url_map(self):
         """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
@@ -336,7 +341,7 @@ def run_wsgi_app(app):
             app = res
 
     # Wrap app by local_manager so that local is cleaned after each request.
-    PatchedCGIHandler().run(local_manager.make_middleware(app))
+    PatchedCGIHandler().run(app)
 
 
 _ULTIMATE_SYS_PATH = None

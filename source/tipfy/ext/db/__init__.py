@@ -510,7 +510,7 @@ class EtagProperty(db.Property):
         return hashlib.sha1(v).hexdigest()
 
 
-class JsonProperty(db.UnindexedProperty):
+class JsonProperty(db.Property):
     """Stores a value automatically encoding to JSON on set and decoding
     on get.
     """

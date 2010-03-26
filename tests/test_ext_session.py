@@ -8,6 +8,7 @@ from nose.tools import raises
 from _base import get_environ
 
 import tipfy
+from tipfy import local, local_manager
 from tipfy.ext import session
 
 def get_app(config=None):
@@ -17,18 +18,28 @@ def get_app(config=None):
         },
     })
 
-class Response(object):
-    """A dummy response to test setting locale cookies."""
-    def __init__(self):
-        self.cookies = {}
+class Request(object):
+    """A fake request object with cookies."""
+    def __init__(self, cookies=None):
+        self.cookies = cookies or {}
 
-    def set_cookie(self, name, value, **kwargs):
-        self.cookies[name] = value
+
+class Response(object):
+    """A fake response object with cookies."""
+    def __init__(self):
+        self.cookies_to_set = []
+        self.cookies_to_delete = []
+
+    def set_cookie(self, key, value, **kwargs):
+        self.cookies_to_set.append((key, value))
+
+    def delete_cookie(self, key, **kwargs):
+        self.cookies_to_delete.append(key)
 
 
 class TestSessionMiddleware(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local_manager.cleanup()
 
     def test_session_type(self):
         app = get_app()
@@ -64,12 +75,12 @@ class TestSessionMiddleware(unittest.TestCase):
     def test_pre_dispatch(self):
         app = get_app()
 
-        assert getattr(tipfy.local, 'session_store', None) is None
+        assert getattr(local, 'session_store', None) is None
 
         middleware = session.SessionMiddleware()
         middleware.pre_dispatch(None)
 
-        assert isinstance(tipfy.local.session_store, session.SessionStore)
+        assert isinstance(local.session_store, session.SessionStore)
 
     def test_pre_dispatch_datastore(self):
         app = tipfy.WSGIApplication({
@@ -79,43 +90,43 @@ class TestSessionMiddleware(unittest.TestCase):
             },
         })
 
-        assert getattr(tipfy.local, 'session_store', None) is None
+        assert getattr(local, 'session_store', None) is None
 
         middleware = session.SessionMiddleware()
         middleware.pre_dispatch(None)
 
-        assert isinstance(tipfy.local.session_store, session.DatastoreSessionStore)
+        assert isinstance(local.session_store, session.DatastoreSessionStore)
 
     def test_post_dispatch(self):
         app = get_app()
 
-        assert getattr(tipfy.local, 'session_store', None) is None
+        assert getattr(local, 'session_store', None) is None
 
         middleware = session.SessionMiddleware()
         middleware.pre_dispatch(None)
 
-        assert isinstance(tipfy.local.session_store, session.SessionStore)
+        assert isinstance(local.session_store, session.SessionStore)
 
-        tipfy.local.session_store.set_flash({'foo': 'bar'})
+        local.session_store.set_flash({'foo': 'bar'})
 
         response = Response()
 
-        assert 'tipfy.flash' not in response.cookies
+        assert 'tipfy.flash' not in response.cookies_to_set
         middleware.post_dispatch(None, response)
-        assert 'tipfy.flash' in response.cookies
+        assert 'tipfy.flash' in dict(response.cookies_to_set)
 
 
 
 class TestSessionMixin(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local_manager.cleanup()
 
     def test_get_session(self):
         app = get_app()
-        assert getattr(tipfy.local, 'session_store', None) is None
+        assert getattr(local, 'session_store', None) is None
         middleware = session.SessionMiddleware()
         middleware.pre_dispatch(None)
-        tipfy.local.request = tipfy.Request(get_environ())
+        local.request = tipfy.Request(get_environ())
 
         mixin = session.SessionMixin()
         assert isinstance(mixin.session, session.SecureCookie)
@@ -123,19 +134,49 @@ class TestSessionMixin(unittest.TestCase):
 
 class TestMessagesMixin(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local_manager.cleanup()
 
+    def test_messages_mixin(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request()
+        middleware = session.SessionMiddleware()
+        middleware.pre_dispatch(None)
+
+        mixin = session.MessagesMixin()
+        assert mixin.messages == []
+
+    def test_messages_mixin_set_message(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request()
+        middleware = session.SessionMiddleware()
+        middleware.pre_dispatch(None)
+
+        mixin = session.MessagesMixin()
+        mixin.set_message('success', 'Hello, world!', title='HAI', life=5000, flash=False)
+
+        assert mixin.messages == [{'level': 'success', 'title': 'HAI', 'body': 'Hello, world!', 'life': 5000}]
+
+    def test_messages_mixin_set_form_error(self):
+        local.app = tipfy.WSGIApplication()
+        local.request = Request()
+        middleware = session.SessionMiddleware()
+        middleware.pre_dispatch(None)
+
+        mixin = session.MessagesMixin()
+        mixin.set_form_error('Hello, world!', title='HAI')
+
+        assert mixin.messages == [{'level': 'error', 'title': 'HAI', 'body': 'Hello, world!', 'life': None}]
 
 class TestSessionStore(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local_manager.cleanup()
 
 
 class TestDatastoreSessionStore(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local_manager.cleanup()
 
 
 class TestDatastoreSession(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local_manager.cleanup()

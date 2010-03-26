@@ -9,7 +9,7 @@ from gaetestbed import DataStoreTestCase, MemcacheTestCase
 
 from google.appengine.api import memcache
 
-from _base import get_app
+import _base
 
 import tipfy
 from tipfy.ext.user.acl import Acl, AclRules, _rules_map, AclMixin
@@ -22,7 +22,7 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
 
         tipfy.local_manager.cleanup()
 
-        self.app = get_app()
+        self.app = tipfy.WSGIApplication()
         self.app.config['tipfy']['dev'] = False
 
         Acl.roles_map = {}

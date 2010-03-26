@@ -5,7 +5,7 @@
 import unittest
 from nose.tools import raises
 
-from _base import get_environ
+import _base
 
 import werkzeug
 
@@ -97,9 +97,8 @@ class TestUtils(unittest.TestCase):
     #===========================================================================
     def test_redirect_to(self):
         app = get_app()
-        environ = get_environ()
-        app.url_adapter = app.url_map.bind_to_environ(environ)
-        host = 'http://%s' % environ['HTTP_HOST']
+        app.url_adapter = app.url_map.bind('foo.com')
+        host = 'http://foo.com'
 
         response = utils.redirect_to('home')
         assert response.headers['location'] == host + '/'
@@ -107,9 +106,8 @@ class TestUtils(unittest.TestCase):
 
     def test_redirect_to2(self):
         app = get_app()
-        environ = get_environ()
-        app.url_adapter = app.url_map.bind_to_environ(environ)
-        host = 'http://%s' % environ['HTTP_HOST']
+        app.url_adapter = app.url_map.bind('foo.com')
+        host = 'http://foo.com'
 
         response = utils.redirect_to('profile', username='calvin')
         assert response.headers['location'] == host + '/people/calvin'
@@ -125,9 +123,8 @@ class TestUtils(unittest.TestCase):
 
     def test_redirect_to_301(self):
         app = get_app()
-        environ = get_environ()
-        app.url_adapter = app.url_map.bind_to_environ(environ)
-        host = 'http://%s' % environ['HTTP_HOST']
+        app.url_adapter = app.url_map.bind('foo.com')
+        host = 'http://foo.com'
 
         response = utils.redirect_to('home', code=301)
         assert response.headers['location'] == host + '/'
@@ -136,8 +133,7 @@ class TestUtils(unittest.TestCase):
     @raises(AssertionError)
     def test_redirect_to_invalid_code(self):
         app = get_app()
-        environ = get_environ()
-        app.url_adapter = app.url_map.bind_to_environ(environ)
+        app.url_adapter = app.url_map.bind('foo.com')
 
         utils.redirect_to('home', code=405)
 

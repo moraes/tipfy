@@ -8,7 +8,8 @@ from google.appengine.api.labs import taskqueue
 from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase, TaskQueueTestCase
 
-from _base import get_app, get_environ, get_request
+import _base
+
 from tipfy import url_for, Rule
 import tipfy
 

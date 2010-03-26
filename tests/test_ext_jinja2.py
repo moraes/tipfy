@@ -5,7 +5,7 @@
 import os
 import unittest
 
-from _base import get_environ
+import _base
 
 import tipfy
 from tipfy.ext import jinja2

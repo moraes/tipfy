@@ -5,7 +5,7 @@
 import unittest
 from nose.tools import raises
 
-from _base import get_environ
+import _base
 
 import tipfy
 from tipfy import local, local_manager
@@ -126,7 +126,7 @@ class TestSessionMixin(unittest.TestCase):
         assert getattr(local, 'session_store', None) is None
         middleware = session.SessionMiddleware()
         middleware.pre_dispatch(None)
-        local.request = tipfy.Request(get_environ())
+        local.request = tipfy.Request.from_values()
 
         mixin = session.SessionMixin()
         assert isinstance(mixin.session, session.SecureCookie)

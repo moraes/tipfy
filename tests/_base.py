@@ -19,35 +19,3 @@ LIB_PATH = os.path.join(APP_PATH, 'lib')
 if APP_PATH not in sys.path:
     sys.path.insert(0, LIB_PATH)
     sys.path.insert(0, APP_PATH)
-
-import tipfy
-import werkzeug
-
-def teardown():
-    tipfy.local_manager.cleanup()
-
-
-def get_app(config=None):
-    if config is None:
-        from config import config
-
-    return tipfy.WSGIApplication(config)
-
-
-def get_environ(*args, **kwargs):
-    from werkzeug.test import create_environ
-    path = kwargs.get('path', '/')
-    if 'base_url' not in kwargs:
-        kwargs['base_url'] = 'http://%s%s' % (os.environ.get('HTTP_HOST',
-            'localhost:8080'), path)
-
-    return create_environ(*args, **kwargs)
-
-
-def get_request(environ):
-    return werkzeug.Request(environ)
-
-
-def get_response():
-
-    return werkzeug.Response()

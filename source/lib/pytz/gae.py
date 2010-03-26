@@ -29,7 +29,16 @@ import pytz
 import zipfile
 from cStringIO import StringIO
 
-from google.appengine.api import memcache
+try:
+    from google.appengine.api import memcache
+except ImportError:
+    # This means that we're not running under the SDK, likely a script
+    class memcache(object):
+        def add(*args, **kwargs):
+            pass
+
+        def get(*args, **kwargs):
+            return None
 
 zoneinfo = None
 zoneinfo_path = os.path.abspath(os.path.join(os.path.dirname(__file__),

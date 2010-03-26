@@ -269,19 +269,10 @@ class WSGIApplication(object):
         :return:
             A ``werkzeug.routing.Map`` instance.
         """
-        from google.appengine.api import memcache
-        config = self.config.get('tipfy')
-        key = 'wsgi_app.rules.%s.%s' % (config.get('wsgi_app_id'),
-            config.get('version_id'))
-        rules = memcache.get(key)
-        if not rules or config.get('dev'):
-            rules = import_string('urls:get_rules')()
-            try:
-                memcache.set(key, rules)
-            except:
-                logging.info('Failed to save wsgi_app.rules to memcache.')
+        rules = import_string('urls:get_rules')()
+        kwargs = self.config.get('tipfy').get('url_map_kwargs')
 
-        return Map(rules, **config.get('url_map_kwargs'))
+        return Map(rules, **kwargs)
 
     def handle_exception(self, e):
         """Handles HTTPException or uncaught exceptions raised by the WSGI

@@ -19,14 +19,15 @@ from tipfy.ext import i18n
 #:
 #: - ``templates_dir``: Directory for templates. Default is `templates`.
 #:
-#: - ``templates_compiled_dir``: Directory for compiled templates. If set,
-#:   uses the loader for compiled templates when deployed. Default is ``None``.
+#:   - ``templates_compiled_target``: Target for compiled templates. If set,
+#:     uses the loader for compiled templates when deployed. If it ends with a 
+#:     '.zip' it will be treated as a zip file. Default is ``None``.
 #:
 #: - ``force_use_compiled``: Forces the use of compiled templates even in the
 #:   development server
 default_config = {
     'templates_dir': 'templates',
-    'templates_compiled_dir': None,
+    'templates_compiled_target': None,
     'force_use_compiled': False,
 }
 
@@ -64,14 +65,14 @@ def get_env():
     """
     global _environment
     if _environment is None:
-        templates_compiled_dir = get_config(__name__, 'templates_compiled_dir')
+        templates_compiled_target = get_config(__name__, 'templates_compiled_target')
 
         use_compiled = not get_config('tipfy', 'dev') or get_config(__name__,
             'force_use_compiled')
 
-        if templates_compiled_dir is not None and use_compiled:
+        if templates_compiled_target is not None and use_compiled:
             # Use precompiled templates loaded from a module.
-            loader = ModuleLoader(templates_compiled_dir)
+            loader = ModuleLoader(templates_compiled_target)
         else:
             # Parse templates on every request.
             loader = FileSystemLoader(get_config(__name__, 'templates_dir'))

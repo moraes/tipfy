@@ -12,7 +12,7 @@ from tipfy.ext import jinja2
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 templates_dir = os.path.join(current_dir, 'files', 'jinja2')
-templates_compiled_dir = os.path.join(current_dir, 'files', 'jinja2_compiled')
+templates_compiled_target = os.path.join(current_dir, 'files', 'jinja2_compiled')
 
 
 class TestJinja2(unittest.TestCase):
@@ -40,7 +40,7 @@ class TestJinja2(unittest.TestCase):
     def test_render_response_force_compiled(self):
         jinja2._environment = None
         app = tipfy.WSGIApplication({'tipfy.ext.jinja2': {
-            'templates_compiled_dir': templates_compiled_dir,
+            'templates_compiled_target': templates_compiled_target,
             'force_use_compiled': True,
         }})
 

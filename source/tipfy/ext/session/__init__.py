@@ -19,8 +19,7 @@ from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import generate_key, ModificationTrackingDict
 
 from tipfy import cached_property, local, get_config, REQUIRED_CONFIG
-from tipfy.ext.db import (get_entity_from_protobuf, get_protobuf_from_entity,
-    retry_on_timeout, PickleProperty)
+from tipfy.ext.db import PickleProperty
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -485,11 +484,12 @@ class DatastoreSession(ModificationTrackingDict):
                 self.cookie['sid'] = generate_key(self.provider.secret_key)
 
             if self.entity is None:
-                self.entity = Session(key_name=self.sid, data=data)
-            else:
-                self.entity.data = data
+                self.entity = Session(key_name=self.sid)
 
+            self.entity.data = data
+            self.entity.expires = datetime.now()
             self.entity.put()
+
             memcache.set(self.sid, data, namespace=self.__class__.__name__)
 
         self.cookie.save_cookie(response, key=key, **kwargs)

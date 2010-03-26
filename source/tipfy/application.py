@@ -263,8 +263,7 @@ class WSGIApplication(object):
                 break
 
         # Call the response object as a WSGI application.
-        return ClosingIterator(response(environ, start_response),
-            local_manager.cleanup)
+        return response(environ, start_response)
 
     def get_url_map(self):
         """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
@@ -341,7 +340,7 @@ def run_wsgi_app(app):
             app = res
 
     # Wrap app by local_manager so that local is cleaned after each request.
-    PatchedCGIHandler().run(app)
+    PatchedCGIHandler().run(local_manager.make_middleware(app))
 
 
 _ULTIMATE_SYS_PATH = None

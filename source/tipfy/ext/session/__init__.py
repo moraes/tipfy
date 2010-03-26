@@ -11,6 +11,7 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from datetime import datetime, timedelta
+from time import time
 
 from google.appengine.api import memcache
 from google.appengine.ext import db
@@ -36,6 +37,10 @@ from tipfy.ext.db import PickleProperty
 #: - ``flash_cookie_name``: Name of the cookie to save a flash message.
 #:   Default is `tipfy.flash`.
 #:
+#: - ``cookie_max_age``: Cookie max age in seconds. Limits the duration of a
+#:   session. If ``None``, the sessions lasts until the client is closed.
+#:   Default is ``None``.
+#:
 #: - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
 #:   domain must be set to the main domain with a preceding dot, e.g., cookies
 #:   set for `.mydomain.org` will work in `foo.mydomain.org` and
@@ -48,16 +53,20 @@ from tipfy.ext.db import PickleProperty
 #: - ``cookie_secure``: Make the cookie only available via HTTPS.
 #:
 #: - ``cookie_httponly``: Disallow JavaScript to access the cookie.
+#:
+#: - ``cookie_force``: If ``True``, force cookie to be saved on each request,
+#:   even if the session data doesn't change. Default to ``False``.
 default_config = {
     'session_type':        'securecookie',
     'secret_key':          REQUIRED_CONFIG,
     'session_cookie_name': 'tipfy.session',
     'flash_cookie_name':   'tipfy.flash',
-    'cookie_max_age': None,
-    'cookie_domain': None,
-    'cookie_path': '/',
-    'cookie_secure': None,
+    'cookie_max_age':  None,
+    'cookie_domain':   None,
+    'cookie_path':     '/',
+    'cookie_secure':   None,
     'cookie_httponly': False,
+    'cookie_force':    False,
 }
 
 
@@ -231,7 +240,12 @@ class SessionStore(object):
             Configuration provider.
         """
         self.provider = provider
+        # Cookies to save or delete.
         self._data = {}
+        # Arguments for each secure cookie. If not set, use default values.
+        self._data_args = {}
+        # Flash messages marked as read.
+        self._flash_read = []
 
     def save(self, response):
         """Saves all cookies tracked by this store.
@@ -244,40 +258,66 @@ class SessionStore(object):
         if not self._data:
             return
 
-        kwargs = self.provider.default_cookie_args
+        cookie_args = self.provider.default_cookie_args
 
-        for key, value in self._data.iteritems():
-            #cookie, cookie_args = value
-            #cookie_args = cookie_args or kwargs
-            cookie = value
+        for key, cookie in self._data.iteritems():
+            # Use special cookie arguments, if set.
+            kwargs = self._data_args.get(key, None) or cookie_args
 
-            if cookie is None:
-                # Cookie was marked for deletion.
+            if not cookie:
+                # Cookie is None (marked for deletion) or empty.
                 path = kwargs.get('path', '/')
                 domain = kwargs.get('domain', None)
                 response.delete_cookie(key, path=path, domain=domain)
             else:
-                # Cookie will only be saved if it was changed.
-                cookie.save_cookie(response, key=key, **kwargs)
+                # Cookie is marked to be saved.
+                max_age = kwargs.pop('max_age', None)
+                if max_age and 'expires' not in kwargs:
+                    kwargs['expires'] = time() + max_age
 
-    def get_session(self, key=None, force=True):
+                if isinstance(cookie, basestring):
+                    # Save a normal cookie.
+                    response.set_cookie(key, value=cookie, **kwargs)
+                else:
+                    # Save a secure cookie.
+                    cookie.save_cookie(response, key=key, **kwargs)
+
+    def get_session(self, key=None, create=True, **kwargs):
         """Returns a session for a given key. If the session doesn't exist, a
         new session is returned.
 
         :param key:
             Cookie unique name. If not provided, uses the
             ``session_cookie_name`` value configured for this module.
-        :param force:
-            If ``True``, returns a new session even if a session with the
-            given key doesn't exist. If ``False``, only returns sessions
-            created on previous requests.
+        :param create:
+            If ``False``, returns ``None`` if a session was not saved in
+            previous requests. Otherwise returns the existing sesssion or a new
+            one.
+        :param kwargs:
+            Options to save the cookie. Normally not used as the configured
+            defaults are enough for most cases. Possible keywords are same as
+            in ``werkzeug.contrib.securecookie.SecureCookie.save_cookie``:
+
+            - expires
+            - session_expires
+            - max_age
+            - path
+            - domain
+            - secure
+            - httponly
+            - force
         :return:
             A dictionary-like session object.
         """
         key = key or self.provider.default_session_key
 
-        if key not in self._data or self._data[key] is None:
-            self._data[key] = self._get_session(key)
+        if key not in self._data:
+            session = self._get_session(key)
+            if create is False and session.new is True:
+                return None
+
+            self._data[key] = session
+            self._data_args[key] = kwargs
 
         return self._data[key]
 
@@ -293,12 +333,17 @@ class SessionStore(object):
         """
         return self.load_secure_cookie(key)
 
-    def delete_session(self, key=None):
+    def delete_session(self, key=None, **kwargs):
         """Deletes a session for a given key.
 
         :param key:
             Cookie unique name. If not provided, uses the
             ``session_cookie_name`` value configured for this module.
+        :param kwargs:
+            Options to save the cookie. Normally not used as the configured
+            defaults are enough for most cases.
+
+            See :meth:`SessionStore.get_session`.
         :return:
             ``None``.
         """
@@ -308,6 +353,7 @@ class SessionStore(object):
             self._delete_session(self._data[key])
 
         self._data[key] = None
+        self._data_args[key] = kwargs
 
     def _delete_session(self, session):
         """Deletes a session for a given key.
@@ -320,26 +366,37 @@ class SessionStore(object):
         """
         session.clear()
 
-    def get_flash(self, key=None):
+    def get_flash(self, key=None, **kwargs):
         """Returns a flash message. Flash messages are stored in a signed
         cookie and deleted when read.
 
         :param key:
             Cookie unique name. If not provided, uses the ``flash_cookie_name``
             value configured for this module.
+        :param kwargs:
+            Options to save the cookie. Normally not used as the configured
+            defaults are enough for most cases.
+
+            See :meth:`SessionStore.get_session`.
         :return:
             The data stored in the flash, or ``None``.
         """
         key = key or self.provider.default_flash_key
 
+        if key in self._flash_read:
+            return
+
+        self._flash_read.append(key)
+
         if key in local.request.cookies:
             if key not in self._data:
                 # Only mark for deletion if it was not set.
                 self._data[key] = None
+                self._data_args[key] = kwargs
 
             return self.load_secure_cookie(key)
 
-    def set_flash(self, data, key=None):
+    def set_flash(self, data, key=None, **kwargs):
         """Sets a flash message. Flash messages are stored in a signed cookie
         and deleted when read.
 
@@ -348,13 +405,19 @@ class SessionStore(object):
         :param key:
             Cookie unique name. If not provided, uses the ``flash_cookie_name``
             value configured for this module.
+        :param kwargs:
+            Options to save the cookie. Normally not used as the configured
+            defaults are enough for most cases.
+
+            See :meth:`SessionStore.get_session`.
         :return:
             ``None``.
         """
         key = key or self.provider.default_flash_key
         self._data[key] = self.create_secure_cookie(data)
+        self._data_args[key] = kwargs
 
-    def get_secure_cookie(self, key=None, load=False):
+    def get_secure_cookie(self, key=None, load=True, create=True, **kwargs):
         """Returns a secure cookie. Cookies get through this method are tracked
         and automatically saved at the end of request if they change.
 
@@ -364,14 +427,30 @@ class SessionStore(object):
             ``True`` to try to load an existing cookie from the request. If it
             is not set, a clean secure cookie is returned. ``False`` to return
             a new secure cookie. Default is ``False``.
+        :param create:
+            If ``False``, returns ``None`` if a secure cookie was not saved in
+            previous requests. Otherwise returns the existing cookie or a new
+            one.
+        :param kwargs:
+            Options to save the cookie. Normally not used as the configured
+            defaults are enough for most cases.
+
+            See :meth:`SessionStore.get_session`.
         :return:
             A ``werkzeug.contrib.SecureCookie`` instance.
         """
         if key not in self._data:
+            session = None
             if load:
-                self._data[key] = self.load_secure_cookie(key)
-            else:
-                self._data[key] = self.create_secure_cookie()
+                session = self.load_secure_cookie(key)
+            elif create:
+                session = self.create_secure_cookie()
+
+            if session is None or (create is False and session.new is True):
+                return None
+
+            self._data[key] = session
+            self._data_args[key] = kwargs
 
         return self._data[key]
 
@@ -411,6 +490,24 @@ class SessionStore(object):
 
         return cookie
 
+    def set_cookie(self, key, cookie, **kwargs):
+        """Sets a cookie or secure cookie to be saved at the end of the request.
+
+        :param key:
+            Cookie unique name.
+        :param cookie:
+            A cookie value or a ``werkzeug.contrib.SecureCookie`` instance.
+        :param kwargs:
+            Options to save the cookie. Normally not used as the configured
+            defaults are enough for most cases.
+
+            See :meth:`SessionStore.get_session`.
+        :return:
+            ``None``.
+        """
+        self._data[key] = cookie
+        self._data_args[key] = kwargs
+
 
 class Session(db.Model):
     """Stores session data."""
@@ -418,8 +515,6 @@ class Session(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
     #: Modification date.
     updated = db.DateTimeProperty(auto_now=True)
-    #: Expiration date.
-    expires = db.DateTimeProperty(required=True)
     #: Session data, pickled.
     data = PickleProperty()
 
@@ -456,7 +551,7 @@ class DatastoreSession(ModificationTrackingDict):
         if data is None:
             self.entity = self.get_entity()
             if self.entity:
-                # TODO: check expiration date.
+                # TODO: check expiration date?
                 data = self.entity.data
 
         if data is None:

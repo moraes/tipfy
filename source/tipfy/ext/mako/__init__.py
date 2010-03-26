@@ -19,7 +19,8 @@ from StringIO import StringIO
 from tipfy import local, get_config, Response
 
 #: Default configuration values for this module. Keys are:
-#:   - ``templates_dir``: Directory for templates. Default is `templates`.
+#:
+#: - ``templates_dir``: Directory for templates. Default is `templates`.
 default_config = {
     'templates_dir': 'templates',
 }

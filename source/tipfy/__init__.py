@@ -31,32 +31,42 @@ local.app = local.request = local.response = None
 app, request, response = local('app'), local('request'), local('response')
 
 #: Default configuration values for this module. Keys are:
-#:   - ``apps_installed``: A list of active app modules as a string. Default is
-#:     an empty list
-#:   - ``apps_entry_points``: URL entry points for the installed apps, in case
-#:     their URLs are mounted using base paths.
-#:   - ``extensions``: A list of extension modules as strings. A ``setup()``
-#:     function from each module is called when the WSGI application is
-#:     initialized. Extensions can then setup app hooks or perform other
-#:     initializations. See `Extensions` in the documentation for a
-#:     complete explanation. Default is an empty list.
-#:   - ``server_name``: A server name hint, used to calculate current subdomain.
-#:     If you plan to use dynamic subdomains, you must define the main domain
-#:     here so that the subdomain can be extracted and applied to URL rules..
-#:   - ``subdomain``: Force this subdomain to be used instead of extracting
-#:     the subdomain from the current url.
-#:   - ``url_map``: A ``werkzeug.routing.Map`` with the URL rules defined for
-#:     the application. If not set, build one with rules defined in ``urls.py``
-#:   - ``wsgi_app_id``: An identifier for this WSGIApplication instance, in
-#:     case multiple instances are being used by the same app. This is used
-#:     to identify instance specific data such as cached URL rules. Default is
-#:     ``main``.
-#:   - ``dev``: ``True`` is this is the development server, ``False`` otherwise.
-#:     Default is the value of ``os.environ['SERVER_SOFTWARE']``.
-#:   - ``app_id``: The application id. Default is the value of
-#:     ``os.environ['APPLICATION_ID']``.
-#:   - ``version_id``: The current deplyment version id. Default is the value
-#:     of ``os.environ['CURRENT_VERSION_ID']``.
+#:
+#: - ``apps_installed``: A list of active app modules as a string. Default is
+#:   an empty list
+#:
+#: - ``apps_entry_points``: URL entry points for the installed apps, in case
+#:   their URLs are mounted using base paths.
+#:
+#: - ``extensions``: A list of extension modules as strings. A ``setup()``
+#:   function from each module is called when the WSGI application is
+#:   initialized. Extensions can then setup app hooks or perform other
+#:   initializations. See `Extensions` in the documentation for a
+#:   complete explanation. Default is an empty list.
+#:
+#: - ``server_name``: A server name hint, used to calculate current subdomain.
+#:   If you plan to use dynamic subdomains, you must define the main domain
+#:   here so that the subdomain can be extracted and applied to URL rules..
+#:
+#: - ``subdomain``: Force this subdomain to be used instead of extracting
+#:   the subdomain from the current url.
+#:
+#: - ``url_map``: A ``werkzeug.routing.Map`` with the URL rules defined for
+#:   the application. If not set, build one with rules defined in ``urls.py``
+#:
+#: - ``wsgi_app_id``: An identifier for this WSGIApplication instance, in
+#:   case multiple instances are being used by the same app. This is used
+#:   to identify instance specific data such as cached URL rules. Default is
+#:   ``main``.
+#:
+#: - ``dev``: ``True`` is this is the development server, ``False`` otherwise.
+#:   Default is the value of ``os.environ['SERVER_SOFTWARE']``.
+#:
+#: - ``app_id``: The application id. Default is the value of
+#:   ``os.environ['APPLICATION_ID']``.
+#:
+#: - ``version_id``: The current deplyment version id. Default is the value
+#:   of ``os.environ['CURRENT_VERSION_ID']``.
 default_config = {
     'apps_installed': [],
     'apps_entry_points': {},

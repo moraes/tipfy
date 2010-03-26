@@ -27,26 +27,30 @@ from pytz.gae import pytz
 from tipfy import local, get_config, normalize_callable
 
 #: Default configuration values for this module. Keys are:
-#:   - ``locale``: The application default locale code. Default is ``en_US``.
-#:   - ``timezone``: The application default timezone according to the Olson
-#:     database. Default is ``America/Chicago``.
-#:   - ``cookie_name``: Cookie name used to save requested locale, in case
-#:     cookies are used.
-#:   - ``locale_request_lookup``: A list of tuples ``(method, key)`` to search
-#:     for the locale to be loaded for the current request. The methods are
-#:     searched in order until a locale is found. Available methods are:
 #:
-#:     - ``args``: gets the locale code from ``GET`` arguments.
-#:     - ``form``: gets the locale code from ``POST`` arguments.
-#:     - ``cookies``: gets the locale code from a cookie.
-#:     - ``rule_args``: gets the locale code from the keywords in the current
-#:       URL rule.
+#: - ``locale``: The application default locale code. Default is ``en_US``.
 #:
-#:     If none of the methods find a locale code, uses the default locale.
+#: - ``timezone``: The application default timezone according to the Olson
+#:   database. Default is ``America/Chicago``.
 #:
-#:     Default is ``[('args', 'lang'), ('cookies', 'tipfy.locale')]``: gets the
-#:     locale from a ``lang`` parameter set in ``GET``, and if not set tries to
-#:     get it from a cookie named ``tipfy.locale``.
+#: - ``cookie_name``: Cookie name used to save requested locale, in case
+#:   cookies are used.
+#:
+#: - ``locale_request_lookup``: A list of tuples ``(method, key)`` to search
+#:   for the locale to be loaded for the current request. The methods are
+#:   searched in order until a locale is found. Available methods are:
+#:
+#:   - ``args``: gets the locale code from ``GET`` arguments.
+#:   - ``form``: gets the locale code from ``POST`` arguments.
+#:   - ``cookies``: gets the locale code from a cookie.
+#:   - ``rule_args``: gets the locale code from the keywords in the current
+#:     URL rule.
+#:
+#:   If none of the methods find a locale code, uses the default locale.
+#:
+#:   Default is ``[('args', 'lang'), ('cookies', 'tipfy.locale')]``: gets the
+#:   locale from a ``lang`` parameter set in ``GET``, and if not set tries to
+#:   get it from a cookie named ``tipfy.locale``.
 default_config = {
     'locale':   'en_US',
     'timezone': 'America/Chicago',

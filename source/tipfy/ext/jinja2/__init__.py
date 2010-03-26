@@ -16,11 +16,14 @@ from tipfy import local, get_config, url_for, Response
 from tipfy.ext import i18n
 
 #: Default configuration values for this module. Keys are:
-#:   - ``templates_dir``: Directory for templates. Default is `templates`.
-#:   - ``templates_compiled_dir``: Directory for compiled templates. If set,
-#:     uses the loader for compiled templates when deployed. Default is ``None``.
-#:   - ``force_use_compiled``: Forces the use of compiled templates even in the
-#:     development server
+#:
+#: - ``templates_dir``: Directory for templates. Default is `templates`.
+#:
+#: - ``templates_compiled_dir``: Directory for compiled templates. If set,
+#:   uses the loader for compiled templates when deployed. Default is ``None``.
+#:
+#: - ``force_use_compiled``: Forces the use of compiled templates even in the
+#:   development server
 default_config = {
     'templates_dir': 'templates',
     'templates_compiled_dir': None,

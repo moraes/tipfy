@@ -23,27 +23,32 @@ from tipfy.ext.db import (get_entity_from_protobuf, get_protobuf_from_entity,
     retry_on_timeout, PickleProperty)
 
 #: Default configuration values for this module. Keys are:
-
-#:   - ``expiration``: Session expiration time in seconds. Default is `86400`.
-
-#:   - ``session_type``: Session storage type. Options are `securecookie` or
-#:     `datastore`. Default is `securecookie`.
-#:   - ``secret_key``: Secret key to generate session cookies. Set this to
-#:     something random and unguessable. Default is
-#:     :data:`tipfy.REQUIRED_CONFIG` (an exception is raised if it is not set).
-#:   - ``session_cookie_name``: Name of the cookie to save a session. Default
-#:     is `tipfy.session`.
-#:   - ``flash_cookie_name``: Name of the cookie to save a flash message.
-#:     Default is `tipfy.flash`.
-#:   - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
-#:     domain must be set to the main domain with a preceding dot, e.g., cookies
-#:     set for `.mydomain.org` will work in `foo.mydomain.org` and
-#:     `bar.mydomain.org`. Default is ``None``, which means that cookies will
-#:     only work for the current subdomain.
-#:   - ``cookie_path``: Path in which the authentication cookie is valid.
-#:     Default is `/`.
-#:   - ``cookie_secure``: Make the cookie only available via HTTPS.
-#:   - ``cookie_httponly``: Disallow JavaScript to access the cookie.
+#:
+#: - ``session_type``: Session storage type. Options are `securecookie` or
+#:   `datastore`. Default is `securecookie`.
+#:
+#: - ``secret_key``: Secret key to generate session cookies. Set this to
+#:   something random and unguessable. Default is
+#:   :data:`tipfy.REQUIRED_CONFIG` (an exception is raised if it is not set).
+#:
+#: - ``session_cookie_name``: Name of the cookie to save a session. Default
+#:   is `tipfy.session`.
+#:
+#: - ``flash_cookie_name``: Name of the cookie to save a flash message.
+#:   Default is `tipfy.flash`.
+#:
+#: - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
+#:   domain must be set to the main domain with a preceding dot, e.g., cookies
+#:   set for `.mydomain.org` will work in `foo.mydomain.org` and
+#:   `bar.mydomain.org`. Default is ``None``, which means that cookies will
+#:   only work for the current subdomain.
+#:
+#: - ``cookie_path``: Path in which the authentication cookie is valid.
+#:   Default is `/`.
+#:
+#: - ``cookie_secure``: Make the cookie only available via HTTPS.
+#:
+#: - ``cookie_httponly``: Disallow JavaScript to access the cookie.
 default_config = {
     'session_type':        'securecookie',
     'secret_key':          REQUIRED_CONFIG,

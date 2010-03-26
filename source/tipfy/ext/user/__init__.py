@@ -17,31 +17,40 @@ from tipfy import (cached_property, get_config, Forbidden, import_string,
 from tipfy.ext import session
 
 #: Default configuration values for this module. Keys are:
-#:   - ``auth_system``: The default authentication class, as a string. Default
-#:     is ``tipfy.ext.user.AppEngineAuth`` (uses App Engine's built in users
-#:     system to login). To use own authentication or authentication with
-#:     OpenId, OAuth, Google Accounts, Twitter, FriendFeed or Facebook (one,
-#:     all or a mix of these), set it to ``tipfy.ext.user.MultiAuth``.
-#:   - ``user_model``: A subclass of ``db.Model`` used for authenticated users,.
-#:     as a string. Default is ``tipfy.ext.user.model:User``.
-#:   - ``cookie_max_age``: Time in seconds before the authentication cookie
-#:     data is invalidated. Both persistent and non-persitent authentications
-#:     are affected by this setting - the difference is that non-persitent
-#:     authentication only lasts for the current browser session. Default is 1
-#:     week.
-#:   - ``cookie_key``: Name of the autentication cookie. Default is
-#:     'tipfy.ext.user'
-#:   - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
-#:     domain must be set to the main domain with a preceding dot, e.g., cookies
-#:     set for `.mydomain.org` will work in `foo.mydomain.org` and
-#:     `bar.mydomain.org`. Default is ``None``, which means that cookies will
-#:     only work for the current subdomain.
-#:   - ``cookie_path``: Path in which the authentication cookie is valid.
-#:     Default is `/`.
-#:   - ``cookie_secure``: Make the cookie only available via HTTPS.
-#:   - ``cookie_httponly``: Disallow JavaScript to access the cookie.
-#:   - ``session_max_age``: Max age in seconds for a cookie session id. After
-#:     that it is automatically renewed. Default is 1 week.
+#:
+#: - ``auth_system``: The default authentication class, as a string. Default
+#:   is ``tipfy.ext.user.AppEngineAuth`` (uses App Engine's built in users
+#:   system to login). To use own authentication or authentication with
+#:   OpenId, OAuth, Google Accounts, Twitter, FriendFeed or Facebook (one,
+#:   all or a mix of these), set it to ``tipfy.ext.user.MultiAuth``.
+#:
+#: - ``user_model``: A subclass of ``db.Model`` used for authenticated users,.
+#:   as a string. Default is ``tipfy.ext.user.model:User``.
+#:
+#: - ``cookie_max_age``: Time in seconds before the authentication cookie
+#:   data is invalidated. Both persistent and non-persitent authentications
+#:   are affected by this setting - the difference is that non-persitent
+#:   authentication only lasts for the current browser session. Default is 1
+#:   week.
+#:
+#: - ``cookie_key``: Name of the autentication cookie. Default is
+#:   'tipfy.ext.user'
+#:
+#: - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
+#:   domain must be set to the main domain with a preceding dot, e.g., cookies
+#:   set for `.mydomain.org` will work in `foo.mydomain.org` and
+#:   `bar.mydomain.org`. Default is ``None``, which means that cookies will
+#:   only work for the current subdomain.
+#:
+#: - ``cookie_path``: Path in which the authentication cookie is valid.
+#:   Default is `/`.
+#:
+#: - ``cookie_secure``: Make the cookie only available via HTTPS.
+#:
+#: - ``cookie_httponly``: Disallow JavaScript to access the cookie.
+#:
+#: - ``session_max_age``: Max age in seconds for a cookie session id. After
+#:   that it is automatically renewed. Default is 1 week.
 default_config = {
     'auth_system': None,
     'user_model': 'tipfy.ext.user.model:User',

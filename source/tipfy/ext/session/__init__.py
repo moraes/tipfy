@@ -21,6 +21,7 @@ from werkzeug.contrib.sessions import generate_key, ModificationTrackingDict
 
 from tipfy import cached_property, local, get_config, REQUIRED_CONFIG
 from tipfy.ext.db import PickleProperty
+from tipfy.ext.i18n import _
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -452,7 +453,11 @@ class SessionStore(object):
                 self._data[key] = None
                 self._data_args[key] = kwargs
 
-            return self.load_secure_cookie(key)
+            flash = self.load_secure_cookie(key)
+            if not flash:
+                return None
+
+            return flash
 
     def set_flash(self, data, key=None, **kwargs):
         """Sets a flash message. Flash messages are stored in a signed cookie

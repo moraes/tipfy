@@ -23,14 +23,16 @@ def get_app(config=None):
 class Response(object):
     """A fake response object with cookies."""
     def __init__(self):
-        self.cookies_to_set = []
-        self.cookies_to_delete = []
+        self.cookies_to_set = {}
+        self.cookie_args = {}
+        self.cookies_to_delete = {}
 
     def set_cookie(self, key, value, **kwargs):
-        self.cookies_to_set.append((key, value))
+        self.cookies_to_set[key] = value
+        self.cookie_args[key] = kwargs
 
     def delete_cookie(self, key, **kwargs):
-        self.cookies_to_delete.append(key)
+        self.cookies_to_delete[key] = kwargs
 
 
 class StoreProvider(object):
@@ -121,74 +123,190 @@ class TestSessionMiddleware(unittest.TestCase):
 
         assert 'tipfy.flash' not in response.cookies_to_set
         middleware.post_dispatch(None, response)
-        assert 'tipfy.flash' in dict(response.cookies_to_set)
+        assert 'tipfy.flash' in response.cookies_to_set
 
 
 class TestSessionMixin(unittest.TestCase):
     def setUp(self):
         get_app()
+        self.provider = StoreProvider()
+        local.session_store = SessionStore(self.provider)
 
     def tearDown(self):
         local_manager.cleanup()
+        self.provider = None
 
     def test_get_session(self):
-        assert getattr(local, 'session_store', None) is None
-
         middleware = SessionMiddleware()
-
         middleware.pre_dispatch(None)
         local.request = tipfy.Request.from_values()
 
         mixin = SessionMixin()
         assert isinstance(mixin.session, SecureCookie)
 
+    def test_get_flash(self):
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        local.request = tipfy.Request.from_values(headers={
+            'Cookie':   'tipfy.flash=%s' % cookie.serialize(),
+        })
+
+        mixin = SessionMixin()
+        flash = mixin.get_flash()
+        assert isinstance(flash, SecureCookie)
+        assert len(flash) == 1
+        assert flash['foo'] == 'bar'
+
+        # The second time should not work.
+        flash = mixin.get_flash()
+        assert flash is None
+
+    def test_get_flash_custom_key(self):
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        local.request = tipfy.Request.from_values(headers={
+            'Cookie':   'my_flash=%s' % cookie.serialize(),
+        })
+
+        mixin = SessionMixin()
+        flash = mixin.get_flash('my_flash')
+        assert isinstance(flash, SecureCookie)
+        assert len(flash) == 1
+        assert flash['foo'] == 'bar'
+
+    def test_get_flash_invalid_flash(self):
+        local.request = tipfy.Request.from_values(headers={
+            'Cookie':   'tipfy.flash=foo',
+        })
+
+        mixin = SessionMixin()
+        flash = mixin.get_flash()
+        assert flash is None
+
+    def test_get_flash_no_flash(self):
+        local.request = tipfy.Request.from_values()
+
+        mixin = SessionMixin()
+        flash = mixin.get_flash()
+        assert flash is None
+
+    def test_set_flash(self):
+        assert local.session_store._data == {}
+        assert local.session_store._data_args == {}
+
+        mixin = SessionMixin()
+        flash = mixin.set_flash({'foo': 'bar'})
+
+        assert 'tipfy.flash' in local.session_store._data
+        assert local.session_store._data_args == {'tipfy.flash': {}}
+
 
 class TestMessagesMixin(unittest.TestCase):
     def setUp(self):
         get_app()
+        self.provider = StoreProvider()
+        local.session_store = SessionStore(self.provider)
         local.request = tipfy.Request.from_values()
 
     def tearDown(self):
         local_manager.cleanup()
+        self.provider = None
 
     def test_messages_mixin(self):
-        middleware = SessionMiddleware()
-        middleware.pre_dispatch(None)
-
         mixin = MessagesMixin()
         assert mixin.messages == []
 
-    def test_messages_mixin_set_message(self):
-        middleware = SessionMiddleware()
-        middleware.pre_dispatch(None)
+    def test_messages_mixin_with_flash(self):
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        local.request = tipfy.Request.from_values(headers={
+            'Cookie':   'tipfy.flash=%s' % cookie.serialize(),
+        })
 
+        mixin = MessagesMixin()
+
+        assert mixin.messages == [{'foo': 'bar'}]
+
+        mixin.set_message('success', 'Hello, world!', title='HAI', life=5000, flash=False)
+
+        assert mixin.messages == [{'foo': 'bar'}, {'level': 'success', 'title': 'HAI', 'body': 'Hello, world!', 'life': 5000}]
+
+    def test_messages_mixin_set_message(self):
         mixin = MessagesMixin()
         mixin.set_message('success', 'Hello, world!', title='HAI', life=5000, flash=False)
 
         assert mixin.messages == [{'level': 'success', 'title': 'HAI', 'body': 'Hello, world!', 'life': 5000}]
 
-    def test_messages_mixin_set_form_error(self):
-        middleware = SessionMiddleware()
-        middleware.pre_dispatch(None)
+    def test_messages_mixin_set_message_flash(self):
+        assert local.session_store._data == {}
+        assert local.session_store._data_args == {}
 
+        mixin = MessagesMixin()
+        mixin.set_message('success', 'Hello, world!', title='HAI', life=5000, flash=True)
+
+        assert mixin.messages == []
+        assert 'tipfy.flash' in local.session_store._data
+        assert local.session_store._data_args == {'tipfy.flash': {}}
+
+    def test_messages_mixin_set_form_error(self):
         mixin = MessagesMixin()
         mixin.set_form_error('Hello, world!', title='HAI')
 
         assert mixin.messages == [{'level': 'error', 'title': 'HAI', 'body': 'Hello, world!', 'life': None}]
 
+    def test_messages_mixin_set_form_error_no_body_no_title(self):
+        mixin = MessagesMixin()
+        mixin.set_form_error()
+
+        assert mixin.messages == [{'level': 'error', 'title': 'Error', 'body': 'A problem occurred. Please correct the errors listed in the form.', 'life': None}]
+
 
 class TestSessionStore(unittest.TestCase):
     def setUp(self):
-        self.app = get_app()
+        get_app()
         self.provider = StoreProvider()
-
         local.session_store = SessionStore(self.provider)
 
     def tearDown(self):
         local_manager.cleanup()
-
-        self.app = None
         self.provider = None
+
+    def test_save_no_session(self):
+        assert local.session_store._data == {}
+        assert local.session_store._data_args == {}
+
+        local.session_store.save(None)
+
+        assert local.session_store._data == {}
+        assert local.session_store._data_args == {}
+
+    def test_save_delete_flashes(self):
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        local.request = tipfy.Request.from_values(headers={
+            'Cookie':   'tipfy.flash=%s; my_flash=%s' % (cookie.serialize(), cookie.serialize()),
+        })
+
+        response = Response()
+
+        flash = local.session_store.get_flash()
+        flash2 = local.session_store.get_flash('my_flash')
+
+        local.session_store.save(response)
+
+        assert local.session_store._data['tipfy.flash'] is None
+        assert local.session_store._data['my_flash'] is None
+
+        assert 'tipfy.flash' in response.cookies_to_delete
+        assert 'my_flash' in response.cookies_to_delete
+
+    def test_save_with_max_age(self):
+        response = Response()
+        local.session_store.set_cookie('foo', 'bar', max_age=86400)
+        local.session_store.save(response)
+
+        assert local.session_store._data['foo'] == 'bar'
+
+        assert 'foo' in response.cookies_to_set
+        assert 'foo' in response.cookie_args
+        assert 'max_age' not in response.cookie_args['foo']
+        assert 'expires' in response.cookie_args['foo']
 
     def test_get_session(self):
         local.request = tipfy.Request.from_values()
@@ -235,7 +353,6 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args['tipfy.session'] == {'max_age': 86400}
 
     def test_get_existing_session(self):
-
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
         local.request = tipfy.Request.from_values(headers={
             'Cookie':   'tipfy.session=%s' % cookie.serialize(),

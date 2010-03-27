@@ -329,12 +329,12 @@ def run_wsgi_app(app):
     if app.config.get('tipfy', 'dev'):
         fix_sys_path()
 
-    # Apply pre-run hooks.
+    # Apply pre_run_app hooks.
     for res in app.hooks.iter('pre_run_app', app):
         if res is not None:
             app = res
 
-    # Wrap app by local_manager so that local is cleaned after each request.
+    # Run it.
     PatchedCGIHandler().run(app)
 
 

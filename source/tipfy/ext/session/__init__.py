@@ -55,7 +55,7 @@ from tipfy.ext.db import PickleProperty
 #: - ``cookie_httponly``: Disallow JavaScript to access the cookie.
 #:
 #: - ``cookie_force``: If ``True``, force cookie to be saved on each request,
-#:   even if the session data doesn't change. Default to ``False``.
+#:   even if the session data isn't changed. Default to ``False``.
 default_config = {
     'session_type':        'securecookie',
     'secret_key':          REQUIRED_CONFIG,
@@ -131,6 +131,7 @@ class SessionMiddleware(object):
             'path':     get_config(__name__, 'cookie_path'),
             'secure':   get_config(__name__, 'cookie_secure'),
             'httponly': get_config(__name__, 'cookie_httponly'),
+            'force':    get_config(__name__, 'cookie_force'),
         }
 
 
@@ -277,22 +278,19 @@ class SessionStore(object):
 
                 if isinstance(cookie, basestring):
                     # Save a normal cookie.
+                    kwargs.pop('force', None)
                     response.set_cookie(key, value=cookie, **kwargs)
                 else:
                     # Save a secure cookie.
                     cookie.save_cookie(response, key=key, **kwargs)
 
-    def get_session(self, key=None, create=True, **kwargs):
+    def get_session(self, key=None, **kwargs):
         """Returns a session for a given key. If the session doesn't exist, a
         new session is returned.
 
         :param key:
             Cookie unique name. If not provided, uses the
             ``session_cookie_name`` value configured for this module.
-        :param create:
-            If ``False``, returns ``None`` if a session was not saved in
-            previous requests. Otherwise returns the existing sesssion or a new
-            one.
         :param kwargs:
             Options to save the cookie. Normally not used as the configured
             defaults are enough for most cases. Possible keywords are same as
@@ -312,11 +310,7 @@ class SessionStore(object):
         key = key or self.provider.default_session_key
 
         if key not in self._data:
-            session = self._get_session(key)
-            if create is False and session.new is True:
-                return None
-
-            self._data[key] = session
+            self._data[key] = self._get_session(key)
             self._data_args[key] = kwargs
 
         return self._data[key]
@@ -365,6 +359,70 @@ class SessionStore(object):
             ``None``.
         """
         session.clear()
+
+    def get_secure_cookie(self, key, load=True, **kwargs):
+        """Returns a secure cookie. Cookies get through this method are tracked
+        and automatically saved at the end of request if they change.
+
+        :param key:
+            Cookie unique name.
+        :param load:
+            ``True`` to try to load an existing cookie from the request. If it
+            is not set, a clean secure cookie is returned. ``False`` to return
+            a new secure cookie. Default is ``False``.
+        :param kwargs:
+            Options to save the cookie. Normally not used as the configured
+            defaults are enough for most cases.
+
+            See :meth:`SessionStore.get_session`.
+        :return:
+            A ``werkzeug.contrib.SecureCookie`` instance.
+        """
+        if key not in self._data:
+            if load:
+                self._data[key] = self.load_secure_cookie(key)
+            else:
+                self._data[key] = self.create_secure_cookie()
+
+            self._data_args[key] = kwargs
+
+        return self._data[key]
+
+    def load_secure_cookie(self, key):
+        """Loads and returns a secure cookie from request. If it is not set, a
+        new secure cookie is returned.
+
+        This cookie must be saved using a response object at the end of a
+        request. To get a cookie that is saved automatically, use
+        :meth:`SessionStore.get_secure_cookie`.
+
+        :param key:
+            Cookie unique name.
+        :return:
+            A ``werkzeug.contrib.SecureCookie`` instance.
+        """
+        return SecureCookie.load_cookie(local.request, key=key,
+                                        secret_key=self.provider.secret_key)
+
+    def create_secure_cookie(self, data=None):
+        """Returns a new secure cookie.
+
+        This cookie must be saved using a response object at the end of a
+        request. To get a cookie that is saved automatically, use
+        :meth:`SessionStore.get_secure_cookie`.
+
+        :param data:
+            A dictionary to be loaded into the secure cookie. If set, the
+            secure cookie will be marked as modified.
+        :return:
+            A ``werkzeug.contrib.SecureCookie`` instance.
+        """
+        cookie = SecureCookie(data=data, secret_key=self.provider.secret_key)
+        if data is not None:
+            # Always force it to save when data is passed.
+            cookie.modified = True
+
+        return cookie
 
     def get_flash(self, key=None, **kwargs):
         """Returns a flash message. Flash messages are stored in a signed
@@ -416,79 +474,6 @@ class SessionStore(object):
         key = key or self.provider.default_flash_key
         self._data[key] = self.create_secure_cookie(data)
         self._data_args[key] = kwargs
-
-    def get_secure_cookie(self, key=None, load=True, create=True, **kwargs):
-        """Returns a secure cookie. Cookies get through this method are tracked
-        and automatically saved at the end of request if they change.
-
-        :param key:
-            Cookie unique name.
-        :param load:
-            ``True`` to try to load an existing cookie from the request. If it
-            is not set, a clean secure cookie is returned. ``False`` to return
-            a new secure cookie. Default is ``False``.
-        :param create:
-            If ``False``, returns ``None`` if a secure cookie was not saved in
-            previous requests. Otherwise returns the existing cookie or a new
-            one.
-        :param kwargs:
-            Options to save the cookie. Normally not used as the configured
-            defaults are enough for most cases.
-
-            See :meth:`SessionStore.get_session`.
-        :return:
-            A ``werkzeug.contrib.SecureCookie`` instance.
-        """
-        if key not in self._data:
-            session = None
-            if load:
-                session = self.load_secure_cookie(key)
-            elif create:
-                session = self.create_secure_cookie()
-
-            if session is None or (create is False and session.new is True):
-                return None
-
-            self._data[key] = session
-            self._data_args[key] = kwargs
-
-        return self._data[key]
-
-    def load_secure_cookie(self, key):
-        """Loads and returns a secure cookie from request. If it is not set, a
-        new secure cookie is returned.
-
-        This cookie must be saved using a response object at the end of a
-        request. To get a cookie that is saved automatically, use
-        :meth:`SessionStore.get_secure_cookie`.
-
-        :param key:
-            Cookie unique name.
-        :return:
-            A ``werkzeug.contrib.SecureCookie`` instance.
-        """
-        return SecureCookie.load_cookie(local.request, key=key,
-                                        secret_key=self.provider.secret_key)
-
-    def create_secure_cookie(self, data=None):
-        """Returns a new secure cookie.
-
-        This cookie must be saved using a response object at the end of a
-        request. To get a cookie that is saved automatically, use
-        :meth:`SessionStore.get_secure_cookie`.
-
-        :param data:
-            A dictionary to be loaded into the secure cookie. If set, the
-            secure cookie will be marked as modified.
-        :return:
-            A ``werkzeug.contrib.SecureCookie`` instance.
-        """
-        cookie = SecureCookie(data=data, secret_key=self.provider.secret_key)
-        if data is not None:
-            # Always force it to save when data is passed.
-            cookie.modified = True
-
-        return cookie
 
     def set_cookie(self, key, cookie, **kwargs):
         """Sets a cookie or secure cookie to be saved at the end of the request.

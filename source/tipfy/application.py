@@ -193,16 +193,15 @@ class WSGIApplication(object):
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
-        # Apply pre-init-request hooks.
-        for request in self.hooks.iter('pre_init_request', environ):
-            if request is not None:
-                break
-        else:
-            request = self.request_class(environ)
+        try:
+            return self.dispatch(environ, start_response)
+        finally:
+            local_manager.cleanup()
 
+    def dispatch(self, environ, start_response):
         # Set local variables for a single request.
         local.app = self
-        local.request = request
+        local.request = request = self.request_class(environ)
         local.response = self.response_class()
 
         # Bind url map to the current request location.
@@ -213,20 +212,14 @@ class WSGIApplication(object):
         self.rule = self.rule_args = None
 
         try:
-            # Apply pre-match-url hooks.
-            for res in self.hooks.iter('pre_match_url'):
-                if res is not None:
-                    self.rule, self.rule_args = res
-                    break
-            else:
-                # Check requested method.
-                method = request.method.lower()
-                if method not in ALLOWED_METHODS:
-                    raise MethodNotAllowed()
+            # Check requested method.
+            method = request.method.lower()
+            if method not in ALLOWED_METHODS:
+                raise MethodNotAllowed()
 
-                # Match the path against registered rules.
-                self.rule, self.rule_args = self.url_adapter.match(request.path,
-                    return_rule=True)
+            # Match the path against registered rules.
+            self.rule, self.rule_args = self.url_adapter.match(request.path,
+                return_rule=True)
 
             # Apply pre-dispatch hooks.
             for response in self.hooks.iter('pre_dispatch_handler'):
@@ -234,12 +227,12 @@ class WSGIApplication(object):
                     break
             else:
                 # Import handler set in matched rule.
-                if self.rule.handler not in self.handlers:
-                    self.handlers[self.rule.handler] = import_string(
-                        self.rule.handler)
+                name = self.rule.handler
+                if name not in self.handlers:
+                    self.handlers[name] = import_string(name)
 
                 # Instantiate handler and dispatch request method.
-                response = self.handlers[self.rule.handler]().dispatch(method,
+                response = self.handlers[name]().dispatch(method,
                     **self.rule_args)
 
             # Apply post-dispatch hooks.
@@ -255,12 +248,6 @@ class WSGIApplication(object):
             # Handle http and uncaught exceptions. This will apply exception
             # hooks if they are set.
             response = self.handle_exception(e)
-
-        # Apply pre-end-request hooks.
-        for r in self.hooks.iter('pre_end_request', response):
-            if r is not None:
-                response = r
-                break
 
         # Call the response object as a WSGI application.
         return response(environ, start_response)
@@ -287,14 +274,15 @@ class WSGIApplication(object):
         :return:
             A ``werkzeug.Response`` object, if the exception is not raised.
         """
+        # Apply pre_handle_exception hooks.
         for response in self.hooks.iter('pre_handle_exception', e):
             if response:
                 return response
 
+        logging.exception(e)
+
         if self.config.get('tipfy', 'dev'):
             raise
-
-        logging.exception(e)
 
         if isinstance(e, HTTPException):
             return e
@@ -319,7 +307,14 @@ def make_wsgi_app(config):
     :return:
         A :class:`WSGIApplication` instance.
     """
-    return WSGIApplication(config)
+    app = WSGIApplication(config)
+
+    # Apply post_make_app hooks.
+    for res in app.hooks.iter('post_make_app', app):
+        if res is not None:
+            app = res
+
+    return app
 
 
 def run_wsgi_app(app):
@@ -341,7 +336,7 @@ def run_wsgi_app(app):
         app = hook(app) or app
 
     # Wrap app by local_manager so that local is cleaned after each request.
-    PatchedCGIHandler().run(local_manager.make_middleware(app))
+    PatchedCGIHandler().run(app)
 
 
 _ULTIMATE_SYS_PATH = None
@@ -360,4 +355,5 @@ def fix_sys_path():
             sys.path[:] = _ULTIMATE_SYS_PATH
 
 
-__all__ = ['make_wsgi_app', 'RequestHandler', 'run_wsgi_app', 'WSGIApplication']
+__all__ = ['make_wsgi_app', 'MiddlewareFactory', 'RequestHandler',
+    'run_wsgi_app', 'WSGIApplication']

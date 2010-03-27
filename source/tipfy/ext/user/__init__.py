@@ -351,26 +351,26 @@ class MultiAuth(BaseAuth):
             return
 
         # Check if we are in the middle of external auth and account creation.
-        if data.get('to_signup'):
+        if session.get('to_signup'):
             # Redirect to account creation page.
             if not _is_auth_endpoint('signup_endpoint'):
                 raise RequestRedirect(create_signup_url(request.url))
 
-            local.ext_user_session = data
+            local.ext_user_session = session
             return
 
         # Get the authentication and session ids.
-        auth_id = data.get('id', None)
-        session_id = data.get('session_id', None)
+        auth_id = session.get('id', None)
+        session_id = session.get('session_id', None)
 
         if auth_id is not None:
             user = self.user_model.get_by_auth_id(auth_id)
             if user is not None and user.check_session(session_id) is True:
                 # Reset session id in case it was renewed by the model.
-                data['session_id'] = user.session_id
+                session['session_id'] = user.session_id
 
                 local.ext_user = user
-                local.ext_user_session = data
+                local.ext_user_session = session
 
     def login_with_form(self, username, password, remember=False):
         user = self.user_model.get_by_username(username)

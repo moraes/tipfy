@@ -7,6 +7,7 @@ import hashlib
 from nose.tools import raises, assert_raises
 
 from google.appengine.ext import db
+from google.net.proto.ProtocolBuffer import ProtocolBufferDecodeError
 from gaetestbed import DataStoreTestCase
 
 import _base
@@ -71,14 +72,17 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         tipfy.local_manager.cleanup()
 
     def test_no_protobuf_from_entity(self):
-        res_1 = ext_db.get_protobuf_from_entity([])
+        res_1 = ext_db.get_entities_from_protobufs([])
         assert res_1 is None
         res_2 = ext_db.get_protobuf_from_entity(None)
         assert res_2 is None
 
     def test_no_entity_from_protobuf(self):
-        res_1 = ext_db.get_entity_from_protobuf([])
+        res_1 = ext_db.get_entities_from_protobufs([])
         assert res_1 is None
+
+    @raises(ProtocolBufferDecodeError)
+    def test_no_entity_from_protobuf(self):
         res_2 = ext_db.get_entity_from_protobuf(None)
         assert res_2 is None
 
@@ -102,10 +106,10 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity_3 = FooModel(name='baz', age=45, married=False)
         entity_3.put()
 
-        pbs = ext_db.get_protobuf_from_entity([entity_1, entity_2, entity_3])
+        pbs = ext_db.get_protobufs_from_entities([entity_1, entity_2, entity_3])
         assert len(pbs) == 3
 
-        entity_1, entity_2, entity_3 = ext_db.get_entity_from_protobuf(pbs)
+        entity_1, entity_2, entity_3 = ext_db.get_entities_from_protobufs(pbs)
         assert isinstance(entity_1, FooModel)
         assert entity_1.name == 'foo'
         assert entity_1.age == 15

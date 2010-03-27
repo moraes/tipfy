@@ -57,7 +57,7 @@ def get_protobufs_from_entities(entities):
     This function derives from `Nick's Blog`_.
 
     :param entities:
-        A single or a list of ``db.Model`` instances or a dictionary of keys 
+        A single or a list of ``db.Model`` instances or a dictionary of keys
         and ``db.Model`` values to be serialized. Won't touch entities that are not
         of type ``db.Model``.
     :return:
@@ -68,17 +68,17 @@ def get_protobufs_from_entities(entities):
     elif isinstance(entities, dict):
         return dict((k, get_protobuf_from_entity(v)) for k, v in entities.iteritems())
     elif hasattr(entities, "__iter__"):
-        return [_get_protobuf_from_entity(v) for v in entities]
+        return [get_protobuf_from_entity(v) for v in entities]
     else:
         raise TypeError("entities must be a either a dictionary or an iterable object.")
 
 def get_entity_from_protobuf(data, silent=False):
     """ Converts a single encoded Protocol Buffer to a ``db.Model``.
-    
+
     :param data:
         One entity serialized to Protocol Buffer.
     :param silent:
-        If silent it will pass back data if it can't decode. Otherwise will throw a 
+        If silent it will pass back data if it can't decode. Otherwise will throw a
         ``google.net.proto.ProtocolBuffer.ProtocolBufferDecodeError``.
     :return:
         One entity de-serialized from Protocol Buffers (a ``db.Model``
@@ -91,10 +91,10 @@ def get_entity_from_protobuf(data, silent=False):
         except ProtocolBufferDecodeError:
             if not silent:
                 raise
-                
+
     if not silent and not response:
         raise ProtocolBufferDecodeError()
-    
+
     return response or data
 
 def get_entities_from_protobufs(data, silent=False):
@@ -119,10 +119,10 @@ def get_entities_from_protobufs(data, silent=False):
     This function derives from `Nick's Blog`_.
 
     :param data:
-        One or more entities serialized to Protocol Buffer (a string or a list or 
+        One or more entities serialized to Protocol Buffer (a string or a list or
         a dictionary of keys and protobuf values).
     :param silent:
-        If silent it will pass back data if it can't decode. Otherwise will throw a 
+        If silent it will pass back data if it can't decode. Otherwise will throw a
         ``google.net.proto.ProtocolBuffer.ProtocolBufferDecodeError``.
     :return:
         One or more entities de-serialized from Protocol Buffers (a ``db.Model``

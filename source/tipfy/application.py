@@ -310,7 +310,7 @@ def make_wsgi_app(config):
     app = WSGIApplication(config)
 
     # Apply post_make_app hooks.
-    for hook in app.hooks.get('post_make_app'):
+    for hook in app.hooks.get('post_make_app', []):
         app = hook(app) or app
 
     return app
@@ -331,7 +331,7 @@ def run_wsgi_app(app):
     # Apply pre_run_app hooks.
     # Note: using app.hooks.iter caused only the last middleware
     #   to get applied instead of chaining the middleware
-    for hook in app.hooks.get('pre_run_app'):
+    for hook in app.hooks.get('pre_run_app', []):
         app = hook(app) or app
 
     # Run it.

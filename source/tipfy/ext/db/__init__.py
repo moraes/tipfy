@@ -132,7 +132,7 @@ def get_entities_from_protobufs(data, silent=False):
         return None
     elif isinstance(data, dict):
         return dict([(k, get_entity_from_protobuf(v, silent)) for k, v in data.iteritems()])
-    elif hasattr(entities, "__iter__"):
+    elif hasattr(data, "__iter__"):
         return [get_entity_from_protobuf(v, silent) for v in data]
     else:
         raise TypeError("data must be either a dictionary or an interable object.")

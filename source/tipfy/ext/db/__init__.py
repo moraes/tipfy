@@ -17,13 +17,20 @@ import unicodedata
 
 from google.appengine.ext import db
 from google.appengine.datastore import entity_pb
-
+from google.net.proto.ProtocolBuffer import ProtocolBufferDecodeError
 from pytz.gae import pytz
 
 from tipfy import NotFound
 
+def get_protobuf_from_entity(entity):
+    if not entity:
+        return None
+    elif isinstance(entity, db.Model):
+        return db.model_to_protobuf(entity).Encode()
+    else:
+        return entity
 
-def get_protobuf_from_entity(entities):
+def get_protobufs_from_entities(entities):
     """Converts one or more ``db.Model`` instances to encoded Protocol Buffers.
 
     This is useful to store entities in memcache, and preferable than storing
@@ -50,19 +57,47 @@ def get_protobuf_from_entity(entities):
     This function derives from `Nick's Blog`_.
 
     :param entities:
-        A single or a list of ``db.Model`` instances to be serialized.
+        A single or a list of ``db.Model`` instances or a dictionary of keys 
+        and ``db.Model`` values to be serialized. Won't touch entities that are not
+        of type ``db.Model``.
     :return:
         One or more entities serialized to Protocol Buffer (a string or a list).
     """
     if not entities:
         return None
-    elif isinstance(entities, db.Model):
-        return db.model_to_protobuf(entities).Encode()
+    elif isinstance(entities, dict):
+        return dict((k, get_protobuf_from_entity(v)) for k, v in entities.iteritems())
+    elif hasattr(entities, "__iter__"):
+        return [_get_protobuf_from_entity(v) for v in entities]
     else:
-        return [db.model_to_protobuf(x).Encode() for x in entities]
+        raise TypeError("entities must be a either a dictionary or an iterable object.")
 
+def get_entity_from_protobuf(data, silent=False):
+    """ Converts a single encoded Protocol Buffer to a ``db.Model``.
+    
+    :param data:
+        One entity serialized to Protocol Buffer.
+    :param silent:
+        If silent it will pass back data if it can't decode. Otherwise will throw a 
+        ``google.net.proto.ProtocolBuffer.ProtocolBufferDecodeError``.
+    :return:
+        One entity de-serialized from Protocol Buffers (a ``db.Model``
+        instance).
+    """
+    response = None
+    if isinstance(data, str):
+        try:
+            response = db.model_from_protobuf(entity_pb.EntityProto(data))
+        except ProtocolBufferDecodeError:
+            if not silent:
+                raise
+                
+    if not silent and not response:
+        raise ProtocolBufferDecodeError()
+    
+    return response or data
 
-def get_entity_from_protobuf(data):
+def get_entities_from_protobufs(data, silent=False):
     """Converts one or more encoded Protocol Buffers to ``db.Model`` instances.
 
     This is used to de-serialize entities previously serialized using
@@ -84,18 +119,23 @@ def get_entity_from_protobuf(data):
     This function derives from `Nick's Blog`_.
 
     :param data:
-        One or more entities serialized to Protocol Buffer (a string or a list).
+        One or more entities serialized to Protocol Buffer (a string or a list or 
+        a dictionary of keys and protobuf values).
+    :param silent:
+        If silent it will pass back data if it can't decode. Otherwise will throw a 
+        ``google.net.proto.ProtocolBuffer.ProtocolBufferDecodeError``.
     :return:
         One or more entities de-serialized from Protocol Buffers (a ``db.Model``
-        inatance or a list of ``db.Model`` instances).
+        instances or a list of ``db.Model`` instances).
     """
     if not data:
         return None
-    elif isinstance(data, str):
-        return db.model_from_protobuf(entity_pb.EntityProto(data))
+    elif isinstance(data, dict):
+        return dict([(k, get_entity_from_protobuf(v, silent)) for k, v in data.iteritems()])
+    elif hasattr(entities, "__iter__"):
+        return [get_entity_from_protobuf(v, silent) for v in data]
     else:
-        return [db.model_from_protobuf(entity_pb.EntityProto(x)) for x in data]
-
+        raise TypeError("data must be either a dictionary or an interable object.")
 
 def get_reference_key(entity, prop_name):
     """Returns a encoded key from a ``db.ReferenceProperty`` without fetching

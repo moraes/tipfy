@@ -335,9 +335,10 @@ def run_wsgi_app(app):
         fix_sys_path()
 
     # Apply pre-run hooks.
-    for res in app.hooks.iter('pre_run_app', app):
-        if res is not None:
-            app = res
+    # Note: using app.hooks.iter caused only the last middleware 
+    #   to get applied instead of chaining the middleware
+    for hook in app.hooks.get('pre_run_app'):
+        app = hook(app) or app
 
     # Wrap app by local_manager so that local is cleaned after each request.
     PatchedCGIHandler().run(local_manager.make_middleware(app))

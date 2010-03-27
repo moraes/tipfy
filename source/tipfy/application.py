@@ -310,9 +310,8 @@ def make_wsgi_app(config):
     app = WSGIApplication(config)
 
     # Apply post_make_app hooks.
-    for res in app.hooks.iter('post_make_app', app):
-        if res is not None:
-            app = res
+    for hook in app.hooks.get('post_make_app'):
+        app = hook(app) or app
 
     return app
 
@@ -330,9 +329,10 @@ def run_wsgi_app(app):
         fix_sys_path()
 
     # Apply pre_run_app hooks.
-    for res in app.hooks.iter('pre_run_app', app):
-        if res is not None:
-            app = res
+    # Note: using app.hooks.iter caused only the last middleware
+    #   to get applied instead of chaining the middleware
+    for hook in app.hooks.get('pre_run_app'):
+        app = hook(app) or app
 
     # Run it.
     PatchedCGIHandler().run(app)

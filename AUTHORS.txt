@@ -26,6 +26,8 @@ Tipfy includes open source libraries or code from the following projects:
   Copyright 2007 Google Inc.
   License: Apache 2.0
 
+- `wtforms <http://code.google.com/appengine/>`_
+
 - `Tornado <http://www.tornadoweb.org/>`_
   Copyright 2009 Facebook
   License: Apache 2.0

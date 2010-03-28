@@ -81,7 +81,7 @@ class I18nMiddleware(object):
         """
         if getattr(local, 'locale', None) is None:
             # Locale isn't set.
-            return
+            return response
 
         if not is_default_locale():
             # Persist locale using a cookie when it differs from default.

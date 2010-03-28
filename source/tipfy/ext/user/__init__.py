@@ -116,7 +116,7 @@ class UserMiddleware(object):
         :return:
             A ``werkzeug.Response`` instance.
         """
-        get_auth_system().save_session(response)
+        #get_auth_system().save_session(response)
         return response
 
 

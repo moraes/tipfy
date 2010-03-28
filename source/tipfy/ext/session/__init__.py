@@ -502,8 +502,6 @@ class SessionStore(object):
 
 class Session(db.Model):
     """Stores session data."""
-    namespace = Session.__module__ + '.' + Session.__name__
-
     #: Creation date.
     created = db.DateTimeProperty(auto_now_add=True)
     #: Modification date.
@@ -515,6 +513,10 @@ class Session(db.Model):
         return self.key().name()
 
     @classmethod
+    def get_namespace(cls):
+        return cls.__module__ + '.' + cls.__name__
+
+    @classmethod
     def get_by_sid(cls, sid):
         """Returns a ``Session`` instance by session id.
 
@@ -523,14 +525,15 @@ class Session(db.Model):
         :return:
             An existing ``Session`` entity.
         """
-        data = memcache.get(sid, namespace=cls.namespace)
+        namespace = cls.get_namespace()
+        data = memcache.get(sid, namespace=namespace)
         if data:
             session = get_entity_from_protobuf(data)
         else:
-            session = Session.get_by_key_name(self.sid)
+            session = Session.get_by_key_name(sid)
             if session:
                 data = get_protobuf_from_entity(session)
-                memcache.set(sid, data, namespace=cls.namespace)
+                memcache.set(sid, data, namespace=namespace)
 
         return session
 
@@ -540,12 +543,12 @@ class Session(db.Model):
 
     def put(self):
         """Saves the session and deletes the memcache entry."""
-        memcache.delete(self.sid, namespace=self.namespace)
+        memcache.delete(self.sid, namespace=Session.get_namespace())
         db.Model.put(self)
 
     def delete(self):
         """Deletes the session and the memcache entry."""
-        memcache.delete(self.sid, namespace=self.namespace)
+        memcache.delete(self.sid, namespace=Session.get_namespace())
         db.Model.delete(self)
 
 

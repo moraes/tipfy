@@ -30,6 +30,7 @@ def get_protobuf_from_entity(entity):
     else:
         return entity
 
+
 def get_protobufs_from_entities(entities):
     """Converts one or more ``db.Model`` instances to encoded Protocol Buffers.
 
@@ -38,7 +39,8 @@ def get_protobufs_from_entities(entities):
     crashes when unpickling (when, for example, the entity class is moved to a
     different module).
 
-    Cached protobufs can be de-serialized using :func:`get_entity_from_protobuf`.
+    Cached protobufs can be de-serialized using
+    :func:`get_entity_from_protobuf`.
 
     Example usage:
 
@@ -58,19 +60,22 @@ def get_protobufs_from_entities(entities):
 
     :param entities:
         A single or a list of ``db.Model`` instances or a dictionary of keys
-        and ``db.Model`` values to be serialized. Won't touch entities that are not
-        of type ``db.Model``.
+        and ``db.Model`` values to be serialized. Won't touch entities that are
+        not of type ``db.Model``.
     :return:
         One or more entities serialized to Protocol Buffer (a string or a list).
     """
     if not entities:
         return None
     elif isinstance(entities, dict):
-        return dict((k, get_protobuf_from_entity(v)) for k, v in entities.iteritems())
-    elif hasattr(entities, "__iter__"):
+        return dict((k, get_protobuf_from_entity(v)) for k, v in
+            entities.iteritems())
+    elif hasattr(entities, '__iter__'):
         return [get_protobuf_from_entity(v) for v in entities]
     else:
-        raise TypeError("entities must be a either a dictionary or an iterable object.")
+        raise TypeError('Entities must be a either a dictionary or an '
+            'iterable object.')
+
 
 def get_entity_from_protobuf(data, silent=False):
     """ Converts a single encoded Protocol Buffer to a ``db.Model``.
@@ -78,8 +83,8 @@ def get_entity_from_protobuf(data, silent=False):
     :param data:
         One entity serialized to Protocol Buffer.
     :param silent:
-        If silent it will pass back data if it can't decode. Otherwise will throw a
-        ``google.net.proto.ProtocolBuffer.ProtocolBufferDecodeError``.
+        If silent it will pass back data if it can't decode. Otherwise will
+        throw a ``google.net.proto.ProtocolBuffer.ProtocolBufferDecodeError``.
     :return:
         One entity de-serialized from Protocol Buffers (a ``db.Model``
         instance).
@@ -96,6 +101,7 @@ def get_entity_from_protobuf(data, silent=False):
         raise ProtocolBufferDecodeError()
 
     return response or data
+
 
 def get_entities_from_protobufs(data, silent=False):
     """Converts one or more encoded Protocol Buffers to ``db.Model`` instances.
@@ -119,23 +125,26 @@ def get_entities_from_protobufs(data, silent=False):
     This function derives from `Nick's Blog`_.
 
     :param data:
-        One or more entities serialized to Protocol Buffer (a string or a list or
-        a dictionary of keys and protobuf values).
+        One or more entities serialized to Protocol Buffer (a string or a list
+        or a dictionary of keys and protobuf values).
     :param silent:
-        If silent it will pass back data if it can't decode. Otherwise will throw a
-        ``google.net.proto.ProtocolBuffer.ProtocolBufferDecodeError``.
+        If silent it will pass back data if it can't decode. Otherwise will
+        throw a ``google.net.proto.ProtocolBuffer.ProtocolBufferDecodeError``.
     :return:
         One or more entities de-serialized from Protocol Buffers (a ``db.Model``
-        instances or a list of ``db.Model`` instances).
+        instance or a list of ``db.Model`` instances).
     """
     if not data:
         return None
     elif isinstance(data, dict):
-        return dict([(k, get_entity_from_protobuf(v, silent)) for k, v in data.iteritems()])
-    elif hasattr(data, "__iter__"):
+        return dict([(k, get_entity_from_protobuf(v, silent)) for k, v in
+            data.iteritems()])
+    elif hasattr(data, '__iter__'):
         return [get_entity_from_protobuf(v, silent) for v in data]
     else:
-        raise TypeError("data must be either a dictionary or an interable object.")
+        raise TypeError('Data must be either a dictionary or an interable '
+            'object.')
+
 
 def get_reference_key(entity, prop_name):
     """Returns a encoded key from a ``db.ReferenceProperty`` without fetching
@@ -164,7 +173,8 @@ def get_reference_key(entity, prop_name):
 
        # Now let's fetch the book and get the author key without fetching it.
        fetched_book = Book.get_by_key_name('the-shining')
-       assert str(author.key()) == str(get_reference_key(fetched_book, 'author'))
+       assert str(author.key()) == str(get_reference_key(fetched_book,
+           'author'))
 
     :param entity:
         A ``db.Model`` instance.
@@ -694,9 +704,3 @@ def _slugify(value, max_length=None, default=None):
                 s = s.rsplit('-', 1)[0]
 
     return s
-
-
-# Backwards compatibility aliases.
-model_to_protobuf = get_protobuf_from_entity
-model_from_protobuf = get_entity_from_protobuf
-get_key = get_reference_key

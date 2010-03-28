@@ -9,8 +9,8 @@ import _base
 
 import tipfy
 from tipfy import get_config, local, local_manager
-from tipfy.ext.session import (DatastoreSessionStore, MessagesMixin,
-    SecureCookie, SessionMiddleware, SessionMixin, SessionStore)
+from tipfy.ext.session import (DatastoreSession, DatastoreSessionStore,
+    MessagesMixin, SecureCookie, SessionMiddleware, SessionMixin, SessionStore)
 
 def get_app(config=None):
     return tipfy.WSGIApplication({
@@ -579,10 +579,73 @@ class TestSessionStore(unittest.TestCase):
 
 
 class TestDatastoreSessionStore(unittest.TestCase):
+    def setUp(self):
+        get_app()
+        self.provider = StoreProvider()
+        local.session_store = SessionStore(self.provider)
+
     def tearDown(self):
         local_manager.cleanup()
+        self.provider = None
 
+    def test_init(self):
+        session = DatastoreSession()
+
+    def test_sid(self):
+        cookie = SecureCookie([('sid', 'bar')], secret_key=self.provider.secret_key)
+        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+        assert session.sid is None
+
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+        assert session.sid is None
+
+        session = DatastoreSession(provider=self.provider)
+        assert session.sid is None
+
+    def test_get_entity(self):
+        session = DatastoreSession(provider=self.provider)
+        assert session.get_entity() is None
+
+    def test_init_with_cookie(self):
+        cookie = SecureCookie([('sid', 'bar')], secret_key=self.provider.secret_key)
+        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+
+    def test_should_save(self):
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+
+        assert session.should_save is False
+
+    def test_delete_entity(self):
+        cookie = SecureCookie([('sid', 'bar')], secret_key=self.provider.secret_key)
+        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+
+        session.delete_entity()
 
 class TestDatastoreSession(unittest.TestCase):
+    def setUp(self):
+        get_app()
+        self.provider = StoreProvider()
+        local.session_store = DatastoreSessionStore(self.provider)
+
     def tearDown(self):
         local_manager.cleanup()
+        self.provider = None
+
+    def test_get_session(self):
+        local.request = tipfy.Request.from_values()
+        session = local.session_store._get_session('foo')
+        assert isinstance(session, DatastoreSession)
+
+    def test_delete_session(self):
+        cookie = SecureCookie([('sid', 'bar')], secret_key=self.provider.secret_key)
+        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+        session['foo'] = 'bar'
+
+        assert len(session) == 1
+        assert session['foo'] == 'bar'
+
+        local.session_store._delete_session(session)
+
+        assert len(session) == 0

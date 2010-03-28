@@ -519,6 +519,9 @@ class DatastoreSession(ModificationTrackingDict):
 
     @property
     def sid(self):
+        if not self.cookie:
+            return None
+
         return self.cookie.get('sid', None)
 
     @property

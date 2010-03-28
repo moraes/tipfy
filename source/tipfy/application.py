@@ -349,9 +349,8 @@ def fix_sys_path():
     import sys
     if _ULTIMATE_SYS_PATH is None:
         _ULTIMATE_SYS_PATH = list(sys.path)
-    else:
-        if sys.path != _ULTIMATE_SYS_PATH:
-            sys.path[:] = _ULTIMATE_SYS_PATH
+    elif sys.path != _ULTIMATE_SYS_PATH:
+        sys.path[:] = _ULTIMATE_SYS_PATH
 
 
 __all__ = ['make_wsgi_app', 'MiddlewareFactory', 'RequestHandler',

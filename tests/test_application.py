@@ -12,6 +12,29 @@ import tipfy
 from tipfy import local, local_manager
 from tipfy.application import MiddlewareFactory
 
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
+
+def get_url_map():
+    # Fake get_rules() for testing.
+    rules = [
+        tipfy.Rule('/', endpoint='home', handler='files.app.handlers.HomeHandler'),
+    ]
+
+    return tipfy.Map(rules)
+
+
+def get_app():
+    return tipfy.WSGIApplication({
+        'tipfy': {
+            'url_map': get_url_map(),
+            'extensions': ['files.app.extension'],
+            'dev': True,
+        },
+    })
+
 
 class Handler(tipfy.RequestHandler):
     def get(self, **kwargs):
@@ -275,8 +298,15 @@ class TestWSGIApplication(unittest.TestCase):
     def tearDown(self):
         tipfy.local_manager.cleanup()
 
+
+class TestMiscelaneous(unittest.TestCase):
+    def tearDown(self):
+        tipfy.local_manager.cleanup()
+
     def test_make_wsgi_app(self):
-        app = tipfy.make_wsgi_app(None)
+        app = tipfy.make_wsgi_app({'tipfy': {
+            'extensions': ['files.app.extension'],
+        }})
 
         assert isinstance(app, tipfy.WSGIApplication)
 
@@ -288,3 +318,21 @@ class TestWSGIApplication(unittest.TestCase):
         assert isinstance(app, tipfy.WSGIApplication)
         assert app.config.get('tipfy', 'foo') == 'bar'
 
+    def test_run_wsgi_app(self):
+        """We aren't testing anything here."""
+        import os
+        os.environ['SERVER_NAME'] = 'foo.com'
+        os.environ['SERVER_PORT'] = '8080'
+        os.environ['REQUEST_METHOD'] = 'GET'
+        tipfy.run_wsgi_app(get_app())
+
+    def test_ultimate_sys_path(self):
+        """Mostly here to not be marked as uncovered."""
+        from tipfy.application import _ULTIMATE_SYS_PATH, fix_sys_path
+        fix_sys_path()
+
+    def test_ultimate_sys_path2(self):
+        """Mostly here to not be marked as uncovered."""
+        from tipfy.application import _ULTIMATE_SYS_PATH, fix_sys_path
+        _ULTIMATE_SYS_PATH = []
+        fix_sys_path()

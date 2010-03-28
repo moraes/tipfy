@@ -12,7 +12,7 @@ from tipfy import get_config, local, local_manager
 from tipfy.ext.session import (DatastoreSession, DatastoreSessionStore,
     MessagesMixin, SecureCookie, SessionMiddleware, SessionMixin, SessionStore)
 
-def get_app(config=None):
+def set_app(config=None):
     return tipfy.WSGIApplication({
         'tipfy.ext.session': {
             'secret_key': 'foo',
@@ -54,7 +54,7 @@ class StoreConfig(object):
 
 class TestSessionMiddleware(unittest.TestCase):
     def setUp(self):
-        get_app()
+        set_app()
 
     def tearDown(self):
         local_manager.cleanup()
@@ -110,25 +110,22 @@ class TestSessionMiddleware(unittest.TestCase):
         assert isinstance(local.session_store, DatastoreSessionStore)
 
     def test_post_dispatch(self):
-        assert getattr(local, 'session_store', None) is None
-
         middleware = SessionMiddleware()
-        middleware.pre_dispatch(None)
+        response = Response()
 
+        assert getattr(local, 'session_store', None) is None
+        middleware.pre_dispatch(None)
         assert isinstance(local.session_store, SessionStore)
 
         local.session_store.set_flash({'foo': 'bar'})
-
-        response = Response()
-
         assert 'tipfy.flash' not in response.cookies_to_set
-        middleware.post_dispatch(None, response)
+        response = middleware.post_dispatch(None, response)
         assert 'tipfy.flash' in response.cookies_to_set
 
 
 class TestSessionMixin(unittest.TestCase):
     def setUp(self):
-        get_app()
+        set_app()
         self.config = StoreConfig()
         local.session_store = SessionStore(self.config)
 
@@ -201,7 +198,7 @@ class TestSessionMixin(unittest.TestCase):
 
 class TestMessagesMixin(unittest.TestCase):
     def setUp(self):
-        get_app()
+        set_app()
         self.config = StoreConfig()
         local.session_store = SessionStore(self.config)
         local.request = tipfy.Request.from_values()
@@ -260,7 +257,7 @@ class TestMessagesMixin(unittest.TestCase):
 
 class TestSessionStore(unittest.TestCase):
     def setUp(self):
-        get_app()
+        set_app()
         self.config = StoreConfig()
         local.session_store = SessionStore(self.config)
 
@@ -580,7 +577,7 @@ class TestSessionStore(unittest.TestCase):
 
 class TestDatastoreSessionStore(unittest.TestCase):
     def setUp(self):
-        get_app()
+        set_app()
         self.config = StoreConfig()
         local.session_store = SessionStore(self.config)
 
@@ -615,11 +612,11 @@ class TestDatastoreSessionStore(unittest.TestCase):
         cookie = SecureCookie([('sid', 'bar')], secret_key=self.config.secret_key)
         session = DatastoreSession(cookie)
 
-        session.delete_entity()
+        session.delete()
 
 class TestDatastoreSession(unittest.TestCase):
     def setUp(self):
-        get_app()
+        set_app()
         self.config = StoreConfig()
         local.session_store = DatastoreSessionStore(self.config)
 
@@ -629,7 +626,7 @@ class TestDatastoreSession(unittest.TestCase):
 
     def test_get_session(self):
         local.request = tipfy.Request.from_values()
-        session = local.session_store._get_session('foo')
+        session = local.session_store._load_session('foo')
         assert isinstance(session, DatastoreSession)
 
     def test_delete_session(self):

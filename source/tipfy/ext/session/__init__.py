@@ -141,7 +141,7 @@ class SessionMixin(object):
     """A :class:`tipfy.RequestHandler` mixin that provides access to session
     and functions to get and set flash messages.
     """
-    @cached_property
+    @property
     def session(self):
         """A dictionary-like object that is persisted at the end of the request.
         """
@@ -284,6 +284,9 @@ class SessionStore(object):
                     response.set_cookie(key, value=cookie, **kwargs)
                 else:
                     # Save a secure cookie.
+                    import logging
+                    logging.info('#' * 100)
+                    logging.info(cookie.should_save)
                     cookie.save_cookie(response, key=key, **kwargs)
 
     def get_session(self, key=None, **kwargs):
@@ -312,12 +315,17 @@ class SessionStore(object):
         key = key or self.config.default_session_key
 
         if key not in self._data:
-            self._data[key] = self._get_session(key)
+            # Load a session from request.
+            self._data[key] = self._load_session(key)
+            self._data_args[key] = kwargs
+        elif self._data[key] is None:
+            # Session was previously deleted. Create a new one.
+            self._data[key] = self._create_session()
             self._data_args[key] = kwargs
 
         return self._data[key]
 
-    def _get_session(self, key):
+    def _load_session(self, key):
         """Returns a session for a given key. This is the session factory
         method.
 
@@ -328,6 +336,14 @@ class SessionStore(object):
             A dictionary-like session object.
         """
         return self.load_secure_cookie(key)
+
+    def _create_session(self):
+        """Returns a new session. This is the session factory method.
+
+        :return:
+            A dictionary-like session object.
+        """
+        return self.create_secure_cookie()
 
     def delete_session(self, key=None, **kwargs):
         """Deletes a session for a given key.
@@ -414,17 +430,11 @@ class SessionStore(object):
         :meth:`SessionStore.get_secure_cookie`.
 
         :param data:
-            A dictionary to be loaded into the secure cookie. If set, the
-            secure cookie will be marked as modified.
+            A dictionary to be loaded into the secure cookie.
         :return:
             A ``werkzeug.contrib.SecureCookie`` instance.
         """
-        cookie = SecureCookie(data=data, secret_key=self.config.secret_key)
-        if data is not None:
-            # Always force it to save when data is passed.
-            cookie.modified = True
-
-        return cookie
+        return SecureCookie(data=data, secret_key=self.config.secret_key)
 
     def get_flash(self, key=None, **kwargs):
         """Returns a flash message. Flash messages are stored in a signed
@@ -478,7 +488,9 @@ class SessionStore(object):
             ``None``.
         """
         key = key or self.config.default_flash_key
-        self._data[key] = self.create_secure_cookie(data)
+        cookie = self.create_secure_cookie(data)
+        cookie.modified = True
+        self._data[key] = cookie
         self._data_args[key] = kwargs
 
     def set_cookie(self, key, cookie, **kwargs):
@@ -560,19 +572,22 @@ class DatastoreSession(ModificationTrackingDict):
             Session.create(cookie['sid'])
         ModificationTrackingDict.__init__(self, self.entity.data)
 
-    def delete_entity(self):
+    def delete(self):
         if self.entity.is_saved():
             self.entity.delete()
 
         self.entity = None
+        # Invalidate the session id.
         del self.cookie['sid']
 
     def save_cookie(self, response, key, **kwargs):
+        force = kwargs.pop('force', False)
         if self.modified:
             self.entity.data = dict(self)
             self.entity.put()
+            force = True
 
-        self.cookie.save_cookie(response, key=key, **kwargs)
+        self.cookie.save_cookie(response, key=key, force=force, **kwargs)
 
 
 class DatastoreSessionStore(SessionStore):
@@ -580,7 +595,15 @@ class DatastoreSessionStore(SessionStore):
     provides signed flash messages and secure cookies that persist
     automatically.
     """
-    def _get_session(self, key):
+    def create_session_id(self):
+        """Returns a random session id.
+
+        :return:
+            A new session id.
+        """
+        return generate_key(self.config.secret_key)
+
+    def _load_session(self, key):
         """Returns a session for a given key. This is the session factory
         method.
 
@@ -592,8 +615,17 @@ class DatastoreSessionStore(SessionStore):
         """
         cookie = self.load_secure_cookie(key)
         if 'sid' not in cookie:
-            cookie['sid'] = generate_key(self.config.secret_key)
+            cookie['sid'] = self.create_session_id()
 
+        return DatastoreSession(cookie)
+
+    def _create_session(self):
+        """Returns a new session. This is the session factory method.
+
+        :return:
+            A dictionary-like session object.
+        """
+        cookie = self.create_secure_cookie({'sid': self.create_session_id()})
         return DatastoreSession(cookie)
 
     def _delete_session(self, session):
@@ -607,4 +639,4 @@ class DatastoreSessionStore(SessionStore):
         """
         session.clear()
         if isinstance(session, DatastoreSession):
-            session.delete_entity()
+            session.delete()

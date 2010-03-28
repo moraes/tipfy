@@ -18,6 +18,9 @@ import unicodedata
 from google.appengine.ext import db
 from google.appengine.datastore import entity_pb
 from google.net.proto.ProtocolBuffer import ProtocolBufferDecodeError
+
+from django.utils import simplejson
+
 from pytz.gae import pytz
 
 from tipfy import NotFound
@@ -563,6 +566,20 @@ class EtagProperty(db.Property):
 class JsonProperty(db.Property):
     """Stores a value automatically encoding to JSON on set and decoding
     on get.
+
+    Example usage:
+
+    >>> class JsonModel(db.Model):
+    ... data = JsonProperty()
+    >>> model = PickleModel()
+    >>> model.data = {"foo": "bar"}
+    >>> model.data
+    {'foo': 'bar'}
+    >>> model.put() # doctest: +ELLIPSIS
+    datastore_types.Key.from_path(u'PickleModel', ...)
+    >>> model2 = PickleModel.all().get()
+    >>> model2.data
+    {'foo': 'bar'}
     """
     data_type = db.Text
 

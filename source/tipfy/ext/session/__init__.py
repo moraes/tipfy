@@ -526,6 +526,11 @@ class Session(db.Model):
 
     @classmethod
     def get_namespace(cls):
+        """Returns the namespace to be used in memcache.
+
+        :return:
+            A namespace string.
+        """
         return cls.__module__ + '.' + cls.__name__
 
     @classmethod
@@ -551,6 +556,13 @@ class Session(db.Model):
 
     @classmethod
     def create(cls, sid):
+        """Returns a new, empty session entity.
+
+        :param sid:
+            A session id.
+        :return:
+            A new and not saved session entity.
+        """
         return cls(key_name=sid, data={})
 
     def put(self):
@@ -573,7 +585,8 @@ class DatastoreSession(ModificationTrackingDict):
         ModificationTrackingDict.__init__(self, self.entity.data)
 
     def delete(self):
-        if self.entity.is_saved():
+        """Deletes the session from datastore."""
+        if self.entity and self.entity.is_saved():
             self.entity.delete()
 
         self.entity = None
@@ -581,6 +594,9 @@ class DatastoreSession(ModificationTrackingDict):
         del self.cookie['sid']
 
     def save_cookie(self, response, key, **kwargs):
+        """Saves the session to datastore, if modified, and saves the cookie
+        with the session id.
+        """
         force = kwargs.pop('force', False)
         if self.modified:
             self.entity.data = dict(self)

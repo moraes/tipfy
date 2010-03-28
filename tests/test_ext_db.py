@@ -37,6 +37,14 @@ class BarModel(db.Model):
     foo = db.ReferenceProperty(FooModel)
 
 
+class JsonModel(db.Model):
+    data = ext_db.JsonProperty()
+
+
+class TimezoneModel(db.Model):
+    data = ext_db.TimezoneProperty()
+
+
 @ext_db.retry_on_timeout(retries=3, interval=0.1)
 def test_timeout_1(**kwargs):
     counter = kwargs.get('counter')
@@ -395,6 +403,37 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity_2 = FooModel.get_by_key_name('bar')
         assert entity_1.etag2 is None
         assert entity_2.etag2 is None
+
+    def test_json_property(self):
+        entity_1 = JsonModel(key_name='foo', data={'foo': 'bar'})
+        entity_1.put()
+
+        entity_1 = JsonModel.get_by_key_name('foo')
+        assert entity_1.data == {'foo': 'bar'}
+
+    @raises(db.BadValueError)
+    def test_json_property2(self):
+        entity_1 = JsonModel(key_name='foo', data='foo')
+        entity_1.put()
+
+        entity_1 = JsonModel.get_by_key_name('foo')
+        assert entity_1.data == {'foo': 'bar'}
+
+    def test_timezone_property(self):
+        zone = 'America/Chicago'
+        entity_1 = TimezoneModel(key_name='foo', data=zone)
+        entity_1.put()
+
+        entity_1 = TimezoneModel.get_by_key_name('foo')
+        assert entity_1.data == ext_db.pytz.timezone(zone)
+
+    @raises(ext_db.pytz.UnknownTimeZoneError)
+    def test_timezone_property2(self):
+        entity_1 = TimezoneModel(key_name='foo', data='foo')
+        entity_1.put()
+
+        entity_1 = TimezoneModel.get_by_key_name('foo')
+        assert entity_1.data == {'foo': 'bar'}
 
     #===========================================================================
     # @ext_db.retry_on_timeout

@@ -35,7 +35,7 @@ class Response(object):
         self.cookies_to_delete[key] = kwargs
 
 
-class StoreProvider(object):
+class StoreConfig(object):
     def __init__(self):
         module = 'tipfy.ext.session'
         self.session_type =        get_config(module, 'session_type')
@@ -129,12 +129,12 @@ class TestSessionMiddleware(unittest.TestCase):
 class TestSessionMixin(unittest.TestCase):
     def setUp(self):
         get_app()
-        self.provider = StoreProvider()
-        local.session_store = SessionStore(self.provider)
+        self.config = StoreConfig()
+        local.session_store = SessionStore(self.config)
 
     def tearDown(self):
         local_manager.cleanup()
-        self.provider = None
+        self.config = None
 
     def test_get_session(self):
         middleware = SessionMiddleware()
@@ -145,7 +145,7 @@ class TestSessionMixin(unittest.TestCase):
         assert isinstance(mixin.session, SecureCookie)
 
     def test_get_flash(self):
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
         local.request = tipfy.Request.from_values(headers={
             'Cookie':   'tipfy.flash=%s' % cookie.serialize(),
         })
@@ -161,7 +161,7 @@ class TestSessionMixin(unittest.TestCase):
         assert flash is None
 
     def test_get_flash_custom_key(self):
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
         local.request = tipfy.Request.from_values(headers={
             'Cookie':   'my_flash=%s' % cookie.serialize(),
         })
@@ -202,20 +202,20 @@ class TestSessionMixin(unittest.TestCase):
 class TestMessagesMixin(unittest.TestCase):
     def setUp(self):
         get_app()
-        self.provider = StoreProvider()
-        local.session_store = SessionStore(self.provider)
+        self.config = StoreConfig()
+        local.session_store = SessionStore(self.config)
         local.request = tipfy.Request.from_values()
 
     def tearDown(self):
         local_manager.cleanup()
-        self.provider = None
+        self.config = None
 
     def test_messages_mixin(self):
         mixin = MessagesMixin()
         assert mixin.messages == []
 
     def test_messages_mixin_with_flash(self):
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
         local.request = tipfy.Request.from_values(headers={
             'Cookie':   'tipfy.flash=%s' % cookie.serialize(),
         })
@@ -261,12 +261,12 @@ class TestMessagesMixin(unittest.TestCase):
 class TestSessionStore(unittest.TestCase):
     def setUp(self):
         get_app()
-        self.provider = StoreProvider()
-        local.session_store = SessionStore(self.provider)
+        self.config = StoreConfig()
+        local.session_store = SessionStore(self.config)
 
     def tearDown(self):
         local_manager.cleanup()
-        self.provider = None
+        self.config = None
 
     def test_save_no_session(self):
         assert local.session_store._data == {}
@@ -278,7 +278,7 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args == {}
 
     def test_save_delete_flashes(self):
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
         local.request = tipfy.Request.from_values(headers={
             'Cookie':   'tipfy.flash=%s; my_flash=%s' % (cookie.serialize(), cookie.serialize()),
         })
@@ -353,7 +353,7 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args['tipfy.session'] == {'max_age': 86400}
 
     def test_get_existing_session(self):
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
         local.request = tipfy.Request.from_values(headers={
             'Cookie':   'tipfy.session=%s' % cookie.serialize(),
         })
@@ -391,7 +391,7 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args == {'foo': {}}
 
     def test_delete_session_and_existing_data(self):
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
         local.request = tipfy.Request.from_values(headers={
             'Cookie':   'my_session=%s' % cookie.serialize(),
         })
@@ -428,7 +428,7 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args['foo'] == {'max_age': 86400}
 
     def test_get_secure_cookie_existing(self):
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
         local.request = tipfy.Request.from_values(headers={
             'Cookie':   'my_session=%s' % cookie.serialize(),
         })
@@ -468,7 +468,7 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args['my_session'] == {'max_age': 86400}
 
     def test_get_secure_cookie_without_load(self):
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
         local.request = tipfy.Request.from_values(headers={
             'Cookie':   'my_session=%s' % cookie.serialize(),
         })
@@ -503,7 +503,7 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args == {}
 
     def test_load_secure_cookie_existing(self):
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
         local.request = tipfy.Request.from_values(headers={
             'Cookie':   'my_session=%s' % cookie.serialize(),
         })
@@ -581,57 +581,57 @@ class TestSessionStore(unittest.TestCase):
 class TestDatastoreSessionStore(unittest.TestCase):
     def setUp(self):
         get_app()
-        self.provider = StoreProvider()
-        local.session_store = SessionStore(self.provider)
+        self.config = StoreConfig()
+        local.session_store = SessionStore(self.config)
 
     def tearDown(self):
         local_manager.cleanup()
-        self.provider = None
+        self.config = None
 
     def test_init(self):
         session = DatastoreSession()
 
     def test_sid(self):
-        cookie = SecureCookie([('sid', 'bar')], secret_key=self.provider.secret_key)
-        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+        cookie = SecureCookie([('sid', 'bar')], secret_key=self.config.secret_key)
+        session = DatastoreSession(config=self.config, secure_cookie=cookie)
         assert session.sid is None
 
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
-        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
+        session = DatastoreSession(config=self.config, secure_cookie=cookie)
         assert session.sid is None
 
-        session = DatastoreSession(provider=self.provider)
+        session = DatastoreSession(config=self.config)
         assert session.sid is None
 
     def test_get_entity(self):
-        session = DatastoreSession(provider=self.provider)
+        session = DatastoreSession(config=self.config)
         assert session.get_entity() is None
 
     def test_init_with_cookie(self):
-        cookie = SecureCookie([('sid', 'bar')], secret_key=self.provider.secret_key)
-        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+        cookie = SecureCookie([('sid', 'bar')], secret_key=self.config.secret_key)
+        session = DatastoreSession(config=self.config, secure_cookie=cookie)
 
     def test_should_save(self):
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.provider.secret_key)
-        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
+        session = DatastoreSession(config=self.config, secure_cookie=cookie)
 
         assert session.should_save is False
 
     def test_delete_entity(self):
-        cookie = SecureCookie([('sid', 'bar')], secret_key=self.provider.secret_key)
-        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+        cookie = SecureCookie([('sid', 'bar')], secret_key=self.config.secret_key)
+        session = DatastoreSession(config=self.config, secure_cookie=cookie)
 
         session.delete_entity()
 
 class TestDatastoreSession(unittest.TestCase):
     def setUp(self):
         get_app()
-        self.provider = StoreProvider()
-        local.session_store = DatastoreSessionStore(self.provider)
+        self.config = StoreConfig()
+        local.session_store = DatastoreSessionStore(self.config)
 
     def tearDown(self):
         local_manager.cleanup()
-        self.provider = None
+        self.config = None
 
     def test_get_session(self):
         local.request = tipfy.Request.from_values()
@@ -639,8 +639,8 @@ class TestDatastoreSession(unittest.TestCase):
         assert isinstance(session, DatastoreSession)
 
     def test_delete_session(self):
-        cookie = SecureCookie([('sid', 'bar')], secret_key=self.provider.secret_key)
-        session = DatastoreSession(provider=self.provider, secure_cookie=cookie)
+        cookie = SecureCookie([('sid', 'bar')], secret_key=self.config.secret_key)
+        session = DatastoreSession(cookie)
         session['foo'] = 'bar'
 
         assert len(session) == 1

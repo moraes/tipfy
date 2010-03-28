@@ -20,7 +20,8 @@ from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import generate_key, ModificationTrackingDict
 
 from tipfy import cached_property, local, get_config, REQUIRED_CONFIG
-from tipfy.ext.db import PickleProperty
+from tipfy.ext.db import (get_protobuf_from_entity, get_entity_from_protobuf,
+    PickleProperty)
 from tipfy.ext.i18n import _
 
 #: Default configuration values for this module. Keys are:
@@ -235,13 +236,13 @@ class SessionStore(object):
     provides signed flash messages and secure cookies that persist
     automatically.
     """
-    def __init__(self, provider):
+    def __init__(self, config):
         """Initializes the store with empty contents.
 
-        :param provider:
+        :param config:
             Configuration provider.
         """
-        self.provider = provider
+        self.config = config
         # Cookies to save or delete.
         self._data = {}
         # Arguments for each secure cookie. If not set, use default values.
@@ -260,7 +261,7 @@ class SessionStore(object):
         if not self._data:
             return
 
-        cookie_args = self.provider.default_cookie_args
+        cookie_args = self.config.default_cookie_args
 
         for key, cookie in self._data.iteritems():
             # Use special cookie arguments, if set.
@@ -308,7 +309,7 @@ class SessionStore(object):
         :return:
             A dictionary-like session object.
         """
-        key = key or self.provider.default_session_key
+        key = key or self.config.default_session_key
 
         if key not in self._data:
             self._data[key] = self._get_session(key)
@@ -342,7 +343,7 @@ class SessionStore(object):
         :return:
             ``None``.
         """
-        key = key or self.provider.default_session_key
+        key = key or self.config.default_session_key
 
         if self._data.get(key, None) is not None:
             self._delete_session(self._data[key])
@@ -403,7 +404,7 @@ class SessionStore(object):
             A ``werkzeug.contrib.SecureCookie`` instance.
         """
         return SecureCookie.load_cookie(local.request, key=key,
-                                        secret_key=self.provider.secret_key)
+                                        secret_key=self.config.secret_key)
 
     def create_secure_cookie(self, data=None):
         """Returns a new secure cookie.
@@ -418,7 +419,7 @@ class SessionStore(object):
         :return:
             A ``werkzeug.contrib.SecureCookie`` instance.
         """
-        cookie = SecureCookie(data=data, secret_key=self.provider.secret_key)
+        cookie = SecureCookie(data=data, secret_key=self.config.secret_key)
         if data is not None:
             # Always force it to save when data is passed.
             cookie.modified = True
@@ -440,7 +441,7 @@ class SessionStore(object):
         :return:
             The data stored in the flash, or ``None``.
         """
-        key = key or self.provider.default_flash_key
+        key = key or self.config.default_flash_key
 
         if key in self._flash_read:
             return
@@ -476,7 +477,7 @@ class SessionStore(object):
         :return:
             ``None``.
         """
-        key = key or self.provider.default_flash_key
+        key = key or self.config.default_flash_key
         self._data[key] = self.create_secure_cookie(data)
         self._data_args[key] = kwargs
 
@@ -501,6 +502,8 @@ class SessionStore(object):
 
 class Session(db.Model):
     """Stores session data."""
+    namespace = Session.__module__ + '.' + Session.__name__
+
     #: Creation date.
     created = db.DateTimeProperty(auto_now_add=True)
     #: Modification date.
@@ -508,77 +511,63 @@ class Session(db.Model):
     #: Session data, pickled.
     data = PickleProperty()
 
+    def sid(self):
+        return self.key().name()
+
+    @classmethod
+    def get_by_sid(cls, sid):
+        """Returns a ``Session`` instance by session id.
+
+        :param sid:
+            A session id.
+        :return:
+            An existing ``Session`` entity.
+        """
+        data = memcache.get(sid, namespace=cls.namespace)
+        if data:
+            session = get_entity_from_protobuf(data)
+        else:
+            session = Session.get_by_key_name(self.sid)
+            if session:
+                data = get_protobuf_from_entity(session)
+                memcache.set(sid, data, namespace=cls.namespace)
+
+        return session
+
+    @classmethod
+    def create(cls, sid):
+        return cls(key_name=sid, data={})
+
+    def put(self):
+        """Saves the session and deletes the memcache entry."""
+        memcache.delete(self.sid, namespace=self.namespace)
+        db.Model.put(self)
+
+    def delete(self):
+        """Deletes the session and the memcache entry."""
+        memcache.delete(self.sid, namespace=self.namespace)
+        db.Model.delete(self)
+
 
 class DatastoreSession(ModificationTrackingDict):
     """A dictionary-like object with values loaded from datastore."""
-    def __init__(self, provider=None, secure_cookie=None):
-        self.provider = provider
-        self.cookie = secure_cookie
-        self.entity = None
-        ModificationTrackingDict.__init__(self, self._get_data() or ())
-
-    @property
-    def sid(self):
-        if not self.cookie:
-            return None
-
-        return self.cookie.get('sid', None)
-
-    @property
-    def should_save(self):
-        """``True`` if the session should be saved."""
-        return self.modified
-
-    def get_entity(self):
-        if self.sid is None:
-            return None
-
-        return Session.get_by_key_name(self.sid)
-
-    def _get_data(self):
-        if self.sid is None:
-            return None
-
-        data = memcache.get(self.sid, namespace=self.__class__.__name__)
-
-        if data is None:
-            self.entity = self.get_entity()
-            if self.entity:
-                # TODO: check expiration date?
-                data = self.entity.data
-
-        if data is None:
-            del self.cookie['sid']
-
-        return data
+    def __init__(self, cookie):
+        self.cookie = cookie
+        self.entity = Session.get_by_sid(cookie['sid']) or \
+            Session.create(cookie['sid'])
+        ModificationTrackingDict.__init__(self, self.entity.data)
 
     def delete_entity(self):
-        if self.sid is not None:
-            memcache.delete(self.sid, namespace=self.__class__.__name__)
+        if self.entity.is_saved():
+            self.entity.delete()
 
-            if not self.entity:
-                self.entity = self.get_entity()
-
-            if self.entity:
-                db.delete(self.entity)
-                del self.cookie['sid']
-                self.entity = None
+        self.entity = None
+        del self.cookie['sid']
 
     def save_cookie(self, response, key, **kwargs):
-        if self.should_save:
-            data = dict(self)
-
-            if self.sid is None:
-                self.cookie['sid'] = generate_key(self.provider.secret_key)
-
-            if self.entity is None:
-                self.entity = Session(key_name=self.sid)
-
-            self.entity.data = data
-            self.entity.expires = datetime.now()
+        if self.modified:
+            self.entity.data = dict(self)
             self.entity.put()
-
-            memcache.set(self.sid, data, namespace=self.__class__.__name__)
 
         self.cookie.save_cookie(response, key=key, **kwargs)
 
@@ -599,7 +588,10 @@ class DatastoreSessionStore(SessionStore):
             A dictionary-like session object.
         """
         cookie = self.load_secure_cookie(key)
-        return DatastoreSession(provider=self.provider, secure_cookie=cookie)
+        if 'sid' not in cookie:
+            cookie['sid'] = generate_key(self.config.secret_key)
+
+        return DatastoreSession(cookie)
 
     def _delete_session(self, session):
         """Deletes a session for a given key.

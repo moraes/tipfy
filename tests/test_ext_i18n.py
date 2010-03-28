@@ -43,13 +43,15 @@ class TestI18n(unittest.TestCase):
         })
 
         response = Response()
-        middleware.post_dispatch(None, response)
+        response = middleware.post_dispatch(None, response)
+        assert isinstance(response, Response)
         assert response.cookies == {}
 
         tipfy.local.locale = 'ru_RU'
         response = Response()
-        middleware.post_dispatch(None, response)
+        response = middleware.post_dispatch(None, response)
         assert response.cookies == {'tipfy.locale': 'ru_RU'}
+        assert isinstance(response, Response)
 
     #===========================================================================
     # Translations

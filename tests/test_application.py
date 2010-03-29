@@ -6,6 +6,8 @@ import unittest
 
 from nose.tools import assert_raises, raises
 
+from webtest import TestApp
+
 import _base
 
 import tipfy
@@ -320,11 +322,9 @@ class TestMiscelaneous(unittest.TestCase):
 
     def test_run_wsgi_app(self):
         """We aren't testing anything here."""
-        import os
-        os.environ['SERVER_NAME'] = 'foo.com'
-        os.environ['SERVER_PORT'] = '8080'
-        os.environ['REQUEST_METHOD'] = 'GET'
-        tipfy.run_wsgi_app(get_app())
+        app = TestApp(get_app())
+        response = app.get('/')
+        assert 'Hello, World!' in str(response)
 
     def test_ultimate_sys_path(self):
         """Mostly here to not be marked as uncovered."""

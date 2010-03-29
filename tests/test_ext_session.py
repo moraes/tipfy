@@ -43,12 +43,13 @@ class StoreConfig(object):
         self.default_session_key = get_config(module, 'session_cookie_name')
         self.default_flash_key =   get_config(module, 'flash_cookie_name')
         self.default_cookie_args = {
-                       'max_age':  get_config(module, 'cookie_max_age'),
-                       'domain':   get_config(module, 'cookie_domain'),
-                       'path':     get_config(module, 'cookie_path'),
-                       'secure':   get_config(module, 'cookie_secure'),
-                       'httponly': get_config(module, 'cookie_httponly'),
-                       'force':    get_config(module, 'cookie_force'),
+                       'session_expires': get_config(module, 'cookie_session_expires'),
+                       'max_age':         get_config(module, 'cookie_max_age'),
+                       'domain':          get_config(module, 'cookie_domain'),
+                       'path':            get_config(module, 'cookie_path'),
+                       'secure':          get_config(module, 'cookie_secure'),
+                       'httponly':        get_config(module, 'cookie_httponly'),
+                       'force':           get_config(module, 'cookie_force'),
         }
 
 
@@ -78,6 +79,7 @@ class TestSessionMiddleware(unittest.TestCase):
     def test_default_flash_key(self):
         middleware = SessionMiddleware()
         assert middleware.default_cookie_args == {
+            'session_expires': local.app.config.get('tipfy.ext.session', 'cookie_session_expires'),
             'max_age':  local.app.config.get('tipfy.ext.session', 'cookie_max_age'),
             'domain':   local.app.config.get('tipfy.ext.session', 'cookie_domain'),
             'path':     local.app.config.get('tipfy.ext.session', 'cookie_path'),

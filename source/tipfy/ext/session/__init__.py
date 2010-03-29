@@ -26,8 +26,8 @@ from tipfy.ext.i18n import _
 
 #: Default configuration values for this module. Keys are:
 #:
-#: - ``session_type``: Session storage type. Options are `securecookie` or
-#:   `datastore`. Default is `securecookie`.
+#: - ``session_type``: Session storage type. Available options are
+#:   `securecookie` or `datastore`. Default is `securecookie`.
 #:
 #: - ``secret_key``: Secret key to generate session cookies. Set this to
 #:   something random and unguessable. Default is
@@ -39,8 +39,13 @@ from tipfy.ext.i18n import _
 #: - ``flash_cookie_name``: Name of the cookie to save a flash message.
 #:   Default is `tipfy.flash`.
 #:
+#: - ``cookie_session_expires``: Session expiration time in seconds. Limits the
+#:   duration of the contents of a cookie, even if a session cookie exists.
+#:   If ``None``, the contents lasts as long as the cookie is valid. Default is
+#:   ``None``.
+#:
 #: - ``cookie_max_age``: Cookie max age in seconds. Limits the duration of a
-#:   session. If ``None``, the sessions lasts until the client is closed.
+#:   session cookie. If ``None``, the cookie lasts until the client is closed.
 #:   Default is ``None``.
 #:
 #: - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
@@ -63,6 +68,7 @@ default_config = {
     'secret_key':          REQUIRED_CONFIG,
     'session_cookie_name': 'tipfy.session',
     'flash_cookie_name':   'tipfy.flash',
+    'cookie_session_expires': None,
     'cookie_max_age':  None,
     'cookie_domain':   None,
     'cookie_path':     '/',
@@ -127,13 +133,16 @@ class SessionMiddleware(object):
 
     @cached_property
     def default_cookie_args(self):
+        """Default keyword arguments to set or delete a cookie or securecookie.
+        """
         return {
-            'max_age':  get_config(__name__, 'cookie_max_age'),
-            'domain':   get_config(__name__, 'cookie_domain'),
-            'path':     get_config(__name__, 'cookie_path'),
-            'secure':   get_config(__name__, 'cookie_secure'),
-            'httponly': get_config(__name__, 'cookie_httponly'),
-            'force':    get_config(__name__, 'cookie_force'),
+            'session_expires': get_config(__name__, 'cookie_session_expires'),
+            'max_age':         get_config(__name__, 'cookie_max_age'),
+            'domain':          get_config(__name__, 'cookie_domain'),
+            'path':            get_config(__name__, 'cookie_path'),
+            'secure':          get_config(__name__, 'cookie_secure'),
+            'httponly':        get_config(__name__, 'cookie_httponly'),
+            'force':           get_config(__name__, 'cookie_force'),
         }
 
 
@@ -268,7 +277,7 @@ class SessionStore(object):
             kwargs = self._data_args.get(key, None) or cookie_args
 
             if not cookie:
-                # Cookie is None (marked for deletion) or empty.
+                # Cookie is None (marked for deletion) or empty. So delete it.
                 path = kwargs.get('path', '/')
                 domain = kwargs.get('domain', None)
                 response.delete_cookie(key, path=path, domain=domain)
@@ -279,14 +288,17 @@ class SessionStore(object):
                     kwargs['expires'] = time() + max_age
 
                 if isinstance(cookie, basestring):
-                    # Save a normal cookie.
+                    # Save a normal cookie. Remove securecookie specific args.
                     kwargs.pop('force', None)
+                    kwargs.pop('session_expires', None)
                     response.set_cookie(key, value=cookie, **kwargs)
                 else:
                     # Save a secure cookie.
-                    import logging
-                    logging.info('#' * 100)
-                    logging.info(cookie.should_save)
+                    session_expires = kwargs.pop('session_expires', None)
+                    if session_expires:
+                        kwargs['session_expires'] = datetime.now() + \
+                            timedelta(seconds=session_expires)
+
                     cookie.save_cookie(response, key=key, **kwargs)
 
     def get_session(self, key=None, **kwargs):
@@ -378,7 +390,7 @@ class SessionStore(object):
         """
         session.clear()
 
-    def get_secure_cookie(self, key, load=True, **kwargs):
+    def get_secure_cookie(self, key, load=True, override=True, **kwargs):
         """Returns a secure cookie. Cookies get through this method are tracked
         and automatically saved at the end of request if they change.
 
@@ -388,6 +400,9 @@ class SessionStore(object):
             ``True`` to try to load an existing cookie from the request. If it
             is not set, a clean secure cookie is returned. ``False`` to return
             a new secure cookie. Default is ``False``.
+        :param override:
+            If ``False``, reuse a cookie previously set in the session store,
+            instead of loading or creating a new one. Default to ``True``.
         :param kwargs:
             Options to save the cookie. Normally not used as the configured
             defaults are enough for most cases.
@@ -396,7 +411,7 @@ class SessionStore(object):
         :return:
             A ``werkzeug.contrib.SecureCookie`` instance.
         """
-        if key not in self._data:
+        if override is True or key not in self._data:
             if load:
                 self._data[key] = self.load_secure_cookie(key)
             else:

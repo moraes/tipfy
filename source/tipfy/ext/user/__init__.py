@@ -27,14 +27,19 @@ from tipfy.ext import session
 #: - ``user_model``: A subclass of ``db.Model`` used for authenticated users,.
 #:   as a string. Default is ``tipfy.ext.user.model:User``.
 #:
+#: - ``cookie_key``: Name of the autentication cookie. Default is
+#:   'tipfy.ext.user'
+#:
+#: - ``cookie_session_expires``: Session expiration time in seconds. Limits the
+#:   duration of the contents of a cookie, even if a session cookie exists.
+#:   If ``None``, the contents lasts as long as the cookie is valid. Default is
+#:   ``None``.
+#:
 #: - ``cookie_max_age``: Time in seconds before the authentication cookie
 #:   data is invalidated. Both persistent and non-persitent authentications
 #:   are affected by this setting - the difference is that non-persitent
 #:   authentication only lasts for the current browser session. Default is 1
 #:   week.
-#:
-#: - ``cookie_key``: Name of the autentication cookie. Default is
-#:   'tipfy.ext.user'
 #:
 #: - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
 #:   domain must be set to the main domain with a preceding dot, e.g., cookies
@@ -49,18 +54,19 @@ from tipfy.ext import session
 #:
 #: - ``cookie_httponly``: Disallow JavaScript to access the cookie.
 #:
-#: - ``session_max_age``: Max age in seconds for a cookie session id. After
-#:   that it is automatically renewed. Default is 1 week.
+#: - ``session_id_max_age``: Interval in seconds before an user session id is
+#:   renewed. Default is 1 week.
 default_config = {
     'auth_system': None,
     'user_model': 'tipfy.ext.user.model:User',
-    'cookie_max_age': 86400 * 7,
     'cookie_key': 'tipfy.ext.user',
-    'cookie_domain': None,
-    'cookie_path': '/',
-    'cookie_secure': None,
+    'cookie_session_expires': None,
+    'cookie_max_age': 86400 * 7,
+    'cookie_domain':   None,
+    'cookie_path':     '/',
+    'cookie_secure':   None,
     'cookie_httponly': False,
-    'session_max_age': 86400 * 7,
+    'session_id_max_age': 86400 * 7,
 }
 
 #: Configured authentication system instance, cached in the module.
@@ -104,21 +110,6 @@ class UserMiddleware(object):
 
         setattr(handler, 'current_user', current_user)
 
-    def post_dispatch(self, handler, response):
-        """Executes after a :class:`tipfy.RequestHandler` is dispatched. It
-        must always return a response object, be it the one passed in the
-        arguments or a new one.
-
-        :param handler:
-            A :class:`tipfy.RequestHandler` instance.
-        :param response:
-            A ``werkzeug.Response`` instance.
-        :return:
-            A ``werkzeug.Response`` instance.
-        """
-        #get_auth_system().save_session(response)
-        return response
-
 
 def setup(app):
     """Setup this extension.
@@ -156,13 +147,13 @@ def setup(app):
 class BaseAuth(object):
     """Base authentication adapter."""
     #: Endpoint to the handler that creates a new user account.
-    signup_endpoint = 'users/signup'
+    signup_endpoint = 'auth/signup'
 
     #: Endpoint to the handler that logs in the user.
-    login_endpoint = 'users/login'
+    login_endpoint = 'auth/login'
 
     #: Endpoint to the handler that logs out the user.
-    logout_endpoint = 'users/logout'
+    logout_endpoint = 'auth/logout'
 
     @cached_property
     def user_model(self):
@@ -189,8 +180,8 @@ class BaseAuth(object):
         :return:
             ``None``.
         """
-        local.ext_user = None
-        local.ext_user_session = None
+        local.user = None
+        local.user_session = None
 
     def login_with_form(self, username, password, remember=False):
         """Authenticates the current user using data from a form.
@@ -205,8 +196,8 @@ class BaseAuth(object):
         :return:
             ``True`` if login was succesfull, ``False`` otherwise.
         """
-        local.ext_user = None
-        local.ext_user_session = None
+        local.user = None
+        local.user_session = None
         return False
 
     def login_with_external_data(self, data, remember=False):
@@ -216,8 +207,8 @@ class BaseAuth(object):
         :return:
             ``None``.
         """
-        local.ext_user = None
-        local.ext_user_session = None
+        local.user = None
+        local.user_session = None
 
     def logout(self):
         """Logs out the current user.
@@ -225,8 +216,8 @@ class BaseAuth(object):
         :return:
             ``None``.
         """
-        local.ext_user = None
-        local.ext_user_session = None
+        local.user = None
+        local.user_session = None
 
     def get_current_user(self):
         """Returns the currently logged in user entity or ``None``.
@@ -235,7 +226,7 @@ class BaseAuth(object):
             A :class:`User` entity, if the user for the current request is
             logged in, or ``None``.
         """
-        return getattr(local, 'ext_user', None)
+        return getattr(local, 'user', None)
 
     def is_current_user_admin(self):
         """Returns ``True`` if the current user is an admin.
@@ -244,8 +235,8 @@ class BaseAuth(object):
             ``True`` if the user for the current request is an admin, ``False``
             otherwise.
         """
-        if getattr(local, 'ext_user', None) is not None:
-            return local.ext_user.is_admin()
+        if getattr(local, 'user', None) is not None:
+            return local.user.is_admin()
 
         return False
 
@@ -296,7 +287,7 @@ class BaseAuth(object):
         """
         # This is not really true but it is our best bet since 3rd party auth
         # is handled elsewhere.
-        return (getattr(local, 'ext_user', None) is not None)
+        return (getattr(local, 'user', None) is not None)
 
     def create_user(self, username, auth_id, **kwargs):
         """Saves a new user in the datastore for the currently logged in user,
@@ -313,10 +304,10 @@ class BaseAuth(object):
         """
         res = self.user_model.create(username, auth_id, **kwargs)
 
-        if res and getattr(local, 'ext_user_session', None) and \
-            local.ext_user_session.get('to_signup'):
+        if res and getattr(local, 'user_session', None) and \
+            local.user_session.get('to_signup'):
             # Remove temporary data.
-            del local.ext_user_session['to_signup']
+            del local.user_session['to_signup']
 
         return res
 
@@ -326,13 +317,18 @@ class MultiAuth(BaseAuth):
     OAuth (Google, Twitter, FriendFeed) and Facebook.
     """
     @cached_property
+    def cookie_key(self):
+        return get_config(__name__, 'cookie_key')
+
+    @cached_property
     def cookie_args(self):
         """Returns the configured arguments to set an auth cookie.
 
         :return:
             A dictionary of keyword arguments for a cookie.
         """
-        keys = ['key', 'domain', 'path', 'secure', 'httponly']
+        keys = ['domain', 'path', 'secure', 'httponly', 'session_expires',
+            'max_age']
         return dict((k, get_config(__name__, 'cookie_' + k)) for k in keys)
 
     def setup(self, app):
@@ -340,121 +336,99 @@ class MultiAuth(BaseAuth):
         app.hooks.add('post_dispatch_handler', self.save_session)
 
     def login_with_session(self):
-        local.ext_user = None
-        local.ext_user_session = None
+        local.user = None
 
-        # Get the current session.
-        #data = session.get_secure_cookie(key=get_config(__name__, 'cookie_key'))
-        session_key = get_config(__name__, 'cookie_key')
-        session = local.session_store.get_session(session_key, force=False)
-        if session is None:
+        # Check if a secure cookie is set.
+        session = local.session_store.load_secure_cookie(self.cookie_key)
+
+        if session.new is True:
+            # Session didn't exist.
             return
 
         # Check if we are in the middle of external auth and account creation.
-        if session.get('to_signup'):
+        if session.get('to_signup', None):
             # Redirect to account creation page.
             if not _is_auth_endpoint('signup_endpoint'):
                 raise RequestRedirect(create_signup_url(request.url))
 
-            local.ext_user_session = session
             return
 
         # Get the authentication and session ids.
         auth_id = session.get('id', None)
         session_id = session.get('session_id', None)
+        remember = session.get('remember', '0')
 
         if auth_id is not None:
             user = self.user_model.get_by_auth_id(auth_id)
             if user is not None and user.check_session(session_id) is True:
+                # Successful login. Make the user available.
+                local.user = user
+                # Add session to be saved at the end of request.
                 # Reset session id in case it was renewed by the model.
-                session['session_id'] = user.session_id
-
-                local.ext_user = user
-                local.ext_user_session = session
+                self.set_session(session, id=auth_id,
+                    session_id=user.session_id, remember=remember)
 
     def login_with_form(self, username, password, remember=False):
+        local.user = None
         user = self.user_model.get_by_username(username)
-        if user is not None and user.check_password(password) is True:
-            local.ext_user = user
-            local.ext_user_session = session.get_secure_cookie(data={
-                'id': user.auth_id,
-                'session_id': user.session_id,
-                'remember': str(int(remember)),
-            })
-            res = True
-        else:
-            local.ext_user = None
-            local.ext_user_session = None
-            res = False
 
-        return res
+        if user is not None and user.check_password(password) is True:
+            # Successful login. Make the user available.
+            local.user = user
+            # Store the cookie.
+            self.set_session(id=user.auth_id, session_id=user.session_id,
+                remember=str(int(remember)))
+            return True
+
+        # Authentication failed.
+        return False
 
     def login_with_external_data(self, data, remember=False):
-        local.ext_user = None
-        local.ext_user_session = None
+        local.user = None
 
         auth_id = data.get('auth_id', None)
         if auth_id is None:
             return
 
         user = self.user_model.get_by_auth_id(auth_id)
+
         if user is not None:
-            local.ext_user = user
-            local.ext_user_session = session.get_secure_cookie(data={
-                'id': user.auth_id,
-                'session_id': user.session_id,
-                'remember': str(int(remember)),
-            })
+            local.user = user
+            # Store the cookie.
+            self.set_session(id=user.auth_id, session_id=user.session_id,
+                remember=str(int(remember)))
         else:
             # Save temporary data while the user haven't created an account.
-            local.ext_user_session = session.get_secure_cookie(
-                data={'to_signup': data})
+            self.set_session(to_signup=data)
+
             # Redirect to account creation page.
+            # TODO: document this redirect.
             if not _is_auth_endpoint('signup_endpoint'):
                 raise RequestRedirect(create_signup_url(local.request.url))
 
     def logout(self):
-        local.ext_user = None
-        if getattr(local, 'ext_user_session', None) is not None:
-            # Clear session and delete the cookie.
-            local.ext_user_session.clear()
-            kwargs = self.cookie_args
-            session.delete_secure_cookie(kwargs['key'], path=kwargs['path'],
-                domain=kwargs['domain'])
-            local.ext_user_session = None
+        local.user = None
+        # Delete the cookie.
+        local.session_store.set_cookie(self.cookie_key, None,
+            **self.cookie_args)
 
-    def save_session(self, response):
-        """Pesists an authenticated user at the end of request.
+    def set_session(self, session=None, **kwargs):
+        """Renews the auth session."""
+        if session:
+            session.clear()
+        else:
+            session = local.session_store.create_secure_cookie()
 
-        :param app:
-            The current WSGI application.
-        :param request:
-            The current `werkzeug.Request` object.
-        :param response:
-            The current `werkzeug.Response` object.
-        :return:
-            ``None``.
-        """
-        if getattr(local, 'ext_user_session', None) is not None:
-            remember = local.ext_user_session.get('remember', None)
-            cookie_max_age = get_config(__name__, 'cookie_max_age')
+        session.update(kwargs)
 
-            if remember == '1':
-                # Persistent authentication.
-                max_age = cookie_max_age
-            else:
-                # Non-persistent authentication (only lasts for a session).
-                max_age = None
+        # TODO add kwargs.
+        cookie_args = dict(self.cookie_args)
 
-            session_expires = datetime.now() + timedelta(seconds=cookie_max_age)
+        if kwargs.get('remember', '0') == '0':
+            # Non-persistent authentication (only lasts for a session).
+            cookie_args['max_age'] = None
 
-            # Set the cookie on each request, resetting the idle countdown.
-            session.set_secure_cookie(cookie=local.ext_user_session,
-                max_age=max_age,
-                session_expires=session_expires,
-                force=True,
-                **self.cookie_args
-            )
+        local.session_store.set_cookie(self.cookie_key, session, **cookie_args)
 
 
 class AppEngineAuth(BaseAuth):
@@ -463,17 +437,17 @@ class AppEngineAuth(BaseAuth):
         app.hooks.add('pre_dispatch_handler', self.login_with_session)
 
     def login_with_session(self):
-        local.ext_user = None
-        local.ext_user_session = None
+        local.user = None
+        local.user_session = None
 
         current_user = users.get_current_user()
         if current_user is None:
             return
 
-        local.ext_user = self.user_model.get_by_auth_id('gae|%s' %
+        local.user = self.user_model.get_by_auth_id('gae|%s' %
             current_user.user_id())
 
-        if local.ext_user is None and not _is_auth_endpoint('signup_endpoint'):
+        if local.user is None and not _is_auth_endpoint('signup_endpoint'):
             # User is logged in, but didn't create an account yet.
             raise RequestRedirect(create_signup_url(request.url))
 

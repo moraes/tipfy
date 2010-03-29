@@ -12,7 +12,7 @@ import _base
 
 import tipfy
 from tipfy import local
-from tipfy.ext.user.model import check_password, gen_pwhash, gen_salt, User
+from tipfy.ext.auth.model import check_password, gen_pwhash, gen_salt, User
 
 
 class TestUserModel(unittest.TestCase):

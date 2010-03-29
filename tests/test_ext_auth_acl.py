@@ -12,7 +12,7 @@ from google.appengine.api import memcache
 import _base
 
 import tipfy
-from tipfy.ext.user.acl import Acl, AclRules, _rules_map, AclMixin
+from tipfy.ext.auth.acl import Acl, AclRules, _rules_map, AclMixin
 
 
 class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):

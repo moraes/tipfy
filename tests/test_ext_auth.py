@@ -12,10 +12,10 @@ import _base
 
 import tipfy
 from tipfy import local
-from tipfy.ext.user import (AppEngineAuth, BaseAuth, create_login_url,
+from tipfy.ext.auth import (AppEngineAuth, BaseAuth, create_login_url,
     create_logout_url, create_signup_url, get_auth_system, get_current_user,
     is_current_user_admin, is_authenticated)
-from tipfy.ext.user.model import User
+from tipfy.ext.auth.model import User
 
 #  314-321
 

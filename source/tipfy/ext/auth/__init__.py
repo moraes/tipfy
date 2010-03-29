@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.user
+    tipfy.ext.auth
     ~~~~~~~~~~~~~~
 
     User authentication and permissions extension.
@@ -19,16 +19,16 @@ from tipfy.ext import session
 #: Default configuration values for this module. Keys are:
 #:
 #: - ``auth_system``: The default authentication class, as a string. Default
-#:   is ``tipfy.ext.user.AppEngineAuth`` (uses App Engine's built in users
+#:   is ``tipfy.ext.auth.AppEngineAuth`` (uses App Engine's built in users
 #:   system to login). To use own authentication or authentication with
 #:   OpenId, OAuth, Google Accounts, Twitter, FriendFeed or Facebook (one,
-#:   all or a mix of these), set it to ``tipfy.ext.user.MultiAuth``.
+#:   all or a mix of these), set it to ``tipfy.ext.auth.MultiAuth``.
 #:
 #: - ``user_model``: A subclass of ``db.Model`` used for authenticated users,.
-#:   as a string. Default is ``tipfy.ext.user.model:User``.
+#:   as a string. Default is ``tipfy.ext.auth.model:User``.
 #:
 #: - ``cookie_key``: Name of the autentication cookie. Default is
-#:   'tipfy.ext.user'
+#:   'tipfy.ext.auth'
 #:
 #: - ``cookie_session_expires``: Session expiration time in seconds. Limits the
 #:   duration of the contents of a cookie, even if a session cookie exists.
@@ -58,8 +58,8 @@ from tipfy.ext import session
 #:   renewed. Default is 1 week.
 default_config = {
     'auth_system': None,
-    'user_model': 'tipfy.ext.user.model:User',
-    'cookie_key': 'tipfy.ext.user',
+    'user_model': 'tipfy.ext.auth.model:User',
+    'cookie_key': 'tipfy.user',
     'cookie_session_expires': None,
     'cookie_max_age': 86400 * 7,
     'cookie_domain':   None,
@@ -127,7 +127,7 @@ class BaseAuth(object):
         """Returns the configured user model.
 
         :return:
-            A :class:`tipfy.ext.user.model.User` class.
+            A :class:`tipfy.ext.auth.model.User` class.
         """
         return import_string(get_config(__name__, 'user_model'))
 
@@ -250,9 +250,9 @@ class BaseAuth(object):
             The unique username for this user.
         :param kwargs:
             Extra keyword arguments accepted by
-            :class:`tipfy.ext.user.model.User`.
+            :class:`tipfy.ext.auth.model.User`.
         :return:
-            The new :class:`tipfy.ext.user.model.User` entity, or ``None`` if
+            The new :class:`tipfy.ext.auth.model.User` entity, or ``None`` if
             the username already exists.
         """
         return self.user_model.create(username, auth_id, **kwargs)
@@ -411,7 +411,7 @@ def get_auth_system():
     """Returns the configured authentication system.
 
     :return:
-        An instance of :class:`tipfy.ext.user.BaseAuth`.
+        An instance of :class:`tipfy.ext.auth.BaseAuth`.
     """
     global _auth_system
     if _auth_system is None:

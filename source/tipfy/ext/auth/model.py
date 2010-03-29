@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.user.model
+    tipfy.ext.auth.model
     ~~~~~~~~~~~~~~~~~~~~
 
     Base model for authenticated users.
@@ -145,7 +145,7 @@ class User(db.Model):
         """
         if force is False:
             # Only renew the session id if it is too old.
-            expires = datetime.timedelta(seconds=get_config('tipfy.ext.user',
+            expires = datetime.timedelta(seconds=get_config('tipfy.ext.auth',
                 'session_id_max_age'))
 
             force = (self.session_updated + expires < datetime.datetime.now())

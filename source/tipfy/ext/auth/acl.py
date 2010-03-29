@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.user.acl
+    tipfy.ext.auth.acl
     ~~~~~~~~~~~~~~~~~~
 
     Simple Access Control List.
@@ -216,7 +216,7 @@ class Acl(object):
 
     .. code-block:: python
 
-        from tipfy.ext.user.acl import Acl
+        from tipfy.ext.auth.acl import Acl
 
         # Build an Acl object for user 'John' in the 'code-reviews' area.
         acl = Acl('code-reviews', 'John')

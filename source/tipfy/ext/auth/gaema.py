@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.user.auth
-    ~~~~~~~~~~~~~~~~~~~
+    tipfy.ext.auth.gaema
+    ~~~~~~~~~~~~~~~~~~~~
 
     Authentication handler for `gaema`.
 

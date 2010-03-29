@@ -111,39 +111,6 @@ class UserMiddleware(object):
         setattr(handler, 'current_user', current_user)
 
 
-def setup(app):
-    """Setup this extension.
-
-    This will authenticate users and load the related
-    :class:`tipfy.ext.user.model.User` entity from datastore. It will ask
-    users to create an account if they are not created yet.
-
-    To enable it, add this module to the list of extensions in ``config.py``:
-
-    .. code-block:: python
-
-       config = {
-           'tipfy': {
-               'extensions': [
-                   'tipfy.ext.user',
-                   # ...
-               ],
-           },
-       }
-
-    :param app:
-        The WSGI application instance.
-    :return:
-        ``None``.
-    """
-    global _is_ext_set
-
-    if _is_ext_set is False:
-        # Setup configured authentication system.
-        get_auth_system().setup(app)
-        _is_ext_set = True
-
-
 class BaseAuth(object):
     """Base authentication adapter."""
     #: Endpoint to the handler that creates a new user account.
@@ -164,16 +131,6 @@ class BaseAuth(object):
         """
         return import_string(get_config(__name__, 'user_model'))
 
-    def setup(self, app):
-        """Sets up this auth adapter. This is called when the user extension is
-        installed.
-
-        :param app:
-            The WSGI Application instance.
-        :return:
-            ``None``.
-        """
-
     def login_with_session(self):
         """Authenticates the current user using sessions.
 
@@ -181,7 +138,6 @@ class BaseAuth(object):
             ``None``.
         """
         local.user = None
-        local.user_session = None
 
     def login_with_form(self, username, password, remember=False):
         """Authenticates the current user using data from a form.
@@ -197,7 +153,6 @@ class BaseAuth(object):
             ``True`` if login was succesfull, ``False`` otherwise.
         """
         local.user = None
-        local.user_session = None
         return False
 
     def login_with_external_data(self, data, remember=False):
@@ -208,7 +163,6 @@ class BaseAuth(object):
             ``None``.
         """
         local.user = None
-        local.user_session = None
 
     def logout(self):
         """Logs out the current user.
@@ -217,7 +171,6 @@ class BaseAuth(object):
             ``None``.
         """
         local.user = None
-        local.user_session = None
 
     def get_current_user(self):
         """Returns the currently logged in user entity or ``None``.
@@ -302,14 +255,7 @@ class BaseAuth(object):
             The new :class:`tipfy.ext.user.model.User` entity, or ``None`` if
             the username already exists.
         """
-        res = self.user_model.create(username, auth_id, **kwargs)
-
-        if res and getattr(local, 'user_session', None) and \
-            local.user_session.get('to_signup'):
-            # Remove temporary data.
-            del local.user_session['to_signup']
-
-        return res
+        return self.user_model.create(username, auth_id, **kwargs)
 
 
 class MultiAuth(BaseAuth):
@@ -330,10 +276,6 @@ class MultiAuth(BaseAuth):
         keys = ['domain', 'path', 'secure', 'httponly', 'session_expires',
             'max_age']
         return dict((k, get_config(__name__, 'cookie_' + k)) for k in keys)
-
-    def setup(self, app):
-        app.hooks.add('pre_dispatch_handler', self.login_with_session)
-        app.hooks.add('post_dispatch_handler', self.save_session)
 
     def login_with_session(self):
         local.user = None
@@ -430,15 +372,19 @@ class MultiAuth(BaseAuth):
 
         local.session_store.set_cookie(self.cookie_key, session, **cookie_args)
 
+    def create_user(self, username, auth_id, **kwargs):
+        user = self.user_model.create(username, auth_id, **kwargs)
+        if user:
+            self.set_session(id=user.auth_id, session_id=user.session_id,
+                remember=0)
+
+        return user
+
 
 class AppEngineAuth(BaseAuth):
     """Authentication using App Engine's users module."""
-    def setup(self, app):
-        app.hooks.add('pre_dispatch_handler', self.login_with_session)
-
     def login_with_session(self):
         local.user = None
-        local.user_session = None
 
         current_user = users.get_current_user()
         if current_user is None:

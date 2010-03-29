@@ -44,47 +44,39 @@ class TestBaseAuth(unittest.TestCase):
     def test_login_with_session(self):
         not_set = object()
         assert getattr(local, 'user', not_set) is not_set
-        assert getattr(local, 'user_session', not_set) is not_set
 
         auth = BaseAuth()
         auth.login_with_session()
 
         assert local.user is None
-        assert local.user_session is None
 
     def test_login_with_form(self):
         not_set = object()
         assert getattr(local, 'user', not_set) is not_set
-        assert getattr(local, 'user_session', not_set) is not_set
 
         auth = BaseAuth()
         res = auth.login_with_form('foo', 'bar', False)
 
         assert res is False
         assert local.user is None
-        assert local.user_session is None
 
     def test_login_with_external_data(self):
         not_set = object()
         assert getattr(local, 'user', not_set) is not_set
-        assert getattr(local, 'user_session', not_set) is not_set
 
         auth = BaseAuth()
         auth.login_with_external_data('foo', False)
 
         assert local.user is None
-        assert local.user_session is None
 
     def test_logout(self):
         not_set = object()
         assert getattr(local, 'user', not_set) is not_set
-        assert getattr(local, 'user_session', not_set) is not_set
 
         auth = BaseAuth()
         auth.logout()
 
         assert local.user is None
-        assert local.user_session is None
 
     def test_get_current_user(self):
         auth = BaseAuth()

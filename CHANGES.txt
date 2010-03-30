@@ -17,7 +17,7 @@ Version 0.5 - Codename "Spiff"
   Thanks to Thomas Johansson (prencher) for the invaluable feedback on this.
 
 - Added handler mixin classes to handle blobstore upload and serving, and
-  several others. Each of them add a couple of attributes or methdos to a
+  several others. Each of them add a couple of attributes or methods to a
   request handler:
 
   - AclMixin
@@ -31,7 +31,7 @@ Version 0.5 - Codename "Spiff"
 - Added some new db.Model properties to tipfy.ext.db:
 
   - JsonProperty
-  - TimezoneProperty
+  - TimezoneProperty (thanks to Thomas Johansson)
 
 - Added post_make_app application hook.
 
@@ -39,7 +39,7 @@ Version 0.5 - Codename "Spiff"
   sessions and related stuff, such as signed flash messages and secure cookies.
 
 - tipfy.ext.messages was removed and all the existing functionality was merged
-  to tipfy.ext.session.
+  intoto tipfy.ext.session.
 
 - tipfy.ext.user was renamed to tipfy.ext.auth.
 

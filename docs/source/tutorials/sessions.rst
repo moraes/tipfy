@@ -1,3 +1,5 @@
+.. _tutorial.sessions:
+
 Sessions Tutorial
 =================
 
@@ -27,9 +29,12 @@ but it may be appropriate if you don't want to expose the data stored in
 the session.
 
 .. note::
-   `Tipfy`_ tries to minimize the overhead of the datastore-based session
-   using memcache and performing writes only when the session data changes.
-   Still, you should only use datastore-based session if you really need it.
+   All sessions in `Tipfy`_ are lazy: session values are only loaded when
+   accessed, and only saved if they change.
+
+   `Tipfy`_ also tries to minimize any overhead of datastore-based sessions
+   storing the session data in memcache when it changes. Still, you should only
+   use datastore-based session if you really need it.
 
    On the other hand, cookie based session is very lightweight but the amount
    of data you can store in a cookie is limited.

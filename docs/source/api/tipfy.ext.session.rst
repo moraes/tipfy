@@ -4,6 +4,9 @@ tipfy.ext.session
 =================
 This module provides sessions using secure cookies or the datastore.
 
+Additionally, the session store serves as a provider of signed flash messages
+and securec ookied for the application.
+
 
 
 .. module:: tipfy.ext.session

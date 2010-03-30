@@ -284,10 +284,6 @@ class SessionStore(object):
                 response.delete_cookie(key, path=path, domain=domain)
             else:
                 # Cookie is marked to be saved.
-                max_age = kwargs.pop('max_age', None)
-                if max_age and 'expires' not in kwargs:
-                    kwargs['expires'] = time() + max_age
-
                 if isinstance(cookie, basestring):
                     # Save a normal cookie. Remove securecookie specific args.
                     kwargs.pop('force', None)
@@ -295,7 +291,12 @@ class SessionStore(object):
                     response.set_cookie(key, value=cookie, **kwargs)
                 else:
                     # Save a secure cookie.
+                    max_age = kwargs.pop('max_age', None)
                     session_expires = kwargs.pop('session_expires', None)
+
+                    if max_age and 'expires' not in kwargs:
+                        kwargs['expires'] = time() + max_age
+
                     if session_expires:
                         kwargs['session_expires'] = datetime.fromtimestamp(
                             time() + session_expires)
@@ -559,15 +560,13 @@ class Session(db.Model):
         :return:
             An existing ``Session`` entity.
         """
-        namespace = cls.get_namespace()
-        data = memcache.get(sid, namespace=namespace)
+        data = memcache.get(sid, namespace=cls.get_namespace())
         if data:
             session = get_entity_from_protobuf(data)
         else:
             session = Session.get_by_key_name(sid)
             if session:
-                data = get_protobuf_from_entity(session)
-                memcache.set(sid, data, namespace=namespace)
+                session.update_cache()
 
         return session
 
@@ -583,14 +582,19 @@ class Session(db.Model):
         return cls(key_name=sid, data={})
 
     def put(self):
-        """Saves the session and deletes the memcache entry."""
-        memcache.delete(self.sid, namespace=Session.get_namespace())
+        """Saves the session and updates the memcache entry."""
+        self.update_cache()
         db.Model.put(self)
 
     def delete(self):
         """Deletes the session and the memcache entry."""
         memcache.delete(self.sid, namespace=Session.get_namespace())
         db.Model.delete(self)
+
+    def update_cache(self):
+        """Saves a new cache for this entity."""
+        data = get_protobuf_from_entity(self)
+        memcache.set(self.sid, data, namespace=Session.get_namespace())
 
 
 class DatastoreSession(ModificationTrackingDict):

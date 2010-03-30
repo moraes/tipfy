@@ -35,7 +35,9 @@ Hello, World! message. The key points are:
   ``post()`` method, and so on.
 
 - ``RequestHandler`` methods receive keyword arguments from the routing system.
-  In this case, we won't receive any arguments, but this is worth noting.
+  These are variables extracted from the current URL according to the rules
+  you define. In this case, we won't receive any arguments, but this is worth
+  noting anyway.
 
 - The handler must always returns a ``werkzeug.Response`` object.
 
@@ -154,8 +156,10 @@ response for ``AJAX`` requests. Here's how we can achieve this:
        def get(self, **kwargs):
            context = {'message': 'Hello, World!'}
            if request.is_xhr:
+               # Request was made using XMLHttpRequest, so return JSON.
                return render_json_response(context)
            else:
+               # This is a normal request, so render a template.
                return render_response('hello.html', **context)
 
 

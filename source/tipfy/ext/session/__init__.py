@@ -151,7 +151,7 @@ class SessionMixin(object):
     """A :class:`tipfy.RequestHandler` mixin that provides access to session
     and functions to get and set flash messages.
     """
-    @property
+    @cached_property
     def session(self):
         """A dictionary-like object that is persisted at the end of the request.
         """

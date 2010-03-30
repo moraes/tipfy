@@ -1,0 +1,52 @@
+Version 0.5 - Codename "Spiff"
+==============================
+- Added a middleware system for handlers: handlers can now hook pre and post
+  dispatch routines in the handler class itself. Very useful to make base
+  handlers with similar requirements and characteristics, without adding
+  overhead to non-related, simpler handlers. A few initial middleware classes
+  were added:
+
+  - I18nMiddleware
+  - SessionMiddleware
+  - UserMiddleware
+
+  This deprecates several functionalities performed by app hooks before.
+  While hooks are still useful to wrap and extend WSGIApplication, middleware
+  applied directly to handlers are more appropriate in several use cases.
+
+  Thanks to Thomas Johansson (prencher) for the invaluable feedback on this.
+
+- Added handler mixin classes to handle blobstore upload and serving, and
+  several others. Each of them add a couple of attributes or methdos to a
+  request handler:
+
+  - AclMixin
+  - BlobstoreDownloadMixin
+  - BlobstoreUploadMixin
+  - Jinja2Mixin
+  - MakoMixin
+  - MessagesMixin
+  - SessionMixin
+
+- Added some new db.Model properties to tipfy.ext.db:
+
+  - JsonProperty
+  - TimezoneProperty
+
+- Added post_make_app application hook.
+
+- tipfy.ext.session was rewritten from scratch. It now works as a provider of
+  sessions and related stuff, such as signed flash messages and secure cookies.
+
+- tipfy.ext.messages was removed and all the existing functionality was merged
+  to tipfy.ext.session.
+
+- tipfy.ext.user was renamed to tipfy.ext.auth.
+
+- tipfy.ext.i18n doesn't require initialization anymore; it is initialized when
+  first used. Locale for the current request can be automatically loaded using
+  several configurable methods (taking arguments from GET, POST, cookies or
+  URL parameters).
+
+- Several improvements everywhere, and a lot more documentation and unit test
+  coverage.

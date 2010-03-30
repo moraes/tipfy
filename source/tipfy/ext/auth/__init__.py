@@ -57,8 +57,8 @@ from tipfy.ext import session
 #: - ``session_id_max_age``: Interval in seconds before an user session id is
 #:   renewed. Default is 1 week.
 default_config = {
-    'auth_system': None,
-    'user_model': 'tipfy.ext.auth.model:User',
+    'auth_system': 'tipfy.ext.auth.AppEngineAuth',
+    'user_model': 'tipfy.ext.auth.model.User',
     'cookie_key': 'tipfy.user',
     'cookie_session_expires': None,
     'cookie_max_age': 86400 * 7,
@@ -71,8 +71,6 @@ default_config = {
 
 #: Configured authentication system instance, cached in the module.
 _auth_system = None
-# Let other modules initialize user.
-_is_ext_set = False
 
 
 class UserMiddleware(object):
@@ -415,11 +413,7 @@ def get_auth_system():
     """
     global _auth_system
     if _auth_system is None:
-        cls = get_config(__name__, 'auth_system', None)
-        if cls is None:
-            _auth_system = AppEngineAuth()
-        else:
-            _auth_system = import_string(cls)()
+        _auth_system = import_string(get_config(__name__, 'auth_system'))()
 
     return _auth_system
 

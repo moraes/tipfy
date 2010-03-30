@@ -8,7 +8,7 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-import werkzeug
+from tipfy import import_string
 
 
 class LazyCallable(object):
@@ -36,7 +36,7 @@ class LazyCallable(object):
             The value returned by the callable.
         """
         if self.hook is None:
-            self.hook = werkzeug.import_string(self.hook_spec)
+            self.hook = import_string(self.hook_spec)
 
         return self.hook(*args, **kwargs)
 
@@ -130,4 +130,5 @@ class HookHandler(object):
         return self.hooks.get(name, default)
 
 
-__all__ = ['HookHandler', 'LazyCallable']
+__all__ = ['HookHandler',
+           'LazyCallable']

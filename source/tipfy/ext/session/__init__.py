@@ -10,7 +10,7 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import time
 
 from google.appengine.api import memcache
@@ -135,14 +135,15 @@ class SessionMiddleware(object):
     def default_cookie_args(self):
         """Default keyword arguments to set or delete a cookie or securecookie.
         """
+        config = get_config(__name__)
         return {
-            'session_expires': get_config(__name__, 'cookie_session_expires'),
-            'max_age':         get_config(__name__, 'cookie_max_age'),
-            'domain':          get_config(__name__, 'cookie_domain'),
-            'path':            get_config(__name__, 'cookie_path'),
-            'secure':          get_config(__name__, 'cookie_secure'),
-            'httponly':        get_config(__name__, 'cookie_httponly'),
-            'force':           get_config(__name__, 'cookie_force'),
+            'session_expires': config.get('cookie_session_expires'),
+            'max_age':         config.get('cookie_max_age'),
+            'domain':          config.get('cookie_domain'),
+            'path':            config.get('cookie_path'),
+            'secure':          config.get('cookie_secure'),
+            'httponly':        config.get('cookie_httponly'),
+            'force':           config.get('cookie_force'),
         }
 
 
@@ -296,8 +297,8 @@ class SessionStore(object):
                     # Save a secure cookie.
                     session_expires = kwargs.pop('session_expires', None)
                     if session_expires:
-                        kwargs['session_expires'] = datetime.now() + \
-                            timedelta(seconds=session_expires)
+                        kwargs['session_expires'] = datetime.fromtimestamp(
+                            time() + session_expires)
 
                     cookie.save_cookie(response, key=key, **kwargs)
 
@@ -390,7 +391,7 @@ class SessionStore(object):
         """
         session.clear()
 
-    def get_secure_cookie(self, key, load=True, override=True, **kwargs):
+    def get_secure_cookie(self, key, load=True, override=False, **kwargs):
         """Returns a secure cookie. Cookies get through this method are tracked
         and automatically saved at the end of request if they change.
 
@@ -401,8 +402,8 @@ class SessionStore(object):
             is not set, a clean secure cookie is returned. ``False`` to return
             a new secure cookie. Default is ``False``.
         :param override:
-            If ``False``, reuse a cookie previously set in the session store,
-            instead of loading or creating a new one. Default to ``True``.
+            If ``True``, loads or creates a new cookie instead of reusing one
+            previously set in the session store. Default to ``False``.
         :param kwargs:
             Options to save the cookie. Normally not used as the configured
             defaults are enough for most cases.
@@ -509,7 +510,8 @@ class SessionStore(object):
         self._data_args[key] = kwargs
 
     def set_cookie(self, key, cookie, **kwargs):
-        """Sets a cookie or secure cookie to be saved at the end of the request.
+        """Sets a cookie or secure cookie to be saved or deleted at the end of
+        the request.
 
         :param key:
             Cookie unique name.

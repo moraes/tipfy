@@ -4,6 +4,7 @@
 """
 import unittest
 from nose.tools import raises
+from gaetestbed import DataStoreTestCase
 
 import _base
 
@@ -307,6 +308,17 @@ class TestSessionStore(unittest.TestCase):
         assert 'max_age' not in response.cookie_args['foo']
         assert 'expires' in response.cookie_args['foo']
 
+    def test_save_with_session_expires(self):
+        local.request = tipfy.Request.from_values()
+        response = Response()
+        cookie = local.session_store.get_secure_cookie('foo', session_expires=86400)
+        cookie['foo'] = 'bar'
+        local.session_store.save(response)
+
+        assert 'foo' in response.cookies_to_set
+        assert 'foo' in response.cookie_args
+        assert 'session_expires' in local.session_store._data_args['foo']
+
     def test_get_session(self):
         local.request = tipfy.Request.from_values()
 
@@ -320,9 +332,9 @@ class TestSessionStore(unittest.TestCase):
         assert 'tipfy.session' in local.session_store._data
         assert 'tipfy.session' in local.session_store._data_args
 
-        # Getting a session for trhe second time will return the same session.
+        # Getting a session for the second time will return the same session.
         session_2 = local.session_store.get_session()
-        assert session == session_2
+        assert session is session_2
 
     def test_get_session_with_key(self):
         local.request = tipfy.Request.from_values()
@@ -337,6 +349,10 @@ class TestSessionStore(unittest.TestCase):
         assert 'my_session' in local.session_store._data
         assert 'my_session' in local.session_store._data_args
 
+        # Getting a session for the second time will return the same session.
+        session_2 = local.session_store.get_session('my_session')
+        assert session is session_2
+
     def test_get_session_with_args(self):
         local.request = tipfy.Request.from_values()
 
@@ -350,6 +366,24 @@ class TestSessionStore(unittest.TestCase):
         assert 'tipfy.session' in local.session_store._data
         assert 'tipfy.session' in local.session_store._data_args
         assert local.session_store._data_args['tipfy.session'] == {'max_age': 86400}
+
+    def test_get_session_after_deletion(self):
+        local.request = tipfy.Request.from_values()
+
+        assert local.session_store._data == {}
+        assert local.session_store._data_args == {}
+
+        session = local.session_store.get_session('my_session')
+
+        assert isinstance(session, SecureCookie)
+        assert 'my_session' in local.session_store._data
+        assert 'my_session' in local.session_store._data_args
+
+        local.session_store.delete_session('my_session')
+
+        # Getting a session for the second time will return the same session.
+        session_2 = local.session_store.get_session('my_session')
+        assert session is not session_2
 
     def test_get_existing_session(self):
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
@@ -577,8 +611,9 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args == {'foo': {'max_age': 86400}, 'baz': {}}
 
 
-class TestDatastoreSessionStore(unittest.TestCase):
+class TestDatastoreSessionStore(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
+        DataStoreTestCase.setUp(self)
         set_app()
         self.config = StoreConfig()
         local.session_store = SessionStore(self.config)
@@ -594,7 +629,6 @@ class TestDatastoreSessionStore(unittest.TestCase):
         cookie = SecureCookie([('sid', 'bar')], secret_key=self.config.secret_key)
         session = DatastoreSession(cookie)
 
-
     def test_get_entity(self):
         pass
 
@@ -602,22 +636,15 @@ class TestDatastoreSessionStore(unittest.TestCase):
         cookie = SecureCookie([('sid', 'bar')], secret_key=self.config.secret_key)
         session = DatastoreSession(cookie)
 
-    def test_should_save(self):
-        """
-        cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
-        session = DatastoreSession(cookie)
-
-        assert session.should_save is False
-        """
-
     def test_delete_entity(self):
         cookie = SecureCookie([('sid', 'bar')], secret_key=self.config.secret_key)
         session = DatastoreSession(cookie)
 
         session.delete()
 
-class TestDatastoreSession(unittest.TestCase):
+class TestDatastoreSession(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
+        DataStoreTestCase.setUp(self)
         set_app()
         self.config = StoreConfig()
         local.session_store = DatastoreSessionStore(self.config)

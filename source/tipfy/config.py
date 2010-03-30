@@ -172,4 +172,6 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
     return value
 
 
-__all__ = ['Config', 'get_config', 'REQUIRED_CONFIG']
+__all__ = ['Config',
+           'get_config',
+           'REQUIRED_CONFIG']

@@ -8,12 +8,12 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-import werkzeug
+from werkzeug.routing import BaseConverter, Map, Rule as WerkzeugRule
 
-import tipfy
+from tipfy import local
 
 
-class Rule(werkzeug.routing.Rule):
+class Rule(WerkzeugRule):
     """Extends Werkzeug routing to support a handler definition for each Rule.
     Handler is a :class:`RequestHandler` module and class specification, and
     endpoint is a friendly name used to build URL's. For example:
@@ -32,7 +32,7 @@ class Rule(werkzeug.routing.Rule):
     """
     def __init__(self, *args, **kwargs):
         self.handler = kwargs.pop('handler', kwargs.get('endpoint', None))
-        werkzeug.routing.Rule.__init__(self, *args, **kwargs)
+        WerkzeugRule.__init__(self, *args, **kwargs)
 
     def empty(self):
         """Returns an unbound copy of this rule. This can be useful if you
@@ -48,13 +48,13 @@ class Rule(werkzeug.routing.Rule):
 
 # Extra URL rule converter from
 # http://groups.google.com/group/pocoo-libs/browse_thread/thread/ff5a3fddee12a955/
-class RegexConverter(werkzeug.routing.BaseConverter):
+class RegexConverter(BaseConverter):
     """Matches a regular expression::
 
        Rule('/<regex(".*$"):name>')
     """
     def __init__(self, map, *items):
-        werkzeug.routing.BaseConverter.__init__(self, map)
+        BaseConverter.__init__(self, map)
         self.regex = items[0]
 
 
@@ -73,11 +73,13 @@ def url_for(endpoint, full=False, method=None, **kwargs):
     :return:
         An absolute or relative URL.
     """
-    return tipfy.local.app.url_adapter.build(endpoint, force_external=full,
+    return local.app.url_adapter.build(endpoint, force_external=full,
         method=method, values=kwargs)
 
-_map = werkzeug.routing.Map
-_map.default_converters = dict(_map.default_converters)
-_map.default_converters['regex'] = RegexConverter
 
-__all__ = ['Rule', 'url_for']
+Map.default_converters = dict(Map.default_converters)
+Map.default_converters['regex'] = RegexConverter
+
+
+__all__ = ['Rule',
+           'url_for']

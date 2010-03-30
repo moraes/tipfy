@@ -63,4 +63,6 @@ def normalize_callable(spec):
     return spec
 
 
-__all__ = ['normalize_callable', 'redirect_to', 'render_json_response']
+__all__ = ['normalize_callable',
+           'redirect_to',
+           'render_json_response']

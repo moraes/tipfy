@@ -54,6 +54,7 @@ class RequestHandler(object):
             raise MethodNotAllowed()
 
         if not self.middleware:
+            # No middleware is set: only execute the method.
             return method(*args, **kwargs)
 
         # Get middleware for this handler.
@@ -353,5 +354,8 @@ def fix_sys_path():
         sys.path[:] = _ULTIMATE_SYS_PATH
 
 
-__all__ = ['make_wsgi_app', 'MiddlewareFactory', 'RequestHandler',
-    'run_wsgi_app', 'WSGIApplication']
+__all__ = ['make_wsgi_app',
+           'MiddlewareFactory',
+           'RequestHandler',
+           'run_wsgi_app',
+           'WSGIApplication']

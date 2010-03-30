@@ -39,7 +39,7 @@ Version 0.5 - Codename "Spiff"
   sessions and related stuff, such as signed flash messages and secure cookies.
 
 - tipfy.ext.messages was removed and all the existing functionality was merged
-  intoto tipfy.ext.session.
+  into tipfy.ext.session.
 
 - tipfy.ext.user was renamed to tipfy.ext.auth.
 

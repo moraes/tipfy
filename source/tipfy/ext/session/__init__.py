@@ -275,7 +275,7 @@ class SessionStore(object):
 
         for key, cookie in self._data.iteritems():
             # Use special cookie arguments, if set.
-            kwargs = self._data_args.get(key, None) or cookie_args
+            kwargs = self._data_args.get(key, None) or dict(cookie_args)
 
             if not cookie:
                 # Cookie is None (marked for deletion) or empty. So delete it.

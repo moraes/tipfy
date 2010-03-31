@@ -12,13 +12,13 @@
 
     BlobstoreUploadMixin: mixin for receiving upload notification requests.
 
-    Based on original App Engine library and the adaptation to Werkzeug made by
-    the Kay framework.
+    Based on the original App Engine library and the adaptation to Werkzeug
+    from Kay framework.
 
     :copyright: 2007 Google Inc.
     :copyright: 2009 Accense Technology, Inc. All rights reserved.
     :copyright: 2010 tipfy.org.
-    :license: Apache License, see LICENSE.txt for more details.
+    :license: Apache 2.0 License, see LICENSE.txt for more details.
 """
 import logging
 import cgi

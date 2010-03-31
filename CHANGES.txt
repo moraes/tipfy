@@ -1,5 +1,9 @@
 Version 0.5 - Codename "Spiff"
 ==============================
+- This is a major release with several backwards compatibility breaks. API
+  and architecture consistency was one of the major goals -- better to break
+  things sooner than later.
+
 - Added a middleware system for handlers: handlers can now hook pre and post
   dispatch routines in the handler class itself. Very useful to make base
   handlers with similar requirements and characteristics, without adding
@@ -16,13 +20,15 @@ Version 0.5 - Codename "Spiff"
 
   Thanks to Thomas Johansson (prencher) for the invaluable feedback on this.
 
-- Added tipfy.ext.blobstore, with handler mixin classes to handle blobstore
-  upload and serving
-
 - Added tipfy.ext.appstats, a middleware to use the appstats profiling tool.
 
+- Added tipfy.ext.xmpp, with base handlers for XMPP bots.
+
+- Added tipfy.ext.blobstore, with handler mixin classes to handle blobstore
+  upload and serving.
+
 - Added several other mixin classes. Each of them add a couple of attributes
-  or methods to a request handler:
+  or methods to a request handler. The full list of mixins:
 
   - AclMixin
   - BlobstoreDownloadMixin
@@ -42,8 +48,8 @@ Version 0.5 - Codename "Spiff"
 - tipfy.ext.session was rewritten from scratch. It now works as a provider of
   sessions and related stuff, such as signed flash messages and secure cookies.
 
-- tipfy.ext.messages was removed and all the existing functionality was merged
-  into tipfy.ext.session.
+- tipfy.ext.messages was removed and the existing functionality (flash messages
+  and messages container) was merged into tipfy.ext.session.
 
 - tipfy.ext.user was renamed to tipfy.ext.auth.
 
@@ -54,6 +60,9 @@ Version 0.5 - Codename "Spiff"
 
 - URL rules are no longer stored in memcache. This can be done in urls.py if
   one wants it. Tipfy core won't make *any* API calls anymore.
+
+- Added a directory for examples in Tipfy's repository, compiling all examples
+  from tutorials.
 
 - Several improvements everywhere, and a lot more documentation and unit test
   coverage.

@@ -6,3 +6,9 @@ config['tipfy'] = {
         'tipfy.ext.debugger',
     ],
 }
+
+config['tipfy'] = {
+    'apps_installed': [
+         'apps.users',
+     ],
+}

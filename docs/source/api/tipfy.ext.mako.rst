@@ -1,4 +1,4 @@
-.. _tipfy.ext.mako-module:
+.. _api.tipfy.ext.mako:
 
 tipfy.ext.mako
 ==============

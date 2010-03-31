@@ -1,4 +1,4 @@
-.. _tipfy.ext.taskqueue-module:
+.. _api.tipfy.ext.taskqueue:
 
 tipfy.ext.taskqueue
 ===================

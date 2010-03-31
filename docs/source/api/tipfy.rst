@@ -1,4 +1,4 @@
-.. _tipfy-module:
+.. _api.tipfy:
 
 tipfy
 =====

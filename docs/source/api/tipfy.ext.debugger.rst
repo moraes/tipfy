@@ -1,4 +1,4 @@
-.. _tipfy.ext.debugger-module:
+.. _api.tipfy.ext.debugger:
 
 tipfy.ext.debugger
 ==================

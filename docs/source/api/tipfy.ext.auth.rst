@@ -1,6 +1,6 @@
-.. _tipfy.ext.user-module:
+.. _api.tipfy.ext.auth:
 
-tipfy.ext.user
+tipfy.ext.auth
 ==============
 
 .. _OAuth: http://oauth.net/
@@ -32,10 +32,10 @@ Appropriate handlers for signup, login and logout must be set for this
 extension, depending on the auth method in use.
 
 .. note::
-   For examples on how to use this module, see the :ref:`user-auth-tutorial`.
+   For examples on how to use this module, see the :ref:`tutorial.auth`.
 
 
-.. module:: tipfy.ext.user
+.. module:: tipfy.ext.auth
 
 
 Default configuration

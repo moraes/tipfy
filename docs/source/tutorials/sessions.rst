@@ -6,7 +6,7 @@ Sessions Tutorial
 .. _Tipfy: http://code.google.com/p/tipfy/
 
 `Tipfy`_ provides sessions using secure cookies or the datastore. In this
-tutorial, we will have an overview of the :ref:`tipfy.ext.session-module`
+tutorial, we will have an overview of the :ref:`api.tipfy.ext.session`
 module and learn how to use sessions.
 
 Overview
@@ -19,8 +19,8 @@ they add a checksum that is validated in the server when read.
 For securecookie-based sessions, this means that all the session data is stored
 in the cookie, so it is still readable from the client as a normal cookie is.
 The data can't be altered, however, because the checksum will fail if someone
-tries to forge a cookie. This approach saves resources by not having to save
-session data in the datastore while keeping the data safe from forgery attempts.
+tries to forge a cookie. This approach saves resources avoiding datastore hits
+while keeping the data safe from forgery attempts.
 
 For datastore-based sessions, the data is saved in datastore and the secure
 cookie only stores a random session id that references the session entity. This
@@ -32,11 +32,11 @@ the session.
    All sessions in `Tipfy`_ are lazy: session values are only loaded when
    accessed, and only saved if they change.
 
-   `Tipfy`_ also tries to minimize any overhead of datastore-based sessions
-   storing the session data in memcache when it changes. Still, you should only
+   `Tipfy`_ also tries to minimize the overhead of datastore-based sessions
+   storing and reading the session data from memcache. Still, you should only
    use datastore-based session if you really need it.
 
-   On the other hand, cookie based session is very lightweight but the amount
+   On the other hand, cookie-based sessions are very lightweight but the amount
    of data you can store in a cookie is limited.
 
 
@@ -59,7 +59,7 @@ it can't be compromised. Then set it in ``config.py``:
 
 This is the only required configuration, but there are other options that you
 may want to change. All config options are listed in
-:ref:`tipfy.ext.session-module` documentation.
+:ref:`api.tipfy.ext.session` documentation.
 
 That's all! Now we can start using sessions in our handlers.
 
@@ -250,7 +250,7 @@ cookie, you must call the appropriate ``delete_session()`` method fom the
            return Response('Session was deleted!')
 
 
-That's it. Here we had an overview of :ref:`tipfy.ext.session-module`. There
+That's it. Here we had an overview of :ref:`api.tipfy.ext.session`. There
 are other things to explore in the session store, such as flash messages and
 secure cookie generation, but that is up to you. Take a look at the API and
 have fun!

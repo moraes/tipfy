@@ -48,5 +48,8 @@ Version 0.5 - Codename "Spiff"
   several configurable methods (taking arguments from GET, POST, cookies or
   URL parameters).
 
+- URL rules are no longer stored in memcache. This can be done in urls.py if
+  one wants it. Tipfy core won't make *any* API calls anymore.
+
 - Several improvements everywhere, and a lot more documentation and unit test
   coverage.

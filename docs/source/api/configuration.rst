@@ -1,3 +1,5 @@
+.. _api.tipfy.config:
+
 Configuration
 =============
 ``app.yaml``, ``main.py``, ``config.py`` and ``urls.py`` are the basic files
@@ -61,29 +63,20 @@ avoids collisions if two modules use the same configuration key. And finally
 it allows modules to provide defaults for all configurable options, in most
 cases making configuration entirely optional.
 
-Let's show an example on how to configure two modules, ``tipfy`` itself and our
-internationalization extension, ``tipfy.ext.i18n``. First, we **enable** the
-i18n extension in ``tipfy`` configuration adding it to the extensions list.
-Then we set the default locale to `pt_BR` and the default timezone to
-`America/Sao_Paulo`. Pretty easy, see:
+Let's show an example on how to configure the internationalization module,
+``tipfy.ext.i18n``. We'll set the default locale to `pt_BR` and the default
+timezone to `America/Sao_Paulo`. Pretty easy, see:
 
 **config.py**
 
 .. code-block:: python
 
-   config = {
-       'tipfy': {
-           # Application hooks enables other modules to plug into the
-           # application. Here we enable internalization setup.
-           'extensions': [
-               'tipfy.ext.i18n',
-            ],
-       },
-       'tipfy.ext.i18n': {
-           # Change default values from the internalization module.
-           'locale': 'pt_BR',
-           'timezone': 'America/Sao_Paulo',
-       },
+   config = {}
+
+   config['tipfy.ext.i18n'] = {
+       # Change default values from the internalization module.
+       'locale': 'pt_BR',
+       'timezone': 'America/Sao_Paulo',
    }
 
 Of course, you can set the config in smaller parts to make it more readable, if
@@ -102,6 +95,12 @@ module's ``default_config`` variable.
    You don't need to set all configuration keys available for a module. You can
    define only the values that differs from the default values. All undefined
    keys will use the module's default values.
+
+
+You can use this same configuration system for your own modules, acessing your
+configurations using standard config functions from tipfy. `Tipfy`_  will
+load default values from your custom module and make it uniformly accessible
+in your app.
 
 
 ``urls.py``

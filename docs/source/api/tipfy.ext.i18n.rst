@@ -1,4 +1,4 @@
-.. _tipfy.ext.i18n-module:
+.. _api.tipfy.ext.i18n:
 
 tipfy.ext.i18n
 ==============

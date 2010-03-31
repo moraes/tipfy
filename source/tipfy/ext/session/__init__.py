@@ -282,26 +282,24 @@ class SessionStore(object):
                 path = kwargs.get('path', '/')
                 domain = kwargs.get('domain', None)
                 response.delete_cookie(key, path=path, domain=domain)
+            elif isinstance(cookie, basestring):
+                # Save a normal cookie. Remove securecookie specific args.
+                kwargs.pop('force', None)
+                kwargs.pop('session_expires', None)
+                response.set_cookie(key, value=cookie, **kwargs)
             else:
-                # Cookie is marked to be saved.
-                if isinstance(cookie, basestring):
-                    # Save a normal cookie. Remove securecookie specific args.
-                    kwargs.pop('force', None)
-                    kwargs.pop('session_expires', None)
-                    response.set_cookie(key, value=cookie, **kwargs)
-                else:
-                    # Save a secure cookie.
-                    max_age = kwargs.pop('max_age', None)
-                    session_expires = kwargs.pop('session_expires', None)
+                # Save a secure cookie, if modified or forced.
+                max_age = kwargs.pop('max_age', None)
+                session_expires = kwargs.pop('session_expires', None)
 
-                    if max_age and 'expires' not in kwargs:
-                        kwargs['expires'] = time() + max_age
+                if max_age and 'expires' not in kwargs:
+                    kwargs['expires'] = time() + max_age
 
-                    if session_expires:
-                        kwargs['session_expires'] = datetime.fromtimestamp(
-                            time() + session_expires)
+                if session_expires:
+                    kwargs['session_expires'] = datetime.fromtimestamp(
+                        time() + session_expires)
 
-                    cookie.save_cookie(response, key=key, **kwargs)
+                cookie.save_cookie(response, key=key, **kwargs)
 
     def get_session(self, key=None, **kwargs):
         """Returns a session for a given key. If the session doesn't exist, a

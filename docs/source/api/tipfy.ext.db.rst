@@ -1,4 +1,4 @@
-.. _tipfy.ext.db-module:
+.. _api.tipfy.ext.db:
 
 tipfy.ext.db
 ============
@@ -31,8 +31,10 @@ Decorators
 Extra ``db.Property`` classes
 -----------------------------
 .. autoclass:: EtagProperty
+.. autoclass:: JsonProperty
 .. autoclass:: PickleProperty
 .. autoclass:: SlugProperty
+.. autoclass:: TimezoneProperty
 
 
 .. _Nick's Blog: http://blog.notdot.net/2009/9/Efficient-model-memcaching

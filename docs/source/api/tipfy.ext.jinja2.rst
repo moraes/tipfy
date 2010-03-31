@@ -1,4 +1,4 @@
-.. _tipfy.ext.jinja2-module:
+.. _api.tipfy.ext.jinja2:
 
 tipfy.ext.jinja2
 =================

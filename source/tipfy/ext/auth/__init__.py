@@ -73,13 +73,13 @@ default_config = {
 _auth_system = None
 
 
-class UserMiddleware(object):
+class AuthMiddleware(object):
     """:class:`tipfy.RequestHandler` middleware that loads and persists a
     an user.
     """
     def pre_dispatch(self, handler):
         """Executes before a :class:`tipfy.RequestHandler` is dispatched. If
-        it returns a response object, it will stop the pre_dispatch middlewares
+        it returns a response object, it will stop the pre_dispatch middleware
         chain and won't run the requested handler method, using the returned
         response instead. However, post_dispatch hooks will still be executed.
 
@@ -90,23 +90,6 @@ class UserMiddleware(object):
         """
         # Start user session.
         get_auth_system().login_with_session()
-
-        # Set template variables.
-        current_url = local.request.url
-        current_user = get_current_user()
-        is_logged_in = is_authenticated()
-
-        handler.context.update({
-            'current_user': current_user,
-            'is_authenticated': is_logged_in,
-        })
-
-        if current_user is not None or is_logged_in is True:
-            handler.context['logout_url'] = create_logout_url(current_url)
-        else:
-            handler.context['login_url'] = create_login_url(current_url)
-
-        setattr(handler, 'current_user', current_user)
 
 
 class BaseAuth(object):
@@ -289,7 +272,7 @@ class MultiAuth(BaseAuth):
         if session.get('to_signup', None):
             # Redirect to account creation page.
             if not _is_auth_endpoint('signup_endpoint'):
-                raise RequestRedirect(create_signup_url(request.url))
+                raise RequestRedirect(create_signup_url(local.request.url))
 
             return
 
@@ -393,7 +376,7 @@ class AppEngineAuth(BaseAuth):
 
         if local.user is None and not _is_auth_endpoint('signup_endpoint'):
             # User is logged in, but didn't create an account yet.
-            raise RequestRedirect(create_signup_url(request.url))
+            raise RequestRedirect(create_signup_url(local.request.url))
 
     def create_login_url(self, dest_url):
         return users.create_login_url(dest_url)

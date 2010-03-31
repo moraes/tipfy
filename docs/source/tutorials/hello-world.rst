@@ -16,7 +16,7 @@ a certain aplication URL is accessed.
 First, lets create the request handler. Define a ``HelloWorldHandler`` to
 display a 'Hello, World!' message, like this:
 
-**hello.py**
+**handlers.py**
 
 .. code-block:: python
 
@@ -75,7 +75,7 @@ A list of ``tipfy.Rule`` is defined in this file and returned by
 
 - The ``handler`` argument defines which ``RequestHandler`` object will be
   executed when the defined path is accessed. In this case, we will execute
-  ``HelloWorldHandler`` from ``hello.py``, so it is set to
+  ``HelloWorldHandler`` from ``handlers.py``, so it is set to
   ``hello.HelloWorldHandler``. The handler class is imported and cached to be
   reused in subsequent requests; that's why it it is set as a string.
 
@@ -99,7 +99,7 @@ Jinja2 template instead of setting a raw response. First, define a
 This template only outputs a message variable, as you see. Now let's redefine
 our ``HelloWorldHandler``:
 
-**hello.py**
+**handlers.py**
 
 .. code-block:: python
 
@@ -131,7 +131,7 @@ Hello, World!, take 3: JSON Christ Superstar
 We can also easily render a ``JSON`` response with some variables, as in this
 example:
 
-**hello.py**
+**handlers.py**
 
 .. code-block:: python
 
@@ -154,7 +154,7 @@ Another interesting thing we could do is to render a response conditionally to
 the request. For example, render a template for normal requests or a ``JSON``
 response for ``AJAX`` requests. Here's how we can achieve this:
 
-**hello.py**
+**handlers.py**
 
 .. code-block:: python
 

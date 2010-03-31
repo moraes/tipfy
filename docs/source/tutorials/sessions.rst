@@ -74,7 +74,7 @@ instance of ``tipfy.ext.session.SessionStore``, and will ensure that the
 session data is saved at the end of the request. You can request the current
 session from the session store:
 
-**session_test.py**
+**handlers.py**
 
 .. code-block:: python
 
@@ -95,11 +95,11 @@ session from the session store:
 To make this more convenient, you can use a ``SessionMixin`` that sets
 ``session`` as an attribute of the handler, so you can access it directly:
 
-**session_test.py**
+**handlers.py**
 
 .. code-block:: python
 
-   from tipfy import local, RequestHandler, Response
+   from tipfy import RequestHandler, Response
    from tipfy.ext.session import SessionMiddleware, SessionMixin
 
    class MyHandler(RequestHandler, SessionMixin):
@@ -119,14 +119,16 @@ To make this more convenient, you can use a ``SessionMixin`` that sets
 
 Let's see a simple example of a session being read and set:
 
-**session_test.py**
+**handlers.py**
 
 .. code-block:: python
 
-   from tipfy import local, RequestHandler, Response
+   from tipfy import request, RequestHandler, Response, url_for
    from tipfy.ext.session import SessionMiddleware, SessionMixin
 
-   class MyHandler(RequestHandler, SessionMixin):
+
+   class BasicSessionHandler(RequestHandler, SessionMixin):
+       """A very basic session example."""
        # This list enables middleware for the handler.
        middleware = [SessionMiddleware]
 
@@ -135,29 +137,33 @@ Let's see a simple example of a session being read and set:
            value = self.session.get('foo', None)
            if value:
                # Add the session value to our response.
-               data = 'Session has a value stored for "foo": %s' % value
+               html = 'Session has a value stored for "foo": %s' % value
+               html += '<br><a href="%s">Delete the session</a>' % url_for(
+                   'sessions/delete', redirect=request.url)
            else:
-               data = 'Session was not set!'
+               html = 'Session was not set!'
                # Set a value in the session, like in a dictionary.
                self.session['foo'] = 'bar'
 
-           return Response(data)
+           return Response(html, mimetype='text/html')
 
 
 When you first access this handler, the response will be empty. But on the
-second time it'll present the value of the saved session.
+second time it'll present the value of the saved session. It will also show
+a link to delete the session... we will implement this later.
 
 
 The Awfully Simple Shopping Cart
 --------------------------------
 Here's another example. Let's create a very very simple "shopping cart":
 
-**session_test.py**
+**handlers.py**
 
 .. code-block:: python
 
-   from tipfy import local, request, RequestHandler, Response
+   from tipfy import request, RequestHandler, Response, url_for
    from tipfy.ext.session import SessionMiddleware, SessionMixin
+
 
    class ShoppingCartHandler(RequestHandler, SessionMixin):
        # This list enables middleware for the handler.
@@ -184,17 +190,19 @@ Here's another example. Let's create a very very simple "shopping cart":
            products = self.session.get('products', None)
 
            if products:
-               data = 'Products in cart: ' + ', '.join(products)
+               html = 'Products in cart: ' + ', '.join(products)
+               html += '<br><a href="%s">Clear the cart</a>' % url_for(
+                   'sessions/delete', redirect=url_for('sessions/cart'))
            else:
-               data = 'The cart is empty.'
+               html = 'The cart is empty.'
 
-           return Response(data)
+           return Response(html, mimetype='text/html')
 
 
 In the code above, a product is added to a products list whenever you access an
 URL with `add-product` or `remove-product` in the GET parameters.
 
-Let's test it. First add an URL for the handler above:
+Let's test it. First we should add some URL rules for the handlers above:
 
 **urls.py**
 
@@ -203,21 +211,26 @@ Let's test it. First add an URL for the handler above:
    from tipfy import Rule
 
    def get_rules():
-       return [
-           Rule('/session-test', endpoint='session', handler='session_test.ShoppingCartHandler'),
+       rules = [
+           Rule('/', endpoint='home', handler='handlers.BasicSessionHandler'),
+           Rule('/cart', endpoint='sessions/cart', handler='handlers.ShoppingCartHandler'),
+           Rule('/delete-session', endpoint='sessions/delete', handler='handlers.DeleteSessionHandler'),
        ]
+
+       return rules
 
 
 Now access the URLs:
 
 .. code-block:: text
 
-   http://localhost:8080/session-test?add-product=foo
-   http://localhost:8080/session-test?add-product=bar
-   http://localhost:8080/session-test?add-product=baz
-   http://localhost:8080/session-test?remove-product=foo
-   http://localhost:8080/session-test?remove-product=bar
-   http://localhost:8080/session-test?remove-product=baz
+   http://localhost:8080/cart
+   http://localhost:8080/cart?add-product=foo
+   http://localhost:8080/cart?add-product=bar
+   http://localhost:8080/cart?add-product=baz
+   http://localhost:8080/cart?remove-product=foo
+   http://localhost:8080/cart?remove-product=bar
+   http://localhost:8080/cart?remove-product=baz
 
 
 Accessing each of the URLs above, our shopping cart will be updated and stored
@@ -234,10 +247,11 @@ cookie, you must call the appropriate ``delete_session()`` method fom the
 
 .. code-block:: python
 
-   from tipfy import local, RequestHandler, Response
+   from tipfy import local, redirect, request, RequestHandler, Response, url_for
    from tipfy.ext.session import SessionMiddleware, SessionMixin
 
-   class MyHandler(RequestHandler, SessionMixin):
+   class DeleteSessionHandler(RequestHandler, SessionMixin):
+       """A handler that deletes current session and redirects back."""
        # This list enables middleware for the handler.
        middleware = [SessionMiddleware]
 
@@ -247,10 +261,14 @@ cookie, you must call the appropriate ``delete_session()`` method fom the
            # of deleting the cookie.
            local.session_store.delete_session()
 
-           return Response('Session was deleted!')
+           # Redirect back.
+           return redirect(request.args.get('redirect', url_for('home')))
 
 
-That's it. Here we had an overview of :ref:`api.tipfy.ext.session`. There
-are other things to explore in the session store, such as flash messages and
-secure cookie generation, but that is up to you. Take a look at the API and
-have fun!
+That's it. Now the basic session and the shopping cart examples above can also
+delete their sessions.
+
+
+Here we had an overview of :ref:`api.tipfy.ext.session`. There are other things
+to explore in the session store, such as flash messages and secure cookie
+generation, but that is up to you. Take a look at the API and have fun!

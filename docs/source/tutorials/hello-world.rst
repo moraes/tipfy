@@ -23,6 +23,7 @@ display a 'Hello, World!' message, like this:
    from tipfy import RequestHandler, Response
 
    class HelloWorldHandler(RequestHandler):
+       """The simplest Tipfy handler example."""
        def get(self, **kwargs):
            return Response('Hello, World!')
 
@@ -43,7 +44,8 @@ Hello, World! message. The key points are:
 
 - The handler must always returns a ``werkzeug.Response`` object.
 
-To execute our ``HelloWorldHandler``, we define a rule in ``urls.py``:
+To execute our ``HelloWorldHandler``, we define a rule in ``urls.py`` (we are
+also defining in advance the rules we will use in the next examples):
 
 **urls.py**
 
@@ -53,7 +55,10 @@ To execute our ``HelloWorldHandler``, we define a rule in ``urls.py``:
 
    def get_rules():
        rules = [
-           Rule('/', endpoint='home', handler='hello.HelloWorldHandler'),
+           Rule('/', endpoint='hello/world', handler='handlers.HelloWorldHandler'),
+           Rule('/hello-jinja', endpoint='hello/jinja', handler='handlers.HelloJinjaHandler'),
+           Rule('/hello-json', endpoint='hello/json', handler='handlers.HelloJsonHandler'),
+           Rule('/hello-ajax', endpoint='hello/ajax', handler='handlers.HelloAjaxHandler'),
        ]
 
        return rules
@@ -101,9 +106,10 @@ our ``HelloWorldHandler``:
    from tipfy import RequestHandler
    from tipfy.ext.jinja2 import render_response
 
-   class HelloWorldHandler(RequestHandler):
+   class HelloJinjaHandler(RequestHandler):
+       """A handler that outputs the result of a rendered template."""
        def get(self, **kwargs):
-           return render_response('hello.html', message='Hello, World!')
+           return render_response('hello.html', message='Hello, Jinja!')
 
 
 That's it. ``render_response()`` will render a Jinja2 template and fill a
@@ -131,9 +137,10 @@ example:
 
    from tipfy import RequestHandler, render_json_response
 
-   class HelloWorldHandler(RequestHandler):
+   class HelloJsonHandler(RequestHandler):
+       """A handler that outputs a JSON string."""
        def get(self, **kwargs):
-           context = {'message': 'Hello, World!'}
+           context = {'message': 'Hello, Json!'}
            return render_json_response(context)
 
 
@@ -151,19 +158,21 @@ response for ``AJAX`` requests. Here's how we can achieve this:
 
 .. code-block:: python
 
-   from tipfy import RequestHandler, request, render_json_response
-   from tipfy.ext.jinja2 import render_response
-
-   class HelloWorldHandler(RequestHandler):
+   class HelloAjaxHandler(RequestHandler):
+       """A handler that sends a different output for requests using AJAX."""
        def get(self, **kwargs):
-           context = {'message': 'Hello, World!'}
+           context = {'message': 'Hello, Ajax!'}
            if request.is_xhr:
-               # Request was made using XMLHttpRequest, so return JSON.
                return render_json_response(context)
            else:
-               # This is a normal request, so render a template.
                return render_response('hello.html', **context)
 
 
 We just need to check the ``is_xhr`` variable in the request object, which is
 ``True`` when the request is made through ``XMLHttpRequest``, aka ``AJAX``.
+
+
+That's it!
+----------
+These are the very basics to run an app using `Tipfy`_. There is a lot more
+to explore. Go check other tutorials or the API documentation and have fun!

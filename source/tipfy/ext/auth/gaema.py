@@ -177,5 +177,5 @@ class AuthHandler(object):
             expires = datetime.datetime.utcnow() + datetime.timedelta(
                 days=expires_days)
 
-        local.response.set_cookie(name, value, domain=domain, path=path,
+        local.session_store.set_cookie(name, value, domain=domain, path=path,
             expires=expires)

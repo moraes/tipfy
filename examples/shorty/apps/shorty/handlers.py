@@ -3,7 +3,7 @@
     shorty
     ~~~~~~
 
-    URL shortners example app, ported from Werkzeug's "Shorty" example.
+    URL shortner example app, ported from Werkzeug's "Shorty" example.
 
     :copyright: (c) 2010 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.

@@ -18,7 +18,7 @@ import logging
 
 from google.appengine.api import xmpp
 
-from tipfy import request, RequestHandler
+from tipfy import local, RequestHandler
 
 
 class BaseHandler(RequestHandler):
@@ -50,7 +50,7 @@ class BaseHandler(RequestHandler):
 
     def post(self, **kwargs):
         try:
-            self.xmpp_message = xmpp.Message(request.form)
+            self.xmpp_message = xmpp.Message(local.request.form)
         except xmpp.InvalidMessageError, e:
             logging.error('Invalid XMPP request: Missing required field %s',
                 e[0])

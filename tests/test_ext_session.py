@@ -4,8 +4,9 @@
 """
 import unittest
 from nose.tools import raises
-from gaetestbed import DataStoreTestCase
+from gaetestbed import DataStoreTestCase, MemcacheTestCase
 
+from google.appengine.api import memcache
 from google.appengine.ext import db
 
 import _base
@@ -100,6 +101,12 @@ class TestSessionMiddleware(unittest.TestCase):
 
         assert isinstance(local.session_store, SessionStore)
 
+    def test_pre_run_app(self):
+        middleware = SessionMiddleware()
+        middleware.pre_run_app(None)
+
+        assert isinstance(local.session_store, SessionStore)
+
     def test_pre_dispatch_datastore(self):
         app = tipfy.WSGIApplication({
             'tipfy.ext.session': {
@@ -126,6 +133,19 @@ class TestSessionMiddleware(unittest.TestCase):
         local.session_store.set_flash({'foo': 'bar'})
         assert 'tipfy.flash' not in response.cookies_to_set
         response = middleware.post_dispatch(None, response)
+        assert 'tipfy.flash' in response.cookies_to_set
+
+    def test_post_run_app(self):
+        middleware = SessionMiddleware()
+        response = Response()
+
+        assert getattr(local, 'session_store', None) is None
+        middleware.pre_run_app(None)
+        assert isinstance(local.session_store, SessionStore)
+
+        local.session_store.set_flash({'foo': 'bar'})
+        assert 'tipfy.flash' not in response.cookies_to_set
+        response = middleware.post_run_app(response)
         assert 'tipfy.flash' in response.cookies_to_set
 
 
@@ -268,6 +288,7 @@ class TestSessionStore(unittest.TestCase):
         local.session_store = SessionStore(self.config)
 
     def tearDown(self):
+        local.session_store = None
         local_manager.cleanup()
         self.config = None
 
@@ -368,6 +389,22 @@ class TestSessionStore(unittest.TestCase):
         assert 'tipfy.session' in local.session_store._data
         assert 'tipfy.session' in local.session_store._data_args
         assert local.session_store._data_args['tipfy.session'] == {'max_age': 86400}
+
+    def test_get_session_with_max_age(self):
+        local.request = tipfy.Request.from_values()
+
+        assert local.session_store._data == {}
+        assert local.session_store._data_args == {}
+
+        session = local.session_store.get_session(max_age=86400)
+        session['foo'] = 'bar'
+
+        response = Response()
+        local.session_store.save(response)
+
+        assert self.config.default_session_key in response.cookies_to_set
+        assert response.cookie_args[self.config.default_session_key]['max_age'] is None
+        assert response.cookie_args[self.config.default_session_key]['expires'] is not None
 
     def test_get_session_after_deletion(self):
         local.request = tipfy.Request.from_values()
@@ -613,12 +650,13 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args == {'foo': {'max_age': 86400}, 'baz': {}}
 
 
-class TestDatastoreSessionStore(DataStoreTestCase, unittest.TestCase):
+class TestDatastoreSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
+        MemcacheTestCase.setUp(self)
         set_app()
         self.config = StoreConfig()
-        local.session_store = SessionStore(self.config)
+        local.session_store = DatastoreSessionStore(self.config)
 
     def tearDown(self):
         local_manager.cleanup()
@@ -644,9 +682,28 @@ class TestDatastoreSessionStore(DataStoreTestCase, unittest.TestCase):
 
         session.delete()
 
-class TestDatastoreSession(DataStoreTestCase, unittest.TestCase):
+    def test_get_session_after_deletion(self):
+        local.request = tipfy.Request.from_values()
+
+        assert local.session_store._data == {}
+        assert local.session_store._data_args == {}
+
+        session = local.session_store.get_session('my_session')
+
+        assert isinstance(session, DatastoreSession)
+        assert 'my_session' in local.session_store._data
+        assert 'my_session' in local.session_store._data_args
+
+        local.session_store.delete_session('my_session')
+
+        # Getting a session for the second time will return the same session.
+        session_2 = local.session_store.get_session('my_session')
+        assert session is not session_2
+
+class TestDatastoreSession(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
+        MemcacheTestCase.setUp(self)
         set_app()
         self.config = StoreConfig()
         local.session_store = DatastoreSessionStore(self.config)
@@ -683,3 +740,60 @@ class TestDatastoreSession(DataStoreTestCase, unittest.TestCase):
         session_entity = Session.get_by_sid('bar')
         assert isinstance(session_entity, db.Model)
         assert session_entity.data == {'foo': 'bar'}
+
+    def test_delete(self):
+        cookie = SecureCookie([('sid', 'foo')], secret_key=self.config.secret_key)
+        session = DatastoreSession(cookie)
+        session['foo'] = 'bar'
+
+        response = Response()
+        session.save_cookie(response, self.config.default_session_key)
+
+        assert Session.get_by_sid('foo') is not None
+        assert memcache.get('foo', namespace=Session.get_namespace()) is not None
+
+        session.delete()
+
+        assert Session.get_by_sid('foo') is None
+        assert memcache.get('foo', namespace=Session.get_namespace()) is None
+
+class TestSession(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
+    def setUp(self):
+        DataStoreTestCase.setUp(self)
+        MemcacheTestCase.setUp(self)
+        set_app()
+        self.config = StoreConfig()
+
+    def test_get_by_sid(self):
+        session = Session(key_name='foo', data={})
+        session.put()
+
+        session_entity = Session.get_by_sid('foo')
+        assert isinstance(session_entity, db.Model)
+
+        session_entity = Session.get_by_sid('foo')
+        assert isinstance(session_entity, db.Model)
+
+        session_in_memcache = memcache.get('foo', namespace=Session.get_namespace())
+        assert session_in_memcache is not None
+
+    def test_get_by_sid2(self):
+        session = Session(key_name='foo', data={})
+        session.put()
+
+        memcache.delete('foo', namespace=Session.get_namespace())
+
+        assert Session.get_by_sid('foo') is not None
+        assert memcache.get('foo', namespace=Session.get_namespace()) is not None
+
+    def test_delete(self):
+        session = Session(key_name='foo', data={})
+        session.put()
+
+        assert Session.get_by_sid('foo') is not None
+        assert memcache.get('foo', namespace=Session.get_namespace()) is not None
+
+        session.delete()
+
+        assert Session.get_by_sid('foo') is None
+        assert memcache.get('foo', namespace=Session.get_namespace()) is None

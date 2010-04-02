@@ -12,7 +12,7 @@
 from google.appengine.ext.appstats.recording import appstats_wsgi_middleware
 
 
-class DebuggerMiddleware(object):
+class AppstatsMiddleware(object):
     def pre_run_app(self, app):
         """Wraps the application by by AppEngine's appstats
 

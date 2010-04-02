@@ -543,3 +543,26 @@ class TestMiscelaneous(unittest.TestCase):
             'tipfy.ext.auth.AuthMiddleware',
             'tipfy.ext.i18n.I18nMiddleware',
         ]
+
+
+    def test_set_extensions_compatibility2(self):
+        app = tipfy.WSGIApplication({
+            'tipfy': {
+                'extensions': [
+                    'tipfy.ext.debugger',
+                    'tipfy.ext.appstats',
+                    'tipfy.ext.i18n',
+                    'tipfy.ext.session',
+                    'tipfy.ext.user',
+                ],
+            },
+        })
+
+        assert app.config.get('tipfy', 'middleware') == [
+            'tipfy.ext.debugger.DebuggerMiddleware',
+            'tipfy.ext.appstats.AppstatsMiddleware',
+            'tipfy.ext.session.SessionMiddleware',
+            'tipfy.ext.auth.AuthMiddleware',
+            'tipfy.ext.i18n.I18nMiddleware',
+        ]
+

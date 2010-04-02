@@ -6,12 +6,15 @@ import unittest
 from nose.tools import raises
 from gaetestbed import DataStoreTestCase
 
+from google.appengine.ext import db
+
 import _base
 
 import tipfy
 from tipfy import get_config, local, local_manager
 from tipfy.ext.session import (DatastoreSession, DatastoreSessionStore,
-    MessagesMixin, SecureCookie, SessionMiddleware, SessionMixin, SessionStore)
+    MessagesMixin, SecureCookie, Session, SessionMiddleware, SessionMixin,
+    SessionStore)
 
 def set_app(config=None):
     return tipfy.WSGIApplication({
@@ -668,3 +671,15 @@ class TestDatastoreSession(DataStoreTestCase, unittest.TestCase):
         local.session_store._delete_session(session)
 
         assert len(session) == 0
+
+    def test_save_cookie(self):
+        cookie = SecureCookie([('sid', 'bar')], secret_key=self.config.secret_key)
+        session = DatastoreSession(cookie)
+        session['foo'] = 'bar'
+
+        response = Response()
+        session.save_cookie(response, self.config.default_session_key)
+
+        session_entity = Session.get_by_sid('bar')
+        assert isinstance(session_entity, db.Model)
+        assert session_entity.data == {'foo': 'bar'}

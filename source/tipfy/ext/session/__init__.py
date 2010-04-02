@@ -546,6 +546,7 @@ class Session(db.Model):
     #: Session data, pickled.
     data = PickleProperty()
 
+    @property
     def sid(self):
         return self.key().name()
 

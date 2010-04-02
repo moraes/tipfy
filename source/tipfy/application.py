@@ -73,7 +73,7 @@ class RequestHandler(object):
                 for hook in middleware.get('handle_exception', []):
                     response = hook(e, handler=self)
                     if response:
-                        return response
+                        break
                 else:
                     raise
 
@@ -320,7 +320,7 @@ def make_wsgi_app(config):
 
     # Execute post_make_app middleware.
     for hook in app.app_middleware.get('post_make_app', []):
-        app = hook(app) or app
+        app = hook(app)
 
     return app
 
@@ -339,7 +339,7 @@ def run_wsgi_app(app):
 
     # Execute pre_run_app middleware.
     for hook in app.app_middleware.get('pre_run_app', []):
-        app = hook(app) or app
+        app = hook(app)
 
     # Run it.
     PatchedCGIHandler().run(app)

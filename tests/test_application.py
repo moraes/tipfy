@@ -60,7 +60,7 @@ class AppMiddleware(object):
 
 class AppMiddleware_2(object):
     def pre_run_app(self, app):
-        pass
+        return app
 
 
 class ExceptionHandler(object):
@@ -70,10 +70,10 @@ class ExceptionHandler(object):
 
 class Middleware_1(object):
     def post_make_app(self, app):
-        pass
+        return app
 
     def pre_run_app(self, app):
-        pass
+        return app
 
     def post_run_app(self, response):
         pass
@@ -90,7 +90,7 @@ class Middleware_1(object):
 
 class Middleware_2(object):
     def post_make_app(self, app):
-        pass
+        return app
 
     def pre_run_app(self, app):
         pass

@@ -8,6 +8,9 @@ from nose.tools import assert_raises, raises
 
 from webtest import TestApp
 
+from werkzeug import BaseResponse
+from werkzeug.test import create_environ, Client
+
 import _base
 
 import tipfy
@@ -18,6 +21,9 @@ def get_url_map():
     # Fake get_rules() for testing.
     rules = [
         tipfy.Rule('/', endpoint='home', handler='files.app.handlers.HomeHandler'),
+        tipfy.Rule('/test-redirect/', endpoint='test-redirect', handler='files.app.handlers.HomeHandler'),
+        tipfy.Rule('/test-redirect/leaf', endpoint='test-redirect/leaf', handler='files.app.handlers.HomeHandler'),
+        tipfy.Rule('/test-exception', endpoint='test-exception', handler='files.app.handlers.HandlerWithException'),
     ]
 
     return tipfy.Map(rules)
@@ -42,6 +48,26 @@ class Handler(tipfy.RequestHandler):
 
 class SomeObject(object):
     pass
+
+
+class AppWrapper(object):
+    def __init__(self, app):
+        pass
+
+
+class AppMiddleware(object):
+    def post_make_app(self, app):
+        return AppWrapper(app)
+
+
+class AppMiddleware_2(object):
+    def pre_run_app(self, app):
+        pass
+
+
+class ExceptionHandler(object):
+    def handle_exception(self, e, handler=None):
+        return BaseResponse('Exception was handled!')
 
 
 class Middleware_1(object):
@@ -470,6 +496,66 @@ class TestWSGIApplication(unittest.TestCase):
     def tearDown(self):
         tipfy.local_manager.cleanup()
 
+    def test_hello_world(self):
+        app = get_app()
+        client = Client(app, response_wrapper=BaseResponse)
+        response = client.open(path='/')
+
+        assert response.data == 'Hello, World!'
+
+    def test_method_not_allowed(self):
+        app = tipfy.WSGIApplication()
+        client = Client(app, response_wrapper=BaseResponse)
+
+        response = client.open(method='i_am_not_valid')
+        assert response.status_code == 405
+
+    def test_request_redirect(self):
+        app = get_app()
+        client = Client(app, response_wrapper=BaseResponse)
+
+        response = client.open(path='/test-redirect')
+        self.assertEqual(response.status_code, 301)
+
+    def test_handle_exception(self):
+        app = tipfy.WSGIApplication({
+            'tipfy': {
+                'url_map': get_url_map(),
+                'dev': True,
+                'middleware': [ExceptionHandler],
+            },
+        })
+
+        client = Client(app, response_wrapper=BaseResponse)
+        response = client.open(path='/test-exception')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, 'Exception was handled!')
+
+    @raises(ValueError)
+    def test_handler_raises_exception(self):
+        app = tipfy.WSGIApplication({
+            'tipfy': {
+                'url_map': get_url_map(),
+                'dev': True,
+            },
+        })
+
+        client = Client(app, response_wrapper=BaseResponse)
+        response = client.open(path='/test-exception')
+        self.assertEqual(response.status_code, 200)
+
+    def test_handler_internal_server_error(self):
+        app = tipfy.WSGIApplication({
+            'tipfy': {
+                'url_map': get_url_map(),
+                'dev': False,
+            },
+        })
+
+        client = Client(app, response_wrapper=BaseResponse)
+        response = client.open(path='/test-exception')
+        self.assertEqual(response.status_code, 500)
+
 
 class TestMiscelaneous(unittest.TestCase):
     def tearDown(self):
@@ -489,11 +575,45 @@ class TestMiscelaneous(unittest.TestCase):
         assert isinstance(app, tipfy.WSGIApplication)
         assert app.config.get('tipfy', 'foo') == 'bar'
 
+    def test_make_wsgi_app_with_middleware(self):
+        app = tipfy.make_wsgi_app({'tipfy': {
+            'middleware': [AppMiddleware]
+        }})
+
+        assert isinstance(app, AppWrapper)
+
+    def test_cgi_handler(self):
+        """Mostly here to not be marked as uncovered."""
+        from tipfy.application import PatchedCGIHandler
+        PatchedCGIHandler()
+
     def test_run_wsgi_app(self):
         """We aren't testing anything here."""
-        app = TestApp(get_app())
-        response = app.get('/')
-        assert 'Hello, World!' in str(response)
+        from os import environ
+
+        environ['SERVER_NAME'] = 'foo.com'
+        environ['SERVER_PORT'] = '80'
+        environ['REQUEST_METHOD'] = 'GET'
+
+        app = tipfy.make_wsgi_app({'tipfy': {
+            'dev': True,
+            'url_map': get_url_map(),
+        }})
+        tipfy.run_wsgi_app(app)
+
+    def test_run_wsgi_app_with_middleware(self):
+        from os import environ
+
+        environ['SERVER_NAME'] = 'foo.com'
+        environ['SERVER_PORT'] = '80'
+        environ['REQUEST_METHOD'] = 'GET'
+
+        app = tipfy.make_wsgi_app({'tipfy': {
+            'url_map': get_url_map(),
+            'middleware': [AppMiddleware_2]
+        }})
+
+        tipfy.run_wsgi_app(app)
 
     def test_ultimate_sys_path(self):
         """Mostly here to not be marked as uncovered."""
@@ -505,6 +625,18 @@ class TestMiscelaneous(unittest.TestCase):
         from tipfy.application import _ULTIMATE_SYS_PATH, fix_sys_path
         _ULTIMATE_SYS_PATH = []
         fix_sys_path()
+
+    def test_ultimate_sys_path3(self):
+        """Mostly here to not be marked as uncovered."""
+        import sys
+        path = list(sys.path)
+        sys.path = []
+
+        from tipfy.application import _ULTIMATE_SYS_PATH, fix_sys_path
+        _ULTIMATE_SYS_PATH = []
+        fix_sys_path()
+
+        sys.path = path
 
     def test_set_extensions_compatibility(self):
         extensions = [
@@ -554,6 +686,28 @@ class TestMiscelaneous(unittest.TestCase):
                     'tipfy.ext.i18n',
                     'tipfy.ext.session',
                     'tipfy.ext.user',
+                ],
+            },
+        })
+
+        assert app.config.get('tipfy', 'middleware') == [
+            'tipfy.ext.debugger.DebuggerMiddleware',
+            'tipfy.ext.appstats.AppstatsMiddleware',
+            'tipfy.ext.session.SessionMiddleware',
+            'tipfy.ext.auth.AuthMiddleware',
+            'tipfy.ext.i18n.I18nMiddleware',
+        ]
+
+    def test_set_extensions_compatibility2(self):
+        app = tipfy.WSGIApplication({
+            'tipfy': {
+                'extensions': [
+                    'tipfy.ext.debugger',
+                    'tipfy.ext.appstats',
+                    'tipfy.ext.i18n',
+                    'tipfy.ext.session',
+                    'tipfy.ext.user',
+                    'tipfy.ext.i_dont_exist',
                 ],
             },
         })

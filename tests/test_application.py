@@ -6,8 +6,6 @@ import unittest
 
 from nose.tools import assert_raises, raises
 
-from webtest import TestApp
-
 from werkzeug import BaseResponse
 from werkzeug.test import create_environ, Client
 

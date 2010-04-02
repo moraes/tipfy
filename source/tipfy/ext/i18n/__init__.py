@@ -90,6 +90,15 @@ class I18nMiddleware(object):
 
         return response
 
+    def pre_run_app(self, app):
+        """Called if i18n is used as a WSGIApplication middleware."""
+        set_translations_from_request()
+        return app
+
+    def post_run_app(self, response):
+        """Called if i18n is used as a WSGIApplication middleware."""
+        return self.post_dispatch(None, response)
+
 
 def get_translations():
     """Returns the current translations object. Forces loading translations for

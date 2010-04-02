@@ -11,12 +11,11 @@
 import logging
 from wsgiref.handlers import CGIHandler
 
-from werkzeug import ClosingIterator, Request, Response
+from werkzeug import BaseResponse, Request, Response
 
 from tipfy import (default_config, local, local_manager, HTTPException,
     import_string, InternalServerError, Map, MethodNotAllowed, RequestRedirect)
-from tipfy import config
-from tipfy import hooks
+from tipfy.config import Config
 
 # Allowed request methods.
 ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
@@ -58,11 +57,11 @@ class RequestHandler(object):
             return method(*args, **kwargs)
 
         # Get middleware for this handler.
-        middleware = local.app.middleware.get_handler_middleware(self)
+        middleware = local.app.middleware.get_middleware(self, self.middleware)
 
         # Execute pre_dispatch middleware.
-        for func in middleware.get('pre_dispatch'):
-            response = func(self)
+        for hook in middleware.get('pre_dispatch', []):
+            response = hook(self)
             if response is not None:
                 break
         else:
@@ -71,16 +70,16 @@ class RequestHandler(object):
                 response = method(*args, **kwargs)
             except Exception, e:
                 # Execute handle_exception middleware.
-                for func in middleware.get('handle_exception'):
-                    response = func(self, e)
+                for hook in middleware.get('handle_exception', []):
+                    response = hook(e, handler=self)
                     if response:
                         return response
                 else:
                     raise
 
-        # Execute post_dispatch() middleware.
-        for func in middleware.get('post_dispatch'):
-            response = func(self, response)
+        # Execute post_dispatch middleware.
+        for hook in middleware.get('post_dispatch', []):
+            response = hook(self, response)
 
         # Done!
         return response
@@ -88,68 +87,81 @@ class RequestHandler(object):
 
 class MiddlewareFactory(object):
     """A factory and registry for handler middleware instances in use."""
-    types = ('pre_dispatch', 'handle_exception', 'post_dispatch')
+    names = (
+        'post_make_app',
+        'pre_run_app',
+        'post_run_app',
+        'pre_dispatch',
+        'post_dispatch',
+        'handle_exception',
+    )
+    reverse_names = (
+        'post_run_app',
+        'post_dispatch',
+        'handle_exception',
+    )
 
     def __init__(self):
         # Instantiated middleware.
         self.instances = {}
         # Methods from instantiated middleware.
-        self.instance_methods = {}
-        # Middleware methods for a given handler.
-        self.handler_middleware = {}
+        self.methods = {}
+        # Middleware methods for a given object.
+        self.obj_middleware = {}
 
-    def get_instance_methods(self, cls):
-        """Returns the instance methods of a given middleware class.
+    def get_middleware(self, obj, classes):
+        """Returns a dictionary of all middleware instance methods for a given
+        object.
 
-        :param cls:
-            A middleware class.
-        :return:
-            A list with the instance methods ``[pre_dispatch, handle_exception,
-            post_dispatch]`` from the given middleware class. If the class
-            doesn't have a method, the position is set to ``None``.
-        """
-        if isinstance(cls, basestring):
-            cls = import_string(cls)
-
-        id = cls.__module__ + '.' + cls.__name__
-
-        if id not in self.instances:
-            obj = cls()
-            self.instances[id] = obj
-            self.instance_methods[id] = [getattr(obj, t, None) for t in \
-                self.types]
-
-        return self.instance_methods[id]
-
-    def get_handler_middleware(self, handler):
-        """Returns the a dictionary of middleware instance methods for a
-        handler.
-
-        :param handler:
-            A class:`tipfy.RequestHandler` instance.
+        :param obj:
+            The object to search for related middleware (the WSGIApplication or
+            a RequestHandler).
+        :param classes:
+            A list of middleware classes.
         :return:
             A dictionary with handler middleware methods.
         """
-        id = handler.__module__ + '.' + handler.__class__.__name__
+        id = obj.__module__ + '.' + obj.__class__.__name__
 
-        if id not in self.handler_middleware:
-            res = {
-                'pre_dispatch': [],
-                'handle_exception': [],
-                'post_dispatch': []
-            }
+        if id not in self.obj_middleware:
+            self.obj_middleware[id] = self.load_middleware(classes)
 
-            for cls in handler.middleware:
-                methods = self.get_instance_methods(cls)
-                for i, name in enumerate(self.types):
-                    if methods[i]:
-                        res[name].append(methods[i])
+        return self.obj_middleware[id]
 
-            res['handle_exception'].reverse()
-            res['post_dispatch'].reverse()
-            self.handler_middleware[id] = res
+    def load_middleware(self, classes):
+        """Returns a dictionary of middleware instance methods for a list of
+        classes.
 
-        return self.handler_middleware[id]
+        :param classes:
+            A list of middleware classes.
+        :return:
+            A dictionary with middleware instance methods.
+        """
+        res = {}
+
+        for cls in classes:
+            if isinstance(cls, basestring):
+                id = cls
+            else:
+                id = cls.__module__ + '.' + cls.__name__
+
+            if id not in self.methods:
+                if isinstance(cls, basestring):
+                    cls = import_string(cls)
+
+                obj = cls()
+                self.instances[id] = obj
+                self.methods[id] = [getattr(obj, n, None) for n in self.names]
+
+            for name, method in zip(self.names, self.methods[id]):
+                if method:
+                    res.setdefault(name, []).append(method)
+
+        for name in self.reverse_names:
+            if name in res:
+                res[name].reverse()
+
+        return res
 
 
 class WSGIApplication(object):
@@ -171,7 +183,7 @@ class WSGIApplication(object):
         local.app = self
 
         # Load default config and update with values for this instance.
-        self.config = config.Config(app_config)
+        self.config = Config(app_config)
         self.config.setdefault('tipfy', default_config)
 
         # Set the url rules.
@@ -182,27 +194,33 @@ class WSGIApplication(object):
         # Cache for loaded handler classes.
         self.handlers = {}
 
-        # Set the hook handler.
-        self.hooks = hooks.HookHandler()
+        extensions = self.config.get('tipfy', 'extensions')
+        middleware = self.config.get('tipfy', 'middleware')
+        if extensions:
+            # For backwards compatibility only.
+            set_extensions_compatibility(extensions, middleware)
 
-        # Start a middleware manager for handlers.
+        # Middleware factory and registry.
         self.middleware = MiddlewareFactory()
 
         # Setup extensions.
-        for module in self.config.get('tipfy', 'extensions', []):
-            import_string(module + ':setup')(self)
+        self.app_middleware = self.middleware.get_middleware(self, middleware)
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         try:
-            return self.dispatch(environ, start_response)
+            response = self.dispatch(environ)
         finally:
             local_manager.cleanup()
 
-    def dispatch(self, environ, start_response):
+        # Call the response object as a WSGI application.
+        return response(environ, start_response)
+
+    def dispatch(self, environ):
         # Set local variables for a single request.
         local.app = self
         local.request = request = self.request_class(environ)
+        # Kept here for backwards compatibility.
         local.response = self.response_class()
 
         # Bind url map to the current request location.
@@ -222,36 +240,26 @@ class WSGIApplication(object):
             self.rule, self.rule_args = self.url_adapter.match(request.path,
                 return_rule=True)
 
-            # Apply pre-dispatch hooks.
-            for response in self.hooks.iter('pre_dispatch_handler'):
-                if response is not None:
-                    break
-            else:
-                # Import handler set in matched rule.
-                name = self.rule.handler
-                if name not in self.handlers:
-                    self.handlers[name] = import_string(name)
+            # Import handler set in matched rule.
+            name = self.rule.handler
+            if name not in self.handlers:
+                self.handlers[name] = import_string(name)
 
-                # Instantiate handler and dispatch request method.
-                response = self.handlers[name]().dispatch(method,
-                    **self.rule_args)
-
-            # Apply post-dispatch hooks.
-            for res in self.hooks.iter('post_dispatch_handler', response):
-                if res is not None:
-                    response = res
-                    break
+            # Instantiate handler and dispatch request method.
+            response = self.handlers[name]().dispatch(method, **self.rule_args)
 
         except RequestRedirect, e:
             # Execute redirects raised by the routing system or the application.
             response = e
         except Exception, e:
-            # Handle http and uncaught exceptions. This will apply exception
-            # hooks if they are set.
+            # Handle http and uncaught exceptions.
             response = self.handle_exception(e)
 
-        # Call the response object as a WSGI application.
-        return response(environ, start_response)
+        # Execute post_run_app middleware.
+        for hook in self.app_middleware.get('post_run_app', []):
+            response = hook(response)
+
+        return response
 
     def get_url_map(self):
         """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
@@ -261,22 +269,22 @@ class WSGIApplication(object):
         :return:
             A ``werkzeug.routing.Map`` instance.
         """
-        rules = import_string('urls:get_rules')()
+        rules = import_string('urls.get_rules')()
         kwargs = self.config.get('tipfy').get('url_map_kwargs')
-
         return Map(rules, **kwargs)
 
     def handle_exception(self, e):
         """Handles HTTPException or uncaught exceptions raised by the WSGI
-        application, optionally applying exception hooks.
+        application, optionally applying exception middleware.
 
         :param e:
             The catched exception.
         :return:
             A ``werkzeug.Response`` object, if the exception is not raised.
         """
-        # Apply pre_handle_exception hooks.
-        for response in self.hooks.iter('pre_handle_exception', e):
+        # Execute handle_exception middleware.
+        for hook in self.app_middleware.get('handle_exception', []):
+            response = hook(e)
             if response:
                 return response
 
@@ -310,15 +318,15 @@ def make_wsgi_app(config):
     """
     app = WSGIApplication(config)
 
-    # Apply post_make_app hooks.
-    for hook in app.hooks.get('post_make_app', []):
+    # Execute post_make_app middleware.
+    for hook in app.app_middleware.get('post_make_app', []):
         app = hook(app) or app
 
     return app
 
 
 def run_wsgi_app(app):
-    """Executes the application, optionally wrapping it by hooks.
+    """Executes the application, optionally wrapping it by middleware.
 
     :param app:
         A :class:`WSGIApplication` instance.
@@ -329,14 +337,47 @@ def run_wsgi_app(app):
     if app.config.get('tipfy', 'dev'):
         fix_sys_path()
 
-    # Apply pre_run_app hooks.
-    # Note: using app.hooks.iter caused only the last middleware
-    #   to get applied instead of chaining the middleware
-    for hook in app.hooks.get('pre_run_app', []):
+    # Execute pre_run_app middleware.
+    for hook in app.app_middleware.get('pre_run_app', []):
         app = hook(app) or app
 
     # Run it.
     PatchedCGIHandler().run(app)
+
+
+def set_extensions_compatibility(extensions, middleware):
+    """Starting at version 0.5, the "extensions" setting from config was
+    deprecated in favor of an unified middleware system for the WSGI app and
+    handlers. This functions checks for common extensions available pre-0.5
+    and sets the equivalent middleware classes instead.
+
+    :param extensions:
+        List of extensions set in config.
+    :param middleware:
+        List of middleware set in config.
+    """
+    logging.warning('The "extensions" setting from config is deprecated. '
+        'Use the "middleware" setting instead.')
+
+    conversions = [
+        ('tipfy.ext.debugger', ['tipfy.ext.debugger.DebuggerMiddleware']),
+        ('tipfy.ext.appstats', ['tipfy.ext.appstats.AppstatsMiddleware']),
+        ('tipfy.ext.session',  ['tipfy.ext.session.SessionMiddleware']),
+        ('tipfy.ext.user',     ['tipfy.ext.session.SessionMiddleware',
+                                'tipfy.ext.auth.AuthMiddleware']),
+        ('tipfy.ext.i18n',     ['tipfy.ext.i18n.I18nMiddleware']),
+    ]
+
+    for old, new in conversions:
+        if old in extensions:
+            extensions.remove(old)
+            for m in new:
+                if m not in middleware:
+                    middleware.append(m)
+
+    if extensions:
+        logging.warning('The following extensions were not '
+            'loaded: %s' % str(extensions))
 
 
 _ULTIMATE_SYS_PATH = None

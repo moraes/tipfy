@@ -12,9 +12,8 @@ config = {}
 
 # Configurations for the 'tipfy' module.
 config['tipfy'] = {
-    # Some extensions enabled by default: interactive debugger,
-    # internationalization and user accounts.
-    'extensions': [
-        'tipfy.ext.debugger',
+    # Enable debugger. It will be loaded only in development.
+    'middleware': [
+        'tipfy.ext.debugger.DebuggerMiddleware',
     ],
 }

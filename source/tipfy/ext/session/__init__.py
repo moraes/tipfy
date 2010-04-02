@@ -115,6 +115,15 @@ class SessionMiddleware(object):
 
         return response
 
+    def pre_run_app(self, app):
+        """Called if session is used as a WSGIApplication middleware."""
+        self.pre_dispatch(None)
+        return app
+
+    def post_run_app(self, response):
+        """Called if session is used as a WSGIApplication middleware."""
+        return self.post_dispatch(None, response)
+
     @cached_property
     def session_type(self):
         return get_config(__name__, 'session_type')

@@ -38,11 +38,11 @@ app, request, response = local('app'), local('request'), local('response')
 #: - ``apps_entry_points``: URL entry points for the installed apps, in case
 #:   their URLs are mounted using base paths.
 #:
-#: - ``extensions``: A list of extension modules as strings. A ``setup()``
-#:   function from each module is called when the WSGI application is
-#:   initialized. Extensions can then setup app hooks or perform other
-#:   initializations. See `Extensions` in the documentation for a
-#:   complete explanation. Default is an empty list.
+#: - ``middleware``: A list of middleware classes for the WSGIApplication. The
+#:   classes can be defined as strings. They define hooks that plug into the
+#:   application to initialize stuff when the app is built, at the start or end
+#:   of a request or to handle exceptions. See ``Middleware`` in the
+#:   documentation for a complete explanation. Default is an empty list.
 #:
 #: - ``server_name``: A server name hint, used to calculate current subdomain.
 #:   If you plan to use dynamic subdomains, you must define the main domain
@@ -67,10 +67,13 @@ app, request, response = local('app'), local('request'), local('response')
 #:
 #: - ``version_id``: The current deplyment version id. Default is the value
 #:   of ``os.environ['CURRENT_VERSION_ID']``.
+#:
+#: - ``extensions``: A list of extension modules as strings. This is depreated.
+#:   Please use the ``middleware`` setting instead.
 default_config = {
     'apps_installed': [],
     'apps_entry_points': {},
-    'extensions': [],
+    'middleware': [],
     'server_name': None,
     'subdomain': None,
     'url_map': None,
@@ -80,6 +83,8 @@ default_config = {
     'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
     # Undocumented for now.
     'url_map_kwargs': {},
+    # Deprecated.
+    'extensions': [],
 }
 
 # All tipfy utilities.

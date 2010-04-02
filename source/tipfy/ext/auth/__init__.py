@@ -91,6 +91,11 @@ class AuthMiddleware(object):
         # Start user session.
         get_auth_system().login_with_session()
 
+    def pre_run_app(self, app):
+        """Called if auth is used as a WSGIApplication middleware."""
+        get_auth_system().login_with_session()
+        return app
+
 
 class BaseAuth(object):
     """Base authentication adapter."""

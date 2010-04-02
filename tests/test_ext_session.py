@@ -305,8 +305,7 @@ class TestSessionStore(unittest.TestCase):
 
         assert 'foo' in response.cookies_to_set
         assert 'foo' in response.cookie_args
-        assert 'max_age' not in response.cookie_args['foo']
-        assert 'expires' in response.cookie_args['foo']
+        assert 'max_age' in response.cookie_args['foo']
 
     def test_save_with_session_expires(self):
         local.request = tipfy.Request.from_values()

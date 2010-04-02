@@ -12,12 +12,7 @@ import _base
 
 import tipfy
 from tipfy import local, local_manager
-from tipfy.application import MiddlewareFactory
-
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-
+from tipfy.application import MiddlewareFactory, set_extensions_compatibility
 
 def get_url_map():
     # Fake get_rules() for testing.
@@ -32,7 +27,6 @@ def get_app():
     return tipfy.WSGIApplication({
         'tipfy': {
             'url_map': get_url_map(),
-            'extensions': ['files.app.extension'],
             'dev': True,
         },
     })
@@ -44,6 +38,71 @@ class Handler(tipfy.RequestHandler):
 
     def post(self, **kwargs):
         return 'handler-post-' + kwargs['some_arg']
+
+
+class SomeObject(object):
+    pass
+
+
+class Middleware_1(object):
+    def post_make_app(self, app):
+        pass
+
+    def pre_run_app(self, app):
+        pass
+
+    def post_run_app(self, response):
+        pass
+
+    def pre_dispatch(self):
+        pass
+
+    def post_dispatch(self, response):
+        pass
+
+    def handle_exception(self, e, handler=None):
+        pass
+
+
+class Middleware_2(object):
+    def post_make_app(self, app):
+        pass
+
+    def pre_run_app(self, app):
+        pass
+
+
+class Middleware_3(object):
+    def post_run_app(self, response):
+        pass
+
+    def post_dispatch(self, response):
+        pass
+
+    def handle_exception(self, e, handler=None):
+        pass
+
+
+class Middleware_4(object):
+    def post_run_app(self, response):
+        pass
+
+    def post_dispatch(self, response):
+        pass
+
+    def handle_exception(self, e, handler=None):
+        pass
+
+
+class Middleware_5(object):
+    def post_run_app(self, response):
+        pass
+
+    def post_dispatch(self, response):
+        pass
+
+    def handle_exception(self, e, handler=None):
+        pass
 
 
 class TestRequestHandler(unittest.TestCase):
@@ -115,7 +174,7 @@ class TestRequestHandler(unittest.TestCase):
                 raise ValueError()
 
         class MiddlewareThatReturns(object):
-            def handle_exception(self, handler, e):
+            def handle_exception(self, e, handler=None):
                 pass
 
         HandlerThatRaises.middleware = [MiddlewareThatReturns]
@@ -133,7 +192,7 @@ class TestRequestHandler(unittest.TestCase):
                 raise ValueError()
 
         class MiddlewareThatReturns(object):
-            def handle_exception(self, handler, e):
+            def handle_exception(self, e, handler=None):
                 raise NotImplementedError()
 
         HandlerThatRaises.middleware = [MiddlewareThatReturns]
@@ -150,7 +209,7 @@ class TestRequestHandler(unittest.TestCase):
                 raise ValueError()
 
         class MiddlewareThatReturns(object):
-            def handle_exception(self, handler, e):
+            def handle_exception(self, e, handler=None):
                 return message
 
         HandlerThatRaises.middleware = [MiddlewareThatReturns]
@@ -198,102 +257,213 @@ class TestMiddlewareFactory(unittest.TestCase):
     def tearDown(self):
         local_manager.cleanup()
 
-    def test_get_instance_methods(self):
-        from tipfy.ext import session
-
+    def test_get_middleware(self):
         factory = MiddlewareFactory()
-        res = factory.get_instance_methods(session.SessionMiddleware)
-        assert len(res) == 3
+        obj = SomeObject()
+        middleware = factory.get_middleware(obj, [Middleware_1, Middleware_2])
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.instances
-        instance = factory.instances['tipfy.ext.session.SessionMiddleware']
-        assert isinstance(instance, session.SessionMiddleware)
+        assert len(factory.obj_middleware) == 1
+        assert len(factory.instances) == 2
+        assert len(factory.methods) == 2
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.instance_methods
-        assert res[0] == getattr(instance, 'pre_dispatch')
-        assert res[1] is None
-        assert res[2] == getattr(instance, 'post_dispatch')
+        assert 'test_application.SomeObject' in factory.obj_middleware
 
-    def test_get_instance_methods_using_string(self):
-        from tipfy.ext import session
+        assert 'test_application.Middleware_1' in factory.instances
+        assert 'test_application.Middleware_2' in factory.instances
 
+        assert 'test_application.Middleware_1' in factory.methods
+        assert 'test_application.Middleware_2' in factory.methods
+
+        assert 'post_make_app' in middleware
+        assert 'pre_run_app' in middleware
+        assert 'post_run_app' in middleware
+        assert 'pre_dispatch' in middleware
+        assert 'post_dispatch' in middleware
+        assert 'handle_exception' in middleware
+
+        assert len(middleware['post_make_app']) == 2
+        assert len(middleware['pre_run_app']) == 2
+        assert len(middleware['post_run_app']) == 1
+        assert len(middleware['pre_dispatch']) == 1
+        assert len(middleware['post_dispatch']) == 1
+        assert len(middleware['handle_exception']) == 1
+
+        assert middleware['post_make_app'][0] == factory.instances['test_application.Middleware_1'].post_make_app
+        assert middleware['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
+        assert middleware['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
+        assert middleware['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
+        assert middleware['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert middleware['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
+        assert middleware['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
+        assert middleware['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
+
+        assert len(factory.obj_middleware['test_application.SomeObject']['post_make_app']) == 2
+        assert len(factory.obj_middleware['test_application.SomeObject']['pre_run_app']) == 2
+        assert len(factory.obj_middleware['test_application.SomeObject']['post_run_app']) == 1
+        assert len(factory.obj_middleware['test_application.SomeObject']['pre_dispatch']) == 1
+        assert len(factory.obj_middleware['test_application.SomeObject']['post_dispatch']) == 1
+        assert len(factory.obj_middleware['test_application.SomeObject']['handle_exception']) == 1
+
+        assert factory.obj_middleware['test_application.SomeObject']['post_make_app'][0] == factory.instances['test_application.Middleware_1'].post_make_app
+        assert factory.obj_middleware['test_application.SomeObject']['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
+        assert factory.obj_middleware['test_application.SomeObject']['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
+        assert factory.obj_middleware['test_application.SomeObject']['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
+        assert factory.obj_middleware['test_application.SomeObject']['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert factory.obj_middleware['test_application.SomeObject']['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
+        assert factory.obj_middleware['test_application.SomeObject']['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
+        assert factory.obj_middleware['test_application.SomeObject']['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
+
+    def test_load_middleware(self):
         factory = MiddlewareFactory()
-        res = factory.get_instance_methods('tipfy.ext.session.SessionMiddleware')
-        assert len(res) == 3
+        middleware = factory.load_middleware([Middleware_1, Middleware_2])
+        middleware_2 = factory.load_middleware([Middleware_1, Middleware_2])
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.instances
-        instance = factory.instances['tipfy.ext.session.SessionMiddleware']
-        assert isinstance(instance, session.SessionMiddleware)
+        assert len(factory.instances) == 2
+        assert len(factory.methods) == 2
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.instance_methods
-        assert res[0] == getattr(instance, 'pre_dispatch')
-        assert res[1] is None
-        assert res[2] == getattr(instance, 'post_dispatch')
+        assert 'test_application.Middleware_1' in factory.instances
+        assert 'test_application.Middleware_2' in factory.instances
 
-    def test_get_handler_middleware(self):
-        from tipfy.ext import session
-        from tipfy.ext import i18n
+        assert 'test_application.Middleware_1' in factory.methods
+        assert 'test_application.Middleware_2' in factory.methods
 
-        class MyHandler(object):
-            middleware = [session.SessionMiddleware, i18n.I18nMiddleware]
+        assert 'post_make_app' in middleware
+        assert 'pre_run_app' in middleware
+        assert 'post_run_app' in middleware
+        assert 'pre_dispatch' in middleware
+        assert 'post_dispatch' in middleware
+        assert 'handle_exception' in middleware
 
+        assert len(middleware['post_make_app']) == 2
+        assert len(middleware['pre_run_app']) == 2
+        assert len(middleware['post_run_app']) == 1
+        assert len(middleware['pre_dispatch']) == 1
+        assert len(middleware['post_dispatch']) == 1
+        assert len(middleware['handle_exception']) == 1
+
+        assert middleware['post_make_app'][0] == factory.instances['test_application.Middleware_1'].post_make_app
+        assert middleware['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
+        assert middleware['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
+        assert middleware['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
+        assert middleware['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert middleware['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
+        assert middleware['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
+        assert middleware['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
+
+        assert 'post_make_app' in middleware_2
+        assert 'pre_run_app' in middleware_2
+        assert 'post_run_app' in middleware_2
+        assert 'pre_dispatch' in middleware_2
+        assert 'post_dispatch' in middleware_2
+        assert 'handle_exception' in middleware_2
+
+        assert len(middleware_2['post_make_app']) == 2
+        assert len(middleware_2['pre_run_app']) == 2
+        assert len(middleware_2['post_run_app']) == 1
+        assert len(middleware_2['pre_dispatch']) == 1
+        assert len(middleware_2['post_dispatch']) == 1
+        assert len(middleware_2['handle_exception']) == 1
+
+        assert middleware_2['post_make_app'][0] == factory.instances['test_application.Middleware_1'].post_make_app
+        assert middleware_2['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
+        assert middleware_2['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
+        assert middleware_2['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
+        assert middleware_2['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert middleware_2['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
+        assert middleware_2['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
+        assert middleware_2['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
+
+    def test_load_middleware_using_strings(self):
         factory = MiddlewareFactory()
-        handler = MyHandler()
-        res = factory.get_handler_middleware(handler)
-        assert len(res) == 3
+        middleware = factory.load_middleware(['test_application.Middleware_1', 'test_application.Middleware_2'])
+        middleware_2 = factory.load_middleware(['test_application.Middleware_1', 'test_application.Middleware_2'])
 
-        assert 'pre_dispatch' in res
-        assert 'handle_exception' in res
-        assert 'post_dispatch' in res
+        assert len(factory.instances) == 2
+        assert len(factory.methods) == 2
 
-        assert len(res['pre_dispatch']) == 1
-        assert len(res['handle_exception']) == 0
-        assert len(res['post_dispatch']) == 2
+        assert 'test_application.Middleware_1' in factory.instances
+        assert 'test_application.Middleware_2' in factory.instances
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.instances
-        assert 'tipfy.ext.i18n.I18nMiddleware' in factory.instances
-        instance_1 = factory.instances['tipfy.ext.session.SessionMiddleware']
-        instance_2 = factory.instances['tipfy.ext.i18n.I18nMiddleware']
-        assert isinstance(instance_1, session.SessionMiddleware)
-        assert isinstance(instance_2, i18n.I18nMiddleware)
+        assert 'test_application.Middleware_1' in factory.methods
+        assert 'test_application.Middleware_2' in factory.methods
 
-        assert res['pre_dispatch'][0] == getattr(instance_1, 'pre_dispatch')
-        # post_dispatch is reversed
-        assert res['post_dispatch'][0] == getattr(instance_2, 'post_dispatch')
-        assert res['post_dispatch'][1] == getattr(instance_1, 'post_dispatch')
+        assert 'post_make_app' in middleware
+        assert 'pre_run_app' in middleware
+        assert 'post_run_app' in middleware
+        assert 'pre_dispatch' in middleware
+        assert 'post_dispatch' in middleware
+        assert 'handle_exception' in middleware
 
-    def test_get_handler_middleware_using_string(self):
-        from tipfy.ext import session
-        from tipfy.ext import i18n
+        assert len(middleware['post_make_app']) == 2
+        assert len(middleware['pre_run_app']) == 2
+        assert len(middleware['post_run_app']) == 1
+        assert len(middleware['pre_dispatch']) == 1
+        assert len(middleware['post_dispatch']) == 1
+        assert len(middleware['handle_exception']) == 1
 
-        class MyHandler(object):
-            middleware = ['tipfy.ext.session.SessionMiddleware', 'tipfy.ext.i18n.I18nMiddleware']
+        assert middleware['post_make_app'][0] == factory.instances['test_application.Middleware_1'].post_make_app
+        assert middleware['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
+        assert middleware['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
+        assert middleware['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
+        assert middleware['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert middleware['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
+        assert middleware['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
+        assert middleware['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
 
+        assert 'post_make_app' in middleware_2
+        assert 'pre_run_app' in middleware_2
+        assert 'post_run_app' in middleware_2
+        assert 'pre_dispatch' in middleware_2
+        assert 'post_dispatch' in middleware_2
+        assert 'handle_exception' in middleware_2
+
+        assert len(middleware_2['post_make_app']) == 2
+        assert len(middleware_2['pre_run_app']) == 2
+        assert len(middleware_2['post_run_app']) == 1
+        assert len(middleware_2['pre_dispatch']) == 1
+        assert len(middleware_2['post_dispatch']) == 1
+        assert len(middleware_2['handle_exception']) == 1
+
+        assert middleware_2['post_make_app'][0] == factory.instances['test_application.Middleware_1'].post_make_app
+        assert middleware_2['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
+        assert middleware_2['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
+        assert middleware_2['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
+        assert middleware_2['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert middleware_2['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
+        assert middleware_2['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
+        assert middleware_2['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
+
+    def test_load_reversed_middleware(self):
         factory = MiddlewareFactory()
-        handler = MyHandler()
-        res = factory.get_handler_middleware(handler)
-        assert len(res) == 3
+        middleware = factory.load_middleware([Middleware_3, Middleware_4, Middleware_5])
 
-        assert 'pre_dispatch' in res
-        assert 'handle_exception' in res
-        assert 'post_dispatch' in res
+        assert len(factory.instances) == 3
+        assert len(factory.methods) == 3
 
-        assert len(res['pre_dispatch']) == 1
-        assert len(res['handle_exception']) == 0
-        assert len(res['post_dispatch']) == 2
+        assert 'test_application.Middleware_3' in factory.instances
+        assert 'test_application.Middleware_4' in factory.instances
+        assert 'test_application.Middleware_5' in factory.instances
 
-        assert 'tipfy.ext.session.SessionMiddleware' in factory.instances
-        assert 'tipfy.ext.i18n.I18nMiddleware' in factory.instances
-        instance_1 = factory.instances['tipfy.ext.session.SessionMiddleware']
-        instance_2 = factory.instances['tipfy.ext.i18n.I18nMiddleware']
-        assert isinstance(instance_1, session.SessionMiddleware)
-        assert isinstance(instance_2, i18n.I18nMiddleware)
+        assert 'test_application.Middleware_3' in factory.methods
+        assert 'test_application.Middleware_4' in factory.methods
+        assert 'test_application.Middleware_5' in factory.methods
 
-        assert res['pre_dispatch'][0] == getattr(instance_1, 'pre_dispatch')
-        # post_dispatch is reversed
-        assert res['post_dispatch'][0] == getattr(instance_2, 'post_dispatch')
-        assert res['post_dispatch'][1] == getattr(instance_1, 'post_dispatch')
+        assert 'post_run_app' in middleware
+        assert 'post_dispatch' in middleware
+        assert 'handle_exception' in middleware
 
+        # Now, these method should be in reverse order...
+        assert middleware['post_run_app'][0] == factory.instances['test_application.Middleware_5'].post_run_app
+        assert middleware['post_run_app'][1] == factory.instances['test_application.Middleware_4'].post_run_app
+        assert middleware['post_run_app'][2] == factory.instances['test_application.Middleware_3'].post_run_app
+
+        assert middleware['post_dispatch'][0] == factory.instances['test_application.Middleware_5'].post_dispatch
+        assert middleware['post_dispatch'][1] == factory.instances['test_application.Middleware_4'].post_dispatch
+        assert middleware['post_dispatch'][2] == factory.instances['test_application.Middleware_3'].post_dispatch
+
+        assert middleware['handle_exception'][0] == factory.instances['test_application.Middleware_5'].handle_exception
+        assert middleware['handle_exception'][1] == factory.instances['test_application.Middleware_4'].handle_exception
+        assert middleware['handle_exception'][2] == factory.instances['test_application.Middleware_3'].handle_exception
 
 
 class TestWSGIApplication(unittest.TestCase):
@@ -307,7 +477,6 @@ class TestMiscelaneous(unittest.TestCase):
 
     def test_make_wsgi_app(self):
         app = tipfy.make_wsgi_app({'tipfy': {
-            'extensions': ['files.app.extension'],
         }})
 
         assert isinstance(app, tipfy.WSGIApplication)
@@ -336,3 +505,41 @@ class TestMiscelaneous(unittest.TestCase):
         from tipfy.application import _ULTIMATE_SYS_PATH, fix_sys_path
         _ULTIMATE_SYS_PATH = []
         fix_sys_path()
+
+    def test_set_extensions_compatibility(self):
+        extensions = [
+            'tipfy.ext.debugger',
+            'tipfy.ext.appstats',
+            'tipfy.ext.i18n',
+            'tipfy.ext.session',
+            'tipfy.ext.user',
+        ]
+        middleware = []
+        set_extensions_compatibility(extensions, middleware)
+
+        assert extensions == []
+        assert middleware == [
+            'tipfy.ext.debugger.DebuggerMiddleware',
+            'tipfy.ext.appstats.AppstatsMiddleware',
+            'tipfy.ext.session.SessionMiddleware',
+            'tipfy.ext.auth.AuthMiddleware',
+            'tipfy.ext.i18n.I18nMiddleware',
+        ]
+
+        extensions = [
+            'tipfy.ext.debugger',
+            'tipfy.ext.appstats',
+            'tipfy.ext.i18n',
+            'tipfy.ext.user',
+        ]
+        middleware = []
+        set_extensions_compatibility(extensions, middleware)
+
+        assert extensions == []
+        assert middleware == [
+            'tipfy.ext.debugger.DebuggerMiddleware',
+            'tipfy.ext.appstats.AppstatsMiddleware',
+            'tipfy.ext.session.SessionMiddleware',
+            'tipfy.ext.auth.AuthMiddleware',
+            'tipfy.ext.i18n.I18nMiddleware',
+        ]

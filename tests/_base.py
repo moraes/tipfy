@@ -10,7 +10,7 @@ To run the tests, first install the following packages:
 
 Then run the tests from the repository root:
 
-    nosetests -d --with-gae --without-sandbox --with-coverage --cover-package=tipfy --gae-application=./source/
+    nosetests -d --with-gae --without-sandbox --cover-erase --with-coverage --cover-package=tipfy --gae-application=./source/
 """
 import os, sys
 APP_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',

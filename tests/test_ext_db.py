@@ -80,19 +80,14 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         tipfy.local_manager.cleanup()
 
     def test_no_protobuf_from_entity(self):
-        res_1 = ext_db.get_entities_from_protobufs([])
+        res_1 = ext_db.get_entity_from_protobuf([])
         assert res_1 is None
         res_2 = ext_db.get_protobuf_from_entity(None)
         assert res_2 is None
 
     def test_no_entity_from_protobuf(self):
-        res_1 = ext_db.get_entities_from_protobufs([])
+        res_1 = ext_db.get_entity_from_protobuf([])
         assert res_1 is None
-
-    @raises(ProtocolBufferDecodeError)
-    def test_no_entity_from_protobuf(self):
-        res_2 = ext_db.get_entity_from_protobuf(None)
-        assert res_2 is None
 
     def test_one_model_to_and_from_protobuf(self):
         entity_1 = FooModel(name='foo', age=15, married=False)
@@ -114,10 +109,42 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity_3 = FooModel(name='baz', age=45, married=False)
         entity_3.put()
 
-        pbs = ext_db.get_protobufs_from_entities([entity_1, entity_2, entity_3])
+        pbs = ext_db.get_protobuf_from_entity([entity_1, entity_2, entity_3])
         assert len(pbs) == 3
 
-        entity_1, entity_2, entity_3 = ext_db.get_entities_from_protobufs(pbs)
+        entity_1, entity_2, entity_3 = ext_db.get_entity_from_protobuf(pbs)
+        assert isinstance(entity_1, FooModel)
+        assert entity_1.name == 'foo'
+        assert entity_1.age == 15
+        assert entity_1.married is False
+
+        assert isinstance(entity_2, FooModel)
+        assert entity_2.name == 'bar'
+        assert entity_2.age == 30
+        assert entity_2.married is True
+
+        assert isinstance(entity_3, FooModel)
+        assert entity_3.name == 'baz'
+        assert entity_3.age == 45
+        assert entity_3.married is False
+
+    def test_get_protobuf_from_entity_using_dict(self):
+        entity_1 = FooModel(name='foo', age=15, married=False)
+        entity_1.put()
+        entity_2 = FooModel(name='bar', age=30, married=True)
+        entity_2.put()
+        entity_3 = FooModel(name='baz', age=45, married=False)
+        entity_3.put()
+
+        entity_dict = {'entity_1': entity_1, 'entity_2': entity_2, 'entity_3': entity_3,}
+
+        pbs = ext_db.get_protobuf_from_entity(entity_dict)
+
+        entities = ext_db.get_entity_from_protobuf(pbs)
+        entity_1 = entities['entity_1']
+        entity_2 = entities['entity_2']
+        entity_3 = entities['entity_3']
+
         assert isinstance(entity_1, FooModel)
         assert entity_1.name == 'foo'
         assert entity_1.age == 15
@@ -427,8 +454,14 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity_1 = TimezoneModel.get_by_key_name('foo')
         assert entity_1.data == ext_db.pytz.timezone(zone)
 
-    @raises(ext_db.pytz.UnknownTimeZoneError)
+    @raises(db.BadValueError)
     def test_timezone_property2(self):
+        zone = 'foo'
+        entity_1 = TimezoneModel(key_name='foo', data=[])
+        entity_1.put()
+
+    @raises(ext_db.pytz.UnknownTimeZoneError)
+    def test_timezone_property3(self):
         entity_1 = TimezoneModel(key_name='foo', data='foo')
         entity_1.put()
 

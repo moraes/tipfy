@@ -91,6 +91,5 @@ default_config = {
 from tipfy.application import (make_wsgi_app, RequestHandler, run_wsgi_app,
     WSGIApplication)
 from tipfy.config import Config, get_config, REQUIRED_CONFIG
-from tipfy.hooks import HookHandler, LazyCallable
 from tipfy.routing import Rule, url_for
 from tipfy.utils import normalize_callable, redirect_to, render_json_response

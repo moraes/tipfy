@@ -86,7 +86,7 @@ class RequestHandler(object):
 
 
 class MiddlewareFactory(object):
-    """A factory and registry for handler middleware instances in use."""
+    """A factory and registry for middleware instances in use."""
     names = (
         'post_make_app',
         'pre_run_app',
@@ -114,12 +114,12 @@ class MiddlewareFactory(object):
         object.
 
         :param obj:
-            The object to search for related middleware (the WSGIApplication or
-            a RequestHandler).
+            The object to search for related middleware (the ``WSGIApplication``
+            or ``RequestHandler``).
         :param classes:
             A list of middleware classes.
         :return:
-            A dictionary with handler middleware methods.
+            A dictionary with middleware instance methods.
         """
         id = obj.__module__ + '.' + obj.__class__.__name__
 

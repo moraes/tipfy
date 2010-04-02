@@ -29,11 +29,11 @@ class Response(object):
         self.cookies[name] = value
 
 
-class TestI18n(unittest.TestCase):
+class TestI18nMiddleware(unittest.TestCase):
     def tearDown(self):
         tipfy.local_manager.cleanup()
 
-    def test_i18n_middleware(self):
+    def test_post_dispatch(self):
         middleware = i18n.I18nMiddleware()
 
         tipfy.local.app = tipfy.WSGIApplication({
@@ -53,6 +53,42 @@ class TestI18n(unittest.TestCase):
         assert response.cookies == {'tipfy.locale': 'ru_RU'}
         assert isinstance(response, Response)
 
+    def test_pre_run_app(self):
+        tipfy.local.app = tipfy.WSGIApplication({
+            'tipfy.ext.i18n': {
+                'locale_request_lookup': [('args', 'language')],
+            },
+        })
+        tipfy.local.request = Request(args={'language': 'es_ES'})
+
+        middleware = i18n.I18nMiddleware()
+        middleware.pre_run_app(None)
+        assert tipfy.local.locale == 'es_ES'
+
+    def test_post_run_app(self):
+        middleware = i18n.I18nMiddleware()
+
+        tipfy.local.app = tipfy.WSGIApplication({
+            'tipfy.ext.i18n': {
+                'locale': 'jp_JP',
+            },
+        })
+
+        response = Response()
+        response = middleware.post_run_app(response)
+        assert isinstance(response, Response)
+        assert response.cookies == {}
+
+        tipfy.local.locale = 'ru_RU'
+        response = Response()
+        response = middleware.post_run_app(response)
+        assert response.cookies == {'tipfy.locale': 'ru_RU'}
+        assert isinstance(response, Response)
+
+
+class TestI18n(unittest.TestCase):
+    def tearDown(self):
+        tipfy.local_manager.cleanup()
     #===========================================================================
     # Translations
     #===========================================================================

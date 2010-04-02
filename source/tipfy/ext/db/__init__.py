@@ -24,6 +24,8 @@ from django.utils import simplejson
 from pytz.gae import pytz
 
 from tipfy import NotFound
+
+
 def get_protobuf_from_entity(entities):
     """Converts one or more ``db.Model`` instances to encoded Protocol Buffers.
 
@@ -628,8 +630,10 @@ class TimezoneProperty(db.Property):
     data_type = str
 
     def get_value_for_datastore(self, model_instance):
-        return super(TimezoneProperty, self).get_value_for_datastore(
-            model_instance).zone
+        value = super(TimezoneProperty, self).get_value_for_datastore(
+            model_instance)
+        value = self.validate(value)
+        return value.zone
 
     def make_value_from_datastore(self, value):
         return pytz.timezone(value)

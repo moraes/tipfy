@@ -23,14 +23,13 @@ options for the user system.
 
 Independently of the chosen method, `Tipfy`_ will require the authenticated
 user to create an account in the site, so that an ``User`` entity is saved in
-the datastore and becomes available for the application to reference existing
-users. `Tipfy`_ provides a default user model in
-:class:`tipfy.ext.auth.model.User`, but you can configure it to use a custom
-model if needed.
+the datastore and becomes available for the application. `Tipfy`_ provides a
+default user model in :class:`tipfy.ext.auth.model.User`, but you can configure
+it to use a custom model if needed.
 
 In this tutorial, we will see what is needed to implement each of the
-authentication systems listed above. We will basically create handlers for
-login, logout, and signup.
+authentication systems listed above. We will basically configure the application
+to use the chosen auth method create handlers for login, logout, and signup.
 
 Create a new App Engine project with `Tipfy`_ files in it, and let's start!
 
@@ -40,9 +39,9 @@ Create a new App Engine project with `Tipfy`_ files in it, and let's start!
 - :ref:`user-auth-external-tutorial`
 
 .. note::
-   The source code for all these examples is compiled in the
-   `tipfy-examples <http://code.google.com/p/tipfy-examples/source/browse/#hg/tutorials>`_
-   project.
+   The source code for these tutorials is available in the ``examples``
+   directory or `Tipfy`_'s repository. See them
+   `here <http://code.google.com/p/tipfy/source/browse/#hg/examples>`_.
 
 
 .. _user-auth-gae-tutorial:
@@ -109,7 +108,7 @@ to the form; we are just sticking to the basics. We don't need "login" or
 
 So, here are our handlers:
 
-**handlers.py**
+**apps/users/handlers.py**
 
 .. code-block:: python
 
@@ -184,7 +183,7 @@ Both handlers use a template that we'll define now. First, the ``SignupHandler``
 uses a template stored in ``templates/users/signup.html``. Here's how it looks
 like:
 
-**signup.html**
+**templates/users/signup.html**
 
 .. code-block:: html
 
@@ -209,7 +208,7 @@ like:
 
 And now define the template for our home in ``templates/home.html``:
 
-**home.html**
+**templates/home.html**
 
 .. code-block:: html
 
@@ -275,7 +274,7 @@ Authentication with "own" users
 -------------------------------
 Authenticating with "own" users is not much different than using App Engine's
 users API. We will only need to add handlers for login and logout, and we can
-reuse the ``users`` app we made above with few small changes.
+reuse the ``users`` app we made above with some small changes.
 
 Let's start configuring auth system to ``tipfy.ext.auth.MultiAuth``, instead of
 the default one that uses App Engine's auth. This is also the same system used
@@ -303,7 +302,7 @@ extensions:
    }
 
    config['tipfy.ext.session'] = {
-       'secret_key': 'my very very very secret phrase',
+       'secret_key': 'my very very very secret key',
    }
 
 
@@ -315,7 +314,7 @@ extensions:
 
 
 In the ``apps/users/urls.py`` we created for the users app, add URL rules for
-login and logout, in addition to the previous rules we have set:
+login and logout, in addition to the previous rules we defined:
 
 **urls.py**
 
@@ -337,14 +336,20 @@ login and logout, in addition to the previous rules we have set:
 The logout handler is the easiest, so let's start with it. Open
 ``apps/users/handlers.py`` and add our ``LogoutHandler``:
 
-**handlers.py**
+**apps/users/handlers.py**
 
 .. code-block:: python
 
+   from tipfy import RequestHandler, request, redirect
+   from tipfy.ext import auth
+   from tipfy.ext import session
+   from tipfy.ext.jinja2 import render_response
+
    class LogoutHandler(RequestHandler):
-       """Logout the user."""
+       middleware = [session.SessionMiddleware, auth.AuthMiddleware]
+
        def get(self, **kwargs):
-           get_auth_system().logout()
+           auth.get_auth_system().logout()
            return redirect(request.args.get('redirect', '/'))
 
 
@@ -352,32 +357,43 @@ It is that simple! It just asks the auth system to logout the current user, and
 then redirects to the previous URL we have set in the GET parameters, with
 fallback to redirect to the home page.
 
-The login handler is not much harder: we just need to display a login form
-and then verify an username and password. Add it to your ``handlers.py`` (and,
-oh, also import ``create_signup_url`` from ``tipfy.ext.auth``):
+.. note::
+   This time we added the session middleware that will handle authentication
+   sessions. This was not needed for the App Engine auth because App Engine
+   itself handles the sessions.
 
-**handlers.py**
+   You could define those middleware in a base class and extend it, to avoid
+   repeating the middleware definitions for each handler.
+
+
+The login handler is not much harder: we just need to display a login form
+and then verify an username and password when it is submitted. Add it to your
+handlers file:
+
+**apps/users/handlers.py**
 
 .. code-block:: python
 
    class LoginHandler(RequestHandler):
+       middleware = [session.SessionMiddleware, auth.AuthMiddleware]
+
        error = None
 
        def get(self, **kwargs):
-           if get_current_user() is not None:
+           if auth.get_current_user() is not None:
                # Don't allow existing users to access this page.
                return redirect(request.args.get('redirect', '/'))
 
            context = {
                'current_url': request.url,
-               'signup_url': create_signup_url(request.url),
+               'signup_url': auth.create_signup_url(request.url),
                'error': self.error,
            }
 
            return render_response('users/login.html', **context)
 
        def post(self, **kwargs):
-           if get_current_user() is not None:
+           if auth.get_current_user() is not None:
                # Don't allow existing users to access this page.
                return redirect(request.args.get('redirect', '/'))
 
@@ -386,7 +402,7 @@ oh, also import ``create_signup_url`` from ``tipfy.ext.auth``):
            password = request.form.get('password', '').strip()
            remember = request.form.get('remember', '') == 'y'
 
-           if get_auth_system().login_with_form(username, password, remember):
+           if auth.get_auth_system().login_with_form(username, password, remember):
                # Redirect to the original URL after login.
                return redirect(request.args.get('redirect', '/'))
            else:
@@ -397,19 +413,18 @@ oh, also import ``create_signup_url`` from ``tipfy.ext.auth``):
 
 The function that authenticates the user is
 ``login_with_form(username, password, remember)``. If the username and password
-are valid, the user system will recognize and persist the current user s logged
-in.
+are valid, the auth system will load the user and persist an user session.
 
 If "Remember me on this computer" is checked, the user will be kept login even
 if it ends the current session closing the browsing window. This is done using
-secure cookies and an unique token that is renewed from time to time, to
-conform with best safety practices.
+secure cookies and an unique token that is renewed from time to time, following
+best security practices.
 
 
 The login handler uses a template that we will save in
 ``templates/users/login.html``. Here it is:
 
-**login.html**
+**templates/users/login.html**
 
 .. code-block:: html
 
@@ -436,14 +451,16 @@ The login handler uses a template that we will save in
    </html>
 
 
-One step left! Now we only need to adapt our previous signup handler to support
-the user defining a password. Let's do it:
+One step left! Now we only need to adapt our previous signup handler to add
+a password field. Let's do it:
 
-**handlers.py**
+**apps/users/handlers.py**
 
 .. code-block:: python
 
    class SignupHandler(RequestHandler):
+       middleware = [session.SessionMiddleware, auth.AuthMiddleware]
+
        error = None
 
        def get(self, **kwargs):
@@ -479,11 +496,13 @@ the user defining a password. Let's do it:
 
                # Save user to datastore. If the username already exists, return
                # value will be None.
-               user = get_auth_system().create_user(username, auth_id, **kwargs)
+               user = auth.get_auth_system().create_user(username, auth_id,
+                   **kwargs)
 
                if user is None:
                    # If no user is returned, the username already exists.
-                   self.error = 'Username already exists. Please choose a different one.'
+                   self.error = 'Username already exists. Please choose a ' \
+                       'different one.'
                else:
                    # User was saved: redirect to the previous URL.
                    return redirect(request.args.get('redirect', '/'))
@@ -497,7 +516,7 @@ the password and save the new user to datastore.
 Also adapt the template in ``templates/users/signup.html`` to add fields for
 password and password confirmation:
 
-**signup.html**
+**templates/users/signup.html**
 
 .. code-block:: html
 

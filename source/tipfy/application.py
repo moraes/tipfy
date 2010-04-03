@@ -259,6 +259,7 @@ class WSGIApplication(object):
         for hook in self.app_middleware.get('post_run_app', []):
             response = hook(response)
 
+        # Call the response object as a WSGI application.
         return response
 
     def get_url_map(self):

@@ -1,5 +1,3 @@
-from google.appengine.api import users
-
 from tipfy import RequestHandler, request, redirect
 from tipfy.ext import auth
 from tipfy.ext import session

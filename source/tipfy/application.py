@@ -209,6 +209,15 @@ class WSGIApplication(object):
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         try:
+            response = self.dispatch(environ)
+        finally:
+            local_manager.cleanup()
+
+        # Call the response object as a WSGI application.
+        return response(environ, start_response)
+
+    def dispatch(self, environ):
+        try:
             # Set local variables for a single request.
             local.app = self
             local.request = request = self.request_class(environ)
@@ -239,21 +248,18 @@ class WSGIApplication(object):
             # Instantiate handler and dispatch request method.
             response = self.handlers[name]().dispatch(method, **self.rule_args)
 
-            # Execute post_run_app middleware.
-            for hook in self.app_middleware.get('post_run_app', []):
-                response = hook(response)
-
         except RequestRedirect, e:
             # Execute redirects raised by the routing system or the application.
             response = e
         except Exception, e:
             # Handle http and uncaught exceptions.
             response = self.handle_exception(e)
-        finally:
-            local_manager.cleanup()
 
-        # Call the response object as a WSGI application.
-        return response(environ, start_response)
+        # Execute post_run_app middleware.
+        for hook in self.app_middleware.get('post_run_app', []):
+            response = hook(response)
+
+        return response
 
     def get_url_map(self):
         """Returns ``werkzeug.routing.Map`` with the URL rules defined for the

@@ -43,11 +43,6 @@ Default configuration
 .. autodata:: default_config
 
 
-Setup
------
-.. autofunction:: setup
-
-
 Functions
 ---------
 .. autofunction:: get_auth_system

@@ -17,11 +17,6 @@ Default configuration
 .. autodata:: default_config
 
 
-Setup
------
-.. autofunction:: setup
-
-
 Translation functions
 ---------------------
 These functions provide functionality to translate strings in templates or in
@@ -30,7 +25,6 @@ the app code.
 .. autofunction:: get_translations
 .. autofunction:: set_translations
 .. autofunction:: set_translations_from_request
-.. autofunction:: save_locale_cookie
 .. autofunction:: is_default_locale
 .. autofunction:: gettext
 .. autofunction:: ngettext

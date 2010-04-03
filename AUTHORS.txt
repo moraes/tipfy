@@ -1,0 +1,39 @@
+Tipfy is developed by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+
+Tipfy includes open source libraries or code from the following projects:
+
+- `Babel <http://babel.edgewall.org/>`_
+  Copyright (c) 2007-2008 Edgewall Software.
+  License: BSD
+
+- `Jinja2 <http://jinja.pocoo.org/2/>`_
+  Copyright (c) 2009 by the Jinja Team.
+  License: BSD
+
+- `Kay <http://code.google.com/p/kay-framework/>`_
+  Copyright (c) 2009 Accense Technology, Inc. All rights reserved.
+  License: BSD
+
+- `Pytz <http://pytz.sourceforge.net/>`_
+  Copyright (c) 2003-2009 Stuart Bishop <stuart@stuartbishop.net>.
+  License: MIT
+
+- `Tornado <http://www.tornadoweb.org/>`_
+  Copyright (c) 2009 Facebook
+  License: Apache 2.0
+
+- `webapp <http://code.google.com/appengine/>`_
+  Copyright (c) 2007 Google Inc.
+  License: Apache 2.0
+
+- `Werkzeug <http://werkzeug.pocoo.org/>`_
+  Copyright (c) 2009 by the Werkzeug Team.
+  License: BSD
+
+- `WTForms <http://wtforms.simplecodes.com/>`_
+  Copyright (c) 2009 by Thomas Johansson, James Crasta and others.
+  License: BSD
+
+- `Zine <http://zine.pocoo.org/>`_
+  Copyright (c) 2009 by the Zine Team.
+  License: BSD

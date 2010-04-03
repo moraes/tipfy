@@ -1,0 +1,78 @@
+Version 0.5 - Codename "Spiff"
+==============================
+- This is a major release with several backwards compatibility breaks. API
+  and architecture consistency was one of the major goals -- better to break
+  things sooner than later.
+
+- Added a middleware system for handlers: handlers can now hook pre, post and
+  handle exception routines in the handler class itself. Very useful to make
+  base handlers with similar requirements and characteristics, without adding
+  overhead to non-related, simpler handlers. A few initial middleware classes
+  were added:
+
+  - AppstatsMiddleware
+  - AuthMiddleware
+  - DebuggerMiddleware
+  - I18nMiddleware
+  - SessionMiddleware
+
+  This deprecates several functionalities performed by app hooks before.
+  While hooks are still useful to wrap and extend WSGIApplication, middleware
+  applied directly to handlers are more appropriate in several use cases.
+
+  Thanks to Thomas Johansson (prencher) for the invaluable feedback on this.
+
+- The previous 'extensions' system for the WSGI app now uses the same middleware
+  system used by the handlers. You can register middleware for the WSGI app and
+  these classes can also act as handler middleware.
+
+- Added tipfy.ext.appstats, a middleware to use the appstats profiling tool.
+
+- Added tipfy.ext.blobstore, with handler mixin classes to handle blobstore
+  upload and serving.
+
+- Added tipfy.ext.xmpp, with base handlers for XMPP bots.
+
+- Added several other mixin classes. Each of them add a couple of attributes
+  or methods to a request handler. The full list of mixins:
+
+  - AclMixin
+  - BlobstoreDownloadMixin
+  - BlobstoreUploadMixin
+  - Jinja2Mixin
+  - MakoMixin
+  - MessagesMixin
+  - SessionMixin
+
+- Added some new db.Model properties to tipfy.ext.db:
+
+  - JsonProperty
+  - TimezoneProperty (thanks to Thomas Johansson for this one)
+
+- Added post_make_app application hook.
+
+- tipfy.ext.session was rewritten from scratch. It now works as a provider of
+  sessions and related stuff, such as signed flash messages and secure cookies.
+
+- tipfy.ext.messages was removed and the existing functionality (flash messages
+  and messages container) was merged into tipfy.ext.session.
+
+- tipfy.ext.user was renamed to tipfy.ext.auth.
+
+- tipfy.ext.i18n doesn't require initialization anymore; it is initialized when
+  first used. Locale for the current request can be automatically loaded using
+  several configurable methods (taking arguments from GET, POST, cookies or
+  URL parameters).
+
+- Added number formatting functions to tipfy.ext.i18n: format_number,
+  format_decimal, format_currency, format_percent, format_scientific,
+  parse_number, parse_decimal.
+
+- URL rules are no longer stored in memcache. This can be done in urls.py if
+  one wants it. Tipfy core won't make *any* API calls anymore.
+
+- Added a directory for examples in Tipfy's repository, compiling all examples
+  from tutorials and some new ones.
+
+- Several improvements everywhere, and a lot more documentation and unit test
+  coverage.

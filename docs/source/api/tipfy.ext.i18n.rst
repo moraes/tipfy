@@ -51,6 +51,17 @@ applied, use the functions :func:`format_date`, :func:`format_datetime` or
 .. autofunction:: format_time
 
 
+Number formatting functions
+---------------------------
+
+.. autofunction:: format_number
+.. autofunction:: format_decimal
+.. autofunction:: format_currency
+.. autofunction:: format_percent
+.. autofunction:: format_scientific
+.. autofunction:: parse_number
+.. autofunction:: parse_decimal
+
 Timezone functions
 ------------------
 These functions help to convert internal datetime values to different timezones.

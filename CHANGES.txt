@@ -64,6 +64,10 @@ Version 0.5 - Codename "Spiff"
   several configurable methods (taking arguments from GET, POST, cookies or
   URL parameters).
 
+- Added number formatting functions to tipfy.ext.i18n: format_number,
+  format_decimal, format_currency, format_percent, format_scientific,
+  parse_number, parse_decimal.
+
 - URL rules are no longer stored in memcache. This can be done in urls.py if
   one wants it. Tipfy core won't make *any* API calls anymore.
 

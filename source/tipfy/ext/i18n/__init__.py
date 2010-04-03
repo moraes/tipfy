@@ -20,8 +20,7 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from babel.support import Translations, LazyProxy
-from babel.dates import format_date as _format_date, \
-    format_datetime as _format_datetime, format_time as _format_time
+from babel import dates, numbers
 from pytz.gae import pytz
 
 from tipfy import local, get_config, normalize_callable
@@ -256,7 +255,7 @@ def format_date(date=None, format='medium'):
     :return:
         A formatted date in unicode.
     """
-    return _format_date(date=date, format=format, locale=local.locale)
+    return dates.format_date(date=date, format=format, locale=local.locale)
 
 
 def format_datetime(datetime=None, format='medium', timezone=None):
@@ -281,7 +280,7 @@ def format_datetime(datetime=None, format='medium', timezone=None):
     :return:
         A formatted date and time in unicode.
     """
-    return _format_datetime(datetime=datetime, format=format,
+    return dates.format_datetime(datetime=datetime, format=format,
         tzinfo=get_tzinfo(timezone), locale=local.locale)
 
 
@@ -307,8 +306,8 @@ def format_time(time=None, format='medium', timezone=None):
     :return:
         A formatted time in unicode.
     """
-    return _format_time(time=time, format=format, tzinfo=get_tzinfo(timezone),
-        locale=local.locale)
+    return dates.format_time(time=time, format=format,
+        tzinfo=get_tzinfo(timezone), locale=local.locale)
 
 
 def get_tzinfo(timezone=None):
@@ -369,6 +368,170 @@ def to_utc(datetime, timezone=None):
         datetime = tzinfo.localize(datetime)
 
     return datetime.astimezone(pytz.UTC).replace(tzinfo=None)
+
+
+def format_number(number):
+    """Returns the given number formatted for a specific locale.
+
+    >>> format_number(1099, locale='en_US')
+    u'1,099'
+
+    :param number:
+        The number to format.
+    :return:
+        The formatted number.
+    """
+    # Do we really need this one?
+    return numbers.format_number(number, locale=local.locale)
+
+
+def format_decimal(number, format=None):
+    """Returns the given decimal number formatted for a specific locale.
+
+    >>> format_decimal(1.2345, locale='en_US')
+    u'1.234'
+    >>> format_decimal(1.2346, locale='en_US')
+    u'1.235'
+    >>> format_decimal(-1.2346, locale='en_US')
+    u'-1.235'
+    >>> format_decimal(1.2345, locale='sv_SE')
+    u'1,234'
+    >>> format_decimal(12345, locale='de')
+    u'12.345'
+
+    The appropriate thousands grouping and the decimal separator are used for
+    each locale:
+
+    >>> format_decimal(12345.5, locale='en_US')
+    u'12,345.5'
+
+    :param number:
+        The number to format.
+    :param format:
+    :return:
+        The formatted decimal number.
+    """
+    return numbers.format_decimal(number, format=format, locale=local.locale)
+
+
+def format_currency(number, currency, format=None):
+    """Returns a formatted currency value.
+
+    >>> format_currency(1099.98, 'USD', locale='en_US')
+    u'$1,099.98'
+    >>> format_currency(1099.98, 'USD', locale='es_CO')
+    u'US$\\xa01.099,98'
+    >>> format_currency(1099.98, 'EUR', locale='de_DE')
+    u'1.099,98\\xa0\\u20ac'
+
+    The pattern can also be specified explicitly:
+
+    >>> format_currency(1099.98, 'EUR', u'\xa4\xa4 #,##0.00', locale='en_US')
+    u'EUR 1,099.98'
+
+    :param number:
+        The number to format.
+    :param currency:
+        The currency code.
+    :return:
+        The formatted currency value.
+    """
+    return numbers.format_currency(number, currency, format=format,
+        locale=local.locale)
+
+
+def format_percent(number, format=None):
+    """Return formatted percent value for a specific locale.
+
+    >>> format_percent(0.34, locale='en_US')
+    u'34%'
+    >>> format_percent(25.1234, locale='en_US')
+    u'2,512%'
+    >>> format_percent(25.1234, locale='sv_SE')
+    u'2\\xa0512\\xa0%'
+
+    The format pattern can also be specified explicitly:
+
+    >>> format_percent(25.1234, u'#,##0\u2030', locale='en_US')
+    u'25,123\u2030'
+
+    :param number:
+        The percent number to format
+    :param format:
+    :return:
+        The formatted percent number
+    """
+    return numbers.format_percent(number, format=format, locale=local.locale)
+
+
+def format_scientific(number, format=None):
+    """Return value formatted in scientific notation for a specific locale.
+
+    >>> format_scientific(10000, locale='en_US')
+    u'1E4'
+
+    The format pattern can also be specified explicitly:
+
+    >>> format_scientific(1234567, u'##0E00', locale='en_US')
+    u'1.23E06'
+
+    :param number:
+        The number to format.
+    :param format:
+    :return:
+        Value formatted in scientific notation.
+    """
+    return numbers.format_scientific(number, format=format, locale=local.locale)
+
+
+def parse_number(string):
+    """Parse localized number string into a long integer.
+
+    >>> parse_number('1,099', locale='en_US')
+    1099L
+    >>> parse_number('1.099', locale='de_DE')
+    1099L
+
+    When the given string cannot be parsed, an exception is raised:
+
+    >>> parse_number('1.099,98', locale='de')
+    Traceback (most recent call last):
+        ...
+    NumberFormatError: '1.099,98' is not a valid number
+
+    :param string:
+        The string to parse.
+    :return:
+        The parsed number.
+    :raise `NumberFormatError`:
+        If the string can not be converted to a number
+    """
+    return numbers.parse_number(string, locale=local.locale)
+
+
+def parse_decimal(string):
+    """Parse localized decimal string into a float.
+
+    >>> parse_decimal('1,099.98', locale='en_US')
+    1099.98
+    >>> parse_decimal('1.099,98', locale='de')
+    1099.98
+
+    When the given string cannot be parsed, an exception is raised:
+
+    >>> parse_decimal('2,109,998', locale='de')
+    Traceback (most recent call last):
+        ...
+    NumberFormatError: '2,109,998' is not a valid decimal number
+
+    :param string:
+        The string to parse.
+    :return:
+        The parsed decimal number.
+    :raise `NumberFormatError`:
+        If the string can not be converted to a decimal number
+    """
+    return numbers.parse_decimal(string, locale=local.locale)
 
 
 # Common alias to gettext.

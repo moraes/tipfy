@@ -10,6 +10,8 @@ from nose.tools import raises
 
 import _base
 
+from babel.numbers import NumberFormatError
+
 import tipfy
 from tipfy.ext import i18n
 
@@ -338,3 +340,90 @@ class TestI18n(unittest.TestCase):
         localtime = i18n.to_utc(base)
         result = localtime.strftime(format)
         assert result == '2002-10-27 11:00:00'
+
+    #===========================================================================
+    # Number formatting
+    #===========================================================================
+    def test_format_number(self):
+        app = tipfy.WSGIApplication()
+
+        i18n.set_translations('en_US')
+        assert i18n.format_number(1099) == u'1,099'
+
+    def test_format_decimal(self):
+        app = tipfy.WSGIApplication()
+
+        i18n.set_translations('en_US')
+        assert i18n.format_decimal(1.2345) == u'1.234'
+        assert i18n.format_decimal(1.2346) == u'1.235'
+        assert i18n.format_decimal(-1.2346) == u'-1.235'
+        assert i18n.format_decimal(12345.5) == u'12,345.5'
+
+        i18n.set_translations('sv_SE')
+        assert i18n.format_decimal(1.2345) == u'1,234'
+
+        i18n.set_translations('de')
+        assert i18n.format_decimal(12345) == u'12.345'
+
+    def test_format_currency(self):
+        app = tipfy.WSGIApplication()
+
+        i18n.set_translations('en_US')
+        assert i18n.format_currency(1099.98, 'USD') == u'$1,099.98'
+        assert i18n.format_currency(1099.98, 'EUR', u'\xa4\xa4 #,##0.00') == u'EUR 1,099.98'
+
+        i18n.set_translations('es_CO')
+        assert i18n.format_currency(1099.98, 'USD') == u'US$\xa01.099,98'
+
+        i18n.set_translations('de_DE')
+        assert i18n.format_currency(1099.98, 'EUR') == u'1.099,98\xa0\u20ac'
+
+    def test_format_percent(self):
+        app = tipfy.WSGIApplication()
+
+        i18n.set_translations('en_US')
+        assert i18n.format_percent(0.34) == u'34%'
+        assert i18n.format_percent(25.1234) == u'2,512%'
+        assert i18n.format_percent(25.1234, u'#,##0\u2030') == u'25,123\u2030'
+
+        i18n.set_translations('sv_SE')
+        assert i18n.format_percent(25.1234) == u'2\xa0512\xa0%'
+
+    def test_format_scientific(self):
+        app = tipfy.WSGIApplication()
+
+        i18n.set_translations('en_US')
+        assert i18n.format_scientific(10000) == u'1E4'
+        assert i18n.format_scientific(1234567, u'##0E00') == u'1.23E06'
+
+    def test_parse_number(self):
+        app = tipfy.WSGIApplication()
+
+        i18n.set_translations('en_US')
+        assert i18n.parse_number('1,099') == 1099L
+
+        i18n.set_translations('de_DE')
+        assert i18n.parse_number('1.099') == 1099L
+
+    @raises(NumberFormatError)
+    def test_parse_number2(self):
+        app = tipfy.WSGIApplication()
+
+        i18n.set_translations('de')
+        assert i18n.parse_number('1.099,98') == ''
+
+    def test_parse_decimal(self):
+        app = tipfy.WSGIApplication()
+
+        i18n.set_translations('en_US')
+        assert i18n.parse_decimal('1,099.98') == 1099.98
+
+        i18n.set_translations('de')
+        assert i18n.parse_decimal('1.099,98') == 1099.98
+
+    @raises(NumberFormatError)
+    def test_parse_decimal_error(self):
+        app = tipfy.WSGIApplication()
+
+        i18n.set_translations('de')
+        assert i18n.parse_decimal('2,109,998') == ''

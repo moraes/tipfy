@@ -75,7 +75,7 @@ class Middleware_1(object):
     def pre_run_app(self, app):
         return app
 
-    def post_run_app(self, response):
+    def post_dispatch_handler(self, response):
         pass
 
     def pre_dispatch(self):
@@ -97,7 +97,7 @@ class Middleware_2(object):
 
 
 class Middleware_3(object):
-    def post_run_app(self, response):
+    def post_dispatch_handler(self, response):
         pass
 
     def post_dispatch(self, response):
@@ -108,7 +108,7 @@ class Middleware_3(object):
 
 
 class Middleware_4(object):
-    def post_run_app(self, response):
+    def post_dispatch_handler(self, response):
         pass
 
     def post_dispatch(self, response):
@@ -119,7 +119,7 @@ class Middleware_4(object):
 
 
 class Middleware_5(object):
-    def post_run_app(self, response):
+    def post_dispatch_handler(self, response):
         pass
 
     def post_dispatch(self, response):
@@ -300,14 +300,14 @@ class TestMiddlewareFactory(unittest.TestCase):
 
         assert 'post_make_app' in middleware
         assert 'pre_run_app' in middleware
-        assert 'post_run_app' in middleware
+        assert 'post_dispatch_handler' in middleware
         assert 'pre_dispatch' in middleware
         assert 'post_dispatch' in middleware
         assert 'handle_exception' in middleware
 
         assert len(middleware['post_make_app']) == 2
         assert len(middleware['pre_run_app']) == 2
-        assert len(middleware['post_run_app']) == 1
+        assert len(middleware['post_dispatch_handler']) == 1
         assert len(middleware['pre_dispatch']) == 1
         assert len(middleware['post_dispatch']) == 1
         assert len(middleware['handle_exception']) == 1
@@ -316,14 +316,14 @@ class TestMiddlewareFactory(unittest.TestCase):
         assert middleware['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
         assert middleware['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
         assert middleware['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
-        assert middleware['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert middleware['post_dispatch_handler'][0] == factory.instances['test_application.Middleware_1'].post_dispatch_handler
         assert middleware['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
         assert middleware['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
         assert middleware['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
 
         assert len(factory.obj_middleware['test_application.SomeObject']['post_make_app']) == 2
         assert len(factory.obj_middleware['test_application.SomeObject']['pre_run_app']) == 2
-        assert len(factory.obj_middleware['test_application.SomeObject']['post_run_app']) == 1
+        assert len(factory.obj_middleware['test_application.SomeObject']['post_dispatch_handler']) == 1
         assert len(factory.obj_middleware['test_application.SomeObject']['pre_dispatch']) == 1
         assert len(factory.obj_middleware['test_application.SomeObject']['post_dispatch']) == 1
         assert len(factory.obj_middleware['test_application.SomeObject']['handle_exception']) == 1
@@ -332,7 +332,7 @@ class TestMiddlewareFactory(unittest.TestCase):
         assert factory.obj_middleware['test_application.SomeObject']['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
         assert factory.obj_middleware['test_application.SomeObject']['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
         assert factory.obj_middleware['test_application.SomeObject']['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
-        assert factory.obj_middleware['test_application.SomeObject']['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert factory.obj_middleware['test_application.SomeObject']['post_dispatch_handler'][0] == factory.instances['test_application.Middleware_1'].post_dispatch_handler
         assert factory.obj_middleware['test_application.SomeObject']['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
         assert factory.obj_middleware['test_application.SomeObject']['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
         assert factory.obj_middleware['test_application.SomeObject']['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
@@ -353,14 +353,14 @@ class TestMiddlewareFactory(unittest.TestCase):
 
         assert 'post_make_app' in middleware
         assert 'pre_run_app' in middleware
-        assert 'post_run_app' in middleware
+        assert 'post_dispatch_handler' in middleware
         assert 'pre_dispatch' in middleware
         assert 'post_dispatch' in middleware
         assert 'handle_exception' in middleware
 
         assert len(middleware['post_make_app']) == 2
         assert len(middleware['pre_run_app']) == 2
-        assert len(middleware['post_run_app']) == 1
+        assert len(middleware['post_dispatch_handler']) == 1
         assert len(middleware['pre_dispatch']) == 1
         assert len(middleware['post_dispatch']) == 1
         assert len(middleware['handle_exception']) == 1
@@ -369,21 +369,21 @@ class TestMiddlewareFactory(unittest.TestCase):
         assert middleware['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
         assert middleware['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
         assert middleware['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
-        assert middleware['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert middleware['post_dispatch_handler'][0] == factory.instances['test_application.Middleware_1'].post_dispatch_handler
         assert middleware['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
         assert middleware['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
         assert middleware['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
 
         assert 'post_make_app' in middleware_2
         assert 'pre_run_app' in middleware_2
-        assert 'post_run_app' in middleware_2
+        assert 'post_dispatch_handler' in middleware_2
         assert 'pre_dispatch' in middleware_2
         assert 'post_dispatch' in middleware_2
         assert 'handle_exception' in middleware_2
 
         assert len(middleware_2['post_make_app']) == 2
         assert len(middleware_2['pre_run_app']) == 2
-        assert len(middleware_2['post_run_app']) == 1
+        assert len(middleware_2['post_dispatch_handler']) == 1
         assert len(middleware_2['pre_dispatch']) == 1
         assert len(middleware_2['post_dispatch']) == 1
         assert len(middleware_2['handle_exception']) == 1
@@ -392,7 +392,7 @@ class TestMiddlewareFactory(unittest.TestCase):
         assert middleware_2['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
         assert middleware_2['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
         assert middleware_2['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
-        assert middleware_2['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert middleware_2['post_dispatch_handler'][0] == factory.instances['test_application.Middleware_1'].post_dispatch_handler
         assert middleware_2['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
         assert middleware_2['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
         assert middleware_2['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
@@ -413,14 +413,14 @@ class TestMiddlewareFactory(unittest.TestCase):
 
         assert 'post_make_app' in middleware
         assert 'pre_run_app' in middleware
-        assert 'post_run_app' in middleware
+        assert 'post_dispatch_handler' in middleware
         assert 'pre_dispatch' in middleware
         assert 'post_dispatch' in middleware
         assert 'handle_exception' in middleware
 
         assert len(middleware['post_make_app']) == 2
         assert len(middleware['pre_run_app']) == 2
-        assert len(middleware['post_run_app']) == 1
+        assert len(middleware['post_dispatch_handler']) == 1
         assert len(middleware['pre_dispatch']) == 1
         assert len(middleware['post_dispatch']) == 1
         assert len(middleware['handle_exception']) == 1
@@ -429,21 +429,21 @@ class TestMiddlewareFactory(unittest.TestCase):
         assert middleware['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
         assert middleware['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
         assert middleware['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
-        assert middleware['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert middleware['post_dispatch_handler'][0] == factory.instances['test_application.Middleware_1'].post_dispatch_handler
         assert middleware['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
         assert middleware['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
         assert middleware['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
 
         assert 'post_make_app' in middleware_2
         assert 'pre_run_app' in middleware_2
-        assert 'post_run_app' in middleware_2
+        assert 'post_dispatch_handler' in middleware_2
         assert 'pre_dispatch' in middleware_2
         assert 'post_dispatch' in middleware_2
         assert 'handle_exception' in middleware_2
 
         assert len(middleware_2['post_make_app']) == 2
         assert len(middleware_2['pre_run_app']) == 2
-        assert len(middleware_2['post_run_app']) == 1
+        assert len(middleware_2['post_dispatch_handler']) == 1
         assert len(middleware_2['pre_dispatch']) == 1
         assert len(middleware_2['post_dispatch']) == 1
         assert len(middleware_2['handle_exception']) == 1
@@ -452,7 +452,7 @@ class TestMiddlewareFactory(unittest.TestCase):
         assert middleware_2['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
         assert middleware_2['pre_run_app'][0] == factory.instances['test_application.Middleware_1'].pre_run_app
         assert middleware_2['pre_run_app'][1] == factory.instances['test_application.Middleware_2'].pre_run_app
-        assert middleware_2['post_run_app'][0] == factory.instances['test_application.Middleware_1'].post_run_app
+        assert middleware_2['post_dispatch_handler'][0] == factory.instances['test_application.Middleware_1'].post_dispatch_handler
         assert middleware_2['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
         assert middleware_2['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
         assert middleware_2['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
@@ -472,14 +472,14 @@ class TestMiddlewareFactory(unittest.TestCase):
         assert 'test_application.Middleware_4' in factory.methods
         assert 'test_application.Middleware_5' in factory.methods
 
-        assert 'post_run_app' in middleware
+        assert 'post_dispatch_handler' in middleware
         assert 'post_dispatch' in middleware
         assert 'handle_exception' in middleware
 
         # Now, these method should be in reverse order...
-        assert middleware['post_run_app'][0] == factory.instances['test_application.Middleware_5'].post_run_app
-        assert middleware['post_run_app'][1] == factory.instances['test_application.Middleware_4'].post_run_app
-        assert middleware['post_run_app'][2] == factory.instances['test_application.Middleware_3'].post_run_app
+        assert middleware['post_dispatch_handler'][0] == factory.instances['test_application.Middleware_5'].post_dispatch_handler
+        assert middleware['post_dispatch_handler'][1] == factory.instances['test_application.Middleware_4'].post_dispatch_handler
+        assert middleware['post_dispatch_handler'][2] == factory.instances['test_application.Middleware_3'].post_dispatch_handler
 
         assert middleware['post_dispatch'][0] == factory.instances['test_application.Middleware_5'].post_dispatch
         assert middleware['post_dispatch'][1] == factory.instances['test_application.Middleware_4'].post_dispatch

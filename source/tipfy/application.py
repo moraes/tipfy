@@ -90,13 +90,14 @@ class MiddlewareFactory(object):
     names = (
         'post_make_app',
         'pre_run_app',
-        'post_run_app',
+        'pre_dispatch_handler',
+        'post_dispatch_handler',
         'pre_dispatch',
         'post_dispatch',
         'handle_exception',
     )
     reverse_names = (
-        'post_run_app',
+        'post_dispatch_handler',
         'post_dispatch',
         'handle_exception',
     )
@@ -209,32 +210,23 @@ class WSGIApplication(object):
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         try:
-            response = self.dispatch(environ)
-        finally:
-            local_manager.cleanup()
-
-        # Call the response object as a WSGI application.
-        return response(environ, start_response)
-
-    def dispatch(self, environ):
-        try:
             # Set local variables for a single request.
             local.app = self
             local.request = request = self.request_class(environ)
-            # Kept here for backwards compatibility, soon to be removed.
+            # Kept here for backwards compatibility. Soon to be removed.
             local.response = self.response_class()
 
-            # Bind url map to the current request location.
-            self.url_adapter = self.url_map.bind_to_environ(environ,
-                server_name=self.config.get('tipfy', 'server_name', None),
-                subdomain=self.config.get('tipfy', 'subdomain', None))
-
-            self.rule = self.rule_args = None
+            self.rule = self.rule_args = self.url_adapter = None
 
             # Check requested method.
             method = request.method.lower()
             if method not in ALLOWED_METHODS:
                 raise MethodNotAllowed()
+
+            # Bind url map to the current request location.
+            self.url_adapter = self.url_map.bind_to_environ(environ,
+                server_name=self.config.get('tipfy', 'server_name', None),
+                subdomain=self.config.get('tipfy', 'subdomain', None))
 
             # Match the path against registered rules.
             self.rule, self.rule_args = self.url_adapter.match(request.path,
@@ -245,8 +237,19 @@ class WSGIApplication(object):
             if name not in self.handlers:
                 self.handlers[name] = import_string(name)
 
-            # Instantiate handler and dispatch request method.
-            response = self.handlers[name]().dispatch(method, **self.rule_args)
+            # Execute pre_dispatch_handler middleware.
+            for hook in self.app_middleware.get('pre_dispatch_handler', []):
+                response = hook()
+                if response:
+                    break
+            else:
+                # Instantiate handler and dispatch request method.
+                handler = self.handlers[name]()
+                response = handler.dispatch(method, **self.rule_args)
+
+            # Execute post_dispatch_handler middleware.
+            for hook in self.app_middleware.get('post_dispatch_handler', []):
+                response = hook(response)
 
         except RequestRedirect, e:
             # Execute redirects raised by the routing system or the application.
@@ -254,13 +257,11 @@ class WSGIApplication(object):
         except Exception, e:
             # Handle http and uncaught exceptions.
             response = self.handle_exception(e)
-
-        # Execute post_run_app middleware.
-        for hook in self.app_middleware.get('post_run_app', []):
-            response = hook(response)
+        finally:
+            local_manager.cleanup()
 
         # Call the response object as a WSGI application.
-        return response
+        return response(environ, start_response)
 
     def get_url_map(self):
         """Returns ``werkzeug.routing.Map`` with the URL rules defined for the

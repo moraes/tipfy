@@ -94,7 +94,7 @@ class I18nMiddleware(object):
         set_translations_from_request()
         return app
 
-    def post_run_app(self, response):
+    def post_dispatch_handler(self, response):
         """Called if i18n is used as a WSGIApplication middleware."""
         return self.post_dispatch(None, response)
 

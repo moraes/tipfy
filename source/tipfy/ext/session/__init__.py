@@ -120,7 +120,7 @@ class SessionMiddleware(object):
         self.pre_dispatch(None)
         return app
 
-    def post_run_app(self, response):
+    def post_dispatch_handler(self, response):
         """Called if session is used as a WSGIApplication middleware."""
         return self.post_dispatch(None, response)
 

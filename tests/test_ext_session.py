@@ -135,7 +135,7 @@ class TestSessionMiddleware(unittest.TestCase):
         response = middleware.post_dispatch(None, response)
         assert 'tipfy.flash' in response.cookies_to_set
 
-    def test_post_run_app(self):
+    def test_post_dispatch_handler(self):
         middleware = SessionMiddleware()
         response = Response()
 
@@ -145,7 +145,7 @@ class TestSessionMiddleware(unittest.TestCase):
 
         local.session_store.set_flash({'foo': 'bar'})
         assert 'tipfy.flash' not in response.cookies_to_set
-        response = middleware.post_run_app(response)
+        response = middleware.post_dispatch_handler(response)
         assert 'tipfy.flash' in response.cookies_to_set
 
 

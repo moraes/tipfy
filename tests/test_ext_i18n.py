@@ -67,7 +67,7 @@ class TestI18nMiddleware(unittest.TestCase):
         middleware.pre_run_app(None)
         assert tipfy.local.locale == 'es_ES'
 
-    def test_post_run_app(self):
+    def test_post_dispatch_handler(self):
         middleware = i18n.I18nMiddleware()
 
         tipfy.local.app = tipfy.WSGIApplication({
@@ -77,13 +77,13 @@ class TestI18nMiddleware(unittest.TestCase):
         })
 
         response = Response()
-        response = middleware.post_run_app(response)
+        response = middleware.post_dispatch_handler(response)
         assert isinstance(response, Response)
         assert response.cookies == {}
 
         tipfy.local.locale = 'ru_RU'
         response = Response()
-        response = middleware.post_run_app(response)
+        response = middleware.post_dispatch_handler(response)
         assert response.cookies == {'tipfy.locale': 'ru_RU'}
         assert isinstance(response, Response)
 

@@ -6,8 +6,6 @@ import unittest
 
 from nose.tools import raises
 
-from webtest import TestApp
-
 import _base
 
 import tipfy

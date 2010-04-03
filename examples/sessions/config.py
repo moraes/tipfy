@@ -9,5 +9,5 @@ config['tipfy'] = {
 
 config['tipfy.ext.session'] = {
     # Change this!!!
-    'secret_key': 'my_strong_secret_key',
+    'secret_key': 'change_me',
 }

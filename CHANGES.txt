@@ -4,15 +4,17 @@ Version 0.5 - Codename "Spiff"
   and architecture consistency was one of the major goals -- better to break
   things sooner than later.
 
-- Added a middleware system for handlers: handlers can now hook pre and post
-  dispatch routines in the handler class itself. Very useful to make base
-  handlers with similar requirements and characteristics, without adding
+- Added a middleware system for handlers: handlers can now hook pre, post and
+  handle exception routines in the handler class itself. Very useful to make
+  base handlers with similar requirements and characteristics, without adding
   overhead to non-related, simpler handlers. A few initial middleware classes
   were added:
 
+  - AppstatsMiddleware
+  - AuthMiddleware
+  - DebuggerMiddleware
   - I18nMiddleware
   - SessionMiddleware
-  - UserMiddleware
 
   This deprecates several functionalities performed by app hooks before.
   While hooks are still useful to wrap and extend WSGIApplication, middleware
@@ -20,12 +22,16 @@ Version 0.5 - Codename "Spiff"
 
   Thanks to Thomas Johansson (prencher) for the invaluable feedback on this.
 
-- Added tipfy.ext.appstats, a middleware to use the appstats profiling tool.
+- The previous 'extensions' system for the WSGI app now uses the same middleware
+  system used by the handlers. You can register middleware for the WSGI app and
+  these classes can also act as handler middleware.
 
-- Added tipfy.ext.xmpp, with base handlers for XMPP bots.
+- Added tipfy.ext.appstats, a middleware to use the appstats profiling tool.
 
 - Added tipfy.ext.blobstore, with handler mixin classes to handle blobstore
   upload and serving.
+
+- Added tipfy.ext.xmpp, with base handlers for XMPP bots.
 
 - Added several other mixin classes. Each of them add a couple of attributes
   or methods to a request handler. The full list of mixins:
@@ -62,7 +68,7 @@ Version 0.5 - Codename "Spiff"
   one wants it. Tipfy core won't make *any* API calls anymore.
 
 - Added a directory for examples in Tipfy's repository, compiling all examples
-  from tutorials.
+  from tutorials and some new ones.
 
 - Several improvements everywhere, and a lot more documentation and unit test
   coverage.

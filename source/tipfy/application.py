@@ -209,28 +209,19 @@ class WSGIApplication(object):
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
         try:
-            response = self.dispatch(environ)
-        finally:
-            local_manager.cleanup()
+            # Set local variables for a single request.
+            local.app = self
+            local.request = request = self.request_class(environ)
+            # Kept here for backwards compatibility, soon to be removed.
+            local.response = self.response_class()
 
-        # Call the response object as a WSGI application.
-        return response(environ, start_response)
+            # Bind url map to the current request location.
+            self.url_adapter = self.url_map.bind_to_environ(environ,
+                server_name=self.config.get('tipfy', 'server_name', None),
+                subdomain=self.config.get('tipfy', 'subdomain', None))
 
-    def dispatch(self, environ):
-        # Set local variables for a single request.
-        local.app = self
-        local.request = request = self.request_class(environ)
-        # Kept here for backwards compatibility.
-        local.response = self.response_class()
+            self.rule = self.rule_args = None
 
-        # Bind url map to the current request location.
-        self.url_adapter = self.url_map.bind_to_environ(environ,
-            server_name=self.config.get('tipfy', 'server_name', None),
-            subdomain=self.config.get('tipfy', 'subdomain', None))
-
-        self.rule = self.rule_args = None
-
-        try:
             # Check requested method.
             method = request.method.lower()
             if method not in ALLOWED_METHODS:
@@ -248,18 +239,21 @@ class WSGIApplication(object):
             # Instantiate handler and dispatch request method.
             response = self.handlers[name]().dispatch(method, **self.rule_args)
 
+            # Execute post_run_app middleware.
+            for hook in self.app_middleware.get('post_run_app', []):
+                response = hook(response)
+
         except RequestRedirect, e:
             # Execute redirects raised by the routing system or the application.
             response = e
         except Exception, e:
             # Handle http and uncaught exceptions.
             response = self.handle_exception(e)
+        finally:
+            local_manager.cleanup()
 
-        # Execute post_run_app middleware.
-        for hook in self.app_middleware.get('post_run_app', []):
-            response = hook(response)
-
-        return response
+        # Call the response object as a WSGI application.
+        return response(environ, start_response)
 
     def get_url_map(self):
         """Returns ``werkzeug.routing.Map`` with the URL rules defined for the

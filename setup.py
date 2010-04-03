@@ -8,11 +8,11 @@ setup(
     download_url = 'http://tipfy.googlecode.com/files/tipfy.latest.zip',
     description = 'The cute little framework for App Engine',
     license = 'BSD',
-    version = '0.2',
+    version = '0.5rc',
     packages = ['tipfy'],
     package_dir = {'': 'source'},
     zip_safe = False,
-    install_requires = ['werkzeug >= 0.6dev'],
+    install_requires = ['werkzeug >= 0.6'],
     extras_require = {
         'Jinja2': ['jinja2'],
         'Mako':   ['mako'],

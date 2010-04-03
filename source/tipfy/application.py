@@ -205,7 +205,7 @@ class WSGIApplication(object):
         # Middleware factory and registry.
         self.middleware_factory = factory = MiddlewareFactory()
 
-        # Set the WSGI app middleware dict.
+        # Store the app middleware dict.
         self.middleware = factory.get_middleware(self, middleware)
 
     def __call__(self, environ, start_response):

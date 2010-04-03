@@ -62,14 +62,13 @@ class TimezoneLoader(object):
     def open_resource(self, name):
         """Opens a resource from the zoneinfo subdir for reading."""
         name_parts = name.lstrip('/').split('/')
-        for part in name_parts:
-            if part == os.path.pardir or os.path.sep in part:
-                raise ValueError('Bad path segment: %r' % part)
+        if os.path.pardir in name_parts:
+            raise ValueError('Bad path segment: %r' % os.path.pardir)
 
         cache_key = 'pytz.zoneinfo.%s.%s' % (pytz.OLSON_VERSION, name)
         zonedata = memcache.get(cache_key)
         if zonedata is None:
-            zonedata = get_zoneinfo().read(os.path.join('zoneinfo', *name_parts))
+            zonedata = get_zoneinfo().read('zoneinfo/' + '/'.join(name_parts))
             memcache.add(cache_key, zonedata)
             logging.info('Added timezone to memcache: %s' % cache_key)
         else:
@@ -81,8 +80,7 @@ class TimezoneLoader(object):
         """Return true if the given resource exists"""
         if name not in self.available:
             try:
-                get_zoneinfo().getinfo(os.path.join('zoneinfo',
-                    *name.lstrip('/').split('/')))
+                get_zoneinfo().getinfo('zoneinfo/' + name)
                 self.available[name] = True
             except KeyError:
                 self.available[name] = False

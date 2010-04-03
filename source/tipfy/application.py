@@ -57,7 +57,8 @@ class RequestHandler(object):
             return method(*args, **kwargs)
 
         # Get middleware for this handler.
-        middleware = local.app.middleware.get_middleware(self, self.middleware)
+        middleware = local.app.middleware_factory.get_middleware(self,
+            self.middleware)
 
         # Execute pre_dispatch middleware.
         for hook in middleware.get('pre_dispatch', []):
@@ -202,10 +203,10 @@ class WSGIApplication(object):
             set_extensions_compatibility(extensions, middleware)
 
         # Middleware factory and registry.
-        self.middleware = MiddlewareFactory()
+        self.middleware_factory = factory = MiddlewareFactory()
 
-        # Setup extensions.
-        self.app_middleware = self.middleware.get_middleware(self, middleware)
+        # Set the WSGI app middleware dict.
+        self.middleware = factory.get_middleware(self, middleware)
 
     def __call__(self, environ, start_response):
         """Called by WSGI when a request comes in."""
@@ -216,7 +217,7 @@ class WSGIApplication(object):
             # Kept here for backwards compatibility. Soon to be removed.
             local.response = self.response_class()
 
-            self.rule = self.rule_args = self.url_adapter = None
+            self.url_adapter = self.rule = self.rule_args = None
 
             # Check requested method.
             method = request.method.lower()
@@ -238,7 +239,7 @@ class WSGIApplication(object):
                 self.handlers[name] = import_string(name)
 
             # Execute pre_dispatch_handler middleware.
-            for hook in self.app_middleware.get('pre_dispatch_handler', []):
+            for hook in self.middleware.get('pre_dispatch_handler', []):
                 response = hook()
                 if response:
                     break
@@ -248,7 +249,7 @@ class WSGIApplication(object):
                 response = handler.dispatch(method, **self.rule_args)
 
             # Execute post_dispatch_handler middleware.
-            for hook in self.app_middleware.get('post_dispatch_handler', []):
+            for hook in self.middleware.get('post_dispatch_handler', []):
                 response = hook(response)
 
         except RequestRedirect, e:
@@ -285,7 +286,7 @@ class WSGIApplication(object):
             A ``werkzeug.Response`` object, if the exception is not raised.
         """
         # Execute handle_exception middleware.
-        for hook in self.app_middleware.get('handle_exception', []):
+        for hook in self.middleware.get('handle_exception', []):
             response = hook(e)
             if response:
                 return response
@@ -321,7 +322,7 @@ def make_wsgi_app(config):
     app = WSGIApplication(config)
 
     # Execute post_make_app middleware.
-    for hook in app.app_middleware.get('post_make_app', []):
+    for hook in app.middleware.get('post_make_app', []):
         app = hook(app)
 
     return app
@@ -340,7 +341,7 @@ def run_wsgi_app(app):
         fix_sys_path()
 
     # Execute pre_run_app middleware.
-    for hook in app.app_middleware.get('pre_run_app', []):
+    for hook in app.middleware.get('pre_run_app', []):
         app = hook(app)
 
     # Run it.

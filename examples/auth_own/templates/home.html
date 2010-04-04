@@ -1,0 +1,9 @@
+<html>
+    <body>
+        {% if user %}
+            <p>Logged in as {{ user.username }}. <a href="{{ logout_url }}">Logout</a></p>
+        {% else %}
+            <p><a href="{{ login_url }}">Login</a></p>
+        {% endif %}
+    </body>
+</html>

@@ -1,0 +1,17 @@
+<html>
+    <body>
+        <h1>Please choose an username and confirm your e-mail:</h1>
+        {% if error %}
+            <h3>{{ error }}</h3>
+        {% endif %}
+        <form method="post" action="{{ current_url }}">
+            <p><label for="username">Username</label>
+            <input type="text" id="username" name="username"><p>
+
+            <p><label for="email">E-mail</label>
+            <input type="text" id="email" name="email"></p>
+
+            <p><input type="submit" name="submit" value="save"></p>
+        </form>
+    </body>
+</html>

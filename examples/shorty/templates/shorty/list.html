@@ -1,0 +1,16 @@
+{% extends 'shorty/layout.html' %}
+{% block body %}
+  <h2>List of URLs</h2>
+  <ul>
+  {%- for url in urls %}
+    <li><a href="{{ url.short_url|e }}">{{ url.name|e }}</a> &raquo;
+        <small>{{ url.target|urlize(38, true) }}</small></li>
+  {%- else %}
+    <li><em>no URLs shortened yet</em></li>
+  {%- endfor %}
+  </ul>
+  <div class="pagination">
+    {% if cursor %}<a href="{{ url_for('shorty/list', cursor=cursor) }}">Next &raquo;</a>
+    {%- else %}<span class="inactive">Next &raquo;</span>{% endif %}
+  </div>
+{% endblock %}

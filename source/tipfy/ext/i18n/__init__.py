@@ -426,7 +426,7 @@ def format_currency(number, currency, format=None):
 
     The pattern can also be specified explicitly:
 
-    >>> format_currency(1099.98, 'EUR', u'\xa4\xa4 #,##0.00', locale='en_US')
+    >>> format_currency(1099.98, 'EUR', u'\\xa4\\xa4 #,##0.00', locale='en_US')
     u'EUR 1,099.98'
 
     :param number:

@@ -735,7 +735,7 @@ class TestMiscelaneous(unittest.TestCase):
             'tipfy.ext.i18n.I18nMiddleware',
         ]
 
-    def test_set_extensions_compatibility2(self):
+    def test_set_extensions_compatibility3(self):
         app = tipfy.WSGIApplication({
             'tipfy': {
                 'extensions': [

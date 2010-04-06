@@ -13,10 +13,18 @@ internationalization etc) and other goodies that webapp misses. Everything in a
 modular, lightweight way, tuned for App Engine. You use only what you need,
 when you need.
 
-Visit www.tipfy.org/docs to learn more about it. If you have questions or
-issues, post them on Tipfy's Google Group:
+Visit the documentation to learn more about it:
+
+  http://www.tipfy.org/docs
+
+For questions and comments, join our discussion group:
 
   http://groups.google.com/group/tipfy
+
+And if you have any issues, open a ticket at Google Code:
+
+  http://code.google.com/p/tipfy/
+
 
 Quick howto
 ===========

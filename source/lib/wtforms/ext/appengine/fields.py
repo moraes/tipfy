@@ -81,3 +81,6 @@ class StringListPropertyField(fields.TextAreaField):
 
         setattr(obj, name, value)
 
+
+class GeoPtPropertyField(fields.TextField):
+    """For now, no processing or prevalidation is done."""

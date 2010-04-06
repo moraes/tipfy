@@ -93,7 +93,7 @@ class:
 
 """
 from wtforms import Form, validators, widgets, fields as f
-from wtforms.ext.appengine.fields import ReferencePropertyField, StringListPropertyField
+from wtforms.ext.appengine.fields import GeoPtPropertyField, ReferencePropertyField, StringListPropertyField
 
 
 def get_TextField(kwargs):
@@ -223,7 +223,7 @@ def convert_EmailProperty(model, prop, kwargs):
 
 def convert_GeoPtProperty(model, prop, kwargs):
     """Returns a form field for a ``db.GeoPtProperty``."""
-    return None
+    return GeoPtPropertyField(kwargs)
 
 
 def convert_IMProperty(model, prop, kwargs):
@@ -296,7 +296,7 @@ class ModelConverter(object):
     +--------------------+-------------------+--------------+------------------+
     | EmailProperty      | TextField         | unicode      |                  |
     +--------------------+-------------------+--------------+------------------+
-    | GeoPtProperty      | None              | db.GeoPt     | always skipped   |
+    | GeoPtProperty      | TextField         | db.GeoPt     |                  |
     +--------------------+-------------------+--------------+------------------+
     | IMProperty         | None              | db.IM        | always skipped   |
     +--------------------+-------------------+--------------+------------------+

@@ -37,6 +37,38 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         Acl.roles_lock = self.app.config.get('tipfy', 'version_id')
         _rules_map.clear()
 
+    def test_test_insert_or_update(self):
+        user_acl = AclRules.get_by_area_and_user('test', 'test')
+        assert user_acl is None
+
+        # Set empty rules.
+        user_acl = AclRules.insert_or_update(area='test', user='test')
+        user_acl = AclRules.get_by_area_and_user('test', 'test')
+        assert user_acl is not None
+        assert user_acl.rules == []
+        assert user_acl.roles == []
+
+        rules = [
+            ('topic_1', 'name_1', True),
+            ('topic_1', 'name_2', True),
+            ('topic_2', 'name_1', False),
+        ]
+
+        user_acl = AclRules.insert_or_update(area='test', user='test', rules=rules)
+        user_acl = AclRules.get_by_area_and_user('test', 'test')
+        assert user_acl is not None
+        assert user_acl.rules == rules
+        assert user_acl.roles == []
+
+        extra_rule = ('topic_3', 'name_3', True)
+        rules.append(extra_rule)
+
+        user_acl = AclRules.insert_or_update(area='test', user='test', rules=rules, roles=['foo', 'bar', 'baz'])
+        user_acl = AclRules.get_by_area_and_user('test', 'test')
+        assert user_acl is not None
+        assert user_acl.rules == rules
+        assert user_acl.roles == ['foo', 'bar', 'baz']
+
     def test_set_rules(self):
         """Test setting and appending rules."""
         rules = [

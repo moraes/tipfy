@@ -114,16 +114,45 @@ class AclRules(db.Model):
 
     @classmethod
     def get_key_name(cls, area, user):
-        """Returns this entity's key name, also used as memcache key."""
+        """Returns this entity's key name, also used as memcache key.
+
+        :param area:
+            Area string identifier.
+        :param user:
+            User string identifier.
+        :return:
+            A key name.
+        """
         return '%s:%s' % (str(area), str(user))
 
     @classmethod
     def get_by_area_and_user(cls, area, user):
-        """Returns a role entity with a given role name in a given area."""
+        """Returns an AclRules entity for a given user in a given area.
+
+        :param area:
+            Area string identifier.
+        :param user:
+            User string identifier.
+        :return:
+            An AclRules entity.
+        """
         return cls.get_by_key_name(cls.get_key_name(area, user))
 
     @classmethod
     def insert_or_update(cls, area, user, roles=None, rules=None):
+        """Inserts or updates ACL rules and roles for a given user.
+
+        :param area:
+            Area string identifier.
+        :param user:
+            User string identifier.
+        :param roles:
+            List of the roles for the user.
+        :param rules:
+            List of the rules for the user.
+        :return:
+            An AclRules entity.
+        """
         key_name = cls.get_key_name(area, user)
         def txn():
             user_acl = cls.get_by_key_name(key_name)
@@ -144,7 +173,19 @@ class AclRules(db.Model):
 
     @classmethod
     def get_roles_and_rules(cls, area, user, roles_map, roles_lock):
-        """Returns a tuple (roles, rules) for a given user in a given area."""
+        """Returns a tuple (roles, rules) for a given user in a given area.
+
+        :param area:
+            Area string identifier.
+        :param user:
+            User string identifier.
+        :param roles_map:
+            Dictionary of available role names mapping to list of rules.
+        :param roles_lock:
+            Lock for the roles map: an unique identifier to track changes.
+        :return:
+            A tuple of (roles, rules) for the given user in the given area.
+        """
         res = None
         cache_key = cls.get_key_name(area, user)
         if cache_key in _rules_map:
@@ -180,28 +221,50 @@ class AclRules(db.Model):
 
     @classmethod
     def set_cache(cls, cache_key, spec):
+        """Sets a memcache value.
+
+        :param cache_key:
+            Cache key.
+        :param spec:
+            Value to be saved.
+        """
         _rules_map[cache_key] = spec
         memcache.set(cache_key, spec, namespace=cls.__name__)
 
     @classmethod
     def delete_cache(cls, cache_key):
+        """Deletes a memcache value.
+
+        :param cache_key:
+            Cache key.
+        """
         if cache_key in _rules_map:
             del _rules_map[cache_key]
 
         memcache.delete(cache_key, namespace=cls.__name__)
 
     def put(self):
-        """Saves the entity and cleans the cache."""
+        """Saves the entity and clears the cache."""
         self.delete_cache(self.get_key_name(self.area, self.user))
         super(AclRules, self).put()
 
     def delete(self):
-        """Deletes the entity and cleans the cache."""
+        """Deletes the entity and clears the cache."""
         self.delete_cache(self.get_key_name(self.area, self.user))
         super(AclRules, self).delete()
 
     def is_rule_set(self, topic, name, flag):
-        """Checks if a given rule is set."""
+        """Checks if a given rule is set.
+
+        :param topic:
+            A rule topic, as a string.
+        :param roles:
+            A rule name, as a string.
+        :param flag:
+            A rule flag, a boolean.
+        :return:
+            ``True`` if the rule already exists, ``False`` otherwise.
+        """
         for rule_topic, rule_name, rule_flag in self.rules:
             if rule_topic == topic and rule_name == name and rule_flag == flag:
                 return True

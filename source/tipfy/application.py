@@ -175,17 +175,17 @@ class WSGIApplication(object):
     #: Default class for responses.
     response_class = Response
 
-    def __init__(self, app_config=None):
+    def __init__(self, config=None):
         """Initializes the application.
 
-        :param app_config:
+        :param config:
             Dictionary with configuration for the application modules.
         """
         # Set an accessor to this instance.
         local.app = self
 
         # Load default config and update with values for this instance.
-        self.config = Config(app_config)
+        self.config = Config(config)
         self.config.setdefault('tipfy', default_config)
 
         # Set the url rules.

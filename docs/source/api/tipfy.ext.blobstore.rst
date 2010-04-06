@@ -2,9 +2,8 @@
 
 tipfy.ext.blobstore
 ===================
-This module provides several utilities to work with ``google.appengine.ext.db``,
-including serialization functions, decorators and useful extra ``db.Property``
-classes.
+This module provides request handler mixins to handle upload and serving files
+from App Engine's blobstore.
 
 Here's a simple example to upload and serve files, based on the example from
 App Engine docs:

@@ -141,7 +141,7 @@ def convert_IntegerProperty(model, prop, kwargs):
 
 def convert_FloatProperty(model, prop, kwargs):
     """Returns a form field for a ``db.FloatProperty``."""
-    return get_TextField(kwargs)
+    return f.DecimalField(kwargs)
 
 
 def convert_DateTimeProperty(model, prop, kwargs):

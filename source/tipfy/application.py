@@ -30,11 +30,11 @@ class RequestHandler(object):
     requests and handle exceptions.
     """
     #: A list of classes or callables that return a middleware object. A
-    #: middleware can implement two methods that are called before and after
-    #: the current request method is executed in the handler:
-    #: ``pre_dispatch(handler)`` and ``post_dispatch(handler, response)``.
-    #: They are useful to initialize features and post-process the response in
-    #: a per handler basis.
+    #: middleware can implement three methods that are called before and after
+    #: the current request method is executed, or if an exception occurs:
+    #: ``pre_dispatch(handler)``, ``post_dispatch(handler, response)`` and
+    #: ``handle_exception(exception, handler)``. They can initialize features,
+    #: post-process the response and handle errors in a per handler basis.
     middleware = []
 
     def dispatch(self, action, *args, **kwargs):
@@ -72,7 +72,7 @@ class RequestHandler(object):
             except Exception, e:
                 # Execute handle_exception middleware.
                 for hook in middleware.get('handle_exception', []):
-                    response = hook(e, handler=self)
+                    response = hook(e, self)
                     if response:
                         break
                 else:

@@ -1,3 +1,6 @@
+Welcome to Tipfy!
+=================
+
 Tipfy is a small but powerful framework designed specifically for Google
 App Engine. It is a lot like webapp::
 
@@ -8,12 +11,11 @@ App Engine. It is a lot like webapp::
           return Response('Hello, World!')
 
 
-...but offers a lot of features (own authentication, sessions,
-internationalization etc) and other goodies that webapp misses. Everything in a
-modular, lightweight way, tuned for App Engine. You use only what you need,
-when you need.
+...but offers a lot of features (own authentication, sessions, i18n etc) and
+other goodies that webapp misses. Everything in a modular, lightweight way,
+tuned for App Engine. You use only what you need, when you need.
 
-Visit the documentation to learn more about it:
+Read the documentation to learn more about it:
 
   http://www.tipfy.org/docs
 

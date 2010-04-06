@@ -1,4 +1,4 @@
-from tipfy import HTTPException, RequestHandler, Response
+from tipfy import RequestHandler, Response
 from tipfy.ext.jinja2 import render_response
 
 from exception_handler import ExceptionMiddleware

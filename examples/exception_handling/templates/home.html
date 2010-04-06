@@ -1,0 +1,25 @@
+<html>
+    <head>
+        <title>{{ _('Home Sweet Home') }}</title>
+        <style type="text/css">
+            body {
+                font-family: trebuchet, 'trebuchet ms', georgia, serif;
+                margin: 2em;
+            }
+            h1 {
+                font-size: 3em;
+                color: #444444;
+            }
+            a {
+                color: #003399;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Let's demonstrate some exception handling:</h1>
+        <p><a href="{{ url_for('example-1') }}">example 1</a> (exception handled in the application level)</p>
+        <p><a href="{{ url_for('example-2') }}">example 2</a> (exception handled in the handler level)</p>
+        <p><a href="{{ url_for('example-3') }}">example 3</a> (exception handled in the handler level, using the same exception handler used by the application)</p>
+        <p><a href="/i-dont-exist">example 4</a> (an URL that doesn't exist -- handled in the application level)</p>
+    </body>
+</html>

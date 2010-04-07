@@ -101,9 +101,9 @@ class TestSessionMiddleware(unittest.TestCase):
 
         assert isinstance(local.session_store, SessionStore)
 
-    def test_pre_run_app(self):
+    def test_pre_dispatch_handler(self):
         middleware = SessionMiddleware()
-        middleware.pre_run_app(None)
+        middleware.pre_dispatch_handler()
 
         assert isinstance(local.session_store, SessionStore)
 
@@ -140,7 +140,7 @@ class TestSessionMiddleware(unittest.TestCase):
         response = Response()
 
         assert getattr(local, 'session_store', None) is None
-        middleware.pre_run_app(None)
+        middleware.pre_dispatch_handler()
         assert isinstance(local.session_store, SessionStore)
 
         local.session_store.set_flash({'foo': 'bar'})

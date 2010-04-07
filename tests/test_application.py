@@ -15,6 +15,7 @@ import tipfy
 from tipfy import local, local_manager
 from tipfy.application import MiddlewareFactory, set_extensions_compatibility
 
+
 def get_url_map():
     # Fake get_rules() for testing.
     rules = [
@@ -287,7 +288,7 @@ class TestRequestHandler(unittest.TestCase):
 
 class TestMiddlewareFactory(unittest.TestCase):
     def tearDown(self):
-        local_manager.cleanup()
+        tipfy.local_manager.cleanup()
 
     def test_get_middleware(self):
         factory = MiddlewareFactory()
@@ -598,6 +599,11 @@ class TestMiscelaneous(unittest.TestCase):
     def tearDown(self):
         tipfy.local_manager.cleanup()
 
+        from os import environ
+        for key in ['SERVER_NAME', 'SERVER_PORT', 'REQUEST_METHOD']:
+            if key in environ:
+                del environ[key]
+
     def test_make_wsgi_app(self):
         app = tipfy.make_wsgi_app({'tipfy': {
         }})
@@ -674,86 +680,3 @@ class TestMiscelaneous(unittest.TestCase):
         fix_sys_path()
 
         sys.path = path
-
-    def test_set_extensions_compatibility(self):
-        extensions = [
-            'tipfy.ext.debugger',
-            'tipfy.ext.appstats',
-            'tipfy.ext.i18n',
-            'tipfy.ext.session',
-            'tipfy.ext.user',
-        ]
-        middleware = []
-        set_extensions_compatibility(extensions, middleware)
-
-        assert extensions == []
-        assert middleware == [
-            'tipfy.ext.debugger.DebuggerMiddleware',
-            'tipfy.ext.appstats.AppstatsMiddleware',
-            'tipfy.ext.session.SessionMiddleware',
-            'tipfy.ext.auth.AuthMiddleware',
-            'tipfy.ext.i18n.I18nMiddleware',
-        ]
-
-        extensions = [
-            'tipfy.ext.debugger',
-            'tipfy.ext.appstats',
-            'tipfy.ext.i18n',
-            'tipfy.ext.user',
-        ]
-        middleware = []
-        set_extensions_compatibility(extensions, middleware)
-
-        assert extensions == []
-        assert middleware == [
-            'tipfy.ext.debugger.DebuggerMiddleware',
-            'tipfy.ext.appstats.AppstatsMiddleware',
-            'tipfy.ext.session.SessionMiddleware',
-            'tipfy.ext.auth.AuthMiddleware',
-            'tipfy.ext.i18n.I18nMiddleware',
-        ]
-
-
-    def test_set_extensions_compatibility2(self):
-        app = tipfy.WSGIApplication({
-            'tipfy': {
-                'extensions': [
-                    'tipfy.ext.debugger',
-                    'tipfy.ext.appstats',
-                    'tipfy.ext.i18n',
-                    'tipfy.ext.session',
-                    'tipfy.ext.user',
-                ],
-            },
-        })
-
-        assert app.config.get('tipfy', 'middleware') == [
-            'tipfy.ext.debugger.DebuggerMiddleware',
-            'tipfy.ext.appstats.AppstatsMiddleware',
-            'tipfy.ext.session.SessionMiddleware',
-            'tipfy.ext.auth.AuthMiddleware',
-            'tipfy.ext.i18n.I18nMiddleware',
-        ]
-
-    def test_set_extensions_compatibility3(self):
-        app = tipfy.WSGIApplication({
-            'tipfy': {
-                'extensions': [
-                    'tipfy.ext.debugger',
-                    'tipfy.ext.appstats',
-                    'tipfy.ext.i18n',
-                    'tipfy.ext.session',
-                    'tipfy.ext.user',
-                    'tipfy.ext.i_dont_exist',
-                ],
-            },
-        })
-
-        assert app.config.get('tipfy', 'middleware') == [
-            'tipfy.ext.debugger.DebuggerMiddleware',
-            'tipfy.ext.appstats.AppstatsMiddleware',
-            'tipfy.ext.session.SessionMiddleware',
-            'tipfy.ext.auth.AuthMiddleware',
-            'tipfy.ext.i18n.I18nMiddleware',
-        ]
-

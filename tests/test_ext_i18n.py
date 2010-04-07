@@ -55,7 +55,7 @@ class TestI18nMiddleware(unittest.TestCase):
         assert response.cookies == {'tipfy.locale': 'ru_RU'}
         assert isinstance(response, Response)
 
-    def test_pre_run_app(self):
+    def test_pre_dispatch_handler(self):
         tipfy.local.app = tipfy.WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale_request_lookup': [('args', 'language')],
@@ -64,7 +64,7 @@ class TestI18nMiddleware(unittest.TestCase):
         tipfy.local.request = Request(args={'language': 'es_ES'})
 
         middleware = i18n.I18nMiddleware()
-        middleware.pre_run_app(None)
+        middleware.pre_dispatch_handler()
         assert tipfy.local.locale == 'es_ES'
 
     def test_post_dispatch_handler(self):

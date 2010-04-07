@@ -25,8 +25,8 @@ from tipfy.ext.auth.model import User
 
 def get_url_map():
     return tipfy.Map([
-        tipfy.Rule('/', endpoint='home', handler='files.app.handlers.AuthHandler'),
-        tipfy.Rule('/account/signup', endpoint='auth/signup', handler='files.app.handlers.SignupHandler'),
+        tipfy.Rule('/', endpoint='home', handler='files.app.handlers_auth.AuthHandler'),
+        tipfy.Rule('/account/signup', endpoint='auth/signup', handler='files.app.handlers_auth.SignupHandler'),
         tipfy.Rule('/account/login', endpoint='auth/login', handler='undefined'),
         tipfy.Rule('/account/logout', endpoint='auth/logout', handler='undefined'),
     ])

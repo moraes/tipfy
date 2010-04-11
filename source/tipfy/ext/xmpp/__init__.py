@@ -44,9 +44,9 @@ class BaseHandler(RequestHandler):
             The exception that was thrown.
         :debug_mode:
             True if the web application is running in debug mode
-    """
-    if self.xmpp_message:
-        self.xmpp_message.reply('Oops. Something went wrong.')
+        """
+        if self.xmpp_message:
+            self.xmpp_message.reply('Oops. Something went wrong.')
 
     def post(self, **kwargs):
         try:

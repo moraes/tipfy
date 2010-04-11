@@ -6,10 +6,10 @@ import unittest
 
 from nose.tools import assert_raises, raises
 
+import _base
+
 from werkzeug import BaseResponse
 from werkzeug.test import create_environ, Client
-
-import _base
 
 import tipfy
 from tipfy import local, local_manager

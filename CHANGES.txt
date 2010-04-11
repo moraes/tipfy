@@ -1,5 +1,11 @@
-Version 0.5 - Codename "Spiff" - April 3, 2010
-==============================================
+Version 0.5 - Codename Spiff - April 10, 2010
+=============================================
+- Minor bugs fixed in the released candidate, some more docs added, and we are 
+  good to go.
+
+
+Version 0.5rc - April 03, 2010
+==============================
 - This is a major release with several backwards compatibility breaks. API
   and architecture consistency was one of the major goals -- better to break
   things sooner than later.

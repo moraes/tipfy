@@ -53,6 +53,7 @@ r"""
 """
 import re
 import os
+import sys
 import tempfile
 from os import path
 from time import time
@@ -64,6 +65,7 @@ except ImportError:
 from cPickle import dump, load, HIGHEST_PROTOCOL
 
 from werkzeug import ClosingIterator, dump_cookie, parse_cookie, CallbackDict
+from werkzeug.posixemulation import rename
 
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
@@ -132,14 +134,6 @@ class Session(ModificationTrackingDict):
         """
         return self.modified
 
-    def __repr__(self):
-        return '<%s %s %s%s>' % (
-            self.__class__.__name__,
-            self.sid,
-            dict.__repr__(self),
-            self.should_save and '*' or ''
-        )
-
 
 class SessionStore(object):
     """Baseclass for all session stores.  The Werkzeug contrib module does not
@@ -191,8 +185,9 @@ _fs_transaction_suffix = '.__wz_sess'
 
 
 class FilesystemSessionStore(SessionStore):
-    """Simple example session store that saves sessions in the filesystem like
-    PHP does.
+    """Simple example session store that saves sessions on the filesystem.
+    This store works best on POSIX systems and Windows Vista / Windows
+    Server 2008 and newer.
 
     .. versionchanged:: 0.6
        `renew_missing` was added.  Previously this was considered `True`,
@@ -215,7 +210,7 @@ class FilesystemSessionStore(SessionStore):
                  session_class=None, renew_missing=False, mode=0644):
         SessionStore.__init__(self, session_class)
         if path is None:
-            path = gettempdir()
+            path = tempfile.gettempdir()
         self.path = path
         if isinstance(filename_template, unicode):
             filename_template = filename_template.encode(
@@ -227,35 +222,27 @@ class FilesystemSessionStore(SessionStore):
         self.mode = mode
 
     def get_session_filename(self, sid):
+        # out of the box, this should be a strict ASCII subset but
+        # you might reconfigure the session object to have a more
+        # arbitrary string.
         if isinstance(sid, unicode):
-            sid = sid.encode('utf-8')
+            sid = sid.encode(sys.getfilesystemencoding() or 'utf-8')
         return path.join(self.path, self.filename_template % sid)
 
     def save(self, session):
-        def _dump(filename):
-            f = file(filename, 'wb')
-            try:
-                dump(dict(session), f, HIGHEST_PROTOCOL)
-            finally:
-                f.close()
         fn = self.get_session_filename(session.sid)
-        if os.name == 'posix':
-            td, tmp = tempfile.mkstemp(suffix=_fs_transaction_suffix,
-                                       dir=self.path)
-            _dump(tmp)
-            try:
-                os.rename(tmp, fn)
-            except (IOError, OSError):
-                pass
+        fd, tmp = tempfile.mkstemp(suffix=_fs_transaction_suffix,
+                                   dir=self.path)
+        f = os.fdopen(fd, 'wb')
+        try:
+            dump(dict(session), f, HIGHEST_PROTOCOL)
+        finally:
+            f.close()
+        try:
+            rename(tmp, fn)
             os.chmod(fn, self.mode)
-        else:
-            _dump(fn)
-            try:
-                os.chmod(fn, self.mode)
-            except OSError:
-                # maybe some platforms fail here, have not found
-                # any that do thought.
-                pass
+        except (IOError, OSError):
+            pass
 
     def delete(self, session):
         fn = self.get_session_filename(session.sid)

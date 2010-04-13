@@ -104,6 +104,7 @@ from itertools import izip
 from werkzeug.urls import url_encode, url_quote
 from werkzeug.utils import redirect, format_string
 from werkzeug.exceptions import HTTPException, NotFound, MethodNotAllowed
+from werkzeug._internal import _get_environ
 
 
 _rule_re = re.compile(r'''
@@ -429,7 +430,15 @@ class Rule(RuleFactory):
         endpoints for `POST` and `GET`.  If methods are defined and the path
         matches but the method matched against is not in this list or in the
         list of another rule for that path the error raised is of the type
-        `MethodNotAllowed` rather than `NotFound`.
+        `MethodNotAllowed` rather than `NotFound`.  If `GET` is present in the
+        list of methods and `HEAD` is not, `HEAD` is added automatically.
+
+        .. versionchanged:: 0.6.1
+           `HEAD` is now automatically added to the methods if `GET` is
+           present.  The reason for this is that existing code often did not
+           work properly in servers not rewriting `HEAD` to `GET`
+           automatically and it was not documented how `HEAD` should be
+           treated.  This was considered a bug in Werkzeug because of that.
 
     `strict_slashes`
         Override the `Map` setting for `strict_slashes` only for this rule. If
@@ -483,18 +492,17 @@ class Rule(RuleFactory):
             self.methods = None
         else:
             self.methods = set([x.upper() for x in methods])
+            if 'HEAD' not in self.methods and 'GET' in self.methods:
+                self.methods.add('HEAD')
         self.endpoint = endpoint
         self.greediness = 0
         self.redirect_to = redirect_to
 
-        self._trace = []
         if defaults is not None:
             self.arguments = set(map(str, defaults))
         else:
             self.arguments = set()
-        self._converters = {}
-        self._regex = None
-        self._weights = []
+        self._trace = self._converters = self._regex = self._weights = None
 
     def empty(self):
         """Return an unbound copy of this rule.  This can be useful if you
@@ -509,13 +517,21 @@ class Rule(RuleFactory):
     def get_rules(self, map):
         yield self
 
-    def bind(self, map):
+    def refresh(self):
+        """Rebinds and refreshes the URL.  Call this if you modified the
+        rule in place.
+
+        :internal:
+        """
+        self.bind(self.map, rebind=True)
+
+    def bind(self, map, rebind=False):
         """Bind the url to a map and create a regular expression based on
         the information from the rule itself and the defaults from the map.
 
         :internal:
         """
-        if self.map is not None:
+        if self.map is not None and not rebind:
             raise RuntimeError('url rule %r already bound to map %r' %
                                (self, self.map))
         self.map = map
@@ -526,6 +542,10 @@ class Rule(RuleFactory):
 
         rule = self.subdomain + '|' + (self.is_leaf and self.rule
                                        or self.rule.rstrip('/'))
+
+        self._trace = []
+        self._converters = {}
+        self._weights = []
 
         regex_parts = []
         for converter, arguments, variable in parse_rule(rule):
@@ -610,9 +630,11 @@ class Rule(RuleFactory):
         subdomain, url = (u''.join(tmp)).split('|', 1)
 
         if append_unknown:
-            query_vars = {}
-            for key in set(values) - processed:
-                query_vars[key] = unicode(values[key])
+            query_vars = MultiDict(values)
+            for key in processed:
+                if key in query_vars:
+                    del query_vars[key]
+
             if query_vars:
                 url += '?' + url_encode(query_vars, self.map.charset,
                                         sort=self.map.sort_parameters,
@@ -629,13 +651,14 @@ class Rule(RuleFactory):
                self.endpoint == rule.endpoint and self != rule and \
                self.arguments == rule.arguments
 
-    def suitable_for(self, values, method):
+    def suitable_for(self, values, method=None):
         """Check if the dict of values has enough data for url generation.
 
         :internal:
         """
-        if self.methods is not None and method not in self.methods:
-            return False
+        if method is not None:
+            if self.methods is not None and method not in self.methods:
+                return False
 
         valueset = set(values)
 
@@ -1039,8 +1062,7 @@ class Map(object):
         :param server_name: an optional server name hint (see above).
         :param subdomain: optionally the current subdomain (see above).
         """
-        if hasattr(environ, 'environ'):
-            environ = environ.environ
+        environ = _get_environ(environ)
         if server_name is None:
             if 'HTTP_HOST' in environ:
                 server_name = environ['HTTP_HOST']
@@ -1296,6 +1318,27 @@ class MapAdapter(object):
             return False
         return True
 
+    def _partial_build(self, endpoint, values, method, append_unknown):
+        """Helper for :meth:`build`.  Returns subdomain and path for the
+        rule that accepts this endpoint, values and method.
+
+        :internal:
+        """
+        # in case the method is none, try with the default method first
+        if method is None:
+            rv = self._partial_build(endpoint, values, self.default_method,
+                                     append_unknown)
+            if rv is not None:
+                return rv
+
+        # default method did not match or a specific method is passed,
+        # check all and go with first result.
+        for rule in self.map._rules_by_endpoint.get(endpoint, ()):
+            if rule.suitable_for(values, method):
+                rv = rule.build(values, append_unknown)
+                if rv is not None:
+                    return rv
+
     def build(self, endpoint, values=None, method=None, force_external=False,
               append_unknown=True):
         """Building URLs works pretty much the other way round.  Instead of
@@ -1351,20 +1394,21 @@ class MapAdapter(object):
                                if you want the builder to ignore those.
         """
         self.map.update()
-        method = method or self.default_method
         if values:
-            values = dict([(k, v) for k, v in values.items() if v is not None])
+            if isinstance(values, MultiDict):
+                values = dict((k, v) for k, v in values.iteritems(multi=True)
+                              if v is not None)
+            else:
+                values = dict((k, v) for k, v in values.iteritems()
+                              if v is not None)
         else:
             values = {}
 
-        for rule in self.map._rules_by_endpoint.get(endpoint, ()):
-            if rule.suitable_for(values, method):
-                rv = rule.build(values, append_unknown)
-                if rv is not None:
-                    break
-        else:
+        rv = self._partial_build(endpoint, values, method, append_unknown)
+        if rv is None:
             raise BuildError(endpoint, values, method)
         subdomain, path = rv
+
         if not force_external and subdomain == self.subdomain:
             return str(urljoin(self.script_name, path.lstrip('/')))
         return str('%s://%s%s%s/%s' % (
@@ -1386,5 +1430,5 @@ DEFAULT_CONVERTERS = {
     'float':            FloatConverter
 }
 
-from werkzeug.datastructures import ImmutableDict
+from werkzeug.datastructures import ImmutableDict, MultiDict
 Map.default_converters = ImmutableDict(DEFAULT_CONVERTERS)

@@ -277,6 +277,21 @@ class _SSLConnectionFix(object):
         return getattr(self._con, attrib)
 
 
+def select_ip_version(host, port):
+    """Returns AF_INET4 or AF_INET6 depending on where to connect to."""
+    try:
+        info = socket.getaddrinfo(host, port, socket.AF_UNSPEC,
+                                  socket.SOCK_STREAM, 0,
+                                  socket.AI_PASSIVE)
+        if info:
+            return info[0][0]
+    except socket.gaierror:
+        pass
+    if ':' in host and hasattr(socket, 'AF_INET6'):
+        return socket.AF_INET6
+    return socket.AF_INET
+
+
 class BaseWSGIServer(HTTPServer, object):
     """Simple single-threaded, single-process WSGI server."""
     multithread = False
@@ -286,6 +301,7 @@ class BaseWSGIServer(HTTPServer, object):
                  passthrough_errors=False, ssl_context=None):
         if handler is None:
             handler = WSGIRequestHandler
+        self.address_family = select_ip_version(host, port)
         HTTPServer.__init__(self, (host, int(port)), handler)
         self.app = app
         self.passthrough_errors = passthrough_errors
@@ -417,7 +433,7 @@ def restart_with_reloader():
         # environment and subprocess.call does not like this, encode them
         # to latin1 and continue.
         if os.name == 'nt':
-            for key, value in new_environ:
+            for key, value in new_environ.iteritems():
                 if isinstance(value, unicode):
                     new_environ[key] = value.encode('iso-8859-1')
 
@@ -500,7 +516,9 @@ def run_simple(hostname, port, application, use_reloader=False,
                     passthrough_errors, ssl_context).serve_forever()
 
     if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-        display_hostname = hostname or '127.0.0.1'
+        display_hostname = hostname != '*' and hostname or 'localhost'
+        if ':' in display_hostname:
+            display_hostname = '[%s]' % display_hostname
         _log('info', ' * Running on %s://%s:%d/', ssl_context is None
              and 'http' or 'https', display_hostname, port)
     if use_reloader:

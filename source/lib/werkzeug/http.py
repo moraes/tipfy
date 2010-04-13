@@ -20,13 +20,13 @@ import re
 import inspect
 try:
     from email.utils import parsedate_tz
-except ImportError:
+except ImportError: # pragma: no cover
     from email.Utils import parsedate_tz
 from urllib2 import parse_http_list as _parse_list_header
 from datetime import datetime, timedelta
 try:
     from hashlib import md5
-except ImportError:
+except ImportError: # pragma: no cover
     from md5 import new as md5
 
 
@@ -40,6 +40,9 @@ _token_chars = frozenset("!#$%&'*+-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          '^_`abcdefghijklmnopqrstuvwxyz|~')
 _etag_re = re.compile(r'([Ww]/)?(?:"(.*?)"|(.*?))(?:\s*,\s*|$)')
 _unsafe_header_chars = set('()<>@,;:\"/[]?={} \t')
+_quoted_string_re = r'"[^"\\]*(?:\\.[^"\\]*)*"'
+_option_header_piece_re = re.compile(r';\s*([^\s;=]+|%s)\s*(?:=\s*([^;]+|%s))?\s*' %
+    (_quoted_string_re, _quoted_string_re))
 
 _entity_headers = frozenset([
     'allow', 'content-encoding', 'content-language', 'content-length',
@@ -71,7 +74,7 @@ def quote_header_value(value, extra_chars='', allow_token=True):
     return '"%s"' % value.replace('\\', '\\\\').replace('"', '\\"')
 
 
-def unquote_header_value(value):
+def unquote_header_value(value, is_filename = False):
     r"""Unquotes a header value.  (Reversal of :func:`quote_header_value`).
     This does not use the real unquoting but what browsers are actually
     using for quoting.
@@ -85,7 +88,15 @@ def unquote_header_value(value):
         # RFC is met will result in bugs with internet explorer and
         # probably some other browsers as well.  IE for example is
         # uploading files with "C:\foo\bar.txt" as filename
-        value = value[1:-1].replace('\\\\', '\\').replace('\\"', '"')
+        value = value[1:-1]
+        
+        # if this is a filename and the starting characters look like
+        # a UNC path, then just return the value without quotes.  Using the
+        # replace sequence below on a UNC path has the effect of turning
+        # the leading double slash into a single slash and then
+        # _fix_ie_filename() doesn't work correctly.  See #458.
+        if not is_filename or value[:2] != '\\\\':
+            return value.replace('\\\\', '\\').replace('\\"', '"')
     return value
 
 
@@ -217,29 +228,19 @@ def parse_options_header(value):
     :return: (str, options)
     """
     def _tokenize(string):
-        while string[:1] == ';':
-            string = string[1:]
-            end = string.find(';')
-            while end > 0 and string.count('"', 0, end) % 2:
-                end = string.find(';', end + 1)
-            if end < 0:
-                end = len(string)
-            value = string[:end]
-            yield value.strip()
-            string = string[end:]
+        for match in _option_header_piece_re.finditer(string):
+            key, value = match.groups()
+            key = unquote_header_value(key)
+            if value is not None:
+                value = unquote_header_value(value, key == 'filename')
+            yield key, value
 
     if not value:
         return '', {}
 
     parts = _tokenize(';' + value)
-    name = parts.next()
-    extra = {}
-    for part in parts:
-        if '=' in part:
-            key, value = part.split('=', 1)
-            extra[key.strip().lower()] = unquote_header_value(value.strip())
-        else:
-            extra[part.strip()] = None
+    name = parts.next()[0]
+    extra = dict(parts)
     return name, extra
 
 
@@ -373,7 +374,7 @@ def parse_www_authenticate_header(value, on_update=None):
         auth_type, auth_info = value.split(None, 1)
         auth_type = auth_type.lower()
     except (ValueError, AttributeError):
-        return WWWAuthenticate(value.lower(), on_update=on_update)
+        return WWWAuthenticate(value.strip().lower(), on_update=on_update)
     return WWWAuthenticate(auth_type, parse_dict_header(auth_info),
                            on_update)
 

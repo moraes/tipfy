@@ -175,7 +175,7 @@ class BaseAuth(object):
             otherwise.
         """
         if getattr(local, 'user', None) is not None:
-            return local.user.is_admin()
+            return local.user.is_admin
 
         return False
 

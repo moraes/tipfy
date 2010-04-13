@@ -95,12 +95,28 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         assert isinstance(current_user, User)
         assert current_user == User.get_by_auth_id(auth_id)
 
-        gae_login()
-
         middleware = AuthMiddleware()
         middleware.pre_dispatch(None)
 
         self.assertEqual(current_user, get_current_user())
+
+    def test_pre_dispatch_user_with_admin_account(self):
+        app = tipfy.WSGIApplication({'tipfy': {
+            'url_map': get_url_map(),
+        }})
+        app.url_adapter = app.url_map.bind('foo.com')
+
+        gae_login()
+        auth_id = 'gae|%s' % users.get_current_user().user_id()
+
+        current_user = User.create('my_username', auth_id, is_admin=True)
+        assert isinstance(current_user, User)
+        assert current_user == User.get_by_auth_id(auth_id)
+
+        middleware = AuthMiddleware()
+        middleware.pre_dispatch(None)
+
+        self.assertEqual(is_current_user_admin(), True)
 
 
 class TestBaseAuth(unittest.TestCase):

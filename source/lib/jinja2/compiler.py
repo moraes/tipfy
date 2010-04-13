@@ -293,8 +293,7 @@ class FrameIdentifierVisitor(NodeVisitor):
         self.visit(node.test)
         real_identifiers = self.identifiers
 
-        old_names = real_identifiers.declared | \
-                    real_identifiers.declared_locally | \
+        old_names = real_identifiers.declared_locally | \
                     real_identifiers.declared_parameter
 
         def inner_visit(nodes):
@@ -315,7 +314,8 @@ class FrameIdentifierVisitor(NodeVisitor):
 
         # the differences between the two branches are also pulled as
         # undeclared variables
-        real_identifiers.undeclared.update(body.symmetric_difference(else_))
+        real_identifiers.undeclared.update(body.symmetric_difference(else_) -
+                                           real_identifiers.declared)
 
         # remember those that are declared.
         real_identifiers.declared_locally.update(body | else_)
@@ -761,7 +761,7 @@ class CodeGenerator(NodeVisitor):
 
     def visit_Template(self, node, frame=None):
         assert frame is None, 'no root frame allowed'
-        eval_ctx = EvalContext(self.environment)
+        eval_ctx = EvalContext(self.environment, self.name)
 
         from jinja2.runtime import __all__ as exported
         self.writeline('from __future__ import division')

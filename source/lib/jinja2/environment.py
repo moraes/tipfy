@@ -160,7 +160,13 @@ class Environment(object):
         `autoescape`
             If set to true the XML/HTML autoescaping feature is enabled by
             default.  For more details about auto escaping see
-            :class:`~jinja2.utils.Markup`.
+            :class:`~jinja2.utils.Markup`.  As of Jinja 2.4 this can also
+            be a callable that is passed the template name and has to
+            return `True` or `False` depending on autoescape should be
+            enabled by default.
+
+            .. versionchanged:: 2.4
+               `autoescape` can now be a function
 
         `loader`
             The template loader for this environment.
@@ -328,6 +334,11 @@ class Environment(object):
 
     lexer = property(get_lexer, doc="The lexer for this environment.")
 
+    def iter_extensions(self):
+        """Iterates over the extensions by priority."""
+        return iter(sorted(self.extensions.values(),
+                           key=lambda x: x.priority))
+
     def getitem(self, obj, argument):
         """Get an item or attribute of an object but prefer the item."""
         try:
@@ -401,7 +412,7 @@ class Environment(object):
         because there you usually only want the actual source tokenized.
         """
         return reduce(lambda s, e: e.preprocess(s, name, filename),
-                      self.extensions.itervalues(), unicode(source))
+                      self.iter_extensions(), unicode(source))
 
     def _tokenize(self, source, name, filename=None, state=None):
         """Called by the parser to do the preprocessing and filtering
@@ -409,7 +420,7 @@ class Environment(object):
         """
         source = self.preprocess(source, name, filename)
         stream = self.lexer.tokenize(source, name, filename, state)
-        for ext in self.extensions.itervalues():
+        for ext in self.iter_extensions():
             stream = ext.filter_stream(stream)
             if not isinstance(stream, TokenStream):
                 stream = TokenStream(stream, name, filename)

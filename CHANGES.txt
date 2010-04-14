@@ -1,6 +1,13 @@
+Development - Not yet released
+==============================
+- Upgraded Werkzeug to 0.6.1
+- Upgraded Jinja2 to 2.4
+- Fixed bug in ext.auth.is_current_user_admin(). Thanks, danil.
+
+
 Version 0.5 - Codename Spiff - April 10, 2010
 =============================================
-- Minor bugs fixed in the released candidate, some more docs added, and we are 
+- Minor bugs fixed in the released candidate, some more docs added, and we are
   good to go.
 
 

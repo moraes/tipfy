@@ -2,10 +2,22 @@
 
 Welcome to Tipfy's documentation!
 =================================
-`Tipfy`_ is a cute little `Python`_ framework for `App Engine`_ which follows
-the basic concepts of `web.py`_ and `webapp`_. It is built on top of
-`Werkzeug`_'s WSGI utilities and is really small but powerful.
+Tipfy is a small but powerful framework designed specifically for
+`Google App Engine <http://code.google.com/appengine/>`_. It is a lot like
+`webapp <http://code.google.com/appengine/docs/python/tools/webapp/>`_:
 
+.. code-block:: python
+
+   from tipfy import RequestHandler, Response
+
+   class HelloWorldHandler(RequestHandler):
+       def get(self):
+           return Response('Hello, World!')
+
+
+...but offers a lot of features (own authentication, sessions, i18n etc) and
+other goodies that webapp misses. Everything in a modular, lightweight way,
+tuned for App Engine. You use only what you need, when you need.
 
 See also other `App Engine frameworks`_.
 

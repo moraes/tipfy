@@ -458,6 +458,9 @@ class SessionStore(object):
         :return:
             A ``werkzeug.contrib.SecureCookie`` instance.
         """
+        if data is not None and not isinstance(data, dict):
+            raise ValueError('Secure cookie data must be a dict.')
+
         return SecureCookie(data=data, secret_key=self.config.secret_key)
 
     def get_flash(self, key=None, **kwargs):

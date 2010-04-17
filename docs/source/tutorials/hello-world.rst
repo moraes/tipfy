@@ -7,9 +7,9 @@ Hello, World! Tutorial
 .. _Werkzeug's documentation: http://werkzeug.pocoo.org/documentation/dev/
 .. _Jinja2's documentation: http://jinja.pocoo.org/2/documentation/
 
-This tutorial demonstrates the simplest `Tipfy`_ application.
+This tutorial demonstrates the simplest Tipfy application.
 
-All that is needed to create an application using `Tipfy`_ is a class to process
+All that is needed to create an application using Tipfy is a class to process
 requests (the "request handler") and a rule to execute the request handler when
 a certain aplication URL is accessed.
 
@@ -68,7 +68,7 @@ A list of ``tipfy.Rule`` is defined in this file and returned by
 ``get_rules()``. The key points are:
 
 - The first parameter in each rule is the URL path: when accessing this path,
-  `Tipfy`_ will execute the handler defined in the rule. The path can contain
+  Tipfy will execute the handler defined in the rule. The path can contain
   variables to be matched.
 
 - The ``endpoint`` argument is a friendly name we can use later to build URL's.
@@ -174,5 +174,5 @@ We just need to check the ``is_xhr`` variable in the request object, which is
 
 That's it!
 ----------
-These are the very basics to run an app using `Tipfy`_. There is a lot more
+These are the very basics to run an app using Tipfy. There is a lot more
 to explore. Go check other tutorials or the API documentation and have fun!

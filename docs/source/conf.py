@@ -89,7 +89,7 @@ exclude_trees = []
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'pastie'
+pygments_style = 'manni'
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
@@ -99,12 +99,14 @@ pygments_style = 'pastie'
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = 'nature'
+html_theme = 'tipfy'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {
+    #'rightsidebar': 'true',
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = ['./_theme']
@@ -140,7 +142,13 @@ html_static_path = ['_static']
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
-    #'index': 'testsidebar.html'
+    '**': [
+        'localtoc.html',
+        'relations.html',
+        'globaltoc.html',
+        #'searchbox.html',
+        'sourcelink.html',
+    ],
 }
 
 # Additional templates that should be rendered to pages, maps page names to

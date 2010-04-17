@@ -1,0 +1,169 @@
+/*----- Forms -----*/
+input.text, input.password, textarea.textarea, select.select, select.select-multiple {
+    background: #FFFFE6;
+    font-size: 123.1%;
+    padding: 5px;
+    border: 1px solid #999999;
+    color: #666666;
+}
+input.text:focus, input.file:focus, input.password:focus, textarea.textarea:focus,
+select.select:focus, select.select-multiple:focus {
+    border: 1px solid #0066CC;
+    background: #F2FAFF;
+    color: #1A1A1A;
+}
+input.radio, input.checkbox {
+    margin-right: 5px;
+}
+fieldset.submit {
+    text-align: right;
+}
+/* submit and button like links */
+input.submit, a.button {
+    background: transparent url(../images/button-bg.gif) repeat-x left bottom;
+    padding: 5px 8px;
+    border: 1px solid #CCCCCC;
+    color: #333333;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-decoration: none;
+    font-size: 123.1%;
+}
+a.button  {
+    padding: 5px 10px;
+}
+input.submit:hover, a.button:hover {
+    color: #000000;
+    border: 1px solid #A6A6A6;
+}
+input.text, input.password, input.file, textarea.textarea, select.select, select.select-multiple,
+input.submit, a.button {
+}
+input.monospace, textarea.monospace {
+    font-family: 'Lucida Console', 'Bitstream Vera Sans Mono', monospace;
+}
+
+/* ----- Form sizes ----- */
+form .third { width: 33% !important; }
+form .half { width: 48% !important; margin-right: 20px; }
+form .full { width: 98% !important; }
+input.text, input.file, input.password, textarea.textarea { width: 98%; }
+input.small, select.small { width: 25%; }
+input.medium, select.medium { width: 50%; }
+input.large, select.large { width: 98%; }
+textarea.small { height: 5em; }
+textarea.medium { height: 10em; }
+textarea.large { height: 15em; }
+select.select-multiple { height: 10em; }
+
+.input_wrapper {
+    margin-right: 1em;
+}
+.input_wrapper input.text, .input_wrapper input.password, .input_wrapper textarea {
+    width: 100%;
+}
+
+.form-field {
+    margin-bottom: 1em;
+}
+.form-field p {
+    margin: 0 0 .2em;
+    padding: 0;
+}
+.form-field label {
+    font-size: 108%;
+    font-weight: bold;
+}
+.form-field abbr.required {
+    color: #CC0000;
+    border: 0;
+}
+ul.error-list {
+    padding: 0;
+    margin: -1em 0 0;
+}
+.error-list li {
+    list-style: none;
+    font-weight: bold;
+    color: #CC0000;
+    padding: 0;
+    margin: 0 0 .2em;
+}
+.form-field ul.radio {
+    padding: 0;
+    margin: 0;
+}
+.form-field ul.radio li {
+    list-style: none;
+    display: inline;
+    margin-right: 2em;
+}
+.form-field ul.radio label {
+    font-weight: normal;
+}
+
+/* ----- System Messages - CSS based on jGrowl's ----- */
+div.tp-msg-box {
+    padding: 5px 10px;
+    z-index: 9999;
+}
+/* Special IE6 Style Positioning */
+div.tp-msg-box-ie6 {
+    position: absolute;
+    right: auto;
+    bottom: auto;
+    top: expression((0 + (ignoreMe = document.documentElement.scrollTop ? document.documentElement.scrollTop : document.body.scrollTop)) + 'px');
+    left: expression((0 - this.offsetWidth + (document.documentElement.clientWidth ? document.documentElement.clientWidth : document.body.clientWidth) + (ignoreMe2 = document.documentElement.scrollLeft ? document.documentElement.scrollLeft : document.body.scrollLeft)) + 'px');
+}
+/* Normal Style Positions */
+body > div.tp-msg-box {
+    position: fixed;
+    right: 0;
+    top: 0;
+}
+.tp-msg {
+    position: relative;
+    min-height: 20px;
+    opacity: .90;
+    filter:	alpha(opacity = 90);
+    zoom: 1;
+    width: 335px;
+    padding: 15px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    text-align: left;
+    display: block;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+}
+.tp-msg-alert {
+    background-color: #FFCC33;
+    color: #1A1A1A;
+}
+.tp-msg-error {
+    background-color: #CC0000;
+    color: #FFF;
+}
+.tp-msg-info {
+    background: #008000;
+    color: #FFF;
+}
+.tp-msg-success {
+    background: #0066CC;
+    color: #FFF;
+}
+.tp-msg .tp-msg-hd {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: .5em;
+}
+.tp-msg .tp-msg-close {
+    font-family: arial;
+    position: absolute;
+    top: .5em;
+    right: .8em;
+    cursor: pointer;
+}
+.tp-msg .tp-msg-close:hover {
+    font-weight: bold;
+}

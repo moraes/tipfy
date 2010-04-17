@@ -23,7 +23,7 @@ See also other `App Engine frameworks`_.
 
 
 Tutorials
-=========
+---------
 .. toctree::
    :maxdepth: 1
    :glob:
@@ -32,7 +32,7 @@ Tutorials
 
 
 API Reference
-=============
+-------------
 .. toctree::
    :maxdepth: 3
    :glob:
@@ -43,7 +43,7 @@ API Reference
 
 
 Indices and tables
-==================
+------------------
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`

@@ -1,0 +1,134 @@
+@import url('base.css');
+@import url('common.css');
+@import url('site.css');
+@import url('highlight.css');
+
+/* -- general body styles --------------------------------------------------- */
+h1 tt, h2 tt, h3 tt, h4 tt, h5 tt, h6 tt {
+    background: transparent;
+}
+
+a.headerlink {
+    visibility: hidden;
+}
+
+h1:hover > a.headerlink,
+h2:hover > a.headerlink,
+h3:hover > a.headerlink,
+h4:hover > a.headerlink,
+h5:hover > a.headerlink,
+h6:hover > a.headerlink,
+dt:hover > a.headerlink {
+    visibility: visible;
+}
+
+#content a.headerlink {
+    color: #0066FF;
+    text-decoration: none;
+    padding: 0 .3em;
+    margin-left: .2em;
+}
+
+#content a.headerlink:hover {
+    background: #0066FF;
+    color: #FFFFFF;
+}
+
+#content a.internal, #content a.internal:hover {
+    text-decoration: none;
+}
+#content a.internal em, #content a.external em {
+    font-style: normal;
+}
+
+p.admonition-title {
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+#content div.note {
+    background: #E6F5FF;
+    padding: 1em 1em .5em;
+    border: 1px solid #CFDDE6;
+    border-width: 1px 0;
+    margin-bottom: 1em;
+}
+#content div.note p.admonition-title {
+    color: #003399;
+}
+#content div.note p {
+    margin-bottom: .5em;
+}
+#sidebar {
+    margin-top: -1em;
+}
+#sidebar h3, #sidebar h4 {
+    margin-top: 1em;
+}
+#sidebar ul {
+    margin-bottom: 0;
+}
+#sidebar li {
+    margin-bottom: .5em;
+}
+#sidebar li ul {
+    margin-top: .5em;
+}
+
+div.seealso {
+    background-color: #ffc;
+    border: 1px solid #ff6;
+}
+
+div.topic {
+    background-color: #eee;
+}
+
+div.warning {
+    background-color: #ffe4e4;
+    border: 1px solid #f66;
+}
+tt {
+    background: #F0F0F0;
+    font-family: monospace;
+    font-size: 1em;
+    font-weight: normal;
+}
+tt.descname {
+    font-size: 1em;
+    font-weight: bold;
+}
+
+.related ul {
+    padding: 0;
+    margin: 0;
+}
+.related li {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 .5em;
+}
+.related li a {
+    text-decoration: none;
+}
+.related li a:hover {
+    text-decoration: underline;
+}
+
+input[type='text'], input[type='submit'] {
+    font-size: 1.5em;
+    border: 1px solid #0066CC;
+    background: #F2FAFF;
+    color: #1A1A1A;
+    margin-bottom: 1em;
+    padding: 5px 8px;
+}
+input[type='submit'] {
+    background: #F0F0F0;
+    padding: 5px 8px;
+    border: 1px solid #CCCCCC;
+    color: #333333;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-decoration: none;
+}

@@ -5,13 +5,13 @@ Sessions Tutorial
 
 .. _Tipfy: http://code.google.com/p/tipfy/
 
-`Tipfy`_ provides sessions using secure cookies or the datastore. In this
+Tipfy provides sessions using secure cookies or the datastore. In this
 tutorial, we will have an overview of the :ref:`api.tipfy.ext.session`
 module and learn how to use sessions.
 
 Overview
 --------
-Sessions in `Tipfy`_ use secure cookies to store the session data (for
+Sessions in Tipfy use secure cookies to store the session data (for
 securecookie-based sessions) or the session id (for datastore-based sessions).
 Secure cookies are cookies that are not alterable from the client side because
 they add a checksum that is validated in the server when read.
@@ -29,10 +29,10 @@ but it may be appropriate if you don't want to expose the data stored in
 the session.
 
 .. note::
-   All sessions in `Tipfy`_ are lazy: session values are only loaded when
+   All sessions in Tipfy are lazy: session values are only loaded when
    accessed, and only saved if they change.
 
-   `Tipfy`_ also tries to minimize the overhead of datastore-based sessions
+   Tipfy also tries to minimize the overhead of datastore-based sessions
    storing and reading the session data from memcache. Still, you should only
    use datastore-based session if you really need it.
 

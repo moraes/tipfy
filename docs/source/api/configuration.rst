@@ -3,23 +3,23 @@
 Configuration
 =============
 ``app.yaml``, ``main.py``, ``config.py`` and ``urls.py`` are the basic files
-used to configure and initialize a `Tipfy`_ application. In a common case,
+used to configure and initialize a Tipfy application. In a common case,
 you'll set ``app.yaml`` and ``main.py`` once (or use the provided ones, as they
 cover common uses), and customize ``config.py`` and ``urls.py`` to fit your
 application needs. We'll explain each one in details.
 
 
-``app.yaml`` and ``main.py``
-----------------------------
-`Tipfy`_ comes with simple ``app.yaml`` and ``main.py`` files ready to be used
+app.yaml and main.py
+--------------------
+Tipfy comes with simple ``app.yaml`` and ``main.py`` files ready to be used
 by any application. Unless you have uncommon needs, you can use them as they
 are. About them:
 
-  - ``app.yaml`` is a configuration file required by App Engine (read more
-    about it in `app.yaml documentation`_)
+- ``app.yaml`` is a configuration file required by App Engine (read more
+  about it in `app.yaml documentation`_)
 
-  - ``main.py`` is used as the application "bootstrap": a file that receives
-    requests and execute the appropriate application handlers.
+- ``main.py`` is used as the application "bootstrap": a file that receives
+  requests and execute the appropriate application handlers.
 
 You can use the provided ``main.py``, or you can set a bootstrap similar to it
 in a different file, or even have multiple bootstrap files for apps configured
@@ -42,17 +42,17 @@ to ``main.py``, as in this example:
 
 
 .. note::
-   The default ``app.yaml`` that comes with `Tipfy`_ also defines handlers
+   The default ``app.yaml`` that comes with Tipfy also defines handlers
    for remote API and deferred tasks. For simplicity they are not included in
    the example above.
 
 
-``config.py``
--------------
+config.py
+---------
 By default, ``main.py`` will load configuration options from ``config.py``, to
 pass the configuration dictionary that is set there to :func:`tipfy.make_wsgi_app`.
 
-`Tipfy`_ uses a simple configuration system that let modules auto-configure
+Tipfy uses a simple configuration system that let modules auto-configure
 themselves. This means that no configuration is required in ``config.py``,
 unless you **really want** to configure something.
 
@@ -88,7 +88,7 @@ used by ``tipfy`` and ``tipfy.ext.i18n`` are documented in their API pages: see
 them :data:`here <tipfy.default_config>` and
 :data:`here <tipfy.ext.i18n.default_config>`.
 
-If any `Tipfy`_ module has configurable options, it is documented in the
+If any Tipfy module has configurable options, it is documented in the
 module's ``default_config`` variable.
 
 .. note::
@@ -98,14 +98,14 @@ module's ``default_config`` variable.
 
 
 You can use this same configuration system for your own modules, acessing your
-configurations using standard config functions from tipfy. `Tipfy`_  will
+configurations using standard config functions from tipfy. Tipfy  will
 load default values from your custom module and make it uniformly accessible
 in your app.
 
 
-``urls.py``
------------
-All URLs in a `Tipfy`_ application are, by default, loaded from ``urls.py``.
+urls.py
+-------
+All URLs in a Tipfy application are, by default, loaded from ``urls.py``.
 This module must implement a ``get_rules()`` function that takes no parameters
 and returns a list of :class:`tipfy.Rule` instances.
 
@@ -152,7 +152,7 @@ For example, take this rule:
    Rule('/<int:year>/<int:month>/', endpoint='blog/archive', handler='apps.blog:ArchiveHandler'),
 
 
-When the url ``/2009/11/`` is accessed, `Tipfy`_ will load the handler
+When the url ``/2009/11/`` is accessed, Tipfy will load the handler
 ``ArchiveHandler`` from the module ``apps.blog``, and pass the rule parameters
 to the appropriate method. Let's define a simple ``ArchiveHandler`` as an
 example:

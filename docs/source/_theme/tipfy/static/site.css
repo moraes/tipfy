@@ -1,0 +1,153 @@
+/* ----- Header ----- */
+#hd {
+    position: relative;
+    font-family: trebuchet, 'trebuchet ms', arial, sans-serif;
+}
+
+#nav {
+    background: #CBEAFF;
+    padding: 0;
+    margin: 1em 0;
+}
+#nav li {
+    display: inline;
+    font-size: 153.9%;
+    line-height: 153.9%;
+    text-transform: lowercase;
+}
+#nav a {
+    display: block;
+    float: left;
+    color: #003366;
+    text-decoration: none;
+    padding: .4em .8em;
+}
+#nav li a:hover {
+    background: #99D6FF;
+}
+#nav li.active a, #nav li.active a:hover {
+    background: #FFFFFF;
+}
+#nav li.first a {
+    line-height: 0%;
+    background: #0099FF;
+}
+#nav li.first a:hover {
+    background: #0066FF;
+}
+
+#breadcrumbs {
+    clear: both;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1em;
+}
+#breadcrumbs li {
+    list-style: none;
+    display: block;
+    float: left;
+    color: #999999;
+    text-transform: lowercase;
+    padding: 0;
+    margin: 0 .5em 0 0;
+}
+#breadcrumbs li.first {
+    padding: 0;
+}
+#breadcrumbs a {
+    color: #999999;
+    text-decoration: none;
+    margin-right: .2em;
+}
+#breadcrumbs a:hover {
+    color: #1A1A1A;
+    text-decoration: underline;
+}
+
+#user-status {
+    position: absolute;
+    right: 1em;
+    top: 1em;
+    color: #003366;
+    line-height: 153.9%;
+}
+#user-status a {
+    color: #003366;
+}
+#user-status a:hover {
+    background: #99D6FF;
+}
+
+/* ----- Content and sidebar ----- */
+#content .in {
+    padding: 0 1em 1em 0;
+    font-size: 108%;
+    line-height: 160%;
+}
+#sidebar .in {
+    padding: 0 0 1em 0;
+}
+
+#content, #sidebar {
+    color: #1A1A1A;
+    font-family: trebuchet, 'trebuchet ms', arial, sans-serif;
+}
+
+#content h1, #content h2, #content h3, #content h4, #content h5, #content h6 {
+    background: #F2F2F2;
+    color: #009900;
+    line-height: 100%;
+    padding: 10px;
+    margin: 0 0 .5em;
+}
+#content h1 {
+    color: #0099FF;
+}
+#content h2 {
+}
+#content h3 {
+}
+#content h4 {
+}
+#content h5 {
+}
+#content h6 {
+}
+#content p {
+    line-height: 160%;
+    margin-bottom: 1em;
+}
+/*
+#content a {
+    color: #0033CC;
+    text-decoration: underline;
+}
+#content a:hover {
+    background: #FFE6E6;
+    color: #CC0066;
+}
+*/
+
+#sidebar h1, #sidebar h2, #sidebar h3 {
+    font-size: 138.5%;
+}
+
+#sidebar h1, #sidebar h2, #sidebar h3,
+#sidebar h4, #sidebar h5, #sidebar h6 {
+    color: #003366;
+    padding-bottom: .2em;
+    margin-bottom: .5em;
+    border-bottom: 1px dotted #B3B3B3;
+}
+#sidebar p {
+    line-height: 140%;
+    margin-bottom: 1em;
+}
+
+/* ----- Footer ----- */
+#ft {
+    text-align: right;
+    padding: 1em 0 0;
+    border-top: 1px dotted #B3B3B3;
+    margin: 1em 2em;
+}

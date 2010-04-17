@@ -8,7 +8,7 @@ User Authentication Tutorial
 .. _OpenId: http://openid.net/
 .. _App Engine's standard users API: http://code.google.com/appengine/docs/python/users/
 
-`Tipfy`_ has an unified user accounts system that supports authentication using:
+Tipfy has an unified user accounts system that supports authentication using:
 
 - Datastore ("own" users)
 - `OpenId`_ (Google, Yahoo etc)
@@ -21,9 +21,9 @@ plug new authentication methods into the user system. Check out the
 :ref:`api.tipfy.ext.auth` module for the API reference and configuration
 options for the user system.
 
-Independently of the chosen method, `Tipfy`_ will require the authenticated
+Independently of the chosen method, Tipfy will require the authenticated
 user to create an account in the site, so that an ``User`` entity is saved in
-the datastore and becomes available for the application. `Tipfy`_ provides a
+the datastore and becomes available for the application. Tipfy provides a
 default user model in :class:`tipfy.ext.auth.model.User`, but you can configure
 it to use a custom model if needed.
 
@@ -31,7 +31,7 @@ In this tutorial, we will see what is needed to implement each of the
 authentication systems listed above. We will basically configure the application
 to use the chosen auth method create handlers for login, logout, and signup.
 
-Create a new App Engine project with `Tipfy`_ files in it, and let's start!
+Create a new App Engine project with Tipfy files in it, and let's start!
 
 
 - :ref:`user-auth-gae-tutorial`
@@ -40,7 +40,7 @@ Create a new App Engine project with `Tipfy`_ files in it, and let's start!
 
 .. note::
    The source code for these tutorials is available in the ``examples``
-   directory or `Tipfy`_'s repository. See them
+   directory or Tipfy's repository. See them
    `here <http://code.google.com/p/tipfy/source/browse/#hg/examples>`_.
 
 
@@ -70,7 +70,7 @@ our users app. In the end you'll have::
 
 .. note::
    You don't **need** to follow a specific directory structure for your apps
-   when using `Tipfy`_. There are various ways to organize an application and the
+   when using Tipfy. There are various ways to organize an application and the
    schema above is just one that we consider convenient.
 
 
@@ -225,13 +225,13 @@ And now define the template for our home in ``templates/home.html``:
 
 .. note::
    To keep things more simple and objective, we decided to not use any form
-   library in this tutorial, or `Tipfy`_'s internationalization utilities.
+   library in this tutorial, or Tipfy's internationalization utilities.
    Form handling and i18n may be the subject for a new tutorial. :)
 
 
-Time to test if it works! Open ``config.py`` and make `Tipfy`_ aware of our
+Time to test if it works! Open ``config.py`` and make Tipfy aware of our
 users app. We do this adding our ``apps.users`` to the list of
-``apps_installed`` in the configuration. `Tipfy`_ will then automatically load
+``apps_installed`` in the configuration. Tipfy will then automatically load
 the URL rules we defined previously.
 
 

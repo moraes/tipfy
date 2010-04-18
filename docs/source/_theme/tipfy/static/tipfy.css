@@ -66,13 +66,19 @@ p.admonition-title {
     margin-top: 1em;
 }
 #sidebar ul {
-    margin-bottom: 0;
-}
-#sidebar li {
-    margin-bottom: .5em;
+    padding: 0;
+    margin: 0;
 }
 #sidebar li ul {
-    margin-top: .5em;
+    padding: 0;
+    margin: .5em 0 0 2em;
+}
+#sidebar ul li:before {
+    content: "\00BB \0020";
+}
+#sidebar ul li {
+    list-style: none;
+    margin-bottom: .5em;
 }
 
 div.seealso {

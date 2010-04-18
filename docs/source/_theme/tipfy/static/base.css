@@ -41,7 +41,7 @@ sub { vertical-align: sub; }
 
 /* ----- Links ----- */
 a { text-decoration: underline; }
-a:link, a:visited { color: #0033CC; }
+a:link, a:visited { color: #003399; }
 a:active, a:hover { color: #CC0000; }
 :focus { outline: 0; }
 

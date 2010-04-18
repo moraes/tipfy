@@ -186,6 +186,21 @@ class TestI18n(unittest.TestCase):
         tipfy.local.locale = 'pt_BR'
         assert i18n.is_default_locale() is True
 
+
+    def test_get_locale(self):
+        tipfy.local.app = tipfy.WSGIApplication({
+            'tipfy.ext.i18n': {
+                'locale_request_lookup': [('args', 'foo'), ('form', 'bar'), ('cookies', 'language')],
+            },
+        })
+        tipfy.local.request = Request(cookies={'language': 'es_ES'})
+
+        assert i18n.get_locale() == 'es_ES'
+
+    def test_get_locale_without_request(self):
+        app = tipfy.WSGIApplication()
+        assert i18n.get_locale() == 'en_US'
+
     #===========================================================================
     # gettext(), ngettext(), lazy_gettext(), lazy_ngettext()
     #===========================================================================

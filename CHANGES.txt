@@ -3,6 +3,8 @@ Development - Not yet released
 - Upgraded Werkzeug to 0.6.1
 - Upgraded Jinja2 to 2.4
 - Fixed bug in ext.auth.is_current_user_admin(). Thanks, danil.
+- Added get_locale() to tipfy.ext.i18n. Internally it now uses get_locale()
+  instead of local.locale directly, so that locales can be autoloaded.
 
 
 Version 0.5 - Codename Spiff - April 10, 2010

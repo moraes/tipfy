@@ -85,7 +85,7 @@ class I18nMiddleware(object):
         if not is_default_locale():
             # Persist locale using a cookie when it differs from default.
             response.set_cookie(get_config(__name__, 'cookie_name'),
-                value=local.locale, max_age=(86400 * 30))
+                value=get_locale(), max_age=(86400 * 30))
 
         return response
 
@@ -99,6 +99,24 @@ class I18nMiddleware(object):
         return self.post_dispatch(None, response)
 
 
+def get_locale():
+    """Returns the current locale code. Forces loading translations for the
+    current request if it was not set already.
+
+    :return:
+        The current locale code, e.g., ``en_US``.
+    """
+    if getattr(local, 'locale', None) is None:
+        try:
+            # Set translations based on the current request.
+            set_translations_from_request()
+        except AttributeError, e:
+            # Simply set translations using default locale.
+            set_translations(get_config(__name__, 'locale'))
+
+    return local.locale
+
+
 def get_translations():
     """Returns the current translations object. Forces loading translations for
     the current request if it was not set already.
@@ -108,7 +126,7 @@ def get_translations():
     """
     if getattr(local, 'translations', None) is None:
         try:
-            # Try to set translations based on the current request.
+            # Set translations based on the current request.
             set_translations_from_request()
         except AttributeError, e:
             # Simply set translations using default locale.
@@ -255,7 +273,7 @@ def format_date(date=None, format='medium'):
     :return:
         A formatted date in unicode.
     """
-    return dates.format_date(date=date, format=format, locale=local.locale)
+    return dates.format_date(date=date, format=format, locale=get_locale())
 
 
 def format_datetime(datetime=None, format='medium', timezone=None):
@@ -281,7 +299,7 @@ def format_datetime(datetime=None, format='medium', timezone=None):
         A formatted date and time in unicode.
     """
     return dates.format_datetime(datetime=datetime, format=format,
-        tzinfo=get_tzinfo(timezone), locale=local.locale)
+        tzinfo=get_tzinfo(timezone), locale=get_locale())
 
 
 def format_time(time=None, format='medium', timezone=None):
@@ -307,7 +325,7 @@ def format_time(time=None, format='medium', timezone=None):
         A formatted time in unicode.
     """
     return dates.format_time(time=time, format=format,
-        tzinfo=get_tzinfo(timezone), locale=local.locale)
+        tzinfo=get_tzinfo(timezone), locale=get_locale())
 
 
 def get_tzinfo(timezone=None):
@@ -382,7 +400,7 @@ def format_number(number):
         The formatted number.
     """
     # Do we really need this one?
-    return numbers.format_number(number, locale=local.locale)
+    return numbers.format_number(number, locale=get_locale())
 
 
 def format_decimal(number, format=None):
@@ -411,7 +429,7 @@ def format_decimal(number, format=None):
     :return:
         The formatted decimal number.
     """
-    return numbers.format_decimal(number, format=format, locale=local.locale)
+    return numbers.format_decimal(number, format=format, locale=get_locale())
 
 
 def format_currency(number, currency, format=None):
@@ -437,7 +455,7 @@ def format_currency(number, currency, format=None):
         The formatted currency value.
     """
     return numbers.format_currency(number, currency, format=format,
-        locale=local.locale)
+        locale=get_locale())
 
 
 def format_percent(number, format=None):
@@ -461,7 +479,7 @@ def format_percent(number, format=None):
     :return:
         The formatted percent number
     """
-    return numbers.format_percent(number, format=format, locale=local.locale)
+    return numbers.format_percent(number, format=format, locale=get_locale())
 
 
 def format_scientific(number, format=None):
@@ -481,7 +499,7 @@ def format_scientific(number, format=None):
     :return:
         Value formatted in scientific notation.
     """
-    return numbers.format_scientific(number, format=format, locale=local.locale)
+    return numbers.format_scientific(number, format=format, locale=get_locale())
 
 
 def parse_number(string):
@@ -506,7 +524,7 @@ def parse_number(string):
     :raise `NumberFormatError`:
         If the string can not be converted to a number
     """
-    return numbers.parse_number(string, locale=local.locale)
+    return numbers.parse_number(string, locale=get_locale())
 
 
 def parse_decimal(string):
@@ -531,7 +549,7 @@ def parse_decimal(string):
     :raise `NumberFormatError`:
         If the string can not be converted to a decimal number
     """
-    return numbers.parse_decimal(string, locale=local.locale)
+    return numbers.parse_decimal(string, locale=get_locale())
 
 
 # Common alias to gettext.

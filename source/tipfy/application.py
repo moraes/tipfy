@@ -305,6 +305,8 @@ class WSGIApplication(object):
 class PatchedCGIHandler(CGIHandler):
     """``wsgiref.handlers.CGIHandler`` holds ``os.environ`` when imported. This
     class overrides this behaviour. Thanks to Kay framework for this patch.
+
+    See: http://bugs.python.org/issue7250
     """
     def __init__(self):
         self.os_environ = {}

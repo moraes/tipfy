@@ -57,8 +57,8 @@ setup(
     ],
     install_requires = [
         'babel>=0.9.5',
-        'werkzeug>=0.6.1',
         'Jinja2>=2.4',
+        'werkzeug>=0.6.1',
         'WTForms>=0.5',
     ],
     classifiers=[

@@ -20,15 +20,10 @@ need.
 
 Links
 -----
-* `website <http://www.tipfy.org/>`_
-* `documentation <http://www.tipfy.org//docs/>`_
+* `Tipfy's website <http://www.tipfy.org/>`_
+* `Documentation <http://www.tipfy.org//docs/>`_
 """
-import os
 from setuptools import setup
-
-base_dir = os.path.abspath(os.path.dirname(__file__))
-source_dir = os.path.join(base_dir, 'source')
-os.chdir(source_dir)
 
 setup(
     name = 'tipfy',
@@ -36,12 +31,14 @@ setup(
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/downloads/tipfy.latest.tar.bz2',
-    description = 'An almighty little framework made specifically for Google App Engine',
+    description = 'An almighty little framework made specifically for Google '
+        'App Engine',
     long_description=__doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
     zip_safe = False,
     platforms='any',
+    package_dir = {'': 'source'},
     packages = [
         'tipfy',
         'tipfy.ext',
@@ -59,9 +56,10 @@ setup(
         'tipfy.ext.xmpp',
     ],
     install_requires = [
+        'babel>=0.9.5',
         'werkzeug>=0.6.1',
         'Jinja2>=2.4',
-        'babel>=0.9.5',
+        'WTForms>=0.5',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

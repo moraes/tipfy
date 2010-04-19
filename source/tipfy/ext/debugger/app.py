@@ -15,7 +15,7 @@
 """
 import sys
 from os.path import join, dirname
-from jinja2 import Environment, ModuleLoader
+from jinja2 import Environment, FileSystemLoader
 
 # Patch utils to use Jinja templates instead.
 sys.modules['werkzeug.debug.utils'] = sys.modules[__name__]
@@ -23,8 +23,8 @@ sys.modules['werkzeug.debug.utils'] = sys.modules[__name__]
 # Application wrapped by the debugger.
 _debugged_app = None
 
-env = Environment(loader=ModuleLoader([join(dirname(__file__),
-    'templates_compiled')]))
+env = Environment(loader=FileSystemLoader([join(dirname(__file__),
+    'templates')]))
 
 
 # werkzeug.debug.utils

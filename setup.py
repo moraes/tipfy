@@ -47,7 +47,6 @@ setup(
         'tipfy.ext.blobstore',
         'tipfy.ext.db',
         'tipfy.ext.debugger',
-        'tipfy.ext.debugger.templates_compiled',
         'tipfy.ext.i18n',
         'tipfy.ext.jinja2',
         'tipfy.ext.mako',

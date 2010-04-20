@@ -7,6 +7,9 @@ Development - Not yet released
 - Removed tipfy.application.PatchedCGIHandler. The CGIHandler bug was fixed in
   the 1.3.2 SDK.
 
+- Fixed bug in ext.taskqueue.Mapper that would prevent changes from being
+  written to the datastore.
+
 
 Version 0.5.1 - April 18, 2010
 ==============================

@@ -4,6 +4,7 @@ Development - Not yet released
 
 - Tipfy can now be installed using easy_install.
 
+- Fixed bug in ext.taskqueue.Mapper that would prevent changes from being written to the datastore.
 
 Version 0.5.1 - April 18, 2010
 ==============================

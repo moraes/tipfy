@@ -158,12 +158,12 @@ class Mapper(object):
                 self.to_put.extend(map_updates)
                 self.to_delete.extend(map_deletes)
 
-            # Do updates and deletes in batches.
-            if (i + 1) % batch_size == 0:
-                self._batch_write()
-
                 # Record the last entity we processed.
                 start_key = entity.key()
+
+                # Do updates and deletes in batches.
+                if (i + 1) % batch_size == 0:
+                    self._batch_write()
 
         except DeadlineExceededError:
             # Write any unfinished updates to the datastore.
@@ -171,5 +171,8 @@ class Mapper(object):
             # Queue a new task to pick up where we left off.
             defer(self._continue, start_key, batch_size)
             return
+        
+        #Write any updates to the datastore, since it may not have happened otherwise
+        self._batch_write()
 
         self.finish()

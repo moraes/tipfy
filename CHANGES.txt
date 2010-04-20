@@ -4,6 +4,9 @@ Development - Not yet released
 
 - Tipfy can now be installed using easy_install.
 
+- Removed tipfy.application.PatchedCGIHandler. The CGIHandler bug was fixed in
+  the 1.3.2 SDK.
+
 
 Version 0.5.1 - April 18, 2010
 ==============================

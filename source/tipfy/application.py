@@ -302,17 +302,6 @@ class WSGIApplication(object):
         return InternalServerError()
 
 
-class PatchedCGIHandler(CGIHandler):
-    """``wsgiref.handlers.CGIHandler`` holds ``os.environ`` when imported. This
-    class overrides this behaviour. Thanks to Kay framework for this patch.
-
-    See: http://bugs.python.org/issue7250
-    """
-    def __init__(self):
-        self.os_environ = {}
-        CGIHandler.__init__(self)
-
-
 def make_wsgi_app(config):
     """Returns a instance of :class:`WSGIApplication`.
 
@@ -347,7 +336,7 @@ def run_wsgi_app(app):
         app = hook(app)
 
     # Run it.
-    PatchedCGIHandler().run(app)
+    CGIHandler().run(app)
 
 
 def set_extensions_compatibility(extensions, middleware):

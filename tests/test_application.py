@@ -625,11 +625,6 @@ class TestMiscelaneous(unittest.TestCase):
 
         assert isinstance(app, AppWrapper)
 
-    def test_cgi_handler(self):
-        """Mostly here to not be marked as uncovered."""
-        from tipfy.application import PatchedCGIHandler
-        PatchedCGIHandler()
-
     def test_run_wsgi_app(self):
         """We aren't testing anything here."""
         from os import environ

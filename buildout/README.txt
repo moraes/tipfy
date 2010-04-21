@@ -31,7 +31,7 @@ Linux and Mac OS X
 
    ...or, on Windows:
 
-     $ python bin\dev_appserver parts\app
+     $ bin\python bin\dev_appserver parts\app
 
 
 4. Open a browser and access the URLs:

@@ -16,13 +16,23 @@ import zipfile
 
 logger = logging.getLogger(__name__)
 
+symlink_available = True
 
-def copytree(src, dst, symlinks=0, allowed_basenames=None, exclude=[]):
+try:
+    os.symlink
+except AttributeError:
+    symlink_available = False
+
+
+def copytree(src, dst, symlinks=False, allowed_basenames=None, exclude=[]):
     """Local implementation of shutil's copytree function.
 
     Checks wheather destination directory exists or not
     before creating it.
     """
+    if not symlink_available:
+        symlinks = False
+
     if not os.path.isdir(src):
         # Assume that the egg's content is just one or more modules
         src = os.path.dirname(src)

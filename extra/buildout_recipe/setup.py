@@ -1,7 +1,7 @@
 """
 tipfy.recipe.appengine
 ======================
-ZC Buildout recipe for setting up a
+This is a ZC Buildout recipe for setting up a
 `Google App Engine <http://code.google.com/appengine/>`_ development
 environment for the `tipfy <http://www.tipfy.org/>`_ framework.
 
@@ -22,12 +22,10 @@ from setuptools import setup, find_packages
 
 setup(
     name='tipfy.recipe.appengine',
-    version='0.1.2',
+    version='0.1.3',
     author='Rodrigo Moraes',
     author_email='rodrigo.moraes@gmail.com',
-    description='ZC Buildout recipe for setting up a google appengine '
-                'development environment for the tipfy framework. '
-                'This is a slightly modified version of rod.recipe.appengine.',
+    description='ZC Buildout recipe for tipfy.',
     long_description=__doc__,
     license='LGPL 3',
     keywords='appengine gae zc.buildout recipe zope tipfy',

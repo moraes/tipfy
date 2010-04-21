@@ -122,9 +122,9 @@ class Recipe(zc.recipe.egg.Eggs):
                         ['executable'])
         script.write("import sys\nimport os\n\n")
         script.write("sys.path[0:0] = [\n")
-        script.write(",\n".join(["  '%s'" % p for p in sys_path]))
+        script.write(",\n".join(["  r'%s'" % p for p in sys_path]))
         script.write("\n  ]\n\n")
-        script.write("PROJECT_HOME = '%s'\n\n" %
+        script.write("PROJECT_HOME = r'%s'\n\n" %
                      self.buildout['buildout']['directory'])
         script.write("def mkvar():\n")
         script.write("  var = os.path.join(PROJECT_HOME, 'var')\n")
@@ -134,7 +134,7 @@ class Recipe(zc.recipe.egg.Eggs):
         script.write("from dev_appserver import *\n\n")
         script.write("if __name__ == '__main__':\n")
         script.write("  os.environ['TMPDIR'] = mkvar()\n")
-        script.write("  run_file('%s', locals())" % bin)
+        script.write("  run_file(r'%s', locals())" % bin)
 
         # Close script file and modify permissions
         script.close()
@@ -153,11 +153,11 @@ class Recipe(zc.recipe.egg.Eggs):
                         ['executable'])
         script.write("import sys\nimport os\n\n")
         script.write("sys.path[0:0] = [\n")
-        script.write(",\n".join(["  '%s'" % p for p in sys_path]))
+        script.write(",\n".join(["  r'%s'" % p for p in sys_path]))
         script.write("\n  ]\n\n")
         script.write("from appcfg import *\n\n")
         script.write("if __name__ == '__main__':\n")
-        script.write("  run_file('%s', locals())" % bin)
+        script.write("  run_file(r'%s', locals())" % bin)
 
         # Close script file and modify permissions
         script.close()

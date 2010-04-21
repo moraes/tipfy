@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='tipfy.recipe.appengine',
-    version='0.1',
+    version='0.1.1',
     author='Rodrigo Moraes',
     author_email='rodrigo.moraes@gmail.com',
     description='ZC Buildout recipe for setting up a google appengine '

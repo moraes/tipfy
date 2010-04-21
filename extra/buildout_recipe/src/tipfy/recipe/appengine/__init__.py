@@ -155,14 +155,18 @@ class Recipe(zc.recipe.egg.Eggs):
 
     def install_appengine(self):
         """Downloads and installs Google App Engine."""
-        arch_filename = self.options['url'].split(os.sep)[-1]
+        # Breaks on Windows!
+        # TODO report to rod.recipe.appengine
+        # arch_filename = self.options['url'].split(os.sep)[-1]
+        arch_filename = self.options['url'].rsplit('/', 1)[-1]
+
         dst = os.path.join(self.buildout['buildout']['parts-directory'])
         downloads_dir = os.path.join(os.getcwd(), 'downloads')
         if not os.path.isdir(downloads_dir):
             os.mkdir(downloads_dir)
         src = os.path.join(downloads_dir, arch_filename)
         if not os.path.isfile(src):
-            logger.info("downloading Google App Engine distribution...")
+            logger.info("Downloading Google App Engine distribution...")
             urllib.urlretrieve(self.options['url'], src)
         else:
             logger.info("Google App Engine distribution already downloaded.")
@@ -197,6 +201,8 @@ class Recipe(zc.recipe.egg.Eggs):
 
     def write_pkg_resources_stub(self, d):
         """Writes a stub for setuptool's pkg_resources module."""
+        # Unnecessary?
+        return
         pkg_resources_stub = open(os.path.join(d, 'pkg_resources.py'), "w")
         pkg_resources_stub.write("def _dummy_func(*args):\n")
         pkg_resources_stub.write("    pass\n\n")
@@ -276,7 +282,8 @@ class Recipe(zc.recipe.egg.Eggs):
             self.install_appengine()
         self.setup_bin(ws)
         app_dir = options['app-directory']
-        # Addition to rod.recipe.appengine: store libraries in a /lib dir.
+        # Addition to rod.recipe.appengine: store libraries in a configurable
+        # dir inside the app.
         lib_dir = os.path.join(app_dir, options.get('lib-dir', 'lib'))
         if options.get('zip-packages', 'YES').lower() in ['yes', 'true']:
             temp_dir = os.path.join(tempfile.mkdtemp(), self.name)

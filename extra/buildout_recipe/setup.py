@@ -1,15 +1,34 @@
-"""Setup script."""
+"""
+tipfy.recipe.appengine
+======================
+ZC Buildout recipe for setting up a
+`Google App Engine <http://code.google.com/appengine/>`_ development
+environment for the `tipfy <http://www.tipfy.org/>`_ framework.
+
+Based on `rod.recipe.appengine <http://pypi.python.org/pypi/rod.recipe.appengine>`_
+
+This fixes installation issues on Windows and adds an optional configuration to
+install dependencies in a subdirectory of the app dir (e.g., '/app/lib').
+
+It will eventually include specific features for tipfy.
+
+Links
+-----
+* `Tipfy's website <http://www.tipfy.org/>`_
+* `Documentation <http://www.tipfy.org//docs/>`_
+"""
 from setuptools import setup, find_packages
 
 
 setup(
     name='tipfy.recipe.appengine',
-    version='0.1.1',
+    version='0.1.2',
     author='Rodrigo Moraes',
     author_email='rodrigo.moraes@gmail.com',
     description='ZC Buildout recipe for setting up a google appengine '
-                'development environment using the tipfy framework. '
+                'development environment for the tipfy framework. '
                 'This is a slightly modified version of rod.recipe.appengine.',
+    long_description=__doc__,
     license='LGPL 3',
     keywords='appengine gae zc.buildout recipe zope tipfy',
     url='http://pypi.python.org/pypi/tipfy.recipe.appengine',

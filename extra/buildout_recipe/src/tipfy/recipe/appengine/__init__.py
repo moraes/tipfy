@@ -174,7 +174,8 @@ class Recipe(zc.recipe.egg.Eggs):
             shutil.rmtree(os.path.join(dst, 'google_appengine'))
         arch = zipfile.ZipFile(open(src, "rb"))
         for name in arch.namelist():
-            if name.endswith(os.sep):
+            #if name.endswith(os.sep):
+            if name.endswith('/'):
                 os.mkdir(os.path.join(dst, name))
             else:
                 outfile = open(os.path.join(dst, name), 'wb')
@@ -283,8 +284,12 @@ class Recipe(zc.recipe.egg.Eggs):
         self.setup_bin(ws)
         app_dir = options['app-directory']
         # Addition to rod.recipe.appengine: store libraries in a configurable
-        # dir inside the app.
-        lib_dir = os.path.join(app_dir, options.get('lib-dir', 'lib'))
+        # dir inside the app, if set.
+        lib_dir = options.get('lib-dir', None)
+        if lib_dir:
+            lib_dir = os.path.join(app_dir, lib_dir)
+        else:
+            lib_dir = app_dir
         if options.get('zip-packages', 'YES').lower() in ['yes', 'true']:
             temp_dir = os.path.join(tempfile.mkdtemp(), self.name)
         else:

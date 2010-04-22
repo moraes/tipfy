@@ -41,17 +41,17 @@ class BlobstoreDownloadMixin(object):
         """Sends a blob-response based on a blob_key.
 
         Sets the correct response header for serving a blob.  If BlobInfo
-        is provided and no content_type specified, will set request content type
-        to BlobInfo's content type.
+        is provided and no content_type specified, will set request content
+        type to BlobInfo's content type.
 
         :param blob_key_or_info:
             BlobKey or BlobInfo record to serve.
         :param content_type:
             Content-type to override when known.
         :param save_as:
-            If ``True``, and BlobInfo record is provided, use BlobInfos filename
-            to save-as. If string is provided, use string as filename. If
-            ``None`` or ``False``, do not send as attachment.
+            If ``True``, and BlobInfo record is provided, use BlobInfos
+            filename to save-as. If string is provided, use string as filename.
+            If ``None`` or ``False``, do not send as attachment.
         :return:
             A ``werkzeug.Response`` object.
         :raise:
@@ -155,7 +155,8 @@ def parse_blob_info(file_storage):
         return value
 
     filename = file_storage.filename
-    content_type, cdict = cgi.parse_header(file_storage.headers['Content-Type'])
+    content_type, cdict = cgi.parse_header(
+        file_storage.headers['Content-Type'])
     blob_key = blobstore.BlobKey(get_value(cdict, 'blob-key'))
 
     upload_content = email.message_from_file(file_storage.stream)

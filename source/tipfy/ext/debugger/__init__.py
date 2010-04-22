@@ -13,6 +13,8 @@
     :copyright: Copyright 2008 by Armin Ronacher.
     :license: BSD.
 """
+
+
 class DebuggerMiddleware(object):
     def pre_run_app(self, app):
         """Wraps the application by Werkzeug's debugger.

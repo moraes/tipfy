@@ -71,7 +71,8 @@ class I18nMiddleware(object):
     in a cookie at the end of request, if it differs from the default locale.
     """
     def post_dispatch(self, handler, response):
-        """Saves current locale in a cookie if it is different from the default.
+        """Saves current locale in a cookie if it is different from the
+        default.
 
         :param handler:
             The current :class:`tipfy.RequestHandler` instance.
@@ -147,7 +148,8 @@ def set_translations(locale):
     """
     if locale not in _translations:
         options = list(set([locale, get_config(__name__, 'locale')]))
-        _translations[locale] = Translations.load('locale', options, 'messages')
+        _translations[locale] = Translations.load('locale', options,
+            'messages')
 
     local.locale = locale
     local.translations = _translations[locale]
@@ -499,7 +501,8 @@ def format_scientific(number, format=None):
     :return:
         Value formatted in scientific notation.
     """
-    return numbers.format_scientific(number, format=format, locale=get_locale())
+    return numbers.format_scientific(number, format=format,
+        locale=get_locale())
 
 
 def parse_number(string):

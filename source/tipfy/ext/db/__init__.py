@@ -34,7 +34,8 @@ def get_protobuf_from_entity(entities):
     crashes when unpickling (when, for example, the entity class is moved to a
     different module).
 
-    Cached protobufs can be de-serialized using :func:`get_entity_from_protobuf`.
+    Cached protobufs can be de-serialized using
+    :func:`get_entity_from_protobuf`.
 
     Example usage:
 
@@ -55,7 +56,8 @@ def get_protobuf_from_entity(entities):
     :param entities:
         A single or a list of ``db.Model`` instances to be serialized.
     :return:
-        One or more entities serialized to Protocol Buffer (a string or a list).
+        One or more entities serialized to Protocol Buffer (a string or a
+        list).
     """
     if not entities:
         return None
@@ -90,18 +92,19 @@ def get_entity_from_protobuf(data):
     This function derives from `Nick's Blog`_.
 
     :param data:
-        One or more entities serialized to Protocol Buffer (a string or a list).
+        One or more entities serialized to Protocol Buffer (a string or a
+        list).
     :return:
-        One or more entities de-serialized from Protocol Buffers (a ``db.Model``
-        inatance or a list of ``db.Model`` instances).
+        One or more entities de-serialized from Protocol Buffers (a
+        ``db.Model`` inatance or a list of ``db.Model`` instances).
     """
     if not data:
         return None
     elif isinstance(data, str):
         return db.model_from_protobuf(entity_pb.EntityProto(data))
     elif isinstance(data, dict):
-        return dict((k, db.model_from_protobuf(entity_pb.EntityProto(v))) for k, v \
-        in data.iteritems())
+        return dict((k, db.model_from_protobuf(entity_pb.EntityProto(v))) \
+            for k, v in data.iteritems())
     else:
         return [db.model_from_protobuf(entity_pb.EntityProto(x)) for x in data]
 

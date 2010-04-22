@@ -193,8 +193,9 @@ class BaseAuth(object):
         return url_for(self.signup_endpoint, redirect=dest_url, full=True)
 
     def create_login_url(self, dest_url):
-        """Returns the login URL for this request and specified destination URL.
-         By default returns the URL for the endpoint :attr:`login_endpoint`.
+        """Returns the login URL for this request and specified destination
+        URL. By default returns the URL for the endpoint
+        :attr:`login_endpoint`.
 
         :param dest_url:
             String that is the desired final destination URL for the user once
@@ -553,7 +554,8 @@ def basic_auth_required(validator):
     """
     def wrapper(func):
         def decorated(*args, **kwargs):
-            return validator(local.request.authorization, func, *args, **kwargs)
+            return validator(local.request.authorization, func, *args,
+                **kwargs)
 
         return decorated
 

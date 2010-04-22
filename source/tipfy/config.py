@@ -155,8 +155,8 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
 
     if value is _DEFAULT_CONFIG:
         if module not in local.app.config.modules:
-            # Update app config. If import fails or the default_config attribute
-            # doesn't exist, an exception will be raised.
+            # Update app config. If import fails or the default_config
+            # attribute doesn't exist, an exception will be raised.
             local.app.config.setdefault(module, import_string(
                 module + ':default_config'))
             local.app.config.modules.append(module)

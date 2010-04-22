@@ -33,8 +33,10 @@
        }
 
        # Assign users 'user_1' and 'user_2' to the 'admin' role.
-       AclRules.insert_or_update(area='my_area', user='user_1', roles=['admin'])
-       AclRules.insert_or_update(area='my_area', user='user_2', roles=['admin'])
+       AclRules.insert_or_update(area='my_area', user='user_1',
+           roles=['admin'])
+       AclRules.insert_or_update(area='my_area', user='user_2',
+           roles=['admin'])
 
        # Restrict 'user_2' from accessing a specific resource, adding a new
        # rule with flag set to False. Now this user has access to everything
@@ -68,7 +70,8 @@ _rules_map = {}
 
 
 class AclMixin(object):
-    """A mixin that adds an ``acl`` property to a :class:`tipfy.RequestHandler`.
+    """A mixin that adds an ``acl`` property to a
+    :class:`tipfy.RequestHandler`.
 
     The handler must have the properties ``area`` and ``current_user`` set for
     it to work.
@@ -79,8 +82,9 @@ class AclMixin(object):
     @cached_property
     def acl(self):
         """Loads and returns the access permission for the currently logged in
-        user. This requires the handler to have an ``area`` and ``current_user``
-        attributes. Casted to a string they must return the object identifiers.
+        user. This requires the handler to have an ``area`` and
+        ``current_user`` attributes. Casted to a string they must return the
+        object identifiers.
         """
         return Acl(str(self.area.key()), str(self.current_user.key()),
             self.roles_map, self.roles_lock)
@@ -154,6 +158,7 @@ class AclRules(db.Model):
             An AclRules entity.
         """
         key_name = cls.get_key_name(area, user)
+
         def txn():
             user_acl = cls.get_by_key_name(key_name)
             if user_acl is None:
@@ -351,8 +356,8 @@ class Acl(object):
         :param roles:
             An iterable of role names.
         :return:
-            Boolean ``True`` if the user is in any of the role groups; ``False``
-            otherwise.
+            Boolean ``True`` if the user is in any of the role groups;
+            ``False`` otherwise.
         """
         for role in roles:
             if role in self._roles:
@@ -366,8 +371,8 @@ class Acl(object):
         :param roles:
             An iterable of role names.
         :return:
-            Boolean ``True`` if the user is in all of the role groups; ``False``
-            otherwise.
+            Boolean ``True`` if the user is in all of the role groups;
+            ``False`` otherwise.
         """
         for role in roles:
             if role not in self._roles:

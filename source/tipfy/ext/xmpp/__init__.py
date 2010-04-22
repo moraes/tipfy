@@ -25,9 +25,9 @@ class BaseHandler(RequestHandler):
     """A webapp baseclass for XMPP handlers.
 
     Implements a straightforward message delivery pattern. When a message is
-    received, message_received is called with a Message object that encapsulates
-    the relevant details. Users can reply using the standard XMPP API, or the
-    convenient .reply() method on the Message object.
+    received, message_received is called with a Message object that
+    encapsulates the relevant details. Users can reply using the standard XMPP
+    API, or the convenient .reply() method on the Message object.
     """
     def message_received(self, message):
         """Called when a message is sent to the XMPP bot.
@@ -62,14 +62,14 @@ class BaseHandler(RequestHandler):
 class CommandHandlerMixin(object):
     """A command handler for XMPP bots.
 
-    Implements a command handler pattern. XMPP messages are processed by calling
-    message_received. Message objects handled by this class are annotated with
-    'command' and 'arg' fields. On receipt of a message starting with a forward
-    or backward slash, the handler calls a method named after the command - eg,
-    if the user sends "/foo bar", the handler will call foo_command(message).
-    If no handler method matches, unhandled_command is called. The default
-    behaviour of unhandled_command is to send the message "Unknown command"
-    back to the sender.
+    Implements a command handler pattern. XMPP messages are processed by
+    calling message_received. Message objects handled by this class are
+    annotated with 'command' and 'arg' fields. On receipt of a message
+    starting with a forward or backward slash, the handler calls a method
+    named after the command - eg, if the user sends "/foo bar", the handler
+    will call foo_command(message). If no handler method matches,
+    unhandled_command is called. The default behaviour of unhandled_command
+    is to send the message "Unknown command" back to the sender.
 
     If the user sends a message not prefixed with a slash,
     text_message(message) is called.

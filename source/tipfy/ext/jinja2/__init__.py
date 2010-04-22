@@ -20,7 +20,7 @@ from tipfy.ext import i18n
 #: - ``templates_dir``: Directory for templates. Default is `templates`.
 #:
 #:   - ``templates_compiled_target``: Target for compiled templates. If set,
-#:     uses the loader for compiled templates when deployed. If it ends with a 
+#:     uses the loader for compiled templates when deployed. If it ends with a
 #:     '.zip' it will be treated as a zip file. Default is ``None``.
 #:
 #: - ``force_use_compiled``: Forces the use of compiled templates even in the
@@ -65,7 +65,8 @@ def get_env():
     """
     global _environment
     if _environment is None:
-        templates_compiled_target = get_config(__name__, 'templates_compiled_target')
+        templates_compiled_target = get_config(__name__,
+            'templates_compiled_target')
 
         use_compiled = not get_config('tipfy', 'dev') or get_config(__name__,
             'force_use_compiled')

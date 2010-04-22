@@ -162,7 +162,8 @@ class SessionMixin(object):
     """
     @cached_property
     def session(self):
-        """A dictionary-like object that is persisted at the end of the request.
+        """A dictionary-like object that is persisted at the end of the
+        request.
         """
         return local.session_store.get_session()
 

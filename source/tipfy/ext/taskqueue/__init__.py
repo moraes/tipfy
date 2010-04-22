@@ -91,7 +91,8 @@ class Mapper(object):
        Rule('/_ah/queue/deferred', endpoint='tasks/deferred',
            handler='tipfy.ext.tasks:DeferredHandler')
 
-    This class derives from http://code.google.com/appengine/articles/deferred.html
+    This class derives from
+    http://code.google.com/appengine/articles/deferred.html
     """
     # Subclasses should replace this with a model class (eg, model.Person).
     model = None
@@ -119,8 +120,8 @@ class Mapper(object):
         pass
 
     def get_query(self):
-        """Returns a query over the specified kind, with any appropriate filters
-        applied.
+        """Returns a query over the specified kind, with any appropriate
+        filters applied.
         """
         q = self.model.all()
         for prop, value in self.filters:
@@ -171,8 +172,9 @@ class Mapper(object):
             # Queue a new task to pick up where we left off.
             defer(self._continue, start_key, batch_size)
             return
-        
-        #Write any updates to the datastore, since it may not have happened otherwise
+
+        # Write any updates to the datastore, since it may not have happened
+        # otherwise
         self._batch_write()
 
         self.finish()

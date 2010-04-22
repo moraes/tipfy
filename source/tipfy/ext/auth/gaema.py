@@ -116,6 +116,7 @@ class AuthHandler(object):
         raise RequestRedirect(url)
 
     _ARG_DEFAULT = []
+
     def get_argument(self, name, default=_ARG_DEFAULT, strip=True):
         """Returns the value of a request GET argument with the given name.
 

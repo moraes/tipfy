@@ -116,8 +116,8 @@ class MiddlewareFactory(object):
         object.
 
         :param obj:
-            The object to search for related middleware (the ``WSGIApplication``
-            or ``RequestHandler``).
+            The object to search for related middleware (the
+            ``WSGIApplication`` or ``RequestHandler``).
         :param classes:
             A list of middleware classes.
         :return:
@@ -253,7 +253,8 @@ class WSGIApplication(object):
                 response = hook(response)
 
         except RequestRedirect, e:
-            # Execute redirects raised by the routing system or the application.
+            # Execute redirects raised by the routing system or the
+            # application.
             response = e
         except Exception, e:
             # Handle http and uncaught exceptions.
@@ -375,6 +376,8 @@ def set_extensions_compatibility(extensions, middleware):
 
 
 _ULTIMATE_SYS_PATH = None
+
+
 def fix_sys_path():
     """A fix for issue 772. We must keep this here until it is fixed in the dev
     server.

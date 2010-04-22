@@ -8,10 +8,7 @@
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE for more details.
 """
-import sys
-if 'lib' not in sys.path:
-    sys.path.insert(0, 'lib')
-
+import _sys_path
 import config
 import tipfy
 

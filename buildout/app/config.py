@@ -16,4 +16,8 @@ config['tipfy'] = {
     'middleware': [
         'tipfy.ext.debugger.DebuggerMiddleware',
     ],
+    # Enable the Hello, World! app example.
+    'apps_installed': [
+        'apps.hello_world',
+    ],
 }

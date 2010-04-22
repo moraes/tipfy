@@ -10,6 +10,7 @@
 """
 import tipfy
 
+
 def get_rules():
     """Returns a list of URL rules for the application. The list can be defined
     entirely here or in separate ``urls.py`` files. Here we show an example of

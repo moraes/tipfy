@@ -22,6 +22,8 @@ Links
 -----
 * `Tipfy's website <http://www.tipfy.org/>`_
 * `Documentation <http://www.tipfy.org//docs/>`_
+* `Discussion Group <http://groups.google.com/group/tipfy>`_
+* `Repository <http://code.google.com/p/tipfy/>`_
 """
 from setuptools import setup
 
@@ -38,7 +40,6 @@ setup(
     author_email = 'rodrigo.moraes@gmail.com',
     zip_safe = False,
     platforms='any',
-    package_dir = {'': 'source'},
     packages = [
         'tipfy',
         'tipfy.ext',

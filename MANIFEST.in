@@ -1,2 +1,2 @@
 include *.txt
-recursive-include source/tipfy *.html
+recursive-include tipfy *.html

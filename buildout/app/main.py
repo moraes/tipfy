@@ -8,7 +8,11 @@
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE for more details.
 """
-import _sys_path
+import sys
+
+sys.path.insert(0, 'distlib'))
+sys.path.insert(0, 'lib')
+
 import config
 import tipfy
 

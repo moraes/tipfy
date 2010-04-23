@@ -1,4 +1,6 @@
 """
+TODO: only use relative paths in /bin and any scripts.
+
 Options:
 
 sdk-dir: full path to the Google App Engine SDK in the system.
@@ -6,7 +8,7 @@ sdk-url: full URL to the Google App Engine SDK, to be downloaded.
 app-directory: name of the app directory. Default is 'app'.
 lib-directory: name of the app libraries directory. Default is 'app/lib'.
 ext-directory: name of the app built libraries directory. Default is
-    'app/lib/_build'.
+    'app/lib/distlib'.
 etc-directory: Name of the directory to save extra stuff. Default is '/etc'.
 downloads-directory = Name of the directory to save downloads. Default is
     '/etc/downloads'.
@@ -23,20 +25,41 @@ logger = logging.getLogger(__name__)
 
 is_win32 = (sys.platform == 'win32')
 
-SERVER_SCRIPT = """#!%(python)s
+DEV_APPSERVER_SCRIPT = """#!%(python)s
 
 import os
 import sys
 
+BASE = CURR_DIR = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
+%(base)s
+SDK_DIR = os.path.join(BASE, %(sdk)s)
+SERVER_SCRIPT = os.path.join(SDK_DIR, 'dev_appserver.py')
+
 sys.path[0:0] = [
-  %(sys_path)s
+  SDK_DIR,
 ]
 
 from dev_appserver import *
 
+def set_default_options():
+  sys_path = list(sys.path)
+  # Add the current path temporarily.
+  sys.path.insert(0, CURR_DIR)
+
+  from utils import get_dev_appserver_options
+
+  config_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
+      'defaults.cfg'))
+  argv = get_dev_appserver_options(sys.argv, config_file)
+  if argv:
+      sys.argv = argv
+
+  # Remove temporary path.
+  sys.path[:] = sys_path
+
 if __name__ == '__main__':
-  os.environ['TMPDIR'] = r'%(var_dir)s'
-  run_file(r'%(bin)s', locals())"""
+  set_default_options()
+  run_file(SERVER_SCRIPT, locals())"""
 
 
 APPCFG_SCRIPT = """#!%(python)s
@@ -91,6 +114,15 @@ edit things here because any changes will be lost!
 
 Use the "%(lib_dir)s" directory to place other libraries or to override packages
 from this directory."""
+
+
+BIN_DEFAULTS_CFG = """[app]
+path = %(app_path)s
+
+[dev_appserver]
+datastore_path = %(datastore_path)s
+history_path = %(history_path)s
+blobstore_path = %(blobstore_path)s"""
 
 
 def copytree(src, dst, allowed_basenames=None, exclude=[]):
@@ -340,18 +372,29 @@ class Recipe(zc.recipe.egg.Eggs):
         appcfg = os.path.join(self.sdk_dir, 'appcfg.py')
         self.write_appcfg_script(appcfg, [self.sdk_dir])
 
+        # Write default config.
+        self.write_bin_defaults_cfg()
+        self.write_bin_utils()
+
     def write_server_script(self, name, bin, sys_path):
         """Generates the development server script (dev_appserver) in bin."""
+        base = 'BASE = os.path.dirname(BASE)\n' * len(self.relpath(
+            self.bin_dir))
+        parts = self.relpath(self.parts_dir)
+        parts.append('google_appengine')
+
         # Generate script contents.
-        content = SERVER_SCRIPT % {
-            'python':   self.buildout[self.buildout['buildout']['python']]
+        content = DEV_APPSERVER_SCRIPT % {
+            'python':     self.buildout[self.buildout['buildout']['python']]
                 ['executable'],
-            'sys_path': ',\n'.join(["    r'%s'" % p for p in sys_path]),
-            'var_dir':  self.var_dir,
-            'bin':      bin,
+            'base': base.strip(),
+            'sdk': ', '.join(["'%s'" % p for p in parts]),
+            #'sys_path':   ',\n'.join(["  r'%s'" % p for p in sys_path]),
+            #'utils_path': os.path.abspath(os.path.dirname(__file__)),
+            #'bin':        bin,
         }
 
-        # Open the destination script file.
+        # Save script file and chmod it.
         path = os.path.join(self.bin_dir, name)
         script = open(path, 'w')
         script.write(content)
@@ -368,9 +411,52 @@ class Recipe(zc.recipe.egg.Eggs):
             'bin':      bin,
         }
 
-        # Open the destination script file.
+        # Save script file and chmod it.
         path = os.path.join(self.bin_dir, 'appcfg')
         script = open(path, 'w')
         script.write(content)
         script.close()
         os.chmod(path, 0755)
+
+    def write_bin_defaults_cfg(self):
+        path = os.path.join(self.bin_dir, 'defaults.cfg')
+        if os.path.isfile(path):
+            # Don't overwrite it. It is editable by the user.
+            return
+
+        # Generate config contents.
+        var_dir = self.var_dir[len(self.base_dir) + 1:]
+        content = BIN_DEFAULTS_CFG % {
+            'app_path':       os.path.basename(self.app_dir),
+            'datastore_path': var_dir,
+            'history_path':   var_dir,
+            'blobstore_path': var_dir,
+        }
+
+        # Save config file.
+        script = open(path, 'w')
+        script.write(content)
+        script.close()
+
+    def write_bin_utils(self):
+        path = os.path.join(self.bin_dir, 'utils.py')
+        if os.path.isfile(path):
+            # Don't overwrite it. It is editable by the user.
+            return
+
+        utils_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+            'utils.py'))
+
+        # Save config file.
+        script = open(path, 'w')
+        script.write(file(utils_path).read())
+        script.close()
+
+    def relpath(self, path, basedir=None):
+        """A very hackish implementation of os.path.relpath()."""
+        basedir = basedir or self.base_dir
+        if not path.startswith(basedir):
+            raise ValueError('%s must be inside %s.' % (path, basedir))
+
+        path = os.path.normpath(path[len(basedir):]).strip(os.path.sep)
+        return path.split(os.path.sep)

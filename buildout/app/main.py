@@ -10,7 +10,7 @@
 """
 import sys
 
-sys.path.insert(0, 'distlib'))
+sys.path.insert(0, 'distlib')
 sys.path.insert(0, 'lib')
 
 import config

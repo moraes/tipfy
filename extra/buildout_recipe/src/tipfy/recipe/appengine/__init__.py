@@ -1,49 +1,118 @@
-"""Recipe for setting up a Google App Engine development environment.
-
-Based on http://pypi.python.org/pypi/rod.recipe.appengine
-
-Author: Tobias Rodaebel <tobias rodaebel at googlemail com>
-License: LGPL 3
 """
+Options:
 
+sdk-dir: full path to the Google App Engine SDK in the system.
+sdk-url: full URL to the Google App Engine SDK, to be downloaded.
+app-directory: name of the app directory. Default is 'app'.
+lib-directory: name of the app libraries directory. Default is 'app/lib'.
+ext-directory: name of the app built libraries directory. Default is
+    'app/lib/_build'.
+etc-directory: Name of the directory to save extra stuff. Default is '/etc'.
+downloads-directory = Name of the directory to save downloads. Default is
+    '/etc/downloads'.
+"""
 import logging
 import os
+import sys
 import shutil
-import tempfile
 import urllib
 import zc.recipe.egg
 import zipfile
 
 logger = logging.getLogger(__name__)
 
-symlink_available = True
+is_win32 = (sys.platform == 'win32')
 
-try:
-    os.symlink
-except AttributeError:
-    symlink_available = False
+SERVER_SCRIPT = """#!%(python)s
+
+import os
+import sys
+
+sys.path[0:0] = [
+  %(sys_path)s
+]
+
+from dev_appserver import *
+
+if __name__ == '__main__':
+  os.environ['TMPDIR'] = r'%(var_dir)s'
+  run_file(r'%(bin)s', locals())"""
 
 
-def copytree(src, dst, symlinks=False, allowed_basenames=None, exclude=[]):
+APPCFG_SCRIPT = """#!%(python)s
+
+import os
+import sys
+
+sys.path[0:0] = [
+  %(sys_path)s
+]
+
+from appcfg import *
+
+if __name__ == '__main__':
+  run_file(r'%(bin)s', locals())"""
+
+
+SYS_PATH_MODULE = '''# -*- coding: utf-8 -*-
+"""
+    _sys_path
+    ~~~~~~~~~
+
+    This is a generated module to set sys.path according to the buildout
+    settings. Don't change it directly because it is overriden with a new
+    build.
+
+    :copyright: 2009 by tipfy.org.
+    :license: BSD, see LICENSE for more details.
+"""
+import os
+import sys
+
+%(paths)s'''
+
+LIB_README = """%(lib_dir)s
+%(title_sub)s
+
+Use this directory to place your libraries.
+
+This directory is searched first when looking for a package, and
+"%(ext_dir)s" is searched in sequence.
+
+This directory is not editted by a build tool. It is a safe place for custom
+libraries or to override packages from the "%(ext_dir)s" directory."""
+
+
+DISTLIB_README = """Warning!
+========
+
+This directory is removed every time the build tool runs, so don't place or
+edit things here because any changes will be lost!
+
+Use the "%(lib_dir)s" directory to place other libraries or to override packages
+from this directory."""
+
+
+def copytree(src, dst, allowed_basenames=None, exclude=[]):
     """Local implementation of shutil's copytree function.
 
     Checks wheather destination directory exists or not
     before creating it.
     """
-    if not symlink_available:
-        symlinks = False
-
     if not os.path.isdir(src):
         # Assume that the egg's content is just one or more modules
         src = os.path.dirname(src)
         dst = os.path.dirname(dst)
+
     names = os.listdir(src)
     if not os.path.exists(dst):
         os.mkdir(dst)
+
     for name in names:
         base, ext = os.path.splitext(name)
         if ext == ".egg-info":
             continue
+
         srcname = os.path.join(src, name)
         dstname = os.path.join(dst, name)
         if allowed_basenames:
@@ -51,191 +120,145 @@ def copytree(src, dst, symlinks=False, allowed_basenames=None, exclude=[]):
                 if name not in allowed_basenames:
                     logger.debug("Skipped %s" % srcname)
                     continue
+
         if os.path.basename(srcname) in exclude:
             continue
+
         try:
-            if symlinks and os.path.islink(srcname):
-                linkto = os.readlink(srcname)
-                os.symlink(linkto, dstname)
-            elif os.path.isdir(srcname):
-                copytree(srcname, dstname, symlinks, allowed_basenames, exclude)
-            elif not os.path.isfile(dstname) and symlinks:
-                os.symlink(srcname, dstname)
-            elif not symlinks:
+            if os.path.isdir(srcname):
+                copytree(srcname, dstname, allowed_basenames, exclude)
+            else:
                 shutil.copy2(srcname, dstname)
         except (IOError, os.error), why:
-            logging.error("Can't copy %s to %s: %s" %
+            logger.error("Can't copy %s to %s: %s" %
                           (srcname, dstname, str(why)))
 
 
-class Zipper(object):
-    """Provides a zip file creater."""
-
-    def __init__(self, name, topdir, mode = "w"):
-        """Initializes zipper."""
-        self.name = name
-        self.zip = zipfile.ZipFile(name, mode, zipfile.ZIP_DEFLATED)
-        os.chdir(os.path.abspath(os.path.normpath(topdir)))
-        self.topdir = os.getcwd()
-
-    def close(self):
-        self.zip.close()
-
-    def add(self, fname, archname=None, compression_type=zipfile.ZIP_DEFLATED):
-        """Adds a file to the zip archive."""
-        if archname is None:
-            archname = fname
-
-        normfname = os.path.abspath(os.path.normpath(archname))
-        if normfname.startswith(self.topdir) and \
-           normfname[len(self.topdir)] == os.sep:
-            archivename = normfname[len(self.topdir) + 1:]
-        else:
-            raise RuntimeError, "%s: not found in %s" % (archname, self.topdir)
-
-        self.zip.write(
-            os.path.realpath(fname), archivename, compression_type)
-
-
 class Recipe(zc.recipe.egg.Eggs):
-    """Buildout recipe for Google App Engine."""
-
     def __init__(self, buildout, name, opts):
         """Standard constructor for zc.buildout recipes."""
-
         super(Recipe, self).__init__(buildout, name, opts)
-        opts['app-directory'] = os.path.join(buildout['buildout']
-                                             ['parts-directory'],
-                                             self.name)
-        opts['bin-directory'] = buildout['buildout']['bin-directory']
 
-    def write_server_script(self, name, bin, sys_path):
-        """Generates bin script with given name."""
+        join = os.path.join
+        self.base_dir = join(self.buildout['buildout']['directory'])
+        self.parts_dir = join(self.buildout['buildout']['parts-directory'])
+        self.bin_dir = join(self.buildout['buildout']['bin-directory'])
 
-        # Open the destination script file
-        path = os.path.join(self.options['bin-directory'], name)
-        script = open(path, 'w')
+        # Create all directories.
+        # /app, /app/lib, /app/distlib
+        app_dir = self.options.get('app-directory', 'app')
+        lib_dir = self.options.get('lib-directory', join(app_dir, 'lib'))
+        ext_dir = self.options.get('ext-directory', join(app_dir, 'distlib'))
+        # /etc, /etc/downloads, /var
+        etc_dir = self.options.get('etc-directory', 'etc')
+        downloads_dir = self.options.get('downloads-directory', join(etc_dir,
+            'downloads'))
+        var_dir = self.options.get('var-directory', 'var')
 
-        # Write script
-        script.write("#!%s\n\n" %
-                        self.buildout[self.buildout['buildout']['python']]
-                        ['executable'])
-        script.write("import sys\nimport os\n\n")
-        script.write("sys.path[0:0] = [\n")
-        script.write(",\n".join(["  r'%s'" % p for p in sys_path]))
-        script.write("\n  ]\n\n")
-        script.write("PROJECT_HOME = r'%s'\n\n" %
-                     self.buildout['buildout']['directory'])
-        script.write("def mkvar():\n")
-        script.write("  var = os.path.join(PROJECT_HOME, 'var')\n")
-        script.write("  if not os.path.exists(var):\n")
-        script.write("    os.mkdir(var)\n")
-        script.write("  return var\n\n")
-        script.write("from dev_appserver import *\n\n")
-        script.write("if __name__ == '__main__':\n")
-        script.write("  os.environ['TMPDIR'] = mkvar()\n")
-        script.write("  run_file(r'%s', locals())" % bin)
+        dirs = zip(
+            ['app_dir', 'lib_dir', 'ext_dir', 'etc_dir', 'downloads_dir',
+            'var_dir'],
+            [app_dir, lib_dir, ext_dir, etc_dir, downloads_dir, var_dir])
 
-        # Close script file and modify permissions
-        script.close()
-        os.chmod(path, 0755)
+        for name, value in dirs:
+            path = join(self.base_dir, value)
+            if not os.path.isdir(path):
+                logger.info("Creating directory '%s'." % path)
+                os.mkdir(path)
 
-    def write_appcfg_script(self, bin, sys_path):
-        """Generates the app configuration script in bin."""
+            setattr(self, name, path)
 
-        # Open the destination script file
-        path = os.path.join(self.options['bin-directory'], 'appcfg')
-        script = open(path, 'w')
+        # Create /lib/README.txt if not set yet.
+        path = os.path.join(self.lib_dir, 'README.txt')
+        if not os.path.isfile(path):
+            lib_dir = self.lib_dir[len(self.app_dir):]
+            ext_dir = self.ext_dir[len(self.app_dir):]
+            content = LIB_README % {
+                'lib_dir': lib_dir,
+                'ext_dir': ext_dir,
+                'title_sub': '=' * len(lib_dir)
+            }
 
-        # Write script
-        script.write("#!%s\n\n" %
-                        self.buildout[self.buildout['buildout']['python']]
-                        ['executable'])
-        script.write("import sys\nimport os\n\n")
-        script.write("sys.path[0:0] = [\n")
-        script.write(",\n".join(["  r'%s'" % p for p in sys_path]))
-        script.write("\n  ]\n\n")
-        script.write("from appcfg import *\n\n")
-        script.write("if __name__ == '__main__':\n")
-        script.write("  run_file(r'%s', locals())" % bin)
+            script = open(path, 'w')
+            script.write(content)
+            script.close()
 
-        # Close script file and modify permissions
-        script.close()
-        os.chmod(path, 0755)
 
-    def install_appengine(self):
-        """Downloads and installs Google App Engine."""
-        # Breaks on Windows!
-        # TODO report to rod.recipe.appengine
-        # arch_filename = self.options['url'].split(os.sep)[-1]
-        arch_filename = self.options['url'].rsplit('/', 1)[-1]
+    def install(self):
+        """Creates the part."""
+        # Install packages.
+        self.install_packages()
+        # Install the Google App Engine SDK.
+        self.install_sdk()
+        # Install binary scripts.
+        self.install_bin()
 
-        dst = os.path.join(self.buildout['buildout']['parts-directory'])
-        downloads_dir = os.path.join(os.getcwd(), 'downloads')
-        if not os.path.isdir(downloads_dir):
-            os.mkdir(downloads_dir)
-        src = os.path.join(downloads_dir, arch_filename)
-        if not os.path.isfile(src):
-            logger.info("Downloading Google App Engine distribution...")
-            urllib.urlretrieve(self.options['url'], src)
-        else:
-            logger.info("Google App Engine distribution already downloaded.")
-        if os.path.isdir(os.path.join(dst, 'google_appengine')):
-            shutil.rmtree(os.path.join(dst, 'google_appengine'))
-        arch = zipfile.ZipFile(open(src, "rb"))
-        for name in arch.namelist():
-            #if name.endswith(os.sep):
-            if name.endswith('/'):
-                os.mkdir(os.path.join(dst, name))
+        return ()
+
+    def update(self):
+        """Updates the part."""
+        # Install packages.
+        self.install_packages()
+        # Install the Google App Engine SDK.
+        self.install_sdk()
+        # Install binary scripts.
+        self.install_bin()
+
+        return ()
+
+    def install_app_sys_path(self):
+        """Install sys.path for the app."""
+        dirs = [self.ext_dir, self.lib_dir]
+        paths = []
+        for d in dirs:
+            d = d[len(self.app_dir):]
+            parts = ["'%s'" % part for part in d.split(os.sep) if part.strip()]
+            if len(parts) == 1:
+                path = parts[0]
             else:
-                outfile = open(os.path.join(dst, name), 'wb')
-                outfile.write(arch.read(name))
-                outfile.close()
+                path = 'os.path.join(%s)' % ', '.join(parts)
 
-    def setup_bin(self, ws):
-        """Setup bin scripts."""
-        gae = self.options.get('appengine-lib')
-        if gae is None:
-            gae = os.path.join(self.buildout['buildout']['parts-directory'],
-                               'google_appengine')
-        sys_path = [gae]
+            paths.append('sys.path.insert(0, %s)' % path)
 
-        # Write server script
-        gae_server = os.path.join(gae, 'dev_appserver.py')
-        self.write_server_script(self.options.get('server-script', self.name),
-                                 gae_server,
-                                 sys_path)
+        content = SYS_PATH_MODULE % {'paths': '\n'.join(paths)}
 
-        # Write app configuration script
-        gae_config = os.path.join(gae, 'appcfg.py')
-        self.write_appcfg_script(gae_config, sys_path)
+        path = os.path.join(self.app_dir, '_sys_path.py')
+        script = open(path, 'w')
+        script.write(content.strip())
+        script.close()
 
-    def write_pkg_resources_stub(self, d):
-        """Writes a stub for setuptool's pkg_resources module."""
-        # Unnecessary?
-        return
-        pkg_resources_stub = open(os.path.join(d, 'pkg_resources.py'), "w")
-        pkg_resources_stub.write("def _dummy_func(*args):\n")
-        pkg_resources_stub.write("    pass\n\n")
-        pkg_resources_stub.write("declare_namespace = _dummy_func\n")
-        pkg_resources_stub.write("resource_filename = _dummy_func\n")
-        pkg_resources_stub.close()
+    def install_packages(self):
+        reqs, ws = self.working_set()
 
-    def copy_packages(self, ws, lib):
-        """Copy egg contents to lib-directory."""
-        if not os.path.exists(lib):
-            os.mkdir(lib)
-        self.write_pkg_resources_stub(lib)
-        packages = self.options.get('packages', '').split()
+        # Delete old dir and create it again.
+        if os.path.isdir(self.ext_dir):
+            logger.info("Deleting directory '%s'." % self.ext_dir)
+            shutil.rmtree(self.ext_dir, True)
+
+        logger.info("Creating directory '%s'." % self.ext_dir)
+        os.mkdir(self.ext_dir)
+
+        # Create README.txt.
+        lib_dir = self.lib_dir[len(self.app_dir):]
+        path = os.path.join(self.ext_dir, 'README.txt')
+        script = open(path, 'w')
+        script.write(DISTLIB_README % {'lib_dir': lib_dir})
+        script.close()
+
+        reqs, ws = self.working_set()
+
+        packages = self.options.get('eggs', '').split()
         keys = [k.lower() for k in packages]
         for p in keys:
             if p not in ws.by_key.keys():
                 raise KeyError, '%s: package not found.' % p
+
         entries = {}
         for k in ws.entry_keys:
             key = ws.entry_keys[k][0]
             if key in keys:
                 entries[packages[keys.index(key)]] = k
+
         for key in entries.keys():
             top_level = os.path.join(ws.by_key[key]._provider.egg_info,
                                      'top_level.txt')
@@ -243,7 +266,7 @@ class Recipe(zc.recipe.egg.Eggs):
             top_dir = top.read()
             src = os.path.join(entries[key], top_dir.strip())
             top.close()
-            dir = os.path.join(lib, os.path.basename(src))
+            dir = os.path.join(self.ext_dir, os.path.basename(src))
             egg_info_src = os.path.join(ws.by_key[key]._provider.egg_info,
                                         'SOURCES.txt')
             sources = open(egg_info_src, 'r')
@@ -252,76 +275,102 @@ class Recipe(zc.recipe.egg.Eggs):
             sources.close()
             if not os.path.exists(dir) and os.path.exists(src):
                 os.mkdir(dir)
-            exclude = ['EGG-INFO'] # Exclude this every time
-            copytree(src, dir, True,
-                     allowed_basenames=allowed_basenames,
-                     exclude=exclude+self.options.get('exclude', '').split())
 
-    def zip_packages(self, ws, lib):
-        """Creates zip archive of configured packages."""
+            # Exclude this every time
+            exclude = ['EGG-INFO']
+            copytree(src, dir, allowed_basenames=allowed_basenames,
+                     exclude=exclude)
 
-        zip_name = self.options.get('zip-name', 'packages.zip')
-        zipper = Zipper(os.path.join(self.options['app-directory'],
-                                     zip_name), lib)
-        os.chdir(lib)
-        for root, dirs, files in os.walk('.'):
-            for f in files:
-                zipper.add(os.path.join(root, f))
-        zipper.close()
+    def install_sdk(self):
+        """Downloads and installs the Google App Engine SDK."""
+        self.sdk_dir = self.options.get('sdk-dir')
+        sdk_url = self.options.get('sdk-url')
+        if not self.sdk_dir and not sdk_url:
+            raise ValueError('You must define a value for "sdk-url" or '
+                '"sdk-url" in buildout.cfg.')
 
-    def copy_sources(self):
-        """Copies the application sources."""
-        options = self.options
-        src = None
-        if options.get('src'):
-            src = os.path.join(self.buildout['buildout']['directory'],
-                               options['src'])
-        if src:
-            sources = [src]
+        if self.sdk_dir:
+            # Everything is set, so return.
+            logger.info('Using Google App Engine SDK from %s' % self.sdk_dir)
+            return
+
+        # Set SDK dir to the one we wil fetch, and remove the old one.
+        self.sdk_dir = os.path.join(self.parts_dir, 'google_appengine')
+        if os.path.isdir(self.sdk_dir):
+            shutil.rmtree(self.sdk_dir)
+
+        # Extract the zip name: the last part of the path.
+        filename = sdk_url.rsplit('/', 1)[-1]
+
+        # Set the zip destination.
+        dst = os.path.join(self.downloads_dir, filename)
+
+        # Download the file if not yet downloaded.
+        if not os.path.isfile(dst):
+            logger.info('Downloading Google App Engine SDK...')
+            urllib.urlretrieve(sdk_url, dst)
         else:
-            reqs, ws = self.working_set()
-            sources = [d.location for d in ws if d.key in reqs]
-        for s in sources:
-            copytree(s, options['app-directory'], True,
-                     exclude=options.get('exclude', '').split())
+            logger.info('Google App SDK distribution already downloaded.')
 
-    def install(self):
-        """Creates the part."""
-        options = self.options
-        reqs, ws = self.working_set()
-        if not self.options.get('appengine-lib', False):
-            self.install_appengine()
-        self.setup_bin(ws)
-        app_dir = options['app-directory']
-        # Addition to rod.recipe.appengine: store libraries in a configurable
-        # dir inside the app, if set.
-        lib_dir = options.get('lib-dir', None)
-        if lib_dir:
-            lib_dir = os.path.join(app_dir, lib_dir)
-        else:
-            lib_dir = app_dir
-        if options.get('zip-packages', 'YES').lower() in ['yes', 'true']:
-            temp_dir = os.path.join(tempfile.mkdtemp(), self.name)
-        else:
-            temp_dir = lib_dir
-        if os.path.isdir(app_dir):
-            shutil.rmtree(app_dir, True)
-        if not os.path.exists(app_dir):
-            os.mkdir(app_dir)
-        if not os.path.exists(lib_dir):
-            os.mkdir(lib_dir)
-        self.copy_packages(ws, temp_dir)
-        if options.get('zip-packages', 'YES').lower() in ['yes', 'true']:
-            self.zip_packages(ws, temp_dir)
-            if os.path.isdir(temp_dir):
-                shutil.rmtree(temp_dir, True)
-        self.copy_sources()
-        return ()
+        # Unzip the contents inside the parts dir.
+        z = zipfile.ZipFile(dst)
+        for f in z.namelist():
+            if f.endswith('/'):
+                os.mkdir(os.path.join(self.parts_dir, f))
+            else:
+                out = open(os.path.join(self.parts_dir, f), 'wb')
+                out.write(z.read(f))
+                out.close()
 
-    def update(self):
-        """Updates the part."""
-        options = self.options
-        reqs, ws = self.working_set()
-        self.setup_bin(ws)
-        self.copy_sources()
-        return ()
+        if not os.path.isdir(self.sdk_dir):
+            # At this point we must have a SDK.
+            raise IOError('The Google App Engine SDK directory doesn\'t exist: '
+                '%s' % self.sdk_dir)
+
+    def install_bin(self):
+        """Setup bin scripts."""
+        # TODO: configurable script name is needed?
+        # self.options.get('server-script', self.name)
+
+        # Write server script.
+        server = os.path.join(self.sdk_dir, 'dev_appserver.py')
+        self.write_server_script('dev_appserver', server, [self.sdk_dir])
+
+        # Write appcfg script.
+        appcfg = os.path.join(self.sdk_dir, 'appcfg.py')
+        self.write_appcfg_script(appcfg, [self.sdk_dir])
+
+    def write_server_script(self, name, bin, sys_path):
+        """Generates the development server script (dev_appserver) in bin."""
+        # Generate script contents.
+        content = SERVER_SCRIPT % {
+            'python':   self.buildout[self.buildout['buildout']['python']]
+                ['executable'],
+            'sys_path': ',\n'.join(["    r'%s'" % p for p in sys_path]),
+            'var_dir':  self.var_dir,
+            'bin':      bin,
+        }
+
+        # Open the destination script file.
+        path = os.path.join(self.bin_dir, name)
+        script = open(path, 'w')
+        script.write(content)
+        script.close()
+        os.chmod(path, 0755)
+
+    def write_appcfg_script(self, bin, sys_path):
+        """Generates the app configuration script (appcfg) in bin."""
+        # Generate script contents.
+        content = APPCFG_SCRIPT % {
+            'python':   self.buildout[self.buildout['buildout']['python']]
+                ['executable'],
+            'sys_path': ',\n'.join(["  r'%s'" % p for p in sys_path]),
+            'bin':      bin,
+        }
+
+        # Open the destination script file.
+        path = os.path.join(self.bin_dir, 'appcfg')
+        script = open(path, 'w')
+        script.write(content)
+        script.close()
+        os.chmod(path, 0755)

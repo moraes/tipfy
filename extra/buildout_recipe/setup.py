@@ -22,7 +22,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='tipfy.recipe.appengine',
-    version='0.1.4',
+    version='0.1.5',
     author='Rodrigo Moraes',
     author_email='rodrigo.moraes@gmail.com',
     description='ZC Buildout recipe for tipfy.',

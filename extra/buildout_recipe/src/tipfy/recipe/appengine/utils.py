@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Runs a development application server for an application.
+HELP = """Runs a development application server for an application.
 
 %(script)s [options] <application root>
 
@@ -121,11 +121,11 @@ def print_help_and_exit(defaults, code):
 
     values['script'] = os.path.basename(sys.argv[0])
     values.update(defaults)
-    values['datastore_path'] = os.path.abspath(values['datastore_path']),
-    values['blobstore_path'] = os.path.abspath(values['blobstore_path']),
-    values['history_path']   = os.path.abspath(values['history_path']),
+    values['datastore_path'] = os.path.abspath(values['datastore_path'])
+    values['blobstore_path'] = os.path.abspath(values['blobstore_path'])
+    values['history_path']   = os.path.abspath(values['history_path'])
 
-    print __doc__ % values
+    print HELP % values
     sys.stdout.flush()
     sys.exit(code)
 

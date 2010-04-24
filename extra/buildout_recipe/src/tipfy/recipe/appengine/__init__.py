@@ -26,14 +26,12 @@ logger = logging.getLogger(__name__)
 is_win32 = (sys.platform == 'win32')
 
 DEV_APPSERVER_SCRIPT = """#!%(python)s
-
 import os
 import sys
 
 BASE = CURR_DIR = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
-%(base)s
-SDK_DIR = os.path.join(BASE, %(sdk)s)
-SERVER_SCRIPT = os.path.join(SDK_DIR, 'dev_appserver.py')
+%(buildout_dir)s
+SDK_DIR = %(sdk_dir)s
 
 sys.path[0:0] = [
   SDK_DIR,
@@ -49,32 +47,35 @@ def set_default_options():
   from utils import get_dev_appserver_options
 
   config_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
-      'defaults.cfg'))
+    'defaults.cfg'))
   argv = get_dev_appserver_options(sys.argv, config_file)
   if argv:
-      sys.argv = argv
+    sys.argv = argv
 
   # Remove temporary path.
   sys.path[:] = sys_path
 
 if __name__ == '__main__':
   set_default_options()
-  run_file(SERVER_SCRIPT, locals())"""
+  run_file(os.path.join(SDK_DIR, 'dev_appserver.py'), locals())"""
 
 
 APPCFG_SCRIPT = """#!%(python)s
-
 import os
 import sys
 
+BASE = CURR_DIR = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
+%(buildout_dir)s
+SDK_DIR = %(sdk_dir)s
+
 sys.path[0:0] = [
-  %(sys_path)s
+  SDK_DIR,
 ]
 
 from appcfg import *
 
 if __name__ == '__main__':
-  run_file(r'%(bin)s', locals())"""
+  run_file(os.path.join(SDK_DIR, 'appcfg.py'), locals())"""
 
 
 SYS_PATH_MODULE = '''# -*- coding: utf-8 -*-
@@ -171,6 +172,8 @@ class Recipe(zc.recipe.egg.Eggs):
         """Standard constructor for zc.buildout recipes."""
         super(Recipe, self).__init__(buildout, name, opts)
 
+        self.using_external_sdk = False
+
         join = os.path.join
         self.base_dir = join(self.buildout['buildout']['directory'])
         self.parts_dir = join(self.buildout['buildout']['parts-directory'])
@@ -205,15 +208,12 @@ class Recipe(zc.recipe.egg.Eggs):
         if not os.path.isfile(path):
             lib_dir = self.lib_dir[len(self.app_dir):]
             ext_dir = self.ext_dir[len(self.app_dir):]
-            content = LIB_README % {
+            contents = LIB_README % {
                 'lib_dir': lib_dir,
                 'ext_dir': ext_dir,
                 'title_sub': '=' * len(lib_dir)
             }
-
-            script = open(path, 'w')
-            script.write(content)
-            script.close()
+            self.write_file(path, contents, False)
 
 
     def install(self):
@@ -252,12 +252,10 @@ class Recipe(zc.recipe.egg.Eggs):
 
             paths.append('sys.path.insert(0, %s)' % path)
 
-        content = SYS_PATH_MODULE % {'paths': '\n'.join(paths)}
+        contents = SYS_PATH_MODULE % {'paths': '\n'.join(paths)}
 
         path = os.path.join(self.app_dir, '_sys_path.py')
-        script = open(path, 'w')
-        script.write(content.strip())
-        script.close()
+        self.write_file(path, contents.strip(), False)
 
     def install_packages(self):
         reqs, ws = self.working_set()
@@ -273,9 +271,8 @@ class Recipe(zc.recipe.egg.Eggs):
         # Create README.txt.
         lib_dir = self.lib_dir[len(self.app_dir):]
         path = os.path.join(self.ext_dir, 'README.txt')
-        script = open(path, 'w')
-        script.write(DISTLIB_README % {'lib_dir': lib_dir})
-        script.close()
+        contents = DISTLIB_README % {'lib_dir': lib_dir}
+        self.write_file(path, contents, False)
 
         reqs, ws = self.working_set()
 
@@ -323,6 +320,7 @@ class Recipe(zc.recipe.egg.Eggs):
 
         if self.sdk_dir:
             # Everything is set, so return.
+            self.using_external_sdk = True
             logger.info('Using Google App Engine SDK from %s' % self.sdk_dir)
             return
 
@@ -350,9 +348,8 @@ class Recipe(zc.recipe.egg.Eggs):
             if f.endswith('/'):
                 os.mkdir(os.path.join(self.parts_dir, f))
             else:
-                out = open(os.path.join(self.parts_dir, f), 'wb')
-                out.write(z.read(f))
-                out.close()
+                self.write_file(os.path.join(self.parts_dir, f), z.read(f),
+                                False, mode='wb')
 
         if not os.path.isdir(self.sdk_dir):
             # At this point we must have a SDK.
@@ -361,62 +358,60 @@ class Recipe(zc.recipe.egg.Eggs):
 
     def install_bin(self):
         """Setup bin scripts."""
-        # TODO: configurable script name is needed?
-        # self.options.get('server-script', self.name)
-
         # Write server script.
-        server = os.path.join(self.sdk_dir, 'dev_appserver.py')
-        self.write_server_script('dev_appserver', server, [self.sdk_dir])
+        self.write_server_script()
 
         # Write appcfg script.
-        appcfg = os.path.join(self.sdk_dir, 'appcfg.py')
-        self.write_appcfg_script(appcfg, [self.sdk_dir])
+        self.write_appcfg_script()
 
         # Write default config.
         self.write_bin_defaults_cfg()
         self.write_bin_utils()
 
-    def write_server_script(self, name, bin, sys_path):
+    def get_sdk_string(self):
+        if self.using_external_sdk:
+            sdk_dir = "r'%s'" % self.sdk_dir
+        else:
+            parts = self.relpath(self.parts_dir)
+            parts.append('google_appengine')
+            paths = ', '.join(["'%s'" % p for p in parts])
+            sdk_dir = "os.path.join(BASE, %s)" % paths
+
+        return sdk_dir
+
+    def write_server_script(self):
         """Generates the development server script (dev_appserver) in bin."""
         base = 'BASE = os.path.dirname(BASE)\n' * len(self.relpath(
             self.bin_dir))
-        parts = self.relpath(self.parts_dir)
-        parts.append('google_appengine')
 
         # Generate script contents.
-        content = DEV_APPSERVER_SCRIPT % {
+        contents = DEV_APPSERVER_SCRIPT % {
             'python':     self.buildout[self.buildout['buildout']['python']]
                 ['executable'],
-            'base': base.strip(),
-            'sdk': ', '.join(["'%s'" % p for p in parts]),
-            #'sys_path':   ',\n'.join(["  r'%s'" % p for p in sys_path]),
-            #'utils_path': os.path.abspath(os.path.dirname(__file__)),
-            #'bin':        bin,
+            'buildout_dir': base.strip(),
+            'sdk_dir': self.get_sdk_string(),
         }
 
         # Save script file and chmod it.
-        path = os.path.join(self.bin_dir, name)
-        script = open(path, 'w')
-        script.write(content)
-        script.close()
-        os.chmod(path, 0755)
+        path = os.path.join(self.bin_dir, 'dev_appserver')
+        self.write_file(path, contents, True)
 
-    def write_appcfg_script(self, bin, sys_path):
+    def write_appcfg_script(self):
         """Generates the app configuration script (appcfg) in bin."""
+        base = 'BASE = os.path.dirname(BASE)\n' * len(self.relpath(
+            self.bin_dir))
+
         # Generate script contents.
-        content = APPCFG_SCRIPT % {
+        contents = APPCFG_SCRIPT % {
             'python':   self.buildout[self.buildout['buildout']['python']]
                 ['executable'],
-            'sys_path': ',\n'.join(["  r'%s'" % p for p in sys_path]),
-            'bin':      bin,
+            'buildout_dir': base.strip(),
+            'sdk_dir': self.get_sdk_string(),
         }
 
         # Save script file and chmod it.
         path = os.path.join(self.bin_dir, 'appcfg')
-        script = open(path, 'w')
-        script.write(content)
-        script.close()
-        os.chmod(path, 0755)
+        self.write_file(path, contents, True)
 
     def write_bin_defaults_cfg(self):
         path = os.path.join(self.bin_dir, 'defaults.cfg')
@@ -426,7 +421,7 @@ class Recipe(zc.recipe.egg.Eggs):
 
         # Generate config contents.
         var_dir = self.var_dir[len(self.base_dir) + 1:]
-        content = BIN_DEFAULTS_CFG % {
+        contents = BIN_DEFAULTS_CFG % {
             'app_path':       os.path.basename(self.app_dir),
             'datastore_path': var_dir,
             'history_path':   var_dir,
@@ -434,9 +429,7 @@ class Recipe(zc.recipe.egg.Eggs):
         }
 
         # Save config file.
-        script = open(path, 'w')
-        script.write(content)
-        script.close()
+        self.write_file(path, contents, False)
 
     def write_bin_utils(self):
         path = os.path.join(self.bin_dir, 'utils.py')
@@ -448,15 +441,22 @@ class Recipe(zc.recipe.egg.Eggs):
             'utils.py'))
 
         # Save config file.
-        script = open(path, 'w')
-        script.write(file(utils_path).read())
-        script.close()
+        self.write_file(path, file(utils_path).read(), False)
 
     def relpath(self, path, basedir=None):
-        """A very hackish implementation of os.path.relpath()."""
+        """Returns the relative path of a dir related to the buildout project
+        dir, as a list.
+        """
         basedir = basedir or self.base_dir
         if not path.startswith(basedir):
             raise ValueError('%s must be inside %s.' % (path, basedir))
 
         path = os.path.normpath(path[len(basedir):]).strip(os.path.sep)
         return path.split(os.path.sep)
+
+    def write_file(self, path, contents, executable=False, mode='w'):
+        f = open(path, mode)
+        f.write(contents)
+        f.close()
+        if executable:
+            os.chmod(path, 0755)

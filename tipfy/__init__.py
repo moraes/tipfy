@@ -11,9 +11,8 @@
 import os
 
 # Werkzeug swiss knife.
-import werkzeug
-from werkzeug import (cached_property, escape, import_string, redirect,
-    Request, Response)
+from werkzeug import (cached_property, escape, import_string, Local,
+    LocalManager, redirect, Request, Response)
 from werkzeug.exceptions import (BadGateway, BadRequest, Forbidden, Gone,
     HTTPException, InternalServerError, LengthRequired, MethodNotAllowed,
     NotAcceptable, NotFound, NotImplemented, PreconditionFailed,
@@ -23,8 +22,8 @@ from werkzeug.routing import (EndpointPrefix, Map, RequestRedirect,
     RuleTemplate, Subdomain, Submount)
 
 # Variable store for a single request.
-local = werkzeug.Local()
-local_manager = werkzeug.LocalManager([local])
+local = Local()
+local_manager = LocalManager([local])
 
 # Proxies to the three special variables set on each request.
 local.app = local.request = local.response = None

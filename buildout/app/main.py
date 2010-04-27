@@ -8,10 +8,11 @@
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE for more details.
 """
+import os
 import sys
 
-sys.path.insert(0, 'distlib')
-sys.path.insert(0, 'lib')
+if 'lib' not in sys.path:
+    sys.path[0:0] = ['lib', 'distlib', 'distlib.zip']
 
 import config
 import tipfy

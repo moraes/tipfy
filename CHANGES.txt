@@ -1,14 +1,20 @@
 Development - Not yet released
 ==============================
-- Upgraded Babel to 0.9.5.
+- Added a buildout setup to manage external dependencies. It is now
+  the preferred method for setting and updating tipfy and app libraries.
+  A full build will still be provided, though.
 
-- Tipfy can now be installed using easy_install.
+- Experimental support for loading all libraries using zipimport. The buildout
+  setup is capable of generating the zip and it is included in sys.path by
+  default.
 
 - Removed tipfy.application.PatchedCGIHandler. The CGIHandler bug was fixed in
   the 1.3.2 SDK.
 
 - Fixed bug in ext.taskqueue.Mapper that would prevent changes from being
   written to the datastore.
+
+- Tipfy can now be installed using easy_install.
 
 
 Version 0.5.1 - April 18, 2010

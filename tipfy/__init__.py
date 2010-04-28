@@ -13,10 +13,11 @@ import os
 # Werkzeug swiss knife.
 from werkzeug import (cached_property, escape, import_string, Local,
     LocalManager, redirect, Request, Response)
-from werkzeug.exceptions import (BadGateway, BadRequest, Forbidden, Gone,
-    HTTPException, InternalServerError, LengthRequired, MethodNotAllowed,
-    NotAcceptable, NotFound, NotImplemented, PreconditionFailed,
-    RequestEntityTooLarge, RequestTimeout, RequestURITooLarge,
+from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
+    Gone, HTTPException, InternalServerError, LengthRequired,
+    MethodNotAllowed, NotAcceptable, NotFound, NotImplemented,
+    PreconditionFailed, RequestEntityTooLarge, RequestTimeout,
+    RequestURITooLarge,
     ServiceUnavailable, Unauthorized, UnsupportedMediaType)
 from werkzeug.routing import (EndpointPrefix, Map, RequestRedirect,
     RuleTemplate, Subdomain, Submount)

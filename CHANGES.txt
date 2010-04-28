@@ -6,15 +6,18 @@ Development - Not yet released
 
 - Experimental support for loading all libraries using zipimport. The buildout
   setup is capable of generating the zip and it is included in sys.path by
-  default.
+  default. (issue #12)
+
+- Tipfy can now be installed using easy_install.
 
 - Removed tipfy.application.PatchedCGIHandler. The CGIHandler bug was fixed in
   the 1.3.2 SDK.
 
 - Fixed bug in ext.taskqueue.Mapper that would prevent changes from being
-  written to the datastore.
+  written to the datastore. (Kaelten)
 
-- Tipfy can now be installed using easy_install.
+- Fixed debugger interactive console which was not working since Werkzeug 0.6.
+  (issue #11)
 
 
 Version 0.5.1 - April 18, 2010

@@ -55,11 +55,11 @@ setup(
         'tipfy.ext.taskqueue',
         'tipfy.ext.xmpp',
     ],
+    include_package_data=True,
     install_requires = [
         'babel>=0.9.5',
         'Jinja2>=2.4',
         'werkzeug>=0.6.1',
-        'WTForms>=0.5',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

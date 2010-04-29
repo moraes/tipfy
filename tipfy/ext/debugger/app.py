@@ -16,8 +16,6 @@
 import os
 import sys
 
-import inspect
-
 from jinja2 import Environment, FileSystemLoader
 
 # Set the template environment.
@@ -63,20 +61,8 @@ def readline(self):
     return ret
 
 
-# werkzeug.debug.console.ThreadedStream
-def push():
-    from werkzeug.debug.console import _local
-    if not isinstance(sys.stdout, ThreadedStream):
-        sys.stdout = ThreadedStream()
-    _local.stream = HTMLStringO()
-
-
 # Patch utils first, to avoid loading Werkzeug's template.
 sys.modules['werkzeug.debug.utils'] = sys.modules[__name__]
-
-
-# Patch inspect. getsourcefile() is empty on App Engine.
-inspect.getsourcefile = inspect.getfile
 
 
 # Apply all other patches.

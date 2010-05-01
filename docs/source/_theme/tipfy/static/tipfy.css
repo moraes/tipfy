@@ -7,9 +7,44 @@
 h1 tt, h2 tt, h3 tt, h4 tt, h5 tt, h6 tt {
     background: transparent;
 }
+#sub-nav {
+    position: relative;
+}
+
+p.relations {
+    text-align: right;
+    color: #999999;
+    margin-top: 1em;
+}
+p.relations a {
+    color: #999999;
+    text-decoration: none;
+}
+p.relations a:hover {
+    color: #1A1A1A;
+    text-decoration: underline;
+}
 
 a.headerlink {
     visibility: hidden;
+}
+#sub-nav p.relations {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin-top: 0;
+}
+
+#ft p {
+    color: #999999;
+}
+#ft p a {
+    color: #999999;
+    text-decoration: none;
+}
+#ft p a:hover {
+    color: #1A1A1A;
+    text-decoration: underline;
 }
 
 h1:hover > a.headerlink,

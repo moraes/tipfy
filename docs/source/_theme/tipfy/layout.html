@@ -137,7 +137,10 @@
                     <li><a href="/paste/">Paste</a></li>
                     {#<li class="last"><a href="/wiki/">Wiki</a></li>#}
                 </ul>
-                <ul id="breadcrumbs" class="clearfix"><li class="first"><a href="/">Home</a> &rarr; </li><li class="last"><a href="/docs/">Docs</a></li></ul>
+                <div id="sub-nav">
+                    <ul id="breadcrumbs" class="clearfix"><li class="first"><a href="/">Home</a> &rarr; </li><li class="last"><a href="/docs/">Docs</a></li></ul>
+                    {% include 'relations.html' %}
+                </div>
             </div>
         </div>
 
@@ -157,10 +160,11 @@
                     </div>
                 </div>
             </div>
+            {% include 'relations.html' %}
         </div>
 
         <div id="ft">
-            <p><a href="http://code.google.com/appengine/"><img src="http://code.google.com/appengine/images/appengine-silver-120x30.gif" alt="Powered by Google App Engine" /></a></p>
+            <p>Docs created using <a href="http://sphinx.pocoo.org/">Sphinx</a> <a href="http://code.google.com/appengine/"><img src="http://code.google.com/appengine/images/appengine-silver-120x30.gif" alt="Powered by Google App Engine" /></a></p>
         </div>
 
 <script type="text/javascript">

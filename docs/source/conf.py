@@ -16,7 +16,7 @@ import sys, os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-source_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'source'))
+source_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 lib_path = os.path.join(source_path, 'lib')
 
 sys.path.insert(0, '/usr/local/google_appengine/lib/django')
@@ -144,7 +144,7 @@ html_static_path = ['_static']
 html_sidebars = {
     '**': [
         'localtoc.html',
-        'relations.html',
+        #'relations.html',
         'globaltoc.html',
         #'searchbox.html',
         'sourcelink.html',

@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# Copyright (c) 2006 Zope Foundation and Contributors.
+# Copyright (c) 2006 Zope Corporation and Contributors.
 # All Rights Reserved.
 #
 # This software is subject to the provisions of the Zope Public License,
@@ -17,7 +17,7 @@ Simply run this script in a directory containing a buildout.cfg.
 The script accepts buildout command-line options, so you can
 use the -c option to specify an alternate configuration file.
 
-$Id$
+$Id: bootstrap.py 105417 2009-11-01 15:15:20Z tarek $
 """
 
 import os, shutil, sys, tempfile, urllib2
@@ -33,7 +33,7 @@ parser.add_option("-v", "--version", dest="version",
                           help="use a specific zc.buildout version")
 parser.add_option("-d", "--distribute",
                    action="store_true", dest="distribute", default=False,
-                   help="Use Distribute rather than Setuptools.")
+                   help="Use Disribute rather than Setuptools.")
 
 parser.add_option("-c", None, action="store", dest="config_file",
                    help=("Specify the path to the buildout configuration "

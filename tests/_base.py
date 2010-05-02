@@ -10,12 +10,12 @@ To run the tests, first install the following packages:
 
 Then run the tests from the repository root:
 
-    nosetests -d --with-gae --without-sandbox --cover-erase --with-coverage --cover-package=tipfy --gae-application=./source/
+    nosetests -d --with-gae --without-sandbox --cover-erase --with-coverage --cover-package=tipfy --gae-application=./buildout/app
 """
 import os, sys
-APP_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
-    'source'))
-LIB_PATH = os.path.join(APP_PATH, 'lib')
-if APP_PATH not in sys.path:
-    sys.path.insert(0, LIB_PATH)
-    sys.path.insert(0, APP_PATH)
+BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+PATHS = [BASE, os.path.join(BASE, 'buildout', 'app'),]
+
+for path in PATHS:
+    if path not in sys.path:
+        sys.path.insert(0, path)

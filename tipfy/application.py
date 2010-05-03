@@ -313,6 +313,9 @@ def make_wsgi_app(config):
     """
     app = WSGIApplication(config)
 
+    if app.config.get('debug'):
+        logging.getLogger().setLevel(logging.DEBUG)
+
     # Execute post_make_app middleware.
     for hook in app.middleware.get('post_make_app', []):
         app = hook(app)

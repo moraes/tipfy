@@ -17,8 +17,8 @@ from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
     Gone, HTTPException, InternalServerError, LengthRequired,
     MethodNotAllowed, NotAcceptable, NotFound, NotImplemented,
     PreconditionFailed, RequestEntityTooLarge, RequestTimeout,
-    RequestURITooLarge,
-    ServiceUnavailable, Unauthorized, UnsupportedMediaType)
+    RequestURITooLarge, ServiceUnavailable, Unauthorized,
+    UnsupportedMediaType)
 from werkzeug.routing import (EndpointPrefix, Map, RequestRedirect,
     RuleTemplate, Subdomain, Submount)
 

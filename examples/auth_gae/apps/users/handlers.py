@@ -34,7 +34,7 @@ class SignupHandler(RequestHandler):
         email = request.form.get('email', '').strip()
 
         if username and email:
-            # Create an unique auth id for this user.
+            # Create a unique auth id for this user.
             # For GAE auth, we use 'gae|' + the gae user id.
             auth_id = 'gae|%s' % users.get_current_user().user_id()
 

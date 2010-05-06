@@ -187,7 +187,7 @@ class AclRules(db.Model):
         :param roles_map:
             Dictionary of available role names mapping to list of rules.
         :param roles_lock:
-            Lock for the roles map: an unique identifier to track changes.
+            Lock for the roles map: a unique identifier to track changes.
         :return:
             A tuple of (roles, rules) for the given user in the given area.
         """
@@ -308,7 +308,7 @@ class Acl(object):
         :param area:
             An area identifier, as a string.
         :param user:
-            An user identifier, as a string.
+            A user identifier, as a string.
         :param roles_map:
             A dictionary of roles mapping to a list of rule tuples.
         :param roles_lock:

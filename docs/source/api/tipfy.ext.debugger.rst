@@ -2,6 +2,6 @@
 
 tipfy.ext.debugger
 ==================
-This module provides an userful debugger to be used in development.
+This module provides a userful debugger to be used in development.
 
 .. module:: tipfy.ext.debugger

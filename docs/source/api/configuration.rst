@@ -142,7 +142,7 @@ from `Werkzeug routing documentation`_:
 
 Each application entry point has a rule defined in the list returned by
 ``get_rules()``. Rules use a special syntax to define variables: integers,
-strings, paths and so on. When an URL matches one of these rules, these
+strings, paths and so on. When a URL matches one of these rules, these
 variables are passed to the ``RequestHandler`` defined in the rule.
 
 For example, take this rule:
@@ -173,8 +173,8 @@ example:
 For the URL ``/2009/11/``, the above handler will print `This is year 2009,
 and the month is 11!`.
 
-To generate an URL using a given rule, use the function :func:`tipfy.url_for`.
-For example, this creates an URL that maps to the ``ArchiveHandler`` class
+To generate a URL using a given rule, use the function :func:`tipfy.url_for`.
+For example, this creates a URL that maps to the ``ArchiveHandler`` class
 above:
 
 .. code-block:: python

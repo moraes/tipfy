@@ -345,7 +345,7 @@ def run_wsgi_app(app):
 
 def set_extensions_compatibility(extensions, middleware):
     """Starting at version 0.5, the "extensions" setting from config was
-    deprecated in favor of an unified middleware system for the WSGI app and
+    deprecated in favor of a unified middleware system for the WSGI app and
     handlers. This functions checks for common extensions available pre-0.5
     and sets the equivalent middleware classes instead.
 

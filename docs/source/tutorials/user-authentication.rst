@@ -8,7 +8,7 @@ User Authentication Tutorial
 .. _OpenId: http://openid.net/
 .. _App Engine's standard users API: http://code.google.com/appengine/docs/python/users/
 
-Tipfy has an unified user accounts system that supports authentication using:
+Tipfy has a unified user accounts system that supports authentication using:
 
 - Datastore ("own" users)
 - `OpenId`_ (Google, Yahoo etc)
@@ -22,14 +22,14 @@ plug new authentication methods into the user system. Check out the
 options for the user system.
 
 Independently of the chosen method, Tipfy will require the authenticated
-user to create an account in the site, so that an ``User`` entity is saved in
+user to create an account in the site, so that a ``User`` entity is saved in
 the datastore and becomes available for the application. Tipfy provides a
 default user model in :class:`tipfy.ext.auth.model.User`, but you can configure
 it to use a custom model if needed.
 
 In this tutorial, we will see what is needed to implement each of the
 authentication systems listed above. We will basically configure the application
-to use the chosen auth method create handlers for login, logout, and signup.
+to use the chosen auth method create handlers for login, logout and signup.
 
 Create a new App Engine project with Tipfy files in it, and let's start!
 
@@ -98,10 +98,10 @@ These rules require two handlers that we will define now: ``HomeHandler`` and
 ``SignupHandler``. The first is executed when the app root is accessed, and the
 later is executed when we access the ``/accounts/signup`` URL.
 
-The home handler is only used to show if an user is autheticated or not. If not,
+The home handler is only used to show if a user is autheticated or not. If not,
 it will show a link for login.
 
-The signup handler simply asks for users to choose an unique username an
+The signup handler simply asks for users to choose a unique username and
 provide an email address. You could extend the user model and add more fields
 to the form; we are just sticking to the basics. We don't need "login" or
 "logout" handlers, as this is done by App Engine.
@@ -148,7 +148,7 @@ So, here are our handlers:
            email = request.form.get('email', '').strip()
 
            if username and email:
-               # Create an unique auth id for this user.
+               # Create a unique auth id for this user.
                # For GAE auth, we use 'gae|' + the gae user id.
                auth_id = 'gae|%s' % users.get_current_user().user_id()
 
@@ -189,7 +189,7 @@ like:
 
    <html>
        <body>
-           <h1>Please choose an username and confirm your e-mail:</h1>
+           <h1>Please choose a username and confirm your e-mail:</h1>
            {% if error %}
                <h3>{{ error }}</h3>
            {% endif %}
@@ -367,7 +367,7 @@ fallback to redirect to the home page.
 
 
 The login handler is not much harder: we just need to display a login form
-and then verify an username and password when it is submitted. Add it to your
+and then verify a username and password when it is submitted. Add it to your
 handlers file:
 
 **apps/users/handlers.py**
@@ -413,11 +413,11 @@ handlers file:
 
 The function that authenticates the user is
 ``login_with_form(username, password, remember)``. If the username and password
-are valid, the auth system will load the user and persist an user session.
+are valid, the auth system will load the user and persist a user session.
 
 If "Remember me on this computer" is checked, the user will be kept login even
 if it ends the current session closing the browsing window. This is done using
-secure cookies and an unique token that is renewed from time to time, following
+secure cookies and a unique token that is renewed from time to time, following
 best security practices.
 
 
@@ -484,7 +484,7 @@ a password field. Let's do it:
                return self.get()
 
            if username and email:
-               # Create an unique auth id for this user.
+               # Create a unique auth id for this user.
                # For own auth, we use 'own|' + the username.
                auth_id = 'own|%s' % username
 
@@ -522,7 +522,7 @@ password and password confirmation:
 
    <html>
        <body>
-           <h1>Please choose an username and password and confirm your e-mail:</h1>
+           <h1>Please choose a username and password and confirm your e-mail:</h1>
            {% if error %}
                <h3>{{ error }}</h3>
            {% endif %}

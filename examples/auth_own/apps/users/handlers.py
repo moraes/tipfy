@@ -42,7 +42,7 @@ class SignupHandler(RequestHandler):
             return self.get()
 
         if username and email:
-            # Create an unique auth id for this user.
+            # Create a unique auth id for this user.
             # For own auth, we use 'own|' + the username.
             auth_id = 'own|%s' % username
 

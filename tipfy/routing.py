@@ -23,7 +23,7 @@ class Rule(WerkzeugRule):
        Rule('/users', endpoint='user-list', handler='my_app:UsersHandler')
 
     Access to the URL ``/users`` loads ``UsersHandler`` class from ``my_app``
-    module. To generate an URL to that page, use :func:`url_for`:
+    module. To generate a URL to that page, use :func:`url_for`:
 
     .. code-block:: python
 
@@ -59,7 +59,7 @@ class RegexConverter(BaseConverter):
 
 
 def url_for(endpoint, full=False, method=None, **kwargs):
-    """Builds and returns an URL for a named :class:`Rule`.
+    """Builds and returns a URL for a named :class:`Rule`.
 
     :param endpoint:
         The rule endpoint.

@@ -199,7 +199,7 @@ Here's another example. Let's create a very very simple "shopping cart":
            return Response(html, mimetype='text/html')
 
 
-In the code above, a product is added to a products list whenever you access an
+In the code above, a product is added to a products list whenever you access a
 URL with `add-product` or `remove-product` in the GET parameters.
 
 Let's test it. First we should add some URL rules for the handlers above:

@@ -54,7 +54,7 @@ from tipfy.ext import session
 #:
 #: - ``cookie_httponly``: Disallow JavaScript to access the cookie.
 #:
-#: - ``session_id_max_age``: Interval in seconds before an user session id is
+#: - ``session_id_max_age``: Interval in seconds before a user session id is
 #:   renewed. Default is 1 week.
 default_config = {
     'auth_system': 'tipfy.ext.auth.AppEngineAuth',
@@ -75,7 +75,7 @@ _auth_system = None
 
 class AuthMiddleware(object):
     """:class:`tipfy.RequestHandler` middleware that loads and persists a
-    an user.
+    user.
     """
     def pre_dispatch(self, handler):
         """Executes before a :class:`tipfy.RequestHandler` is dispatched. If
@@ -188,7 +188,7 @@ class BaseAuth(object):
             String that is the desired final destination URL for the user once
             signup is complete.
         :return:
-            An URL to perform signup.
+            A URL to perform signup.
         """
         return url_for(self.signup_endpoint, redirect=dest_url, full=True)
 
@@ -201,7 +201,7 @@ class BaseAuth(object):
             String that is the desired final destination URL for the user once
             login is complete.
         :return:
-            An URL to perform login.
+            A URL to perform login.
         """
         return url_for(self.login_endpoint, redirect=dest_url, full=True)
 
@@ -214,7 +214,7 @@ class BaseAuth(object):
             String that is the desired final destination URL for the user once
             logout is complete.
         :return:
-            An URL to perform logout.
+            A URL to perform logout.
         """
         return url_for(self.logout_endpoint, redirect=dest_url, full=True)
 
@@ -444,11 +444,11 @@ def create_logout_url(dest_url):
 
 
 def get_current_user():
-    """Returns an :class:`User` entity for the the currently logged in user or
+    """Returns a :class:`User` entity for the the currently logged in user or
     ``None``.
 
     :return:
-        An :class:`User` entity if the user for the current request is logged
+        A :class:`User` entity if the user for the current request is logged
         in, or ``None``.
     """
     return get_auth_system().get_current_user()
@@ -465,12 +465,12 @@ def is_current_user_admin():
 
 
 def is_authenticated():
-    """Returns ``True`` if the user is logged in. It is possible that an user
+    """Returns ``True`` if the user is logged in. It is possible that a user
     is logged in and :func:`get_current_user()` is None if the user is
     authenticated but still haven't created an account.
 
     :return:
-        ``True`` if the user for the current request is an logged in, ``False``
+        ``True`` if the user for the current request is logged in, ``False``
         otherwise.
     """
     return get_auth_system().is_authenticated()

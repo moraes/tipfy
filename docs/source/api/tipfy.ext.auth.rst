@@ -7,7 +7,7 @@ tipfy.ext.auth
 .. _OpenId: http://openid.net/
 .. _App Engine's standard users API: http://code.google.com/appengine/docs/python/users/
 
-This module provides an unified user accounts system that supports a
+This module provides a unified user accounts system that supports a
 variety of authentication methods:
 
 - Datastore ("own" users)

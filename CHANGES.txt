@@ -19,6 +19,9 @@ Development - Not yet released
 - Fixed debugger interactive console which was not working since Werkzeug 0.6.
   (issue #11)
 
+- Version 1.3.3 of App Engine made some previously public blobstore functions
+  protected, breaking ext.blobstore. It is fixed now.
+
 
 Version 0.5.1 - April 18, 2010
 ==============================

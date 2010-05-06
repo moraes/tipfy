@@ -20,9 +20,11 @@
     :copyright: 2010 tipfy.org.
     :license: Apache 2.0 License, see LICENSE.txt for more details.
 """
-import logging
 import cgi
+import datetime
 import email
+import logging
+import time
 
 from google.appengine.ext import blobstore
 from google.appengine.api import blobstore as api_blobstore
@@ -32,7 +34,12 @@ from werkzeug import FileStorage, Response
 from tipfy import local
 
 
+_BASE_CREATION_HEADER_FORMAT = '%Y-%m-%d %H:%M:%S'
 _CONTENT_DISPOSITION_FORMAT = 'attachment; filename="%s"'
+
+
+class CreationFormatError(api_blobstore.Error):
+  """Raised when attempting to parse bad creation date format."""
 
 
 class BlobstoreDownloadMixin(object):
@@ -41,17 +48,17 @@ class BlobstoreDownloadMixin(object):
         """Sends a blob-response based on a blob_key.
 
         Sets the correct response header for serving a blob.  If BlobInfo
-        is provided and no content_type specified, will set request content
-        type to BlobInfo's content type.
+        is provided and no content_type specified, will set request content type
+        to BlobInfo's content type.
 
         :param blob_key_or_info:
             BlobKey or BlobInfo record to serve.
         :param content_type:
             Content-type to override when known.
         :param save_as:
-            If ``True``, and BlobInfo record is provided, use BlobInfos
-            filename to save-as. If string is provided, use string as filename.
-            If ``None`` or ``False``, do not send as attachment.
+            If ``True``, and BlobInfo record is provided, use BlobInfos filename
+            to save-as. If string is provided, use string as filename. If
+            ``None`` or ``False``, do not send as attachment.
         :return:
             A ``werkzeug.Response`` object.
         :raise:
@@ -114,7 +121,7 @@ class BlobstoreUploadMixin(object):
                     for option in value.headers['Content-Type'].split(';'):
                         if 'blob-key' in option:
                             self.__uploads.setdefault(key, []).append(
-                                parse_blob_info(value))
+                                parse_blob_info(value, key))
 
             if field_name:
                 try:
@@ -129,7 +136,7 @@ class BlobstoreUploadMixin(object):
             return results
 
 
-def parse_blob_info(file_storage):
+def parse_blob_info(file_storage, field_name):
     """Parse a BlobInfo record from file upload field_storage.
 
     :param file_storage:
@@ -155,8 +162,7 @@ def parse_blob_info(file_storage):
         return value
 
     filename = file_storage.filename
-    content_type, cdict = cgi.parse_header(
-        file_storage.headers['Content-Type'])
+    content_type, cdict = cgi.parse_header(file_storage.headers['Content-Type'])
     blob_key = blobstore.BlobKey(get_value(cdict, 'blob-key'))
 
     upload_content = email.message_from_file(file_storage.stream)
@@ -172,8 +178,9 @@ def parse_blob_info(file_storage):
             '%s is not a valid value for %s size.' % (size, field_name))
 
     try:
-        creation = api_blobstore.parse_creation(creation_string)
-    except blobstore.CreationFormatError, e:
+        creation = parse_creation(creation_string, field_name)
+    #except blobstore.CreationFormatError, e:
+    except Exception, e:
         raise blobstore.BlobInfoParseError(
             'Could not parse creation for %s: %s' % (field_name, str(e)))
 
@@ -183,3 +190,45 @@ def parse_blob_info(file_storage):
         'filename': filename,
         'size': size,
     })
+
+
+def parse_creation(creation_string, field_name):
+    """Parses upload creation string from header format.
+
+    Parse creation date of the format:
+
+      YYYY-mm-dd HH:MM:SS.ffffff
+
+      Y: Year
+      m: Month (01-12)
+      d: Day (01-31)
+      H: Hour (00-24)
+      M: Minute (00-59)
+      S: Second (00-59)
+      f: Microsecond
+
+    Args:
+      creation_string: String creation date format.
+
+    Returns:
+      datetime object parsed from creation_string.
+
+    Raises:
+      _CreationFormatError when the creation string is formatted incorrectly.
+    """
+    split_creation_string = creation_string.split('.', 1)
+    if len(split_creation_string) != 2:
+        raise CreationFormatError(
+            'Could not parse creation %s in field %s.' % (creation_string,
+                                                            field_name))
+    timestamp_string, microsecond = split_creation_string
+
+    try:
+        timestamp = time.strptime(timestamp_string,
+                                  _BASE_CREATION_HEADER_FORMAT)
+        microsecond = int(microsecond)
+    except ValueError:
+        raise CreationFormatError('Could not parse creation %s in field %s.'
+                                  % (creation_string, field_name))
+
+    return datetime.datetime(*timestamp[:6] + tuple([microsecond]))

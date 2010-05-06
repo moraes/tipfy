@@ -1,8 +1,8 @@
 Quick Installation
 ==================
 
-Here are some quick notes to get started. If you have problems, follow the
-detailed installation instructions.
+Here are some quick notes to get started with tipfy. If you have problems,
+follow the "Detailed Installation" instructions below.
 
 
 1. Access the buildout directory and call the bootstrap script using your
@@ -32,11 +32,16 @@ detailed installation instructions.
 You should see a Hello, World. If they appeared, that's all. Now you have
 a project environment to start developing your app.
 
+Next step: read the API documentation and also the tutorials in tipfy's wiki:
+
+- http://www.tipfy.org/docs/
+- http://www.tipfy.org/wiki/
+
 
 Detailed Installation
 =====================
 
-If you had problems in Quick Installation, follow the steps below to setup
+If you had problems in "Quick Installation", follow the steps below to setup
 the basic requirements before you start.
 
 
@@ -51,43 +56,8 @@ system:
   * pip (or easy_install)
 
 
-If you don't have any of these, proceed to the "Installing basic requirements"
-section and come back after they are all set.
+If you don't have any of these, proceed to the instructions below.
 
-
-Setting up the app environment
-------------------------------
-
-1. Access the buildout directory and call the bootstrap script using the
-   Python 2.5 interpreter:
-
-   $ python bootstrap.py
-
-
-2. Build the project calling /bin/buildout. This will download and setup
-   tipfy and save all libraries in /app/distlib.
-
-   $ bin/buildout
-
-
-3. Start the development server localized in /bin/dev_appserver. By default
-   it will point to the /app directory, so you don't need to:
-
-   $ bin/dev_appserver
-
-
-4. Open a browser and access the URLs:
-
-   http://localhost:8080/
-   http://localhost:8080/pretty
-
-
-That's it. You now have a isolated development environment to start your
-project.
-
-
-Installing basic requirements
------------------------------
 
 Install Python 2.5
 ~~~~~~~~~~~~~~~~~~
@@ -120,12 +90,13 @@ The installation is straighforward:
 
 1. Download the installer and save it anywhere. It is a single file::
 
-   http://python-distribute.org/distribute_setup.py
+     http://python-distribute.org/distribute_setup.py
+
 
 2. Execute it using your Python 2.5 executable (this will require sudo if
    you are using a *nix system)::
 
-   python distribute_setup.py
+     python distribute_setup.py
 
 
 If you don't see any error messages, yay, it installed successfully. Let's
@@ -143,9 +114,8 @@ So let's install it:
 1. Call easy_install to install it using your Python 2.5 executable (this
    will require sudo if you are using a *nix system)::
 
-   easy_install pip
+     easy_install pip
 
-That's it. If no errors appear, we are good to go.
 
-Go back to Quick Installation and follow those steps to install your
-environment.
+That's it. If no errors appear, we are good to go. Go back to "Quick
+Installation" and follow those steps to install your environment.

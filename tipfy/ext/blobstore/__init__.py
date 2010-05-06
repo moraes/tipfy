@@ -179,8 +179,7 @@ def parse_blob_info(file_storage, field_name):
 
     try:
         creation = parse_creation(creation_string, field_name)
-    #except blobstore.CreationFormatError, e:
-    except Exception, e:
+    except CreationFormatError, e:
         raise blobstore.BlobInfoParseError(
             'Could not parse creation for %s: %s' % (field_name, str(e)))
 

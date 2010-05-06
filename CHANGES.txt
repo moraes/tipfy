@@ -1,5 +1,5 @@
-Development - Not yet released
-==============================
+Version 0.5.2- May 06, 2010
+===========================
 - Added a buildout setup to manage external dependencies. It is now
   the preferred method for setting and updating tipfy and app libraries.
   A full build will still be provided, though.
@@ -10,17 +10,17 @@ Development - Not yet released
 
 - Tipfy can now be installed using easy_install.
 
-- Removed tipfy.application.PatchedCGIHandler. The CGIHandler bug was fixed in
-  the 1.3.2 SDK.
-
 - Fixed bug in ext.taskqueue.Mapper that would prevent changes from being
   written to the datastore. (Kaelten)
 
 - Fixed debugger interactive console which was not working since Werkzeug 0.6.
   (issue #11)
 
-- Version 1.3.3 of App Engine made some previously public blobstore functions
-  protected, breaking ext.blobstore. It is fixed now.
+- Fixed ext.blobstore, broken since SDK 1.3.3 which made some previously
+  public blobstore functions protected.
+
+- Removed tipfy.application.PatchedCGIHandler. The CGIHandler bug was fixed in
+  the 1.3.2 SDK.
 
 
 Version 0.5.1 - April 18, 2010

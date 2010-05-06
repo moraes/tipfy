@@ -22,7 +22,7 @@ from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
 from werkzeug.routing import (EndpointPrefix, Map, RequestRedirect,
     RuleTemplate, Subdomain, Submount)
 
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 
 # Variable store for a single request.
 local = Local()

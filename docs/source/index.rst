@@ -2,33 +2,12 @@
 
 Welcome to Tipfy's documentation!
 =================================
-Tipfy is a small but powerful framework designed specifically for
-`Google App Engine <http://code.google.com/appengine/>`_. It is a lot like
-`webapp <http://code.google.com/appengine/docs/python/tools/webapp/>`_:
 
-.. code-block:: python
+Here is the API documentation for tipfy. Narrative docs and tutorials are
+now placed in our (still very new) `wiki <http://www.tipfy.org/wiki/>`_, so
+you might want to start from there. In special, check out this page:
 
-   from tipfy import RequestHandler, Response
-
-   class HelloWorldHandler(RequestHandler):
-       def get(self):
-           return Response('Hello, World!')
-
-
-...but offers a lot of features (own authentication, sessions, i18n etc) and
-other goodies that webapp misses. Everything in a modular, lightweight way,
-tuned for App Engine. You use only what you need, when you need.
-
-See also other `App Engine frameworks`_.
-
-
-Tutorials
----------
-.. toctree::
-   :maxdepth: 1
-   :glob:
-
-   tutorials/*
+* `Tutorials <http://www.tipfy.org/wiki/tutorials/>`_
 
 
 API Reference

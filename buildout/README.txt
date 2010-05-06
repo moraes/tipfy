@@ -1,14 +1,43 @@
-Quick Start
-===========
+Quick Installation
+==================
 
-This is still barely documented. Here are some quick notes to get started:
+Here are some quick notes to get started. If you have problems, follow the
+detailed installation instructions.
 
 
+1. Access the buildout directory and call the bootstrap script using your
+   Python 2.5 interpreter:
+
+     $ python bootstrap.py
 
 
-If you don't have pip or easy_install installed yet, download it from Pypi
-and install it.
+2. Build the project calling bin/buildout. This will download and setup
+   tipfy and all libraries inside the /app directory. It may take a while.
 
+     $ bin/buildout
+
+
+3. Start the development server calling bin/dev_appserver. It will use the
+   application from /app by default:
+
+     $ bin/dev_appserver
+
+
+4. Open a browser and test the URLs:
+
+     http://localhost:8080/
+     http://localhost:8080/pretty
+
+
+You should see a Hello, World. If they appeared, that's all. Now you have
+a project environment to start developing your app.
+
+
+Detailed Installation
+=====================
+
+If you had problems in Quick Installation, follow the steps below to setup
+the basic requirements before you start.
 
 
 Basic requirements
@@ -117,3 +146,6 @@ So let's install it:
    easy_install pip
 
 That's it. If no errors appear, we are good to go.
+
+Go back to Quick Installation and follow those steps to install your
+environment.

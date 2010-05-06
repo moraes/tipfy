@@ -21,15 +21,17 @@ need.
 Links
 -----
 * `Tipfy's website <http://www.tipfy.org/>`_
-* `Documentation <http://www.tipfy.org//docs/>`_
+* `API Documentation <http://www.tipfy.org/docs/>`_
+* `Wiki <http://www.tipfy.org/wiki/>`_
 * `Discussion Group <http://groups.google.com/group/tipfy>`_
+* `Issue Tracker <http://code.google.com/p/tipfy/issues/list>`_
 * `Repository <http://code.google.com/p/tipfy/>`_
 """
 from setuptools import setup
 
 setup(
     name = 'tipfy',
-    version = '0.5.1',
+    version = '0.5.3',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/downloads/tipfy.latest.tar.bz2',

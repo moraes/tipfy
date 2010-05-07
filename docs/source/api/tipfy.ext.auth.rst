@@ -32,7 +32,8 @@ Appropriate handlers for signup, login and logout must be set for this
 extension, depending on the auth method in use.
 
 .. note::
-   For examples on how to use this module, see the :ref:`tutorial.auth`.
+   For examples on how to use this module, see the
+   `User Authentication Tutorial <http://www.tipfy.org/wiki/tutorials/auth/>`_.
 
 
 .. module:: tipfy.ext.auth

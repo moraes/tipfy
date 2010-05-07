@@ -5,7 +5,8 @@ tipfy.ext.session
 This module provides sessions using secure cookies or the datastore. It also
 offers signed flash messages and signed cookies in general.
 
-See in :ref:`tutorial.sessions` an overview of sessions usage.
+See in `Sessions Tutorial <http://www.tipfy.org/wiki/tutorials/sessions/>`_
+a overview of session usage.
 
 
 .. module:: tipfy.ext.session
@@ -32,6 +33,7 @@ Mixins
 Session Store
 -------------
 .. autoclass:: SessionStore
-   :members: get_session, delete_session, get_secure_cookie, load_secure_cookie,
-             create_secure_cookie, get_flash, set_flash, set_cookie
+   :members: get_session, delete_session, get_secure_cookie,
+             load_secure_cookie, create_secure_cookie, get_flash, set_flash,
+             set_cookie
 

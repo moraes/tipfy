@@ -22,7 +22,6 @@ from werkzeug.contrib.sessions import generate_key, ModificationTrackingDict
 from tipfy import cached_property, local, get_config, REQUIRED_CONFIG
 from tipfy.ext.db import (get_protobuf_from_entity, get_entity_from_protobuf,
     PickleProperty)
-from tipfy.ext.i18n import _
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -230,25 +229,6 @@ class MessagesMixin(SessionMixin):
             self.set_flash(message)
         else:
             self.messages.append(message)
-
-    def set_form_error(self, body=None, title=None):
-        """Adds a form error message.
-
-        :param body:
-            Message contents.
-        :param title:
-            Optional message title.
-        :return:
-            ``None``.
-        """
-        if body is None:
-            body = _('A problem occurred. Please correct the errors listed in '
-                'the form.')
-
-        if title is None:
-            title = _('Error')
-
-        self.set_message('error', body, title=title, life=None)
 
 
 class SessionStore(object):

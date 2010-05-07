@@ -57,3 +57,11 @@ Functions
 .. autofunction:: user_required
 .. autofunction:: admin_required
 .. autofunction:: basic_auth_required
+
+
+User Model
+----------
+
+.. module:: tipfy.ext.auth.model
+
+.. autoclass:: User

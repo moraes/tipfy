@@ -1,3 +1,10 @@
+Development Version
+===================
+- BREAK: removed tipfy.ext.session.MessagesMixin.set_form_error(). It required
+  i18n, which requires Babel. Sessions should not depend on i18n. Now they
+  don't.
+
+
 Version 0.5.2- May 06, 2010
 ===========================
 - Added a buildout setup to manage external dependencies. It is now

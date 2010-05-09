@@ -21,13 +21,14 @@ Middleware
 ----------
 .. autoclass:: SessionMiddleware
 
+
 Mixins
 ------
 .. autoclass:: SessionMixin
    :members: session, get_flash, set_flash
 
 .. autoclass:: MessagesMixin
-   :members: messages, set_message, set_form_error
+   :members: messages, set_message
 
 
 Session Store

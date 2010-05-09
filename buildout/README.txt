@@ -29,8 +29,8 @@ follow the "Detailed Installation" instructions below.
      http://localhost:8080/pretty
 
 
-You should see a Hello, World. If they appeared, that's all. Now you have
-a project environment to start developing your app.
+You should see a Hello, World. If you do, that's all. Now you have a project
+environment to start developing your app.
 
 Next step: read the API documentation and also the tutorials in tipfy's wiki:
 

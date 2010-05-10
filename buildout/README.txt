@@ -6,6 +6,12 @@ are available in tipfy's wiki:
 
   http://www.tipfy.org/wiki/guide/installation/
 
+Our goal gere is to provide a smooth installation process so that you can see
+a tipfy application up and running in a few minutes. If you have any problems,
+please post a message to the discussion group:
+
+  http://groups.google.com/group/tipfy
+
 
 All-in-one installation
 -----------------------
@@ -54,11 +60,3 @@ needed libraries before running de development server. Here's how:
 
 You should see a Hello, World! message. If you do, that's all. Now you have
 a project environment to start developing your app.
-
-
-Troubleshooting
----------------
-If you have problems installing tipfy, please post a message to the
-discussion group:
-
-  http://groups.google.com/group/tipfy

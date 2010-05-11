@@ -268,18 +268,6 @@ class TestMessagesMixin(unittest.TestCase):
         assert 'tipfy.flash' in local.session_store._data
         assert local.session_store._data_args == {'tipfy.flash': {}}
 
-    def test_messages_mixin_set_form_error(self):
-        mixin = MessagesMixin()
-        mixin.set_form_error('Hello, world!', title='HAI')
-
-        assert mixin.messages == [{'level': 'error', 'title': 'HAI', 'body': 'Hello, world!', 'life': None}]
-
-    def test_messages_mixin_set_form_error_no_body_no_title(self):
-        mixin = MessagesMixin()
-        mixin.set_form_error()
-
-        assert mixin.messages == [{'level': 'error', 'title': 'Error', 'body': 'A problem occurred. Please correct the errors listed in the form.', 'life': None}]
-
 
 class TestSessionStore(unittest.TestCase):
     def setUp(self):

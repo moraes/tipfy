@@ -17,6 +17,7 @@ from tipfy.ext.session import (DatastoreSession, DatastoreSessionStore,
     MessagesMixin, SecureCookie, Session, SessionMiddleware, SessionMixin,
     SessionStore)
 
+
 def set_app(config=None):
     return tipfy.WSGIApplication({
         'tipfy.ext.session': {
@@ -688,6 +689,7 @@ class TestDatastoreSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.Te
         session_2 = local.session_store.get_session('my_session')
         assert session is not session_2
 
+
 class TestDatastoreSession(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
@@ -744,6 +746,7 @@ class TestDatastoreSession(DataStoreTestCase, MemcacheTestCase, unittest.TestCas
 
         assert Session.get_by_sid('foo') is None
         assert memcache.get('foo', namespace=Session.get_namespace()) is None
+
 
 class TestSession(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def setUp(self):

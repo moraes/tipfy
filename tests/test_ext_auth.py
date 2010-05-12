@@ -11,6 +11,7 @@ import _base
 from google.appengine.api import users
 
 from werkzeug import BaseResponse
+from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.test import create_environ, Client
 
 from gaetestbed import DataStoreTestCase
@@ -19,8 +20,10 @@ import tipfy
 from tipfy import local
 from tipfy.ext.auth import (AppEngineAuth, AuthMiddleware, BaseAuth,
     create_login_url, create_logout_url, create_signup_url, get_auth_system,
-    get_current_user, is_current_user_admin, is_authenticated)
+    get_current_user, is_current_user_admin, is_authenticated, MultiAuth,
+    _auth_system)
 from tipfy.ext.auth.model import User
+from tipfy.ext.session import SessionMiddleware
 
 
 def get_url_map():

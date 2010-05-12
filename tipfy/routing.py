@@ -58,23 +58,34 @@ class RegexConverter(BaseConverter):
         self.regex = items[0]
 
 
-def url_for(endpoint, full=False, method=None, **kwargs):
+def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
     """Builds and returns a URL for a named :class:`Rule`.
 
     :param endpoint:
         The rule endpoint.
-    :param full:
-        If True, builds an absolute URL. Otherwise, builds a relative one.
-    :param method:
+    :param _full:
+        If True, returns an absolute URL. Otherwise, returns a relative one.
+    :param _method:
         The rule request method, in case there are different rules
         for different request methods.
+    :param _anchor:
+        An anchor to add to the end of the URL.
     :param kwargs:
         Keyword arguments to build the URL.
     :return:
         An absolute or relative URL.
     """
-    return local.app.url_adapter.build(endpoint, force_external=full,
+    # For backwards compatibility, check old keywords.
+    full = kwargs.pop('full', _full)
+    method = kwargs.pop('method', _method)
+
+    url = local.app.url_adapter.build(endpoint, force_external=full,
         method=method, values=kwargs)
+
+    if _anchor:
+        url += '#' + _anchor
+
+    return url
 
 
 Map.default_converters = dict(Map.default_converters)

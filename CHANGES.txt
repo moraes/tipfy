@@ -4,6 +4,17 @@ Development Version
   i18n, which requires Babel. Sessions should not depend on i18n. Now they
   don't.
 
+- CHANGE: Added _anchor keyword argument to url_for() and redirect_to(), to
+  append an anchor to the generated URL. Also keyword arguments in these two
+  functions are now prefixed with a '_':
+
+    url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs)
+    redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs)
+
+  ...to avoid collisions with variables set in rules. The old, non-prefixed
+  keywords are still accepted for backwards compatibility, but they should
+  be removed in the future.
+
 
 Version 0.5.2- May 06, 2010
 ===========================

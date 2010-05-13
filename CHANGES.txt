@@ -15,9 +15,15 @@ Development Version
   keywords are still accepted for backwards compatibility, but they should
   be removed in the future.
 
+- Added functions to ext.i18n: get_timezone_name(), parse_date(),
+  parse_datetime() and parse_time().
 
-Version 0.5.2- May 06, 2010
-===========================
+- All datetime and number format functions in ext.i18n now accept a locale
+  argument. If not set, uses the currently loaded locale (as before).
+
+
+Version 0.5.2 - May 06, 2010
+============================
 - Added a buildout setup to manage external dependencies. It is now
   the preferred method for setting and updating tipfy and app libraries.
   A full build will still be provided, though.

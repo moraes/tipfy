@@ -310,26 +310,26 @@ def to_utc(datetime, timezone=None):
     return datetime.astimezone(pytz.UTC).replace(tzinfo=None)
 
 
-def _get_babel_function(wrapped_func, with_tzinfo=False):
+def _get_babel_function(func, with_tzinfo=False):
     """Returns a wrapper for a Babel datetime or number formatting function.
     The wrapped function will be called passing the current locale and/or
     tzinfo if these parameters are not set.
 
-    :param wrapped_func:
+    :param func:
         A Babel function to be wrapped.
     :param with_tzinfo:
         Add `tzinfo` argument to the called function. Not all support this.
     :return:
         A wrapped Babel function.
     """
-    def func(*args, **kwargs):
+    def wrapped_func(*args, **kwargs):
         kwargs['locale'] = kwargs.pop('locale', None) or get_locale()
         if with_tzinfo:
             kwargs['tzinfo'] = get_tzinfo(kwargs.pop('timezone', None))
 
-        return wrapped_func(*args, **kwargs)
+        return func(*args, **kwargs)
 
-    return func
+    return wrapped_func
 
 
 #: Returns a date formatted according to the given pattern and following

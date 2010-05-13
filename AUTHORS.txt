@@ -1,13 +1,15 @@
 Tipfy was started by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
 
-Several people contributed with code, documentation, bug reporting, suggestions
+Several people contributed with code, documentation, bug reports, suggestions
 and patches:
 
 - Bryan McLemore (kaelten)
+- Danil Semelenov (sgtpep)
 - Stephen Gornick
+- Thomas Johansson (prencher)
 
 
-Tipfy includes open source libraries or code from the following projects:
+Tipfy also includes open source libraries or code from the following projects:
 
 - `Babel <http://babel.edgewall.org/>`_
   Copyright (c) 2007-2008 Edgewall Software.

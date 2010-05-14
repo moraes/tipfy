@@ -4,7 +4,7 @@ Development Version
   i18n, which requires Babel. Sessions should not depend on i18n. Now they
   don't.
 
-- CHANGE: Added _anchor keyword argument to url_for() and redirect_to(), to
+- CHANGED: Added _anchor keyword argument to url_for() and redirect_to(), to
   append an anchor to the generated URL. Also keyword arguments in these two
   functions are now prefixed with a '_':
 
@@ -12,14 +12,35 @@ Development Version
     redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs)
 
   ...to avoid collisions with variables set in rules. The old, non-prefixed
-  keywords are still accepted for backwards compatibility, but they should
-  be removed in the future.
+  keywords are still accepted, but they should be removed before 1.0.
 
-- Added functions to ext.i18n: get_timezone_name(), parse_date(),
+- ADDED: functions to ext.i18n: get_timezone_name(), parse_date(),
   parse_datetime() and parse_time().
 
 - All datetime and number format functions in ext.i18n now accept a locale
   argument. If not set, uses the currently loaded locale (as before).
+
+- ADDED: a Request object that extends werkzeug's Request. This is backwards
+  compatible but adds some flexibility points. The new Request:
+
+  - Checks if the requested method is allowed in App Engine.
+  - Matches the URL and returns a callable to the app.
+  - Stores url_adapter, matched rule and rule arguments.
+
+  This makes it easier to implement alternative URL matching and handler
+  strategies -- for example, to use simple functions as handlers or classes
+  with methods not based on the current HTTP method. It is just a matter
+  of creating a new Request class with a different match_url() implementation.
+
+  Also it makes more sense to store url_adapter, matched rule and rule
+  arguments in the request than in the app. app.url_adapter, app.rule and
+  app.rule_args are still set, but they will be removed on 1.0.
+
+- CHANGED: the signature of RequestHandler.dispatch(). The old signature
+  dispatch(request_method, **rule_args) will still be valid until 1.0.
+
+- ADDED: request as an attribute of RequestHandler. self.request is set on
+  dispatch().
 
 
 Version 0.5.2 - May 06, 2010

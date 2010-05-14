@@ -11,8 +11,9 @@
 import os
 
 # Werkzeug swiss knife.
-from werkzeug import (cached_property, escape, import_string, Local,
-    LocalManager, redirect, Request, Response)
+import werkzeug
+from werkzeug import (cached_property, escape, import_string, redirect,
+    Response)
 from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
     Gone, HTTPException, InternalServerError, LengthRequired,
     MethodNotAllowed, NotAcceptable, NotFound, NotImplemented,
@@ -25,8 +26,8 @@ from werkzeug.routing import (EndpointPrefix, Map, RequestRedirect,
 __version__ = '0.5.2'
 
 # Variable store for a single request.
-local = Local()
-local_manager = LocalManager([local])
+local = werkzeug.Local()
+local_manager = werkzeug.LocalManager([local])
 
 # Proxies to the three special variables set on each request.
 local.app = local.request = local.response = None
@@ -90,8 +91,8 @@ default_config = {
 }
 
 # All tipfy utilities.
-from tipfy.application import (make_wsgi_app, RequestHandler, run_wsgi_app,
-    WSGIApplication)
+from tipfy.application import (make_wsgi_app, Request, RequestHandler,
+    run_wsgi_app, WSGIApplication)
 from tipfy.config import Config, get_config, REQUIRED_CONFIG
 from tipfy.routing import Rule, url_for
 from tipfy.utils import normalize_callable, redirect_to, render_json_response

@@ -8,13 +8,15 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
+import functools
 import logging
 from wsgiref.handlers import CGIHandler
 
-from werkzeug import BaseResponse, Request, Response
+from werkzeug import BaseResponse, Request as WerkzeugRequest, Response
 
 from tipfy import (default_config, local, local_manager, HTTPException,
-    import_string, InternalServerError, Map, MethodNotAllowed, RequestRedirect)
+    import_string, InternalServerError, Map, MethodNotAllowed, NotFound,
+    RequestRedirect)
 from tipfy.config import Config
 
 # Allowed request methods.
@@ -37,24 +39,34 @@ class RequestHandler(object):
     #: post-process the response and handle errors in a per handler basis.
     middleware = []
 
-    def dispatch(self, action, *args, **kwargs):
+    def dispatch(self, request, **kwargs):
         """Executes a handler method. This method is called by the
         WSGIApplication and must always return a response object.
 
-        :param action:
+        :param request:
             The method to be executed.
         :param kwargs:
             The arguments from the matched route.
         :return:
             A ``werkzeug.Response`` object.
         """
+        if isinstance(request, basestring):
+            # For backwards compatibility only. Previously dispatch signature
+            # was dispatch(request_method, **rule_args).
+            action = request
+            rule_args = kwargs
+        else:
+            self.request = request
+            action = request.method.lower()
+            rule_args = request.rule_args
+
         method = getattr(self, action, None)
         if method is None:
             raise MethodNotAllowed()
 
         if not self.middleware:
             # No middleware is set: only execute the method.
-            return method(*args, **kwargs)
+            return method(**rule_args)
 
         # Get middleware for this handler.
         middleware = local.app.middleware_factory.get_middleware(self,
@@ -68,7 +80,7 @@ class RequestHandler(object):
         else:
             try:
                 # Execute the requested method.
-                response = method(*args, **kwargs)
+                response = method(**rule_args)
             except Exception, e:
                 # Execute handle_exception middleware.
                 for hook in middleware.get('handle_exception', []):
@@ -84,6 +96,70 @@ class RequestHandler(object):
 
         # Done!
         return response
+
+
+class Request(WerkzeugRequest):
+    """The ``Request`` object contains all environment variables for the
+    current request: GET, POST, FILES, cookies and headers. Additionally
+    it will match the current URL and store information about the matched
+    ``Rule``, and make sure that the requested HTTP method is allowed on
+    Google App Engine.
+    """
+    #: URL adapter bound to the request.
+    url_adapter = None
+    #: Matched URL Rule for this request.
+    rule = None
+    #: Arguments from the matched Rule.
+    rule_args = None
+
+    def __init__(self, environ):
+        super(WerkzeugRequest, self).__init__(environ)
+
+        # Check that the requested method is allowed in App Engine.
+        if self.method.lower() not in ALLOWED_METHODS:
+            raise MethodNotAllowed()
+
+    def match_url(self, app):
+        """Matches current URL and returns a callable to be used by
+        the WSGI application. If no URL matches, returns ``None``.
+
+        :param app:
+            A :class:`WSGIApplication` instance.
+        :return:
+            A callable to execute the matched handler. This will return
+            :meth:`RequestHandler.dispatch`, but alternative implementations
+            could load the handler differently (use simple functions instead
+            of classes or other strategies).
+        :raises:
+            ``NotFound``, ``MethodNotAllowed`` or ``RequestRedirect``
+            exceptions, which should be caught by the application.
+        """
+        # For backwards compatibility only. Previously these were app
+        # attributes.
+        app.url_adapter = app.rule = app.rule_args = None
+
+        # Bind url map to the current request location.
+        server_name = app.config.get('tipfy', 'server_name', None)
+        subdomain = app.config.get('tipfy', 'subdomain', None)
+        self.url_adapter = app.url_map.bind_to_environ(self.environ,
+            server_name=server_name, subdomain=subdomain)
+
+        # Match the path against registered rules.
+        self.rule, self.rule_args = self.url_adapter.match(self.path,
+            return_rule=True)
+
+        name = self.rule.handler
+        if name not in app.handlers:
+            # Import handler set in matched rule.
+            app.handlers[name] = import_string(name)
+
+        # For backwards compatibility only.
+        app.url_adapter = self.url_adapter
+        app.rule = self.rule
+        app.rule_args = self.rule_args
+
+        # Returns a callable to execute the handler.
+        return functools.partial(app.handlers[name]().dispatch, self)
 
 
 class MiddlewareFactory(object):
@@ -213,30 +289,12 @@ class WSGIApplication(object):
         try:
             # Set local variables for a single request.
             local.app = self
-            local.request = request = self.request_class(environ)
-            # Kept here for backwards compatibility. Soon to be removed.
+            local.request = self.request_class(environ)
+            # Kept here for backwards compatibility.
             local.response = self.response_class()
 
-            self.url_adapter = self.rule = self.rule_args = None
-
-            # Check requested method.
-            method = request.method.lower()
-            if method not in ALLOWED_METHODS:
-                raise MethodNotAllowed()
-
-            # Bind url map to the current request location.
-            self.url_adapter = self.url_map.bind_to_environ(environ,
-                server_name=self.config.get('tipfy', 'server_name', None),
-                subdomain=self.config.get('tipfy', 'subdomain', None))
-
             # Match the path against registered rules.
-            self.rule, self.rule_args = self.url_adapter.match(request.path,
-                return_rule=True)
-
-            # Import handler set in matched rule.
-            name = self.rule.handler
-            if name not in self.handlers:
-                self.handlers[name] = import_string(name)
+            handler = local.request.match_url(self)
 
             # Execute pre_dispatch_handler middleware.
             for hook in self.middleware.get('pre_dispatch_handler', []):
@@ -245,8 +303,7 @@ class WSGIApplication(object):
                     break
             else:
                 # Instantiate handler and dispatch request method.
-                handler = self.handlers[name]()
-                response = handler.dispatch(method, **self.rule_args)
+                response = handler()
 
             # Execute post_dispatch_handler middleware.
             for hook in self.middleware.get('post_dispatch_handler', []):
@@ -396,7 +453,7 @@ def fix_sys_path():
 
 
 __all__ = ['make_wsgi_app',
-           'MiddlewareFactory',
+           'Request',
            'RequestHandler',
            'run_wsgi_app',
            'WSGIApplication']

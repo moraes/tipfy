@@ -269,6 +269,9 @@ class WSGIApplication(object):
         self.config = Config(config)
         self.config.setdefault('tipfy', default_config)
 
+        # Set a shortcut to the development flag.
+        self.dev = self.config.get('tipfy', 'dev', False)
+
         # Set the url rules.
         self.url_map = self.config.get('tipfy', 'url_map')
         if not self.url_map:
@@ -356,7 +359,7 @@ class WSGIApplication(object):
 
         logging.exception(e)
 
-        if self.config.get('tipfy', 'dev'):
+        if self.dev:
             raise
 
         if isinstance(e, HTTPException):
@@ -394,7 +397,7 @@ def run_wsgi_app(app):
         ``None``.
     """
     # Fix issue #772.
-    if app.config.get('tipfy', 'dev'):
+    if app.dev:
         fix_sys_path()
 
     # Execute pre_run_app middleware.

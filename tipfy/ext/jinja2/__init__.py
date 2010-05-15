@@ -68,7 +68,7 @@ def get_env():
         templates_compiled_target = get_config(__name__,
             'templates_compiled_target')
 
-        use_compiled = not get_config('tipfy', 'dev') or get_config(__name__,
+        use_compiled = not local.app.dev or get_config(__name__,
             'force_use_compiled')
 
         if templates_compiled_target is not None and use_compiled:

@@ -24,7 +24,7 @@ class DebuggerMiddleware(object):
         :return:
             The application, wrapped or not.
         """
-        if app.config.get('tipfy', 'dev') is False:
+        if app.dev is False:
             # In production, don't use the debugger.
             return app
 

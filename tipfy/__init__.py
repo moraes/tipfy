@@ -12,8 +12,7 @@ import os
 
 # Werkzeug swiss knife.
 import werkzeug
-from werkzeug import (cached_property, escape, import_string, redirect,
-    Response)
+from werkzeug import cached_property, escape, import_string, redirect
 from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
     Gone, HTTPException, InternalServerError, LengthRequired,
     MethodNotAllowed, NotAcceptable, NotFound, NotImplemented,
@@ -92,7 +91,7 @@ default_config = {
 
 # All tipfy utilities.
 from tipfy.application import (make_wsgi_app, Request, RequestHandler,
-    run_wsgi_app, WSGIApplication)
+    Response, run_wsgi_app, WSGIApplication)
 from tipfy.config import Config, get_config, REQUIRED_CONFIG
 from tipfy.routing import Rule, url_for
 from tipfy.utils import normalize_callable, redirect_to, render_json_response

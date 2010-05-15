@@ -20,6 +20,9 @@ Development Version
 - All datetime and number format functions in ext.i18n now accept a locale
   argument. If not set, uses the currently loaded locale (as before).
 
+- ADDED: a Response object that extends werkzeug's Request, with default
+  mimetype set to 'text/html'.
+
 - ADDED: a Request object that extends werkzeug's Request. This is backwards
   compatible but adds some flexibility points. The new Request:
 

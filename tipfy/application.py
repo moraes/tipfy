@@ -12,7 +12,7 @@ import functools
 import logging
 from wsgiref.handlers import CGIHandler
 
-from werkzeug import BaseResponse, Request as WerkzeugRequest, Response
+from werkzeug import Request as WerkzeugRequest, Response as WerkzeugResponse
 
 from tipfy import (default_config, local, local_manager, HTTPException,
     import_string, InternalServerError, Map, MethodNotAllowed, NotFound,
@@ -160,6 +160,11 @@ class Request(WerkzeugRequest):
 
         # Returns a callable to execute the handler.
         return functools.partial(app.handlers[name]().dispatch, self)
+
+
+class Response(WerkzeugResponse):
+    """A `werkzeug.Response` with default mimetype set to 'text/html'."""
+    default_mimetype = 'text/html'
 
 
 class MiddlewareFactory(object):

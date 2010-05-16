@@ -2,7 +2,8 @@ Development Version
 ===================
 - BREAK: removed tipfy.ext.session.MessagesMixin.set_form_error(). It required
   i18n, which requires Babel. Sessions should not depend on i18n. Now they
-  don't.
+  don't. Please implement it on a separate mixin or base handler if you used
+  it.
 
 - CHANGED: Added _anchor keyword argument to url_for() and redirect_to(), to
   append an anchor to the generated URL. Also keyword arguments in these two
@@ -14,13 +15,24 @@ Development Version
   ...to avoid collisions with variables set in rules. The old, non-prefixed
   keywords are still accepted, but they should be removed before 1.0.
 
+- CHANGED: the signature of RequestHandler.dispatch(). The old signature
+  dispatch(request_method, **rule_args) will still be valid until 1.0.
+
 - ADDED: functions to ext.i18n: get_timezone_name(), parse_date(),
   parse_datetime() and parse_time().
 
-- All datetime and number format functions in ext.i18n now accept a locale
-  argument. If not set, uses the currently loaded locale (as before).
+- ADDED: All datetime and number format functions in ext.i18n now accept a
+  locale argument. If not set, uses the currently loaded locale (as before).
 
-- ADDED: a Response object that extends werkzeug's Request, with default
+- ADDED some ideas from Flask:
+  - Local variables are not cleaned when in development and an exception is
+    raised. This allows the debugger to still access request and other
+    variables from local in the interactive shell.
+  - Added a wsgi_app() function to WSGIApplication, wrapping __call__().
+  - Added a make_response() method to WSGIApplication, so that handlers
+    can return not only a Response object.
+
+- ADDED: a Response object that extends werkzeug's Response, with default
   mimetype set to 'text/html'.
 
 - ADDED: a Request object that extends werkzeug's Request. This is backwards
@@ -39,11 +51,11 @@ Development Version
   arguments in the request than in the app. app.url_adapter, app.rule and
   app.rule_args are still set, but they will be removed on 1.0.
 
-- CHANGED: the signature of RequestHandler.dispatch(). The old signature
-  dispatch(request_method, **rule_args) will still be valid until 1.0.
-
 - ADDED: request as an attribute of RequestHandler. self.request is set on
   dispatch().
+
+- ADDED: app.dev attribute, as a shortcut to the development flag set in
+  config.
 
 
 Version 0.5.2 - May 06, 2010

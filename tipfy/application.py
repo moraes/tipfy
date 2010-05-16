@@ -8,7 +8,6 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-import functools
 import logging
 from wsgiref.handlers import CGIHandler
 
@@ -39,7 +38,7 @@ class RequestHandler(object):
     #: post-process the response and handle errors in a per handler basis.
     middleware = []
 
-    def dispatch(self, request, **kwargs):
+    def dispatch(self, *args, **kwargs):
         """Executes a handler method. This method is called by the
         WSGIApplication and must always return a response object.
 
@@ -50,15 +49,15 @@ class RequestHandler(object):
         :return:
             A ``werkzeug.Response`` object.
         """
-        if isinstance(request, basestring):
+        if len(args) == 1:
             # For backwards compatibility only. Previously dispatch signature
             # was dispatch(request_method, **rule_args).
-            action = request
+            action = args[0]
             rule_args = kwargs
         else:
-            self.request = request
-            action = request.method.lower()
-            rule_args = request.rule_args
+            self.request = local.request
+            action = self.request.method.lower()
+            rule_args = self.request.rule_args
 
         method = getattr(self, action, None)
         if method is None:
@@ -85,7 +84,7 @@ class RequestHandler(object):
                 # Execute handle_exception middleware.
                 for hook in middleware.get('handle_exception', []):
                     response = hook(e, self)
-                    if response:
+                    if response is not None:
                         break
                 else:
                     raise
@@ -159,7 +158,7 @@ class Request(WerkzeugRequest):
         app.rule_args = self.rule_args
 
         # Returns a callable to execute the handler.
-        return functools.partial(app.handlers[name]().dispatch, self)
+        return app.handlers[name]().dispatch
 
 
 class Response(WerkzeugResponse):
@@ -293,7 +292,30 @@ class WSGIApplication(object):
         self.middleware = factory.get_middleware(self, middleware)
 
     def __call__(self, environ, start_response):
-        """Called by WSGI when a request comes in."""
+        """Shortcut for :attr:`wsgi_app`"""
+        return self.wsgi_app(environ, start_response)
+
+    def wsgi_app(self, environ, start_response):
+        """The actual WSGI application.  This is not implemented in
+        `__call__` so that middlewares can be applied without losing a
+        reference to the class.  So instead of doing this::
+
+            app = MyMiddleware(app)
+
+        It's a better idea to do this instead::
+
+            app.wsgi_app = MyMiddleware(app.wsgi_app)
+
+        Then you still have the original application object around and
+        can continue to call methods on it.
+
+        :param environ:
+            A WSGI environment.
+        :param start_response:
+            A callable accepting a status code, a list of headers and
+            an optional exception context to start the response
+        """
+        cleanup = True
         try:
             # Set local variables for a single request.
             local.app = self
@@ -301,17 +323,19 @@ class WSGIApplication(object):
             # Kept here for backwards compatibility.
             local.response = self.response_class()
 
-            # Match the path against registered rules.
-            handler = local.request.match_url(self)
-
             # Execute pre_dispatch_handler middleware.
             for hook in self.middleware.get('pre_dispatch_handler', []):
-                response = hook()
-                if response:
+                rv = hook()
+                if rv is not None:
                     break
             else:
+                # Match the path against registered rules.
+                handler = local.request.match_url(self)
                 # Instantiate handler and dispatch request method.
-                response = handler()
+                rv = handler()
+
+            # Build a response using the returned value.
+            response = self.make_response(rv)
 
             # Execute post_dispatch_handler middleware.
             for hook in self.middleware.get('post_dispatch_handler', []):
@@ -322,13 +346,51 @@ class WSGIApplication(object):
             # application.
             response = e
         except Exception, e:
-            # Handle http and uncaught exceptions.
+            # Handle HTTP and uncaught exceptions.
+            cleanup = not self.dev
             response = self.handle_exception(e)
         finally:
-            local_manager.cleanup()
+            # Do not clean local if we are in development mode and an
+            # exception happened. This allows the debugger to still access
+            # request and other variables from local in the interactive shell.
+            if cleanup:
+                local_manager.cleanup()
 
         # Call the response object as a WSGI application.
         return response(environ, start_response)
+
+    def make_response(self, rv):
+        """Converts the return value from a view function to a real
+        response object that is an instance of :attr:`response_class`.
+
+        The following types are allowd for `rv`:
+
+        ======================= ===========================================
+        :attr:`response_class`  the object is returned unchanged
+        :class:`str`            a response object is created with the
+                                string as body
+        :class:`unicode`        a response object is created with the
+                                string encoded to utf-8 as body
+        :class:`tuple`          the response object is created with the
+                                contents of the tuple as arguments
+        a WSGI function         the function is called as WSGI application
+                                and buffered as response object
+        ======================= ===========================================
+
+        This function comes from `Flask`_.
+
+        :param rv: the return value from the view function
+        """
+        if isinstance(rv, self.response_class):
+            return rv
+
+        if isinstance(rv, basestring):
+            return self.response_class(rv)
+
+        if isinstance(rv, tuple):
+            return self.response_class(*rv)
+
+        return self.response_class.force_type(rv, local.request.environ)
 
     def get_url_map(self):
         """Returns ``werkzeug.routing.Map`` with the URL rules defined for the

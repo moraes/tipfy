@@ -15,6 +15,10 @@ Tipfy also includes open source libraries or code from the following projects:
   Copyright (c) 2007-2008 Edgewall Software.
   License: BSD
 
+- `Flask <http://flask.pocoo.org/>`_
+  Copyright: (c) 2010 by Armin Ronacher.
+  License: BSD
+
 - `Jinja2 <http://jinja.pocoo.org/2/>`_
   Copyright (c) 2009 by the Jinja Team.
   License: BSD

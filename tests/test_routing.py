@@ -133,3 +133,10 @@ class TestUrls(unittest.TestCase):
             host + '/people/hobbes'
         assert tipfy.url_for('profile', username='moe', full=True) == \
             host + '/people/moe'
+
+    def test_url_for_with_anchor(self):
+        app = get_app()
+        app.url_adapter = app.url_map.bind('foo.com')
+
+        assert tipfy.url_for('home', _anchor='my-little-anchor') == '/#my-little-anchor'
+        assert tipfy.url_for('home', _full=True, _anchor='my-little-anchor') == 'http://foo.com/#my-little-anchor'

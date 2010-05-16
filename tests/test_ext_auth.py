@@ -75,7 +75,7 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         app = tipfy.WSGIApplication({'tipfy': {
             'url_map': get_url_map(),
         }})
-        app.url_adapter = app.url_map.bind('foo.com')
+        #app.url_adapter = app.url_map.bind('foo.com')
 
         gae_login()
         client = Client(app, response_wrapper=BaseResponse)

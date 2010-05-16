@@ -62,6 +62,24 @@ class RegexConverter(BaseConverter):
 def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
     """Builds and returns a URL for a named :class:`Rule`.
 
+    For example, if you have these Rules registered in the application:
+
+        Rule('/', endoint='home/main' handler='handlers.MyHomeHandler')
+        Rule('/wiki', endoint='wiki/start' handler='handlers.MyWikiHandler')
+
+    Here are some examples of how to generate URLs for them:
+
+        >>> url = url_for('home/main')
+        >>> '/'
+        >>> url = url_for('home/main', _full=True)
+        >>> 'http://localhost:8080/'
+        >>> url = url_for('wiki/start')
+        >>> '/wiki'
+        >>> url = url_for('wiki/start', _full=True)
+        >>> 'http://localhost:8080/wiki'
+        >>> url = url_for('wiki/start', _full=True, _anchor='my-heading')
+        >>> 'http://localhost:8080/wiki#my-heading'
+
     :param endpoint:
         The rule endpoint.
     :param _full:

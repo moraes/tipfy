@@ -415,7 +415,7 @@ class WSGIApplication(object):
         # Execute handle_exception middleware.
         for hook in self.middleware.get('handle_exception', []):
             response = hook(e)
-            if response:
+            if response is not None:
                 return response
 
         logging.exception(e)

@@ -135,13 +135,13 @@ class Request(WerkzeugRequest):
         """
         # For backwards compatibility only. Previously these were app
         # attributes.
-        app.url_adapter = app.rule = app.rule_args = None
+        app.rule = app.rule_args = None
 
         # Bind url map to the current request location.
         server_name = app.config.get('tipfy', 'server_name', None)
         subdomain = app.config.get('tipfy', 'subdomain', None)
-        self.url_adapter = app.url_map.bind_to_environ(self.environ,
-            server_name=server_name, subdomain=subdomain)
+        self.url_adapter = app.url_adapter = app.url_map.bind_to_environ(
+            self.environ, server_name=server_name, subdomain=subdomain)
 
         # Match the path against registered rules.
         self.rule, self.rule_args = self.url_adapter.match(self.path,
@@ -153,7 +153,6 @@ class Request(WerkzeugRequest):
             app.handlers[name] = import_string(name)
 
         # For backwards compatibility only.
-        app.url_adapter = self.url_adapter
         app.rule = self.rule
         app.rule_args = self.rule_args
 

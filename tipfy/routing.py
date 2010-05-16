@@ -9,6 +9,7 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from werkzeug.routing import BaseConverter, Map, Rule as WerkzeugRule
+from werkzeug import url_quote
 
 from tipfy import local
 
@@ -83,7 +84,7 @@ def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
         method=method, values=kwargs)
 
     if _anchor:
-        url += '#' + _anchor
+        url += '#' + url_quote(_anchor)
 
     return url
 

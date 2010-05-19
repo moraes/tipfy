@@ -64,3 +64,10 @@ class TestJinja2(unittest.TestCase):
         assert isinstance(response, tipfy.Response)
         assert response.mimetype == 'text/html'
         assert response.data == message
+
+    def test_get_template_attribute(self):
+        jinja2._environment = None
+        app = tipfy.WSGIApplication({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
+
+        hello = jinja2.get_template_attribute('hello.html', 'hello')
+        assert hello('World') == 'Hello, World!'

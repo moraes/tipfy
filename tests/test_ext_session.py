@@ -626,6 +626,13 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
 
+    @raises(ValueError)
+    def test_create_secure_cookie_with_none_data(self):
+        assert local.session_store._data == {}
+        assert local.session_store._data_args == {}
+
+        cookie = local.session_store.create_secure_cookie('foo')
+
     def test_set_cookie(self):
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}

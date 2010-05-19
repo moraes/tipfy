@@ -617,6 +617,10 @@ class TestWSGIApplication(unittest.TestCase):
         response = client.open(path='/test-exception')
         self.assertEqual(response.status_code, 500)
 
+    def test_get_test_client(self):
+        app = tipfy.WSGIApplication()
+        assert isinstance(app.get_test_client(), Client)
+
 
 class TestMiscelaneous(unittest.TestCase):
     def tearDown(self):

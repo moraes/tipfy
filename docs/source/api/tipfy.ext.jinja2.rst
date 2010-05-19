@@ -17,6 +17,7 @@ Functions
 ---------
 .. autofunction:: render_template
 .. autofunction:: render_response
+.. autofunction:: get_template_attribute
 .. autofunction:: get_env
 
 

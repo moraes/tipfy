@@ -10,7 +10,7 @@
 """
 from tipfy import import_string, local
 
-# Value to be used for required configuration values.
+# Value used for required configuration values.
 REQUIRED_CONFIG = object()
 # Value used internally for missing default configuration values.
 _DEFAULT_CONFIG = object()
@@ -25,12 +25,17 @@ class Config(dict):
     #: Loaded module configurations.
     modules = None
 
-    def __init__(self, value=None):
+    def __init__(self, value=None, default=None):
         self.modules = []
         if value is not None:
             assert isinstance(value, dict)
             for module in value.keys():
                 self.update(module, value[module])
+
+        if default is not None:
+            assert isinstance(default, dict)
+            for module in default.keys():
+                self.setdefault(module, default[module])
 
     def __setitem__(self, key, value):
         """Sets a configuration for a module, requiring it to be a dictionary.
@@ -145,7 +150,8 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
     :return:
         A configuration value.
     """
-    value = local.app.config.get(module, key, _DEFAULT_CONFIG)
+    config = local.app.config
+    value = config.get(module, key, _DEFAULT_CONFIG)
     if value not in (_DEFAULT_CONFIG, REQUIRED_CONFIG):
         return value
 
@@ -154,14 +160,14 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
         default = REQUIRED_CONFIG
 
     if value is _DEFAULT_CONFIG:
-        if module not in local.app.config.modules:
+        if module not in config.modules:
             # Update app config. If import fails or the default_config
             # attribute doesn't exist, an exception will be raised.
-            local.app.config.setdefault(module, import_string(
+            config.setdefault(module, import_string(
                 module + ':default_config'))
-            local.app.config.modules.append(module)
+            config.modules.append(module)
 
-            value = local.app.config.get(module, key, default)
+            value = config.get(module, key, default)
         else:
             value = default
 

@@ -31,31 +31,29 @@ Development Version
   - Added a wsgi_app() function to WSGIApplication, wrapping __call__().
   - Added a make_response() method to WSGIApplication, so that handlers
     can return not only a Response object.
+  - Refactoring: split pre_dispatch/dispatch/post_dispatch into separate
+    functions. Makes it easier to override these methods in a middleware.
+  - Added function ext.jinja2.get_template_attribute().
 
 - ADDED: a Response object that extends werkzeug's Response, with default
   mimetype set to 'text/html'.
 
 - ADDED: a Request object that extends werkzeug's Request. This is backwards
-  compatible but adds some flexibility points. The new Request:
-
-  - Checks if the requested method is allowed in App Engine.
-  - Matches the URL and returns a callable to the app.
-  - Stores url_adapter, matched rule and rule arguments.
-
-  This makes it easier to implement alternative URL matching and handler
-  strategies -- for example, to use simple functions as handlers or classes
-  with methods not based on the current HTTP method. It is just a matter
-  of creating a new Request class with a different match_url() implementation.
-
-  Also it makes more sense to store url_adapter, matched rule and rule
-  arguments in the request than in the app. app.url_adapter, app.rule and
-  app.rule_args are still set, but they will be removed on 1.0.
+  compatible and stores url_adapter, matched rule and rule arguments.
+  app.url_adapter, app.rule and app.rule_args are still set, but they will be
+  removed on 1.0.
 
 - ADDED: request as an attribute of RequestHandler. self.request is set on
   dispatch().
 
 - ADDED: app.dev attribute, as a shortcut to the development flag set in
   config.
+
+- ADDED: babel.cfg to the buildout directory, with configuration to extract
+  translation messages using pybabel. Also added locale directory to the app
+  dir.
+
+- FIXED: logging debug level is set correctly now when in development.
 
 
 Version 0.5.2 - May 06, 2010

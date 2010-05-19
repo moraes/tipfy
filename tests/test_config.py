@@ -24,6 +24,15 @@ class TestConfig(unittest.TestCase):
         assert config.get('foo', 'bar') == 'baz'
         assert config.get('foo', 'doo') == 'ding'
 
+    def test_get_existing_keys_from_default(self):
+        config = tipfy.Config({}, {'foo': {
+            'bar': 'baz',
+            'doo': 'ding',
+        }})
+
+        assert config.get('foo', 'bar') == 'baz'
+        assert config.get('foo', 'doo') == 'ding'
+
     def test_get_non_existing_keys(self):
         config = tipfy.Config()
 
@@ -56,7 +65,7 @@ class TestConfig(unittest.TestCase):
             'bar': None,
         }})
 
-        assert config.get('foo', 'bar', 'ooops') == None
+        assert config.get('foo', 'bar', 'ooops') is None
 
     def test_update(self):
         config = tipfy.Config({'foo': {
@@ -115,6 +124,11 @@ class TestConfig(unittest.TestCase):
         assert_raises(AssertionError, tipfy.Config, {'foo': 'bar'})
         assert_raises(AssertionError, tipfy.Config, {'foo': None})
         assert_raises(AssertionError, tipfy.Config, 'foo')
+
+    def test_init_no_dict_default(self):
+        assert_raises(AssertionError, tipfy.Config, {}, {'foo': 'bar'})
+        assert_raises(AssertionError, tipfy.Config, {}, {'foo': None})
+        assert_raises(AssertionError, tipfy.Config, {}, 'foo')
 
     def test_update_no_dict_values(self):
         config = tipfy.Config()
@@ -212,7 +226,7 @@ class TestGetConfig(unittest.TestCase):
             'bar': None,
         }})
 
-        assert tipfy.get_config('foo', 'bar', 'ooops') == None
+        assert tipfy.get_config('foo', 'bar', 'ooops') is None
 
     def test_get_with_default_and_module_load(self):
         app = tipfy.WSGIApplication()

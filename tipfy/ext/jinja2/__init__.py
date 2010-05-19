@@ -121,3 +121,27 @@ def render_response(filename, **context):
         A ``werkzeug.Response`` object with the rendered template.
     """
     return Response(render_template(filename, **context), mimetype='text/html')
+
+
+def get_template_attribute(filename, attribute):
+    """Loads a macro (or variable) a template exports.  This can be used to
+    invoke a macro from within Python code.  If you for example have a
+    template named `_foo.html` with the following contents:
+
+    .. sourcecode:: html+jinja
+
+       {% macro hello(name) %}Hello {{ name }}!{% endmacro %}
+
+    You can access this from Python code like this::
+
+        hello = get_template_attribute('_foo.html', 'hello')
+        return hello('World')
+
+    This function comes from `Flask`_.
+
+    :param filename:
+        The template filename.
+    :param attribute:
+        The name of the variable of macro to acccess.
+    """
+    return getattr(get_env().get_template(filename).module, attribute)

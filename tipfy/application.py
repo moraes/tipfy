@@ -47,7 +47,7 @@ class RequestHandler(object):
         :param kwargs:
             The arguments from the matched route.
         :return:
-            A ``werkzeug.Response`` object.
+            A :class:`Response` object.
         """
         if len(args) == 1:
             # For backwards compatibility only. Previously dispatch signature
@@ -100,9 +100,8 @@ class RequestHandler(object):
 class Request(WerkzeugRequest):
     """The ``Request`` object contains all environment variables for the
     current request: GET, POST, FILES, cookies and headers. Additionally
-    it will match the current URL and store information about the matched
-    ``Rule``, and make sure that the requested HTTP method is allowed on
-    Google App Engine.
+    it stores the URL adapter bound to the request and information about the
+    matched URL rule.
     """
     #: URL adapter bound to the request.
     url_adapter = None
@@ -111,62 +110,255 @@ class Request(WerkzeugRequest):
     #: Arguments from the matched Rule.
     rule_args = None
 
-    def __init__(self, environ):
-        super(WerkzeugRequest, self).__init__(environ)
-
-        # Check that the requested method is allowed in App Engine.
-        if self.method.lower() not in ALLOWED_METHODS:
-            raise MethodNotAllowed()
-
-    def match_url(self, app):
-        """Matches current URL and returns a callable to be used by
-        the WSGI application. If no URL matches, returns ``None``.
-
-        :param app:
-            A :class:`WSGIApplication` instance.
-        :return:
-            A callable to execute the matched handler. This will return
-            :meth:`RequestHandler.dispatch`, but alternative implementations
-            could load the handler differently (use simple functions instead
-            of classes or other strategies).
-        :raises:
-            ``NotFound``, ``MethodNotAllowed`` or ``RequestRedirect``
-            exceptions, which should be caught by the application.
-        """
-        # For backwards compatibility only. Previously these were app
-        # attributes.
-        app.rule = app.rule_args = None
-
-        # Bind url map to the current request location.
-        server_name = app.config.get('tipfy', 'server_name', None)
-        subdomain = app.config.get('tipfy', 'subdomain', None)
-        self.url_adapter = app.url_adapter = app.url_map.bind_to_environ(
-            self.environ, server_name=server_name, subdomain=subdomain)
-
-        # Match the path against registered rules.
-        self.rule, self.rule_args = self.url_adapter.match(self.path,
-            return_rule=True)
-
-        name = self.rule.handler
-        if name not in app.handlers:
-            # Import handler set in matched rule.
-            app.handlers[name] = import_string(name)
-
-        # For backwards compatibility only.
-        app.rule = self.rule
-        app.rule_args = self.rule_args
-
-        # Returns a callable to execute the handler.
-        return app.handlers[name]().dispatch
-
 
 class Response(WerkzeugResponse):
-    """A `werkzeug.Response` with default mimetype set to 'text/html'."""
+    """A response object with default mimetype set to 'text/html'."""
     default_mimetype = 'text/html'
+
+
+class WSGIApplication(object):
+    """The WSGI application which centralizes URL dispatching, configuration
+    and hooks for an App Rngine app.
+    """
+    #: Default class for requests.
+    request_class = Request
+    #: Default class for responses.
+    response_class = Response
+
+    def __init__(self, config=None):
+        """Initializes the application.
+
+        :param config:
+            Dictionary with configuration for the application modules.
+        """
+        # Set an accessor to this instance.
+        local.app = self
+
+        # Load default config and update with values for this instance.
+        self.config = Config(config, {'tipfy': default_config})
+
+        # Set a shortcut to the development flag.
+        self.dev = self.config.get('tipfy', 'dev', False)
+
+        # Set the url rules.
+        self.url_map = self.config.get('tipfy', 'url_map')
+        if not self.url_map:
+            self.url_map = self.get_url_map()
+
+        # Cache for loaded handler classes.
+        self.handlers = {}
+
+        extensions = self.config.get('tipfy', 'extensions')
+        middleware = self.config.get('tipfy', 'middleware')
+        if extensions:
+            # For backwards compatibility only.
+            set_extensions_compatibility(extensions, middleware)
+
+        # Middleware factory and registry.
+        self.middleware_factory = factory = MiddlewareFactory()
+
+        # Store the app middleware dict.
+        self.middleware = factory.get_middleware(self, middleware)
+
+    def __call__(self, environ, start_response):
+        """Shortcut for :meth:`wsgi_app`."""
+        return self.wsgi_app(environ, start_response)
+
+    def wsgi_app(self, environ, start_response):
+        """The actual WSGI application.  This is not implemented in
+        `__call__` so that middlewares can be applied without losing a
+        reference to the class.  So instead of doing this::
+
+            app = MyMiddleware(app)
+
+        It's a better idea to do this instead::
+
+            app.wsgi_app = MyMiddleware(app.wsgi_app)
+
+        Then you still have the original application object around and
+        can continue to call methods on it.
+
+        :param environ:
+            A WSGI environment.
+        :param start_response:
+            A callable accepting a status code, a list of headers and
+            an optional exception context to start the response
+        """
+        cleanup = True
+        try:
+            # Set local variables for a single request.
+            local.app = self
+            local.request = self.request_class(environ)
+            # Kept here for backwards compatibility.
+            local.response = self.response_class()
+
+            # Make sure that the requested method is allowed in App Engine.
+            if local.request.method.lower() not in ALLOWED_METHODS:
+                raise MethodNotAllowed()
+
+            rv = self.pre_dispatch()
+            if rv is None:
+                rv = self.dispatch()
+
+            response = self.post_dispatch(self.make_response(rv))
+
+        except RequestRedirect, e:
+            # Execute redirects raised by the routing system or the
+            # application.
+            response = e
+        except Exception, e:
+            # Handle HTTP and uncaught exceptions.
+            cleanup = not self.dev
+            response = self.make_response(self.handle_exception(e))
+        finally:
+            # Do not clean local if we are in development mode and an
+            # exception happened. This allows the debugger to still access
+            # request and other variables from local in the interactive shell.
+            if cleanup:
+                local_manager.cleanup()
+
+        # Call the response object as a WSGI application.
+        return response(environ, start_response)
+
+    def pre_dispatch(self):
+        """Executes pre_dispatch_handler middleware. If a middleware returns
+        anything, the chain is stopped and that value is retirned.
+
+        :return:
+            The returned value from a middleware or `None`.
+        """
+        for hook in self.middleware.get('pre_dispatch_handler', []):
+            rv = hook()
+            if rv is not None:
+                return rv
+
+    def dispatch(self):
+        """Matches the current URL against registered rules and returns the
+        resut from the :class:`RequestHandler`.
+
+        :return:
+            The returned value from a middleware or `None`.
+        """
+        # For backwards compatibility only.
+        self.rule = self.rule_args = None
+
+        request = local.request
+        # Bind url map to the current request location.
+        server_name = self.config.get('tipfy', 'server_name', None)
+        subdomain = self.config.get('tipfy', 'subdomain', None)
+        request.url_adapter = self.url_adapter = self.url_map.bind_to_environ(
+            request.environ, server_name=server_name, subdomain=subdomain)
+
+        # Match the path against registered rules.
+        rule, rule_args = self.url_adapter.match(return_rule=True)
+
+        # For backwards compatibility, we also set in the app.
+        request.rule = self.rule = rule
+        request.rule_args = self.rule_args = rule_args
+
+        name = rule.handler
+        if name not in self.handlers:
+            # Import handler set in matched rule.
+            self.handlers[name] = import_string(name)
+
+        # Instantiate handler and dispatch request method.
+        return self.handlers[name]().dispatch()
+
+    def post_dispatch(self, response):
+        """Executes post_dispatch_handler middleware. All middleware are
+        executed and must return a response object.
+
+        :param response:
+            The :class:`Response` returned from :meth:`pre_dispatch` or
+            :meth:`dispatch` and converted by :meth:`make_response`.
+        :return:
+            A :class:`Response` object.
+        """
+        for hook in self.middleware.get('post_dispatch_handler', []):
+            response = hook(response)
+
+        return response
+
+    def make_response(self, rv):
+        """Converts the return value from a view function to a real
+        response object that is an instance of :attr:`response_class`.
+
+        The following types are allowd for `rv`:
+
+        ======================= ===========================================
+        :attr:`response_class`  the object is returned unchanged
+        :class:`str`            a response object is created with the
+                                string as body
+        :class:`unicode`        a response object is created with the
+                                string encoded to utf-8 as body
+        :class:`tuple`          the response object is created with the
+                                contents of the tuple as arguments
+        a WSGI function         the function is called as WSGI application
+                                and buffered as response object
+        ======================= ===========================================
+
+        This method comes from `Flask`_.
+
+        :param rv:
+            The return value from the view function.
+        :return:
+            A :class:`Response` object.
+        """
+        if rv is None:
+            raise ValueError('Handler did not return a response.')
+
+        if isinstance(rv, self.response_class):
+            return rv
+
+        if isinstance(rv, basestring):
+            return self.response_class(rv)
+
+        if isinstance(rv, tuple):
+            return self.response_class(*rv)
+
+        return self.response_class.force_type(rv, local.request.environ)
+
+    def handle_exception(self, e):
+        """Handles HTTPException or uncaught exceptions raised by the WSGI
+        application, optionally applying exception middleware.
+
+        :param e:
+            The catched exception.
+        :return:
+            A :class:`Response` object, if the exception is not raised.
+        """
+        # Execute handle_exception middleware.
+        for hook in self.middleware.get('handle_exception', []):
+            response = hook(e)
+            if response is not None:
+                return response
+
+        logging.exception(e)
+
+        if self.dev:
+            raise
+
+        if isinstance(e, HTTPException):
+            return e
+
+        return InternalServerError()
+
+    def get_url_map(self):
+        """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
+        application. Rules are cached in production; the cache is automatically
+        renewed on each deployment.
+
+        :return:
+            A ``werkzeug.routing.Map`` instance.
+        """
+        rules = import_string('urls.get_rules')()
+        kwargs = self.config.get('tipfy').get('url_map_kwargs')
+        return Map(rules, **kwargs)
 
 
 class MiddlewareFactory(object):
     """A factory and registry for middleware instances in use."""
+    #: All middleware methods to look for.
     names = (
         'post_make_app',
         'pre_run_app',
@@ -176,6 +368,7 @@ class MiddlewareFactory(object):
         'post_dispatch',
         'handle_exception',
     )
+    #: Methods that must run in reverse order.
     reverse_names = (
         'post_dispatch_handler',
         'post_dispatch',
@@ -243,190 +436,6 @@ class MiddlewareFactory(object):
                 res[name].reverse()
 
         return res
-
-
-class WSGIApplication(object):
-    """The WSGI application which centralizes URL dispatching, configuration
-    and hooks for an App Rngine app.
-    """
-    #: Default class for requests.
-    request_class = Request
-    #: Default class for responses.
-    response_class = Response
-
-    def __init__(self, config=None):
-        """Initializes the application.
-
-        :param config:
-            Dictionary with configuration for the application modules.
-        """
-        # Set an accessor to this instance.
-        local.app = self
-
-        # Load default config and update with values for this instance.
-        self.config = Config(config)
-        self.config.setdefault('tipfy', default_config)
-
-        # Set a shortcut to the development flag.
-        self.dev = self.config.get('tipfy', 'dev', False)
-
-        # Set the url rules.
-        self.url_map = self.config.get('tipfy', 'url_map')
-        if not self.url_map:
-            self.url_map = self.get_url_map()
-
-        # Cache for loaded handler classes.
-        self.handlers = {}
-
-        extensions = self.config.get('tipfy', 'extensions')
-        middleware = self.config.get('tipfy', 'middleware')
-        if extensions:
-            # For backwards compatibility only.
-            set_extensions_compatibility(extensions, middleware)
-
-        # Middleware factory and registry.
-        self.middleware_factory = factory = MiddlewareFactory()
-
-        # Store the app middleware dict.
-        self.middleware = factory.get_middleware(self, middleware)
-
-    def __call__(self, environ, start_response):
-        """Shortcut for :attr:`wsgi_app`"""
-        return self.wsgi_app(environ, start_response)
-
-    def wsgi_app(self, environ, start_response):
-        """The actual WSGI application.  This is not implemented in
-        `__call__` so that middlewares can be applied without losing a
-        reference to the class.  So instead of doing this::
-
-            app = MyMiddleware(app)
-
-        It's a better idea to do this instead::
-
-            app.wsgi_app = MyMiddleware(app.wsgi_app)
-
-        Then you still have the original application object around and
-        can continue to call methods on it.
-
-        :param environ:
-            A WSGI environment.
-        :param start_response:
-            A callable accepting a status code, a list of headers and
-            an optional exception context to start the response
-        """
-        cleanup = True
-        try:
-            # Set local variables for a single request.
-            local.app = self
-            local.request = self.request_class(environ)
-            # Kept here for backwards compatibility.
-            local.response = self.response_class()
-
-            # Execute pre_dispatch_handler middleware.
-            for hook in self.middleware.get('pre_dispatch_handler', []):
-                rv = hook()
-                if rv is not None:
-                    break
-            else:
-                # Match the path against registered rules.
-                handler = local.request.match_url(self)
-                # Instantiate handler and dispatch request method.
-                rv = handler()
-
-            # Build a response using the returned value.
-            response = self.make_response(rv)
-
-            # Execute post_dispatch_handler middleware.
-            for hook in self.middleware.get('post_dispatch_handler', []):
-                response = hook(response)
-
-        except RequestRedirect, e:
-            # Execute redirects raised by the routing system or the
-            # application.
-            response = e
-        except Exception, e:
-            # Handle HTTP and uncaught exceptions.
-            cleanup = not self.dev
-            response = self.handle_exception(e)
-        finally:
-            # Do not clean local if we are in development mode and an
-            # exception happened. This allows the debugger to still access
-            # request and other variables from local in the interactive shell.
-            if cleanup:
-                local_manager.cleanup()
-
-        # Call the response object as a WSGI application.
-        return response(environ, start_response)
-
-    def make_response(self, rv):
-        """Converts the return value from a view function to a real
-        response object that is an instance of :attr:`response_class`.
-
-        The following types are allowd for `rv`:
-
-        ======================= ===========================================
-        :attr:`response_class`  the object is returned unchanged
-        :class:`str`            a response object is created with the
-                                string as body
-        :class:`unicode`        a response object is created with the
-                                string encoded to utf-8 as body
-        :class:`tuple`          the response object is created with the
-                                contents of the tuple as arguments
-        a WSGI function         the function is called as WSGI application
-                                and buffered as response object
-        ======================= ===========================================
-
-        This function comes from `Flask`_.
-
-        :param rv: the return value from the view function
-        """
-        if isinstance(rv, self.response_class):
-            return rv
-
-        if isinstance(rv, basestring):
-            return self.response_class(rv)
-
-        if isinstance(rv, tuple):
-            return self.response_class(*rv)
-
-        return self.response_class.force_type(rv, local.request.environ)
-
-    def get_url_map(self):
-        """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
-        application. Rules are cached in production; the cache is automatically
-        renewed on each deployment.
-
-        :return:
-            A ``werkzeug.routing.Map`` instance.
-        """
-        rules = import_string('urls.get_rules')()
-        kwargs = self.config.get('tipfy').get('url_map_kwargs')
-        return Map(rules, **kwargs)
-
-    def handle_exception(self, e):
-        """Handles HTTPException or uncaught exceptions raised by the WSGI
-        application, optionally applying exception middleware.
-
-        :param e:
-            The catched exception.
-        :return:
-            A ``werkzeug.Response`` object, if the exception is not raised.
-        """
-        # Execute handle_exception middleware.
-        for hook in self.middleware.get('handle_exception', []):
-            response = hook(e)
-            if response is not None:
-                return response
-
-        logging.exception(e)
-
-        if self.dev:
-            raise
-
-        if isinstance(e, HTTPException):
-            return e
-
-        return InternalServerError()
 
 
 def make_wsgi_app(config):

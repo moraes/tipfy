@@ -582,6 +582,29 @@ class TestWSGIApplication(unittest.TestCase):
         response = client.open(path='/test-exception')
         self.assertEqual(response.status_code, 200)
 
+    @raises(ValueError)
+    def test_make_response_none(self):
+        app = tipfy.WSGIApplication()
+        response = app.make_response(None)
+
+    def test_make_response_basestring(self):
+        app = tipfy.WSGIApplication()
+        response = app.make_response('My Response')
+
+        assert isinstance(response, tipfy.Response)
+        assert response.status_code == 200
+        assert response.mimetype == 'text/html'
+        assert response.data == 'My Response'
+
+    def test_make_response_tuple(self):
+        app = tipfy.WSGIApplication()
+        response = app.make_response(('Ooops!', 404))
+
+        assert isinstance(response, tipfy.Response)
+        assert response.status_code == 404
+        assert response.mimetype == 'text/html'
+        assert response.data == 'Ooops!'
+
     def test_handler_internal_server_error(self):
         app = tipfy.WSGIApplication({
             'tipfy': {

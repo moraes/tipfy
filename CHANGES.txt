@@ -33,6 +33,8 @@ Development Version
     can return not only a Response object.
   - Refactoring: split pre_dispatch/dispatch/post_dispatch into separate
     functions. Makes it easier to override these methods in a middleware.
+  - Added function get_test_client() to return a werkzeug.Client for the wsgi
+    app.
   - Added function ext.jinja2.get_template_attribute().
 
 - ADDED: a Response object that extends werkzeug's Response, with default

@@ -355,6 +355,11 @@ class WSGIApplication(object):
         kwargs = self.config.get('tipfy').get('url_map_kwargs')
         return Map(rules, **kwargs)
 
+    def get_test_client(self):
+        """Creates a test client for this application."""
+        from werkzeug import Client
+        return Client(self, self.response_class, use_cookies=True)
+
 
 class MiddlewareFactory(object):
     """A factory and registry for middleware instances in use."""

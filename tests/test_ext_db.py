@@ -12,8 +12,7 @@ from gaetestbed import DataStoreTestCase
 
 import _base
 
-import tipfy
-from tipfy import NotFound
+from tipfy import local, NotFound
 from tipfy.ext import db as ext_db
 
 
@@ -77,7 +76,7 @@ def test_timeout_3(**kwargs):
 
 class TestModel(DataStoreTestCase, unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
 
     def test_no_protobuf_from_entity(self):
         res_1 = ext_db.get_entity_from_protobuf([])

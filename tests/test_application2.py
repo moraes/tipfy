@@ -9,13 +9,13 @@ import unittest
 
 import _base
 
-import tipfy
-from tipfy.application import set_extensions_compatibility
+from tipfy import local
+from tipfy.application import WSGIApplication, set_extensions_compatibility
 
 
 class TestMiscelaneous2(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
 
     def test_set_extensions_compatibility(self):
         extensions = [
@@ -56,7 +56,7 @@ class TestMiscelaneous2(unittest.TestCase):
         ]
 
     def test_set_extensions_compatibility2(self):
-        app = tipfy.WSGIApplication({
+        app = WSGIApplication({
             'tipfy': {
                 'extensions': [
                     'tipfy.ext.debugger',
@@ -77,7 +77,7 @@ class TestMiscelaneous2(unittest.TestCase):
         ]
 
     def test_set_extensions_compatibility3(self):
-        app = tipfy.WSGIApplication({
+        app = WSGIApplication({
             'tipfy': {
                 'extensions': [
                     'tipfy.ext.debugger',

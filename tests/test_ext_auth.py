@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.application
+    Tests for tipfy.ext.auth
 """
 import unittest
 
@@ -16,9 +16,9 @@ from werkzeug.test import create_environ, Client
 
 from gaetestbed import DataStoreTestCase
 
-import tipfy
-from tipfy import local
+from tipfy import abort, Forbidden, local, Map, Request, Rule, WSGIApplication
 from tipfy.ext.auth import (AppEngineAuth, AuthMiddleware, BaseAuth,
+    basic_auth_required,
     create_login_url, create_logout_url, create_signup_url, get_auth_system,
     get_current_user, is_current_user_admin, is_authenticated, MultiAuth,
     _auth_system)
@@ -27,11 +27,11 @@ from tipfy.ext.session import SessionMiddleware
 
 
 def get_url_map():
-    return tipfy.Map([
-        tipfy.Rule('/', endpoint='home', handler='files.app.handlers_auth.AuthHandler'),
-        tipfy.Rule('/account/signup', endpoint='auth/signup', handler='files.app.handlers_auth.SignupHandler'),
-        tipfy.Rule('/account/login', endpoint='auth/login', handler='undefined'),
-        tipfy.Rule('/account/logout', endpoint='auth/logout', handler='undefined'),
+    return Map([
+        Rule('/', endpoint='home', handler='files.app.handlers_auth.AuthHandler'),
+        Rule('/account/signup', endpoint='auth/signup', handler='files.app.handlers_auth.SignupHandler'),
+        Rule('/account/login', endpoint='auth/login', handler='undefined'),
+        Rule('/account/logout', endpoint='auth/logout', handler='undefined'),
     ])
 
 
@@ -45,7 +45,7 @@ def gae_logout():
 class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
-        app = tipfy.WSGIApplication({'tipfy': {
+        app = WSGIApplication({'tipfy': {
             'url_map': get_url_map(),
         }})
         app.url_adapter = app.url_map.bind('foo.com')
@@ -53,12 +53,12 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         self.temp_gcu = users.get_current_user
 
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
 
         users.get_current_user = self.temp_gcu
 
     def test_pre_dispatch_no_user(self):
-        app = tipfy.WSGIApplication({'tipfy': {
+        app = WSGIApplication({'tipfy': {
             'url_map': get_url_map(),
         }})
         app.url_adapter = app.url_map.bind('foo.com')
@@ -72,7 +72,7 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(response.data, 'Hello, World!')
 
     def test_pre_dispatch_user_without_account(self):
-        app = tipfy.WSGIApplication({'tipfy': {
+        app = WSGIApplication({'tipfy': {
             'url_map': get_url_map(),
         }})
         #app.url_adapter = app.url_map.bind('foo.com')
@@ -86,7 +86,7 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(response.headers['Location'], 'http://localhost/account/signup?redirect=http%3A%2F%2Flocalhost%2F')
 
     def test_pre_dispatch_user_with_account(self):
-        app = tipfy.WSGIApplication({'tipfy': {
+        app = WSGIApplication({'tipfy': {
             'url_map': get_url_map(),
         }})
         app.url_adapter = app.url_map.bind('foo.com')
@@ -104,7 +104,7 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(current_user, get_current_user())
 
     def test_pre_dispatch_user_with_admin_account(self):
-        app = tipfy.WSGIApplication({'tipfy': {
+        app = WSGIApplication({'tipfy': {
             'url_map': get_url_map(),
         }})
         app.url_adapter = app.url_map.bind('foo.com')
@@ -122,15 +122,17 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(is_current_user_admin(), True)
 
 
-class TestBaseAuth(unittest.TestCase):
+class TestBaseAuth(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
-        app = tipfy.WSGIApplication({'tipfy': {
+        DataStoreTestCase.setUp(self)
+        local.request = Request.from_values(base_url='http://foo.com')
+        app = WSGIApplication({'tipfy': {
             'url_map': get_url_map(),
         }})
-        app.url_adapter = app.url_map.bind('foo.com')
+        app.match_url(local.request)
 
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
 
     def test_user_model(self):
         auth = BaseAuth()
@@ -206,13 +208,34 @@ class TestBaseAuth(unittest.TestCase):
         res = auth.is_authenticated()
         assert res is False
 
+    def test_create_user_duplicate(self):
+        auth = BaseAuth()
+        user = auth.create_user('my_username', 'my_auth_id')
+        assert user is not None
 
-class TestMiscelaneous(unittest.TestCase):
+        user = auth.create_user('my_username', 'my_auth_id')
+        assert user is None
+
+
+class TestMultiAuth(unittest.TestCase):
     def setUp(self):
-        app = tipfy.WSGIApplication({'tipfy': {
+        app = WSGIApplication({'tipfy': {
             'url_map': get_url_map(),
         }})
         app.url_adapter = app.url_map.bind('foo.com')
+
+    def tearDown(self):
+        local.__release_local__()
+
+
+
+class TestMiscelaneous(unittest.TestCase):
+    def setUp(self):
+        local.request = Request.from_values(base_url='http://foo.com')
+        app = WSGIApplication({'tipfy': {
+            'url_map': get_url_map(),
+        }})
+        app.match_url(local.request)
 
         import os
         os.environ['SERVER_NAME'] = 'foo.com'
@@ -220,7 +243,7 @@ class TestMiscelaneous(unittest.TestCase):
         os.environ['SERVER_PORT'] = '8080'
 
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
 
     def test_create_signup_url(self):
         res = create_signup_url('/')
@@ -249,3 +272,65 @@ class TestMiscelaneous(unittest.TestCase):
     def test_is_authenticated(self):
         res = is_authenticated()
         assert res is True
+
+    def test_basic_auth_required(self):
+        local.request = Request.from_values(environ_base={
+            'HTTP_AUTHORIZATION': 'BASIC %s' % 'foo:bar'.encode('base64'),
+        })
+        assert local.request.authorization is not None
+
+        def validator(authorization, func, *args, **kwargs):
+            if authorization is not None and \
+                authorization.username == 'foo' and \
+                authorization.password == 'bar':
+                return func(*args, **kwargs)
+
+            abort(403)
+
+        def func():
+            return 'I am authorized.'
+
+        wrapper = basic_auth_required(validator)
+        decorated = wrapper(func)
+        assert decorated() == 'I am authorized.'
+
+    @raises(Forbidden)
+    def test_basic_auth_required_invalid_authorization(self):
+        local.request = Request.from_values(environ_base={
+            'HTTP_AUTHORIZATION': 'BASIC %s' % 'foo:baz'.encode('base64'),
+        })
+        assert local.request.authorization is not None
+
+        def validator(authorization, func, *args, **kwargs):
+            if authorization is not None and \
+                authorization.username == 'foo' and \
+                authorization.password == 'bar':
+                return func(*args, **kwargs)
+
+            abort(403)
+
+        def func():
+            return 'I am authorized.'
+
+        wrapper = basic_auth_required(validator)
+        decorated = wrapper(func)
+        assert decorated() == 'I am authorized.'
+
+    @raises(Forbidden)
+    def test_basic_auth_required_no_authorization(self):
+        local.request = Request.from_values()
+
+        def validator(authorization, func, *args, **kwargs):
+            if authorization is not None and \
+                authorization.username == 'foo' and \
+                authorization.password == 'bar':
+                return func(*args, **kwargs)
+
+            abort(403)
+
+        def func():
+            return 'I am authorized.'
+
+        wrapper = basic_auth_required(validator)
+        decorated = wrapper(func)
+        assert decorated() == 'I am authorized.'

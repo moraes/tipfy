@@ -90,7 +90,7 @@ class SessionMiddleware(object):
         :param handler:
             A :class:`tipfy.RequestHandler` instance.
         :return:
-            A ``werkzeug.Response`` instance or ``None``.
+            A :class:`tipfy.Response` instance or ``None``.
         """
         if self.session_type == 'securecookie':
             local.session_store = SessionStore(self)
@@ -105,9 +105,9 @@ class SessionMiddleware(object):
         :param handler:
             A :class:`tipfy.RequestHandler` instance.
         :param response:
-            A ``werkzeug.Response`` instance.
+            A :class:`tipfy.Response` instance.
         :return:
-            A ``werkzeug.Response`` instance.
+            A :class:`tipfy.Response` instance.
         """
         if getattr(local, 'session_store', None) is not None:
             local.session_store.save(response)
@@ -254,7 +254,7 @@ class SessionStore(object):
         """Saves all cookies tracked by this store.
 
         :param response:
-            A ``werkzeug.Response`` instance.
+            A :class:`tipfy.Response` instance.
         :return:
             ``None``.
         """

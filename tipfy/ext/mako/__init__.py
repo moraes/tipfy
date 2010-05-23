@@ -44,7 +44,7 @@ class MakoMixin(object):
         :param context:
             Keyword arguments used as variables in the rendered template.
         :return:
-            A ``werkzeug.Response`` object with the rendered template.
+            A :class:`tipfy.Response` object with the rendered template.
         """
         context = dict(self.context)
         context.update(values)
@@ -85,6 +85,6 @@ def render_response(filename, **context):
     :param context:
         Keyword arguments used as variables in the rendered template.
     :return:
-        A ``werkzeug.Response`` object with the rendered template.
+        A :class:`tipfy.Response` object with the rendered template.
     """
     return Response(render_template(filename, **context), mimetype='text/html')

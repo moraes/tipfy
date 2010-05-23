@@ -21,7 +21,7 @@ Development Version
 - ADDED: functions to ext.i18n: get_timezone_name(), parse_date(),
   parse_datetime() and parse_time().
 
-- ADDED: All datetime and number format functions in ext.i18n now accept a
+- IMPROVED: All datetime and number format functions in ext.i18n now accept a
   locale argument. If not set, uses the currently loaded locale (as before).
 
 - ADDED some ideas from Flask:
@@ -37,13 +37,13 @@ Development Version
     app.
   - Added function ext.jinja2.get_template_attribute().
 
-- ADDED: a Response object that extends werkzeug's Response, with default
-  mimetype set to 'text/html'.
-
 - ADDED: a Request object that extends werkzeug's Request. This is backwards
   compatible and stores url_adapter, matched rule and rule arguments.
   app.url_adapter, app.rule and app.rule_args are still set, but they will be
   removed on 1.0.
+
+- ADDED: a Response object that extends werkzeug's Response, with default
+  mimetype set to 'text/html'.
 
 - ADDED: request as an attribute of RequestHandler. self.request is set on
   dispatch().
@@ -56,6 +56,12 @@ Development Version
   dir.
 
 - FIXED: logging debug level is set correctly now when in development.
+
+- IMPROVED: render_json_response() now accepts all arguments and keyword
+  arguments accepted by simplejson.dumps().
+
+- REMOVED: tipfy.response. It was deprecated since 0.5 and not useful at all
+  since then. local.response is not longer set.
 
 
 Version 0.5.2 - May 06, 2010

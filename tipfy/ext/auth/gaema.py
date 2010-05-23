@@ -16,8 +16,8 @@ from tipfy import local, HTTPException, RequestRedirect
 
 
 class RequestAdapter(object):
-    """Adapter to transform a `werkzeug.Request` object into a request with the
-    attributes expected by `gaema`.
+    """Adapter to transform a :class:`tipfy.Request` object into a request
+    with the attributes expected by `gaema`.
 
     It must define at least the following attributes or functions:
 
@@ -31,7 +31,7 @@ class RequestAdapter(object):
         """Initializes the request adapter.
 
         :param request:
-            A `werkzeug.Request` instance.
+            A :class:`tipfy.Request` instance.
         """
         self.arguments = dict(request.args)
         self.full_url = lambda: request.url

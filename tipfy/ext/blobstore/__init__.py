@@ -60,7 +60,7 @@ class BlobstoreDownloadMixin(object):
             to save-as. If string is provided, use string as filename. If
             ``None`` or ``False``, do not send as attachment.
         :return:
-            A ``werkzeug.Response`` object.
+            A :class:`tipfy.Response` object.
         :raise:
             ``ValueError`` on invalid save_as parameter.
         """

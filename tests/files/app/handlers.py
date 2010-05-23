@@ -1,19 +1,19 @@
-import tipfy
+from tipfy import RequestHandler, Response
 from tipfy.ext.session import SessionMiddleware
 from tipfy.ext.auth import AuthMiddleware, get_current_user
 
 
-class HomeHandler(tipfy.RequestHandler):
+class HomeHandler(RequestHandler):
     def get(self, **kwargs):
-        return tipfy.Response('Hello, World!')
+        return Response('Hello, World!')
 
 
-class HandlerWithException(tipfy.RequestHandler):
+class HandlerWithException(RequestHandler):
     def get(self, **kwargs):
         raise ValueError('ooops!')
 
 
-class AuthHandler(tipfy.RequestHandler):
+class AuthHandler(RequestHandler):
     middleware = [SessionMiddleware, AuthMiddleware]
 
     def get(self, **kwargs):
@@ -23,4 +23,4 @@ class AuthHandler(tipfy.RequestHandler):
         else:
             r = 'no user'
 
-        return tipfy.Response(r)
+        return Response(r)

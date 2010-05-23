@@ -33,7 +33,7 @@ class Rule(WerkzeugRule):
     """
     def __init__(self, *args, **kwargs):
         self.handler = kwargs.pop('handler', kwargs.get('endpoint', None))
-        WerkzeugRule.__init__(self, *args, **kwargs)
+        super(Rule, self).__init__(*args, **kwargs)
 
     def empty(self):
         """Returns an unbound copy of this rule. This can be useful if you
@@ -98,8 +98,8 @@ def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
     full = kwargs.pop('full', _full)
     method = kwargs.pop('method', _method)
 
-    url = local.app.url_adapter.build(endpoint, force_external=full,
-        method=method, values=kwargs)
+    url = local.request.url_adapter.build(endpoint,
+        force_external=full, method=method, values=kwargs)
 
     if _anchor:
         url += '#' + url_quote(_anchor)

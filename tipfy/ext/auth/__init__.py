@@ -86,7 +86,7 @@ class AuthMiddleware(object):
         :param handler:
             A :class:`tipfy.RequestHandler` instance.
         :return:
-            A ``werkzeug.Response`` instance or None.
+            A :class:`tipfy.Response` instance or None.
         """
         # Start user session.
         get_auth_system().login_with_session()
@@ -574,8 +574,9 @@ def _is_auth_endpoint(endpoints):
         endpoints = (endpoints,)
 
     auth_system = get_auth_system()
+    rule = local.request.rule
     for e in endpoints:
-        if local.app.rule.endpoint == getattr(auth_system, e, None):
+        if rule.endpoint == getattr(auth_system, e, None):
             return True
 
     return False

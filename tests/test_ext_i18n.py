@@ -12,7 +12,7 @@ import _base
 
 from babel.numbers import NumberFormatError
 
-import tipfy
+from tipfy import local, Request, WSGIApplication
 from tipfy.ext import i18n
 
 class Request(object):
@@ -33,12 +33,12 @@ class Response(object):
 
 class TestI18nMiddleware(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
 
     def test_post_dispatch(self):
         middleware = i18n.I18nMiddleware()
 
-        tipfy.local.app = tipfy.WSGIApplication({
+        local.app = WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale': 'jp_JP',
             },
@@ -49,28 +49,29 @@ class TestI18nMiddleware(unittest.TestCase):
         assert isinstance(response, Response)
         assert response.cookies == {}
 
-        tipfy.local.locale = 'ru_RU'
+        local.locale = 'ru_RU'
         response = Response()
         response = middleware.post_dispatch(None, response)
+
         assert response.cookies == {'tipfy.locale': 'ru_RU'}
         assert isinstance(response, Response)
 
     def test_pre_dispatch_handler(self):
-        tipfy.local.app = tipfy.WSGIApplication({
+        local.app = WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale_request_lookup': [('args', 'language')],
             },
         })
-        tipfy.local.request = Request(args={'language': 'es_ES'})
+        local.request = Request(args={'language': 'es_ES'})
 
         middleware = i18n.I18nMiddleware()
         middleware.pre_dispatch_handler()
-        assert tipfy.local.locale == 'es_ES'
+        assert local.locale == 'es_ES'
 
     def test_post_dispatch_handler(self):
         middleware = i18n.I18nMiddleware()
 
-        tipfy.local.app = tipfy.WSGIApplication({
+        local.app = WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale': 'jp_JP',
             },
@@ -81,7 +82,7 @@ class TestI18nMiddleware(unittest.TestCase):
         assert isinstance(response, Response)
         assert response.cookies == {}
 
-        tipfy.local.locale = 'ru_RU'
+        local.locale = 'ru_RU'
         response = Response()
         response = middleware.post_dispatch_handler(response)
         assert response.cookies == {'tipfy.locale': 'ru_RU'}
@@ -90,115 +91,115 @@ class TestI18nMiddleware(unittest.TestCase):
 
 class TestI18n(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
     #===========================================================================
     # Translations
     #===========================================================================
     def test_set_translations(self):
-        assert getattr(tipfy.local, 'locale', None) is None
-        assert getattr(tipfy.local, 'translations', None) is None
+        assert getattr(local, 'locale', None) is None
+        assert getattr(local, 'translations', None) is None
 
         i18n.set_translations('pt_BR')
-        assert tipfy.local.locale == 'pt_BR'
-        assert isinstance(tipfy.local.translations, gettext_stdlib.NullTranslations)
+        assert local.locale == 'pt_BR'
+        assert isinstance(local.translations, gettext_stdlib.NullTranslations)
 
     def test_set_translations_from_request(self):
-        tipfy.local.app = tipfy.WSGIApplication({
+        local.app = WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale': 'jp_JP',
             },
         })
-        tipfy.local.request = Request()
+        local.request = Request()
 
         i18n.set_translations_from_request()
-        assert tipfy.local.locale == 'jp_JP'
+        assert local.locale == 'jp_JP'
 
     def test_set_translations_from_request_args(self):
-        tipfy.local.app = tipfy.WSGIApplication({
+        local.app = WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale_request_lookup': [('args', 'language')],
             },
         })
-        tipfy.local.request = Request(args={'language': 'es_ES'})
+        local.request = Request(args={'language': 'es_ES'})
 
         i18n.set_translations_from_request()
-        assert tipfy.local.locale == 'es_ES'
+        assert local.locale == 'es_ES'
 
     def test_set_translations_from_request_form(self):
-        tipfy.local.app = tipfy.WSGIApplication({
+        local.app = WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale_request_lookup': [('form', 'language')],
             },
         })
-        tipfy.local.request = Request(form={'language': 'es_ES'})
+        local.request = Request(form={'language': 'es_ES'})
 
         i18n.set_translations_from_request()
-        assert tipfy.local.locale == 'es_ES'
+        assert local.locale == 'es_ES'
 
     def test_set_translations_from_request_cookies(self):
-        tipfy.local.app = tipfy.WSGIApplication({
+        local.app = WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale_request_lookup': [('cookies', 'language')],
             },
         })
-        tipfy.local.request = Request(cookies={'language': 'es_ES'})
+        local.request = Request(cookies={'language': 'es_ES'})
 
         i18n.set_translations_from_request()
-        assert tipfy.local.locale == 'es_ES'
+        assert local.locale == 'es_ES'
 
     def test_set_translations_from_request_args_form_cookies(self):
-        tipfy.local.app = tipfy.WSGIApplication({
+        local.app = WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale_request_lookup': [('args', 'foo'), ('form', 'bar'), ('cookies', 'language')],
             },
         })
-        tipfy.local.request = Request(cookies={'language': 'es_ES'})
+        local.request = Request(cookies={'language': 'es_ES'})
 
         i18n.set_translations_from_request()
-        assert tipfy.local.locale == 'es_ES'
+        assert local.locale == 'es_ES'
 
     def test_set_translations_from_rule_args(self):
-        tipfy.local.app = tipfy.WSGIApplication({
+        local.app = WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale_request_lookup': [('rule_args', 'locale'),],
             },
         })
-        tipfy.local.request = Request()
+        local.request = Request()
 
-        tipfy.local.app.rule_args = {'locale': 'es_ES'}
+        local.app.rule_args = {'locale': 'es_ES'}
         i18n.set_translations_from_request()
-        assert tipfy.local.locale == 'es_ES'
+        assert local.locale == 'es_ES'
 
-        tipfy.local.app.rule_args = {'locale': 'pt_BR'}
+        local.app.rule_args = {'locale': 'pt_BR'}
         i18n.set_translations_from_request()
-        assert tipfy.local.locale == 'pt_BR'
+        assert local.locale == 'pt_BR'
 
     def test_is_default_locale(self):
-        app = tipfy.WSGIApplication()
-        tipfy.local.locale = 'en_US'
+        app = WSGIApplication()
+        local.locale = 'en_US'
         assert i18n.is_default_locale() is True
-        tipfy.local.locale = 'pt_BR'
+        local.locale = 'pt_BR'
         assert i18n.is_default_locale() is False
 
-        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'locale': 'pt_BR'}})
-        tipfy.local.locale = 'en_US'
+        app = WSGIApplication({'tipfy.ext.i18n': {'locale': 'pt_BR'}})
+        local.locale = 'en_US'
         assert i18n.is_default_locale() is False
-        tipfy.local.locale = 'pt_BR'
+        local.locale = 'pt_BR'
         assert i18n.is_default_locale() is True
 
 
     def test_get_locale(self):
-        tipfy.local.app = tipfy.WSGIApplication({
+        local.app = WSGIApplication({
             'tipfy.ext.i18n': {
                 'locale_request_lookup': [('args', 'foo'), ('form', 'bar'), ('cookies', 'language')],
             },
         })
-        tipfy.local.request = Request(cookies={'language': 'es_ES'})
+        local.request = Request(cookies={'language': 'es_ES'})
 
         assert i18n.get_locale() == 'es_ES'
 
     def test_get_locale_without_request(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
         assert i18n.get_locale() == 'en_US'
 
     #===========================================================================
@@ -235,7 +236,7 @@ class TestI18n(unittest.TestCase):
     # Date formatting
     #===========================================================================
     def test_format_date(self):
-        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app = WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
 
         i18n.set_translations('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -246,7 +247,7 @@ class TestI18n(unittest.TestCase):
         assert i18n.format_date(value, format='full') == u'Tuesday, November 10, 2009'
 
     def test_format_date_pt_BR(self):
-        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app = WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
 
         i18n.set_translations('pt_BR')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -257,7 +258,7 @@ class TestI18n(unittest.TestCase):
         assert i18n.format_date(value, format='full') == u'terça-feira, 10 de novembro de 2009'
 
     def test_format_datetime(self):
-        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app = WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
 
         i18n.set_translations('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -268,7 +269,7 @@ class TestI18n(unittest.TestCase):
         assert i18n.format_datetime(value, format='full') == u'Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time'
 
     def test_format_datetime_pt_BR(self):
-        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app = WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
 
         i18n.set_translations('pt_BR')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -279,7 +280,7 @@ class TestI18n(unittest.TestCase):
         assert i18n.format_datetime(value, format='full') == u'terça-feira, 10 de novembro de 2009 16h36min05s Horário Mundo (GMT)'
 
     def test_format_time(self):
-        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app = WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
 
         i18n.set_translations('en_US')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -290,7 +291,7 @@ class TestI18n(unittest.TestCase):
         assert i18n.format_time(value, format='full') == u'4:36:05 PM World (GMT) Time'
 
     def test_format_time_pt_BR(self):
-        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app = WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
 
         i18n.set_translations('pt_BR')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -304,7 +305,7 @@ class TestI18n(unittest.TestCase):
     # Timezones
     #===========================================================================
     def test_default_get_tzinfo(self):
-        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
+        app = WSGIApplication({'tipfy.ext.i18n': {'timezone': 'UTC'}})
         assert i18n.get_tzinfo().zone == 'UTC'
 
         app.config.update('tipfy.ext.i18n', {'timezone': 'America/Chicago'})
@@ -324,7 +325,7 @@ class TestI18n(unittest.TestCase):
         assert tzinfo.zone == 'America/Sao_Paulo'
 
     def test_to_local_timezone(self):
-        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'timezone': 'US/Eastern'}})
+        app = WSGIApplication({'tipfy.ext.i18n': {'timezone': 'US/Eastern'}})
         format = '%Y-%m-%d %H:%M:%S %Z%z'
 
         # Test datetime with timezone set
@@ -340,7 +341,7 @@ class TestI18n(unittest.TestCase):
         assert result == '2002-10-27 01:00:00 EST-0500'
 
     def test_to_utc(self):
-        app = tipfy.WSGIApplication({'tipfy.ext.i18n': {'timezone': 'US/Eastern'}})
+        app = WSGIApplication({'tipfy.ext.i18n': {'timezone': 'US/Eastern'}})
         format = '%Y-%m-%d %H:%M:%S'
 
         # Test datetime with timezone set
@@ -360,13 +361,13 @@ class TestI18n(unittest.TestCase):
     # Number formatting
     #===========================================================================
     def test_format_number(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
 
         i18n.set_translations('en_US')
         assert i18n.format_number(1099) == u'1,099'
 
     def test_format_decimal(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
 
         i18n.set_translations('en_US')
         assert i18n.format_decimal(1.2345) == u'1.234'
@@ -381,7 +382,7 @@ class TestI18n(unittest.TestCase):
         assert i18n.format_decimal(12345) == u'12.345'
 
     def test_format_currency(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
 
         i18n.set_translations('en_US')
         assert i18n.format_currency(1099.98, 'USD') == u'$1,099.98'
@@ -394,7 +395,7 @@ class TestI18n(unittest.TestCase):
         assert i18n.format_currency(1099.98, 'EUR') == u'1.099,98\xa0\u20ac'
 
     def test_format_percent(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
 
         i18n.set_translations('en_US')
         assert i18n.format_percent(0.34) == u'34%'
@@ -405,14 +406,14 @@ class TestI18n(unittest.TestCase):
         assert i18n.format_percent(25.1234) == u'2\xa0512\xa0%'
 
     def test_format_scientific(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
 
         i18n.set_translations('en_US')
         assert i18n.format_scientific(10000) == u'1E4'
         assert i18n.format_scientific(1234567, u'##0E00') == u'1.23E06'
 
     def test_parse_number(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
 
         i18n.set_translations('en_US')
         assert i18n.parse_number('1,099') == 1099L
@@ -422,13 +423,13 @@ class TestI18n(unittest.TestCase):
 
     @raises(NumberFormatError)
     def test_parse_number2(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
 
         i18n.set_translations('de')
         assert i18n.parse_number('1.099,98') == ''
 
     def test_parse_decimal(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
 
         i18n.set_translations('en_US')
         assert i18n.parse_decimal('1,099.98') == 1099.98
@@ -438,7 +439,7 @@ class TestI18n(unittest.TestCase):
 
     @raises(NumberFormatError)
     def test_parse_decimal_error(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
 
         i18n.set_translations('de')
         assert i18n.parse_decimal('2,109,998') == ''

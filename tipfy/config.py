@@ -10,10 +10,10 @@
 """
 from tipfy import import_string, local
 
-# Value used for required configuration values.
-REQUIRED_CONFIG = object()
-# Value used internally for missing default configuration values.
-_DEFAULT_CONFIG = object()
+# Value used for required values.
+REQUIRED_VALUE = object()
+# Value used internally for missing default values.
+DEFAULT_VALUE = object()
 
 
 class Config(dict):
@@ -132,7 +132,7 @@ class Config(dict):
         return self[module][key]
 
 
-def get_config(module, key=None, default=_DEFAULT_CONFIG):
+def get_config(module, key=None, default=DEFAULT_VALUE):
     """Returns a configuration value for a module. If it is not already set,
     loads a ``default_config`` variable from the given module, update the app
     config with those default values and return the value for the given key.
@@ -151,15 +151,15 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
         A configuration value.
     """
     config = local.app.config
-    value = config.get(module, key, _DEFAULT_CONFIG)
-    if value not in (_DEFAULT_CONFIG, REQUIRED_CONFIG):
+    value = config.get(module, key, DEFAULT_VALUE)
+    if value not in (DEFAULT_VALUE, REQUIRED_VALUE):
         return value
 
-    if default is _DEFAULT_CONFIG:
+    if default is DEFAULT_VALUE:
         # If no default was provided, the config is required.
-        default = REQUIRED_CONFIG
+        default = REQUIRED_VALUE
 
-    if value is _DEFAULT_CONFIG:
+    if value is DEFAULT_VALUE:
         if module not in config.modules:
             # Update app config. If import fails or the default_config
             # attribute doesn't exist, an exception will be raised.
@@ -171,7 +171,7 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
         else:
             value = default
 
-    if value is REQUIRED_CONFIG:
+    if value is REQUIRED_VALUE:
         raise KeyError('Module %s requires the config key "%s" to be set.' %
             (module, key))
 
@@ -180,4 +180,8 @@ def get_config(module, key=None, default=_DEFAULT_CONFIG):
 
 __all__ = ['Config',
            'get_config',
-           'REQUIRED_CONFIG']
+           'DEFAULT_VALUE',
+           'REQUIRED_VALUE']
+
+# Old name.
+REQUIRED_CONFIG = REQUIRED_VALUE

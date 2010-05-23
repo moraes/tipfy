@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.application
+    Tests for tipfy.ext.auth.model
 """
 import unittest
 
@@ -10,18 +10,17 @@ from gaetestbed import DataStoreTestCase
 
 import _base
 
-import tipfy
 from tipfy import local, WSGIApplication
 from tipfy.ext.auth.model import check_password, gen_pwhash, gen_salt, User
 
 
 class TestUserModel(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
         DataStoreTestCase.setUp(self)
 
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
 
     def test_create(self):
         user = User.create('my_username', 'my_id')
@@ -122,10 +121,10 @@ class TestUserModel(DataStoreTestCase, unittest.TestCase):
 class TestMiscelaneous(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
-        app = tipfy.WSGIApplication()
+        app = WSGIApplication()
 
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
 
     @raises(ValueError)
     def test_gen_salt(self):

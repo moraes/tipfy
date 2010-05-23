@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.application
+    Tests for tipfy.ext.appstats
 """
 import unittest
 
@@ -8,13 +8,13 @@ from nose.tools import raises
 
 import _base
 
-import tipfy
+
 from tipfy import local, NotFound, WSGIApplication
 from tipfy.ext.appstats import AppstatsMiddleware
 
 class TestAppstatsMiddleware(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
 
     def test_pre_run_app_no_dev(self):
         app = WSGIApplication({

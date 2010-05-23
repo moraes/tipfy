@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.application
+    Tests for tipfy.ext.debugger
 """
 import unittest
 
@@ -10,14 +10,14 @@ import _base
 
 import jinja2
 
-import tipfy
 from tipfy import local, NotFound, WSGIApplication
 from tipfy.ext.debugger import DebuggerMiddleware
-from tipfy.ext.debugger.app import get_template, render_template
+from tipfy.ext.debugger.app import (get_template, render_template, seek,
+    readline)
 
 class TestDebuggerMiddleware(unittest.TestCase):
     def tearDown(self):
-        tipfy.local_manager.cleanup()
+        local.__release_local__()
 
     def test_pre_run_app_no_dev(self):
         app = WSGIApplication({
@@ -50,3 +50,30 @@ class TestDebuggerMiddleware(unittest.TestCase):
 
     def test_render_template(self):
         self.assertEqual(render_template('source.html', lines=[]), '<table class="source">\n\n</table>')
+
+    def test_seek(self):
+        """Not much to test here."""
+        class NothingHere():
+            seek = seek
+
+        assert NothingHere().seek(None) is None
+
+    def test_readline(self):
+        """Not much to test here."""
+        class NothingHere():
+            readline = readline
+
+        nothing = NothingHere()
+        nothing._buffer = []
+        assert nothing.readline() == ''
+
+    def test_readline2(self):
+        """Not much to test here."""
+        class NothingHere():
+            readline = readline
+
+        nothing = NothingHere()
+        nothing._buffer = ['foo']
+        assert nothing.readline() == 'foo'
+
+

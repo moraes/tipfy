@@ -27,7 +27,7 @@ def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
     :param kwargs:
         Keyword arguments to build the URL.
     :return:
-        A ``werkzeug.Response`` object with headers set for redirection.
+        A :class:`tipfy.Response` object with headers set for redirection.
     """
     # For backwards compatibility, check old keywords.
     method = kwargs.pop('method', _method)
@@ -38,17 +38,20 @@ def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
     return redirect(url, code=code)
 
 
-def render_json_response(obj):
+def render_json_response(*args, **kwargs):
     """Renders a JSON response, automatically encoding `obj` to JSON.
 
-    :param obj:
-        An object to be serialized to JSON, normally a dictionary.
+    :param args:
+        Arguments to be passed to simplejson.dumps().
+    :param kwargs:
+        Keyword arguments to be passed to simplejson.dumps().
     :return:
-        A ``werkzeug.Response`` object with `obj` converted to JSON in the body
-        and mimetype set to ``application/json``.
+        A :class:`tipfy.Response` object with `obj` converted to JSON in
+        the body and mimetype set to ``application/json``.
     """
     from django.utils import simplejson
-    return Response(simplejson.dumps(obj), mimetype='application/json')
+    return Response(simplejson.dumps(*args, **kwargs),
+        mimetype='application/json')
 
 
 def normalize_callable(spec):

@@ -1,16 +1,16 @@
-import tipfy
+from tipfy import RequestHandler, Response
 from tipfy.ext import auth
 
 
-class AuthHandler(tipfy.RequestHandler):
+class AuthHandler(RequestHandler):
     middleware = [auth.AuthMiddleware]
 
     def get(self, **kwargs):
-        return tipfy.Response('Hello, World!')
+        return Response('Hello, World!')
 
 
-class SignupHandler(tipfy.RequestHandler):
+class SignupHandler(RequestHandler):
     middleware = [auth.AuthMiddleware]
 
     def get(self, **kwargs):
-        return tipfy.Response('Please signup!')
+        return Response('Please signup!')

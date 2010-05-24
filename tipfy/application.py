@@ -103,7 +103,7 @@ class RequestHandler(object):
         return response
 
 
-class Registry(dict):
+class Context(dict):
     """A simple registry for global values in use by :class::`WSGIApplication`
     and :class:`Request`.
     """
@@ -139,7 +139,7 @@ class WSGIApplication(object):
     #: Default class for responses.
     response_class = Response
     #: Default class for the registry.
-    registry_class = Registry
+    context_class = Context
 
     def __init__(self, config=None):
         """Initializes the application.
@@ -154,7 +154,7 @@ class WSGIApplication(object):
         self.config = Config(config, {'tipfy': default_config})
 
         # Set up a registry for this app.
-        self.registry = self.registry_class()
+        self.context = self.context_class()
 
         # Set a shortcut to the development flag.
         self.dev = self.config.get('tipfy', 'dev', False)
@@ -424,7 +424,12 @@ class WSGIApplication(object):
         return self.middleware_factory.get_middleware(obj, classes)
 
     def get_test_client(self):
-        """Creates a test client for this application."""
+        """Creates a test client for this application.
+
+        :return:
+            A `werkzeug.Client`, which is a :class:`WSGIApplication` wrapped
+            for tests.
+        """
         from werkzeug import Client
         return Client(self, self.response_class, use_cookies=True)
 

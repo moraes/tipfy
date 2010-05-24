@@ -16,8 +16,8 @@
     :license: BSD, see LICENSE for more details.
 """
 class Local(object):
-    """A container for local variables for a single request. All Local
-    attributes are removed at the end of each request.
+    """A container for global variables for a single request. All attributes
+    are removed at the end of each request.
 
     On App Engine, this doesn't need to care about threading because different
     requests never share the same interpreter instance. Outside of App Engine,

@@ -261,11 +261,11 @@ class WSGIApplication(object):
         # Bind url map to the current request location.
         server_name = self.config.get('tipfy', 'server_name', None)
         subdomain = self.config.get('tipfy', 'subdomain', None)
-        request.url_adapter = self.url_map.bind_to_environ(request.environ,
-            server_name=server_name, subdomain=subdomain)
+        request.url_adapter = self.url_adapter = self.url_map.bind_to_environ(
+            request.environ, server_name=server_name, subdomain=subdomain)
 
         # For backwards compatibility only.
-        # self.url_adapter = self.rule = self.rule_args = None
+        self.rule = self.rule_args = None
 
         try:
             # Match the path against registered rules.
@@ -275,9 +275,8 @@ class WSGIApplication(object):
             request.routing_exception = e
 
         # For backwards compatibility only.
-        # self.url_adapter = request.url_adapter
-        # self.rule = request.rule
-        # self.rule_args = request.rule_args
+        self.rule = request.rule
+        self.rule_args = request.rule_args
 
     def pre_dispatch(self, request):
         """Executes pre_dispatch_handler middleware. If a middleware returns

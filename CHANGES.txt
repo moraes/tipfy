@@ -72,6 +72,7 @@ Development Version
 - REMOVED:
     - tipfy.response and 'extensions' configuration key. They were deprecated
       since 0.5 and not useful at all since then.
+    - tipfy.local_manager. No longer needed since latest Werkzeug.
 
 
 Version 0.5.2 - May 06, 2010

@@ -322,6 +322,7 @@ class Tipfy(object):
         # Bind url map to the current request location.
         server_name = self.config.get('tipfy', 'server_name', None)
         subdomain = self.config.get('tipfy', 'subdomain', None)
+        # Set self.url_adapter for backwards compatibility only.
         request.url_adapter = self.url_adapter = self.url_map.bind_to_environ(
             request.environ, server_name=server_name, subdomain=subdomain)
 
@@ -336,8 +337,7 @@ class Tipfy(object):
             request.routing_exception = e
 
         # For backwards compatibility only.
-        self.rule = request.rule
-        self.rule_args = request.rule_args
+        self.rule, self.rule_args = request.rule, request.rule_args
 
     def pre_dispatch(self, request):
         """Executes pre_dispatch_handler middleware. If a middleware returns
@@ -790,8 +790,7 @@ def get_request():
 
 def cleanup_wsgi_app():
     """Cleans :class:`Tipfy` variables at the end of a request."""
-    Tipfy.instance = None
-    Tipfy.request = None
+    Tipfy.instance = Tipfy.request = None
     local.__release_local__()
 
 

@@ -75,6 +75,11 @@ class PreDispatchHandler(object):
         return BaseResponse('Handler dispatch was aborted!')
 
 
+class PostDispatchHandler(object):
+    def post_dispatch_handler(self, response):
+        return BaseResponse('I replaced the handler response!')
+
+
 class Middleware_1(object):
     def post_make_app(self, app):
         return app
@@ -583,6 +588,20 @@ class TestWSGIApplication(unittest.TestCase):
         response = client.open(path='/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, 'Handler dispatch was aborted!')
+
+    def test_post_dispatch_handler(self):
+        app = WSGIApplication({
+            'tipfy': {
+                'url_map': get_url_map(),
+                'dev': True,
+                'middleware': [PostDispatchHandler],
+            },
+        })
+
+        client = Client(app, response_wrapper=BaseResponse)
+        response = client.open(path='/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, 'I replaced the handler response!')
 
     @raises(ValueError)
     def test_handler_raises_exception(self):

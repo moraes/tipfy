@@ -9,7 +9,6 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from werkzeug.routing import BaseConverter, Map, Rule as WerkzeugRule
-from werkzeug import url_quote
 
 from tipfy import local
 
@@ -60,12 +59,12 @@ class RegexConverter(BaseConverter):
 
 
 def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
-    """Builds and returns a URL for a named :class:`Rule`.
+    """Builds and returns a URL for a named :class:`tipfy.Rule`.
 
-    For example, if you have these Rules registered in the application:
+    For example, if you have these rules registered in the application:
 
         Rule('/', endoint='home/main' handler='handlers.MyHomeHandler')
-        Rule('/wiki', endoint='wiki/start' handler='handlers.MyWikiHandler')
+        Rule('/wiki', endoint='wiki/start' handler='handlers.WikiHandler')
 
     Here are some examples of how to generate URLs for them:
 
@@ -83,7 +82,8 @@ def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
     :param endpoint:
         The rule endpoint.
     :param _full:
-        If True, returns an absolute URL. Otherwise, returns a relative one.
+        If True, returns an absolute URL. Otherwise, returns a relative
+        one.
     :param _method:
         The rule request method, in case there are different rules
         for different request methods.
@@ -98,13 +98,8 @@ def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
     full = kwargs.pop('full', _full)
     method = kwargs.pop('method', _method)
 
-    url = local.request.url_adapter.build(endpoint,
-        force_external=full, method=method, values=kwargs)
-
-    if _anchor:
-        url += '#' + url_quote(_anchor)
-
-    return url
+    return local.request.url_for(endpoint, _full=full, _method=method,
+        _anchor=_anchor, **kwargs)
 
 
 Map.default_converters = dict(Map.default_converters)

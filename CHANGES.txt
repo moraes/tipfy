@@ -45,8 +45,13 @@ Development Version
 - ADDED: a Response object that extends werkzeug's Response, with default
   mimetype set to 'text/html'.
 
-- ADDED: request as an attribute of RequestHandler. self.request is set on
-  dispatch().
+- ADDED: 'app' and 'request' attributes to RequestHandler, referencing current
+  WSGIApplication and Request. They are set on  __init__(). If you implemented
+  __init__() on RequestHandler, please update it to accept these arguments:
+
+    class MyRequestHandler(RequestHandler):
+        def __init__(self, app, request):
+            super(MyRequestHandler, self).__init__(app, request)
 
 - ADDED: app.dev attribute, as a shortcut to the development flag set in
   config.
@@ -55,13 +60,18 @@ Development Version
   translation messages using pybabel. Also added locale directory to the app
   dir.
 
+- ADDED: request.url_for(). tipfy. url_for() just calls request.url_for().
+
+- ADDED: app.get_config(). tipfy.get_config() just calls app.get_config().
+
 - FIXED: logging debug level is set correctly now when in development.
 
 - IMPROVED: render_json_response() now accepts all arguments and keyword
   arguments accepted by simplejson.dumps().
 
-- REMOVED: tipfy.response. It was deprecated since 0.5 and not useful at all
-  since then. local.response is not longer set.
+- REMOVED:
+    - tipfy.response and 'extensions' configuration key. They were deprecated
+      since 0.5 and not useful at all since then.
 
 
 Version 0.5.2 - May 06, 2010

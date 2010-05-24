@@ -11,7 +11,8 @@
 import logging
 from wsgiref.handlers import CGIHandler
 
-from werkzeug import Request as WerkzeugRequest, Response as WerkzeugResponse
+from werkzeug import (Request as WerkzeugRequest, Response as WerkzeugResponse,
+    url_quote)
 
 from tipfy import (default_config, HTTPException, import_string,
     InternalServerError, local, Map, MethodNotAllowed, NotFound,
@@ -43,12 +44,15 @@ class RequestHandler(object):
     #: ``handle_exception(exception, handler)``: Called if an exception occurs.
     middleware = []
 
-    def __init__(self, request):
+    def __init__(self, app, request):
         """Initializes the handler.
 
+        :param app:
+            A :class:`WSGIApplication` instance.
         :param request:
             A :class:`Request` instance.
         """
+        self.app = app
         self.request = request
 
     def dispatch(self, *args, **kwargs):
@@ -74,8 +78,8 @@ class RequestHandler(object):
             # No middleware is set: just execute the method.
             return method(**rule_args)
 
-        # Get middleware for this handler.
-        middleware = local.app.get_middleware(self, self.middleware)
+        # Get all middleware for this handler.
+        middleware = self.app.get_middleware(self, self.middleware)
 
         # Execute pre_dispatch middleware.
         for hook in middleware.get('pre_dispatch', []):
@@ -115,6 +119,8 @@ class Request(WerkzeugRequest):
     it stores the URL adapter bound to the request and information about the
     matched URL rule.
     """
+    #: Default class for context variables.
+    context_class = Context
     #: URL adapter bound to a request.
     url_adapter = None
     #: Matched URL rule for a request.
@@ -123,6 +129,59 @@ class Request(WerkzeugRequest):
     rule_args = None
     #: Exception raised when matching URL rules, if any.
     routing_exception = None
+
+    def __init__(self, environ):
+        """Initializes the request. This also sets a context attribute to
+        hold variables valid for a single request.
+        """
+        super(WerkzeugRequest, self).__init__(environ)
+        # Set up a context registry for this request.
+        self.context = self.context_class()
+
+    def url_for(self, endpoint, _full=False, _method=None, _anchor=None,
+        **kwargs):
+        """Builds and returns a URL for a named :class:`tipfy.Rule`.
+
+        For example, if you have these rules registered in the application:
+
+            Rule('/', endoint='home/main' handler='handlers.MyHomeHandler')
+            Rule('/wiki', endoint='wiki/start' handler='handlers.WikiHandler')
+
+        Here are some examples of how to generate URLs for them:
+
+            >>> url = url_for('home/main')
+            >>> '/'
+            >>> url = url_for('home/main', _full=True)
+            >>> 'http://localhost:8080/'
+            >>> url = url_for('wiki/start')
+            >>> '/wiki'
+            >>> url = url_for('wiki/start', _full=True)
+            >>> 'http://localhost:8080/wiki'
+            >>> url = url_for('wiki/start', _full=True, _anchor='my-heading')
+            >>> 'http://localhost:8080/wiki#my-heading'
+
+        :param endpoint:
+            The rule endpoint.
+        :param _full:
+            If True, returns an absolute URL. Otherwise, returns a relative
+            one.
+        :param _method:
+            The rule request method, in case there are different rules
+            for different request methods.
+        :param _anchor:
+            An anchor to add to the end of the URL.
+        :param kwargs:
+            Keyword arguments to build the URL.
+        :return:
+            An absolute or relative URL.
+        """
+        url = self.url_adapter.build(endpoint, force_external=_full,
+            method=_method, values=kwargs)
+
+        if _anchor:
+            url += '#' + url_quote(_anchor)
+
+        return url
 
 
 class Response(WerkzeugResponse):
@@ -134,12 +193,12 @@ class WSGIApplication(object):
     """The WSGI application which centralizes URL dispatching, configuration
     and hooks for an App Rngine app.
     """
+    #: Default class for context variables.
+    context_class = Context
     #: Default class for requests.
     request_class = Request
     #: Default class for responses.
     response_class = Response
-    #: Default class for the registry.
-    context_class = Context
 
     def __init__(self, config=None):
         """Initializes the application.
@@ -153,7 +212,7 @@ class WSGIApplication(object):
         # Load default config and update with values for this instance.
         self.config = Config(config, {'tipfy': default_config})
 
-        # Set up a registry for this app.
+        # Set up a context registry for this app.
         self.context = self.context_class()
 
         # Set a shortcut to the development flag.
@@ -305,7 +364,7 @@ class WSGIApplication(object):
             self.handlers[name] = import_string(name)
 
         # Instantiate handler and dispatch request method.
-        return self.handlers[name](request).dispatch()
+        return self.handlers[name](self, request).dispatch()
 
     def post_dispatch(self, request, response):
         """Executes post_dispatch_handler middleware. All middleware are

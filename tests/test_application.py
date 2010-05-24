@@ -144,23 +144,26 @@ class TestRequestHandler(unittest.TestCase):
         Handler.middleware = []
 
     def test_dispatch_without_middleware(self):
+        app = WSGIApplication()
         request = Request.from_values()
-        handler = Handler(request)
+        handler = Handler(app, request)
         assert handler.dispatch('get', some_arg='foo') == 'handler-get-foo'
 
-        handler = Handler(request)
+        handler = Handler(app, request)
         assert handler.dispatch('post', some_arg='bar') == 'handler-post-bar'
 
     @raises(MethodNotAllowed)
     def test_dispatch_not_allowed(self):
+        app = WSGIApplication()
         request = Request.from_values()
-        handler = Handler(request)
+        handler = Handler(app, request)
         handler.dispatch('put', some_arg='test')
 
     @raises(MethodNotAllowed)
     def test_method_not_allowed(self):
+        app = WSGIApplication()
         request = Request.from_values()
-        handler = Handler(request)
+        handler = Handler(app, request)
         handler.dispatch('foo', some_arg='test')
 
     #===========================================================================
@@ -177,10 +180,10 @@ class TestRequestHandler(unittest.TestCase):
         Handler.middleware = [MiddlewareThatReturns]
 
         request = Request.from_values()
-        handler = Handler(request)
+        handler = Handler(app, request)
         assert handler.dispatch('get', some_arg='foo') == message
 
-        handler = Handler(request)
+        handler = Handler(app, request)
         assert handler.dispatch('post', some_arg='bar') == message
 
     def test_pre_dispatch_set_attribute(self):
@@ -194,7 +197,7 @@ class TestRequestHandler(unittest.TestCase):
 
         request = Request.from_values()
         request.rule_args = {'some_arg': 'some_value'}
-        handler = Handler(request)
+        handler = Handler(app, request)
 
         assert getattr(handler, 'foo', None) is None
         handler.dispatch()
@@ -219,7 +222,7 @@ class TestRequestHandler(unittest.TestCase):
         HandlerThatRaises.middleware = [MiddlewareThatReturns]
 
         request = Request.from_values()
-        handler = HandlerThatRaises(request)
+        handler = HandlerThatRaises(app, request)
         assert handler.dispatch('get', some_arg='foo') == message
 
     @raises(NotImplementedError)
@@ -238,7 +241,7 @@ class TestRequestHandler(unittest.TestCase):
         HandlerThatRaises.middleware = [MiddlewareThatReturns]
 
         request = Request.from_values()
-        handler = HandlerThatRaises(request)
+        handler = HandlerThatRaises(app, request)
         assert handler.dispatch('get', some_arg='foo') == message
 
     def test_handle_exception_return_response(self):
@@ -256,7 +259,7 @@ class TestRequestHandler(unittest.TestCase):
         HandlerThatRaises.middleware = [MiddlewareThatReturns]
 
         request = Request.from_values()
-        handler = HandlerThatRaises(request)
+        handler = HandlerThatRaises(app, request)
         assert handler.dispatch('get', some_arg='foo') == message
 
     #===========================================================================
@@ -273,10 +276,10 @@ class TestRequestHandler(unittest.TestCase):
         Handler.middleware = [MiddlewareThatReturns]
 
         request = Request.from_values()
-        handler = Handler(request)
+        handler = Handler(app, request)
         assert handler.dispatch('get', some_arg='foo') == message
 
-        handler = Handler(request)
+        handler = Handler(app, request)
         assert handler.dispatch('post', some_arg='bar') == message
 
     def test_post_dispatch_set_attribute(self):
@@ -290,7 +293,7 @@ class TestRequestHandler(unittest.TestCase):
         Handler.middleware = [MiddlewareThatSetsAttribute]
 
         request = Request.from_values()
-        handler = Handler(request)
+        handler = Handler(app, request)
 
         assert getattr(handler, 'foo', None) is None
         handler.dispatch('get', some_arg='foo')

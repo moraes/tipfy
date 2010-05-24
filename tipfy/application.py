@@ -17,7 +17,7 @@ from tipfy import (default_config, HTTPException, import_string,
     InternalServerError, local, Map, MethodNotAllowed, NotFound,
     RequestRedirect)
 
-from tipfy.config import Config, DEFAULT_VALUE
+from tipfy.config import Config, DEFAULT_VALUE, REQUIRED_VALUE
 
 # Allowed request methods.
 ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
@@ -433,6 +433,52 @@ class WSGIApplication(object):
         from werkzeug import Client
         return Client(self, self.response_class, use_cookies=True)
 
+    def get_config(self, module, key=None, default=DEFAULT_VALUE):
+        """Returns a configuration value for a module. If it is not already
+        set, loads a ``default_config`` variable from the given module,
+        updates the app configuration with those default values and returns
+        the value for the given key. If the key is still not available,
+        returns the provided default value or raises an exception if no
+        default was provided.
+
+        Every `Tipfy`_ module that allows some kind of configuration sets a
+        ``default_config`` global variable that is loaded by this function,
+        cached and used in case the requested configuration was not defined
+        by the user.
+
+        :param module:
+            The configured module.
+        :param key:
+            The config key.
+        :return:
+            A configuration value.
+        """
+        config = self.config
+        value = config.get(module, key, DEFAULT_VALUE)
+        if value not in (DEFAULT_VALUE, REQUIRED_VALUE):
+            return value
+
+        if default is DEFAULT_VALUE:
+            # If no default was provided, the config is required.
+            default = REQUIRED_VALUE
+
+        if value is DEFAULT_VALUE:
+            if module not in config.modules:
+                # Update app config. If import fails or the default_config
+                # attribute doesn't exist, an exception will be raised.
+                config.setdefault(module, import_string(
+                    module + ':default_config'))
+                config.modules.append(module)
+
+                value = config.get(module, key, default)
+            else:
+                value = default
+
+        if value is REQUIRED_VALUE:
+            raise KeyError('Module %s requires the config key "%s" to be '
+                'set.' % (module, key))
+
+        return value
 
 class MiddlewareFactory(object):
     """A factory and registry for middleware instances in use."""

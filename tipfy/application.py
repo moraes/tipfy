@@ -167,17 +167,12 @@ class WSGIApplication(object):
         # Cache for loaded handler classes.
         self.handlers = {}
 
-        extensions = self.config.get('tipfy', 'extensions')
-        middleware = self.config.get('tipfy', 'middleware')
-        if extensions:
-            # For backwards compatibility only.
-            set_extensions_compatibility(extensions, middleware)
-
         # Middleware factory and registry.
         self.middleware_factory = MiddlewareFactory()
 
         # Store the app middleware dict.
-        self.middleware = self.get_middleware(self, middleware)
+        self.middleware = self.get_middleware(self, self.config.get('tipfy',
+            'middleware'))
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`wsgi_app`."""
@@ -397,18 +392,6 @@ class WSGIApplication(object):
 
         return InternalServerError()
 
-    def get_url_map(self):
-        """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
-        application. Rules are cached in production; the cache is automatically
-        renewed on each deployment.
-
-        :return:
-            A ``werkzeug.routing.Map`` instance.
-        """
-        rules = import_string('urls.get_rules')()
-        kwargs = self.config.get('tipfy').get('url_map_kwargs')
-        return Map(rules, **kwargs)
-
     def get_middleware(self, obj, classes):
         """Returns a dictionary of all middleware instance methods for a given
         object.
@@ -422,16 +405,6 @@ class WSGIApplication(object):
             A dictionary with middleware instance methods.
         """
         return self.middleware_factory.get_middleware(obj, classes)
-
-    def get_test_client(self):
-        """Creates a test client for this application.
-
-        :return:
-            A `werkzeug.Client`, which is a :class:`WSGIApplication` wrapped
-            for tests.
-        """
-        from werkzeug import Client
-        return Client(self, self.response_class, use_cookies=True)
 
     def get_config(self, module, key=None, default=DEFAULT_VALUE):
         """Returns a configuration value for a module. If it is not already
@@ -479,6 +452,29 @@ class WSGIApplication(object):
                 'set.' % (module, key))
 
         return value
+
+    def get_url_map(self):
+        """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
+        application. Rules are cached in production; the cache is automatically
+        renewed on each deployment.
+
+        :return:
+            A ``werkzeug.routing.Map`` instance.
+        """
+        rules = import_string('urls.get_rules')()
+        kwargs = self.config.get('tipfy').get('url_map_kwargs')
+        return Map(rules, **kwargs)
+
+    def get_test_client(self):
+        """Creates a test client for this application.
+
+        :return:
+            A `werkzeug.Client`, which is a :class:`WSGIApplication` wrapped
+            for tests.
+        """
+        from werkzeug import Client
+        return Client(self, self.response_class, use_cookies=True)
+
 
 class MiddlewareFactory(object):
     """A factory and registry for middleware instances in use."""
@@ -600,41 +596,6 @@ def run_wsgi_app(app):
 
     # Run it.
     CGIHandler().run(app)
-
-
-def set_extensions_compatibility(extensions, middleware):
-    """Starting at version 0.5, the "extensions" setting from config was
-    deprecated in favor of a unified middleware system for the WSGI app and
-    handlers. This functions checks for common extensions available pre-0.5
-    and sets the equivalent middleware classes instead.
-
-    :param extensions:
-        List of extensions set in config.
-    :param middleware:
-        List of middleware set in config.
-    """
-    logging.warning('The "extensions" setting from config is deprecated. '
-        'Use the "middleware" setting instead.')
-
-    conversions = [
-        ('tipfy.ext.debugger', ['tipfy.ext.debugger.DebuggerMiddleware']),
-        ('tipfy.ext.appstats', ['tipfy.ext.appstats.AppstatsMiddleware']),
-        ('tipfy.ext.session',  ['tipfy.ext.session.SessionMiddleware']),
-        ('tipfy.ext.user',     ['tipfy.ext.session.SessionMiddleware',
-                                'tipfy.ext.auth.AuthMiddleware']),
-        ('tipfy.ext.i18n',     ['tipfy.ext.i18n.I18nMiddleware']),
-    ]
-
-    for old, new in conversions:
-        if old in extensions:
-            extensions.remove(old)
-            for m in new:
-                if m not in middleware:
-                    middleware.append(m)
-
-    if extensions:
-        logging.warning('The following extensions were not '
-            'loaded: %s' % str(extensions))
 
 
 _ULTIMATE_SYS_PATH = None

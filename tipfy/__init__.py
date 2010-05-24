@@ -84,8 +84,6 @@ default_config = {
     'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
     # Undocumented for now.
     'url_map_kwargs': {},
-    # Deprecated.
-    'extensions': [],
 }
 
 # All tipfy utilities.

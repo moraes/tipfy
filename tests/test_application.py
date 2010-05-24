@@ -11,8 +11,9 @@ import _base
 from werkzeug import BaseResponse
 from werkzeug.test import create_environ, Client
 
-from tipfy import local, make_wsgi_app, Map, MethodNotAllowed, Request, RequestHandler, Response, Rule, run_wsgi_app, WSGIApplication
-from tipfy.application import MiddlewareFactory, set_extensions_compatibility
+from tipfy import (local, make_wsgi_app, Map, MethodNotAllowed, Request,
+    RequestHandler, Response, Rule, run_wsgi_app, WSGIApplication)
+from tipfy.application import MiddlewareFactory
 
 
 def get_url_map():

@@ -19,7 +19,8 @@ from google.appengine.ext import db
 from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import generate_key, ModificationTrackingDict
 
-from tipfy import cached_property, local, get_config, REQUIRED_CONFIG
+from tipfy import (cached_property, local, get_config, get_request,
+    REQUIRED_VALUE)
 from tipfy.ext.db import (get_protobuf_from_entity, get_entity_from_protobuf,
     PickleProperty)
 
@@ -30,7 +31,7 @@ from tipfy.ext.db import (get_protobuf_from_entity, get_entity_from_protobuf,
 #:
 #: - ``secret_key``: Secret key to generate session cookies. Set this to
 #:   something random and unguessable. Default is
-#:   :data:`tipfy.REQUIRED_CONFIG` (an exception is raised if it is not set).
+#:   :data:`tipfy.REQUIRED_VALUE` (an exception is raised if it is not set).
 #:
 #: - ``session_cookie_name``: Name of the cookie to save a session. Default
 #:   is `tipfy.session`.
@@ -64,7 +65,7 @@ from tipfy.ext.db import (get_protobuf_from_entity, get_entity_from_protobuf,
 #:   even if the session data isn't changed. Default to ``False``.
 default_config = {
     'session_type':        'securecookie',
-    'secret_key':          REQUIRED_CONFIG,
+    'secret_key':          REQUIRED_VALUE,
     'session_cookie_name': 'tipfy.session',
     'flash_cookie_name':   'tipfy.flash',
     'cookie_session_expires': None,
@@ -424,7 +425,7 @@ class SessionStore(object):
         :return:
             A ``werkzeug.contrib.SecureCookie`` instance.
         """
-        return SecureCookie.load_cookie(local.request, key=key,
+        return SecureCookie.load_cookie(get_request(), key=key,
                                         secret_key=self.config.secret_key)
 
     def create_secure_cookie(self, data=None):
@@ -466,7 +467,7 @@ class SessionStore(object):
 
         self._flash_read.append(key)
 
-        if key in local.request.cookies:
+        if key in get_request().cookies:
             if key not in self._data:
                 # Only mark for deletion if it was not set.
                 self._data[key] = None

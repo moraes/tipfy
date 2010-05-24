@@ -7,8 +7,8 @@ from nose.tools import raises
 
 import _base
 
-from tipfy import (local, Map, NotFound, Request, Rule, url_for,
-    WSGIApplication)
+from tipfy import (cleanup_wsgi_app, local, Map, NotFound, Request, Rule,
+    set_request, url_for, WSGIApplication)
 
 def get_url_map():
     # Fake get_rules() for testing.
@@ -31,7 +31,7 @@ def get_app():
 
 class TestUrls(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     #===========================================================================
     # Rule
@@ -57,30 +57,32 @@ class TestUrls(unittest.TestCase):
     #===========================================================================
     def test_regex_converter(self):
         host = 'http://foo.com'
-        local.request = Request.from_values(base_url=host, path='/foo')
+        request = Request.from_values(base_url=host, path='/foo')
+        set_request(request)
         app = WSGIApplication({'tipfy': {
             'url_map': Map([
                 Rule('/<regex(".*"):path>', endpoint='home',
                     handler='test.home:HomeHandler'),
             ]),
         },})
-        app.match_url(local.request)
-        rule, rule_args = local.request.rule, local.request.rule_args
+        app.match_url(request)
+        rule, rule_args = request.rule, request.rule_args
 
         assert 'path' in rule_args
         assert rule_args['path'] == 'foo'
 
     def test_regex_converter2(self):
         host = 'http://foo.com'
-        local.request = Request.from_values(base_url=host, path='/foo/bar/baz')
+        request = Request.from_values(base_url=host, path='/foo/bar/baz')
+        set_request(request)
         app = WSGIApplication({'tipfy': {
             'url_map': Map([
                 Rule('/<regex(".*"):path>', endpoint='home',
                     handler='test.home:HomeHandler'),
             ]),
         },})
-        app.match_url(local.request)
-        rule, rule_args = local.request.rule, local.request.rule_args
+        app.match_url(request)
+        rule, rule_args = request.rule, request.rule_args
 
         assert rule_args['path'] == 'foo/bar/baz'
 
@@ -89,44 +91,49 @@ class TestUrls(unittest.TestCase):
     # URL match
     #===========================================================================
     def test_url_match(self):
-        local.request = Request.from_values(base_url='http://foo.com')
+        request = Request.from_values(base_url='http://foo.com')
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
-        assert local.request.rule.handler == 'test.home:HomeHandler'
-        assert local.request.rule_args == {}
+        assert request.rule.handler == 'test.home:HomeHandler'
+        assert request.rule_args == {}
 
     def test_url_match2(self):
-        local.request = Request.from_values(base_url='http://foo.com', path='/people/calvin')
+        request = Request.from_values(base_url='http://foo.com', path='/people/calvin')
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
-        assert local.request.rule.handler == 'test.profile:ProfileHandler'
-        assert local.request.rule_args == {'username': 'calvin'}
+        assert request.rule.handler == 'test.profile:ProfileHandler'
+        assert request.rule_args == {'username': 'calvin'}
 
     def test_not_found(self):
-        local.request = Request.from_values(base_url='http://foo.com', path='/this-path-is-not-mapped')
+        request = Request.from_values(base_url='http://foo.com', path='/this-path-is-not-mapped')
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
-        assert isinstance(local.request.routing_exception, NotFound)
+        assert isinstance(request.routing_exception, NotFound)
 
     #===========================================================================
     # url_for()
     #===========================================================================
     def test_url_for(self):
         host = 'http://foo.com'
-        local.request = Request.from_values(base_url=host)
+        request = Request.from_values(base_url=host)
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
         assert url_for('home') == '/'
 
     def test_url_for2(self):
         host = 'http://foo.com'
-        local.request = Request.from_values(base_url=host)
+        request = Request.from_values(base_url=host)
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
         assert url_for('profile', username='calvin') == '/people/calvin'
         assert url_for('profile', username='hobbes') == '/people/hobbes'
@@ -134,17 +141,19 @@ class TestUrls(unittest.TestCase):
 
     def test_url_for_full(self):
         host = 'http://foo.com'
-        local.request = Request.from_values(base_url=host)
+        request = Request.from_values(base_url=host)
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
         assert url_for('home', full=True) == host + '/'
 
     def test_url_for_full2(self):
         host = 'http://foo.com'
-        local.request = Request.from_values(base_url=host)
+        request = Request.from_values(base_url=host)
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
         assert url_for('profile', username='calvin', full=True) == \
             host + '/people/calvin'
@@ -154,9 +163,10 @@ class TestUrls(unittest.TestCase):
             host + '/people/moe'
 
     def test_url_for_with_anchor(self):
-        local.request = Request.from_values(base_url='http://foo.com')
+        request = Request.from_values(base_url='http://foo.com')
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
         assert url_for('home', _anchor='my-little-anchor') == '/#my-little-anchor'
         assert url_for('home', _full=True, _anchor='my-little-anchor') == 'http://foo.com/#my-little-anchor'

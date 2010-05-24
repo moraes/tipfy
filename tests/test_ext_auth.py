@@ -16,12 +16,12 @@ from werkzeug.test import create_environ, Client
 
 from gaetestbed import DataStoreTestCase
 
-from tipfy import abort, Forbidden, local, Map, Request, Rule, WSGIApplication
+from tipfy import (abort, cleanup_wsgi_app, Forbidden, set_request, local,
+    Map, Request, Rule, WSGIApplication)
 from tipfy.ext.auth import (AppEngineAuth, AuthMiddleware, BaseAuth,
-    basic_auth_required,
-    create_login_url, create_logout_url, create_signup_url, get_auth_system,
-    get_current_user, is_current_user_admin, is_authenticated, MultiAuth,
-    _auth_system)
+    basic_auth_required, create_login_url, create_logout_url,
+    create_signup_url, get_auth_system, get_current_user,
+    is_current_user_admin, is_authenticated, MultiAuth, _auth_system)
 from tipfy.ext.auth.model import User
 from tipfy.ext.session import SessionMiddleware
 
@@ -53,7 +53,7 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         self.temp_gcu = users.get_current_user
 
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
         users.get_current_user = self.temp_gcu
 
@@ -125,14 +125,15 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
 class TestBaseAuth(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
-        local.request = Request.from_values(base_url='http://foo.com')
+        request = Request.from_values(base_url='http://foo.com')
+        set_request(request)
         app = WSGIApplication({'tipfy': {
             'url_map': get_url_map(),
         }})
-        app.match_url(local.request)
+        app.match_url(request)
 
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     def test_user_model(self):
         auth = BaseAuth()
@@ -225,17 +226,18 @@ class TestMultiAuth(unittest.TestCase):
         app.url_adapter = app.url_map.bind('foo.com')
 
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
 
 
 class TestMiscelaneous(unittest.TestCase):
     def setUp(self):
-        local.request = Request.from_values(base_url='http://foo.com')
+        request = Request.from_values(base_url='http://foo.com')
+        set_request(request)
         app = WSGIApplication({'tipfy': {
             'url_map': get_url_map(),
         }})
-        app.match_url(local.request)
+        app.match_url(request)
 
         import os
         os.environ['SERVER_NAME'] = 'foo.com'
@@ -243,7 +245,7 @@ class TestMiscelaneous(unittest.TestCase):
         os.environ['SERVER_PORT'] = '8080'
 
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     def test_create_signup_url(self):
         res = create_signup_url('/')
@@ -274,10 +276,11 @@ class TestMiscelaneous(unittest.TestCase):
         assert res is True
 
     def test_basic_auth_required(self):
-        local.request = Request.from_values(environ_base={
+        request = Request.from_values(environ_base={
             'HTTP_AUTHORIZATION': 'BASIC %s' % 'foo:bar'.encode('base64'),
         })
-        assert local.request.authorization is not None
+        set_request(request)
+        assert request.authorization is not None
 
         def validator(authorization, func, *args, **kwargs):
             if authorization is not None and \
@@ -296,10 +299,11 @@ class TestMiscelaneous(unittest.TestCase):
 
     @raises(Forbidden)
     def test_basic_auth_required_invalid_authorization(self):
-        local.request = Request.from_values(environ_base={
+        request = Request.from_values(environ_base={
             'HTTP_AUTHORIZATION': 'BASIC %s' % 'foo:baz'.encode('base64'),
         })
-        assert local.request.authorization is not None
+        set_request(request)
+        assert request.authorization is not None
 
         def validator(authorization, func, *args, **kwargs):
             if authorization is not None and \
@@ -318,7 +322,8 @@ class TestMiscelaneous(unittest.TestCase):
 
     @raises(Forbidden)
     def test_basic_auth_required_no_authorization(self):
-        local.request = Request.from_values()
+        request = Request.from_values()
+        set_request(request)
 
         def validator(authorization, func, *args, **kwargs):
             if authorization is not None and \

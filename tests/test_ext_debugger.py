@@ -10,14 +10,14 @@ import _base
 
 import jinja2
 
-from tipfy import local, NotFound, WSGIApplication
+from tipfy import cleanup_wsgi_app, local, NotFound, WSGIApplication
 from tipfy.ext.debugger import DebuggerMiddleware
 from tipfy.ext.debugger.app import (get_template, render_template, seek,
     readline)
 
 class TestDebuggerMiddleware(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     def test_pre_run_app_no_dev(self):
         app = WSGIApplication({
@@ -30,7 +30,7 @@ class TestDebuggerMiddleware(unittest.TestCase):
         middleware = DebuggerMiddleware()
         new_app = middleware.pre_run_app(app)
 
-        self.assertEqual(new_app.__class__.__name__, 'WSGIApplication')
+        self.assertEqual(new_app.__class__.__name__, 'Tipfy')
 
     def test_pre_run_app_dev(self):
         app = WSGIApplication({

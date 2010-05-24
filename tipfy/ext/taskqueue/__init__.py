@@ -41,12 +41,12 @@ class DeferredHandler(RequestHandler):
     use_middlewares = False
 
     def post(self):
-        headers = ['%s:%s' % (k, v) for k, v in local.request.headers.items()
+        headers = ['%s:%s' % (k, v) for k, v in self.request.headers.items()
                if k.lower().startswith('x-appengine-')]
         logging.info(', '.join(headers))
 
         try:
-            run(local.request.data)
+            run(self.request.data)
         except PermanentTaskFailure, e:
             logging.exception('Permanent failure attempting to execute task')
 

@@ -11,8 +11,9 @@ import _base
 from werkzeug import BaseResponse
 from werkzeug.test import create_environ, Client
 
-from tipfy import (local, make_wsgi_app, Map, MethodNotAllowed, Request,
-    RequestHandler, Response, Rule, run_wsgi_app, WSGIApplication)
+from tipfy import (cleanup_wsgi_app, local, make_wsgi_app, Map,
+    MethodNotAllowed, Request, RequestHandler, Response, Rule, run_wsgi_app,
+    WSGIApplication)
 from tipfy.application import MiddlewareFactory
 
 
@@ -140,7 +141,7 @@ class Middleware_5(object):
 
 class TestRequestHandler(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
         Handler.middleware = []
 
     def test_dispatch_without_middleware(self):
@@ -302,7 +303,7 @@ class TestRequestHandler(unittest.TestCase):
 
 class TestMiddlewareFactory(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     def test_get_middleware(self):
         factory = MiddlewareFactory()
@@ -532,7 +533,7 @@ class TestMiddlewareFactory(unittest.TestCase):
 
 class TestWSGIApplication(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     def test_hello_world(self):
         app = get_app()
@@ -641,7 +642,7 @@ class TestWSGIApplication(unittest.TestCase):
 
 class TestMiscelaneous(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
         from os import environ
         for key in ['SERVER_NAME', 'SERVER_PORT', 'REQUEST_METHOD']:

@@ -8,13 +8,13 @@ from nose.tools import assert_raises, raises
 
 import _base
 
-from tipfy import default_config, local, WSGIApplication
-from tipfy.config import Config, get_config
+from tipfy import (cleanup_wsgi_app, Config, default_config, get_config, local,
+    WSGIApplication)
 
 
 class TestConfig(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     def test_get_existing_keys(self):
         config = Config({'foo': {
@@ -157,7 +157,7 @@ class TestConfig(unittest.TestCase):
 
 class TestGetConfig(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     def test_default_config(self):
         app = WSGIApplication()

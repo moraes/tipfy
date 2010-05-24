@@ -116,7 +116,7 @@ class BlobstoreUploadMixin(object):
         """
         if getattr(self, '__uploads', None) is None:
             self.__uploads = {}
-            for key, value in local.request.files.items():
+            for key, value in self.request.files.items():
                 if isinstance(value, FileStorage):
                     for option in value.headers['Content-Type'].split(';'):
                         if 'blob-key' in option:

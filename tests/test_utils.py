@@ -9,8 +9,9 @@ import _base
 
 import werkzeug
 
-from tipfy import (local, Map, normalize_callable, redirect, redirect_to,
-    render_json_response, Request, Response, Rule, WSGIApplication)
+from tipfy import (cleanup_wsgi_app, local, Map, normalize_callable, redirect,
+    redirect_to, render_json_response, Request, Response, Rule, set_request,
+    WSGIApplication)
 
 
 def get_url_map():
@@ -34,7 +35,7 @@ def get_app():
 
 class TestUtils(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     #===========================================================================
     # normalize_callable()
@@ -97,9 +98,10 @@ class TestUtils(unittest.TestCase):
     #===========================================================================
     def test_redirect_to(self):
         host = 'http://foo.com'
-        local.request = Request.from_values(base_url=host)
+        request = Request.from_values(base_url=host)
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
         response = redirect_to('home')
         assert response.headers['location'] == host + '/'
@@ -107,9 +109,10 @@ class TestUtils(unittest.TestCase):
 
     def test_redirect_to2(self):
         host = 'http://foo.com'
-        local.request = Request.from_values(base_url=host)
+        request = Request.from_values(base_url=host)
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
         response = redirect_to('profile', username='calvin')
         assert response.headers['location'] == host + '/people/calvin'
@@ -125,9 +128,10 @@ class TestUtils(unittest.TestCase):
 
     def test_redirect_to_301(self):
         host = 'http://foo.com'
-        local.request = Request.from_values(base_url=host)
+        request = Request.from_values(base_url=host)
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
         response = redirect_to('home', code=301)
         assert response.headers['location'] == host + '/'
@@ -136,9 +140,10 @@ class TestUtils(unittest.TestCase):
     @raises(AssertionError)
     def test_redirect_to_invalid_code(self):
         host = 'http://foo.com'
-        local.request = Request.from_values(base_url=host)
+        request = Request.from_values(base_url=host)
+        set_request(request)
         app = get_app()
-        app.match_url(local.request)
+        app.match_url(request)
 
         redirect_to('home', code=405)
 

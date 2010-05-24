@@ -87,8 +87,9 @@ default_config = {
 }
 
 # All tipfy utilities.
-from tipfy.application import (make_wsgi_app, Request, RequestHandler,
-    Response, run_wsgi_app, WSGIApplication)
-from tipfy.config import Config, get_config, REQUIRED_CONFIG, REQUIRED_VALUE
+from tipfy.application import (cleanup_wsgi_app, Config, DEFAULT_VALUE,
+    get_config, get_request, get_wsgi_app, make_wsgi_app, Request,
+    RequestHandler, REQUIRED_CONFIG, REQUIRED_VALUE, Response, run_wsgi_app,
+    set_request, set_wsgi_app, Tipfy, WSGIApplication)
 from tipfy.routing import Rule, url_for
 from tipfy.utils import normalize_callable, redirect_to, render_json_response

@@ -7,7 +7,7 @@ import unittest
 
 import _base
 
-from tipfy import local, Response, WSGIApplication
+from tipfy import cleanup_wsgi_app, local, Response, WSGIApplication
 from tipfy.ext import jinja2
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -17,7 +17,7 @@ templates_compiled_target = os.path.join(current_dir, 'files', 'jinja2_compiled'
 
 class TestJinja2(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     def test_render_template(self):
         jinja2._environment = None

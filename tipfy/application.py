@@ -18,16 +18,18 @@ from tipfy import (default_config, HTTPException, import_string,
     InternalServerError, local, Map, MethodNotAllowed, NotFound,
     RequestRedirect)
 
-from tipfy.config import Config, DEFAULT_VALUE, REQUIRED_VALUE
-
 # Allowed request methods.
 ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
     'trace'])
+# Value used for required values.
+REQUIRED_VALUE = object()
+# Value used internally for missing default values.
+DEFAULT_VALUE = object()
 
 
 class RequestHandler(object):
     """Base request handler. Implements the minimal interface required by
-    :class:`WSGIApplication`: the ``dispatch()`` method.
+    :class:`Tipfy`: the ``dispatch()`` method.
 
     Additionally, implements a middleware system to pre and post process
     requests and handle exceptions.
@@ -48,7 +50,7 @@ class RequestHandler(object):
         """Initializes the handler.
 
         :param app:
-            A :class:`WSGIApplication` instance.
+            A :class:`Tipfy` instance.
         :param request:
             A :class:`Request` instance.
         """
@@ -56,8 +58,8 @@ class RequestHandler(object):
         self.request = request
 
     def dispatch(self, *args, **kwargs):
-        """Executes a handler method. This method is called by the
-        WSGIApplication and must return a response object.
+        """Executes a handler method. This method is called by :class:`Tipfy`
+        and must return a :class:`Response` object.
 
         :return:
             A :class:`Response` instance.
@@ -108,7 +110,7 @@ class RequestHandler(object):
 
 
 class Context(dict):
-    """A simple registry for global values in use by :class::`WSGIApplication`
+    """A simple registry for global values in use by :class::`Tipfy`
     and :class:`Request`.
     """
 
@@ -189,7 +191,7 @@ class Response(WerkzeugResponse):
     default_mimetype = 'text/html'
 
 
-class WSGIApplication(object):
+class Tipfy(object):
     """The WSGI application which centralizes URL dispatching, configuration
     and hooks for an App Rngine app.
     """
@@ -199,6 +201,10 @@ class WSGIApplication(object):
     request_class = Request
     #: Default class for responses.
     response_class = Response
+    #: The active :class:`Tipfy` instance.
+    instance = None
+    #: The active :class:`Request` instance.
+    request = None
 
     def __init__(self, config=None):
         """Initializes the application.
@@ -207,7 +213,7 @@ class WSGIApplication(object):
             Dictionary with configuration for the application modules.
         """
         # Set the currently active wsgi app instance.
-        local.app = self
+        set_wsgi_app(self)
 
         # Load default config and update with values for this instance.
         self.config = Config(config, {'tipfy': default_config})
@@ -260,8 +266,9 @@ class WSGIApplication(object):
         cleanup = True
         try:
             # Set the currently active wsgi app and request instances.
-            local.app = self
-            local.request = request = self.request_class(environ)
+            request = self.request_class(environ)
+            set_wsgi_app(self)
+            set_request(request)
 
             # Make sure that the requested method is allowed in App Engine.
             if request.method.lower() not in ALLOWED_METHODS:
@@ -293,7 +300,7 @@ class WSGIApplication(object):
             # exception happened. This allows the debugger to still access
             # request and other variables from local in the interactive shell.
             if cleanup:
-                local.__release_local__()
+                cleanup_wsgi_app()
 
         # Call the response object as a WSGI application.
         return response(environ, start_response)
@@ -457,7 +464,7 @@ class WSGIApplication(object):
 
         :param obj:
             The object to search for related middleware (the
-            ``WSGIApplication`` or ``RequestHandler``).
+            ``Tipfy`` or ``RequestHandler``).
         :param classes:
             A list of middleware classes.
         :return:
@@ -528,11 +535,139 @@ class WSGIApplication(object):
         """Creates a test client for this application.
 
         :return:
-            A `werkzeug.Client`, which is a :class:`WSGIApplication` wrapped
+            A `werkzeug.Client`, which is a :class:`Tipfy` wrapped
             for tests.
         """
         from werkzeug import Client
         return Client(self, self.response_class, use_cookies=True)
+
+
+class Config(dict):
+    """A simple configuration dictionary keyed by module name. This is a
+    dictionary of dictionaries. It requires all values to be dictionaries
+    and applies updates and default values to the inner dictionaries instead of
+    the first level one.
+    """
+    #: Loaded module configurations.
+    modules = None
+
+    def __init__(self, value=None, default=None):
+        """Initializes the configuration object.
+
+        :param value:
+            A dictionary of configuration dictionaries for modules.
+        :param default:
+            A dictionary of configuration dictionaries for default values.
+        """
+        self.modules = []
+        if value is not None:
+            assert isinstance(value, dict)
+            for module in value.keys():
+                self.update(module, value[module])
+
+        if default is not None:
+            assert isinstance(default, dict)
+            for module in default.keys():
+                self.setdefault(module, default[module])
+
+    def __setitem__(self, module, value):
+        """Sets a configuration for a module, requiring it to be a dictionary.
+
+        :param module:
+            A module name for the configuration, e.g.: 'tipfy.ext.i18n'.
+        :param value:
+            A dictionary of configurations for the module.
+        """
+        assert isinstance(value, dict)
+        super(Config, self).__setitem__(module, value)
+
+    def update(self, module, value):
+        """Updates the configuration dictionary for a module.
+
+        >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
+        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        pt_BR
+        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        None
+        >>> cfg.update('tipfy.ext.i18n', {'locale': 'en_US', 'foo': 'bar'})
+        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        en_US
+        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        bar
+
+        :param module:
+            The module to update the configuration, e.g.: 'tipfy.ext.i18n'.
+        :param value:
+            A dictionary of configurations for the module.
+        :return:
+            None.
+        """
+        assert isinstance(value, dict)
+        if module not in self:
+            self[module] = {}
+
+        self[module].update(value)
+
+    def setdefault(self, module, value):
+        """Sets a default configuration dictionary for a module.
+
+        >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
+        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        pt_BR
+        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        None
+        >>> cfg.setdefault('tipfy.ext.i18n', {'locale': 'en_US', 'foo': 'bar'})
+        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        pt_BR
+        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        bar
+
+        :param module:
+            The module to set default configuration, e.g.: 'tipfy.ext.i18n'.
+        :param value:
+            A dictionary of configurations for the module.
+        :return:
+            None.
+        """
+        assert isinstance(value, dict)
+        if module not in self:
+            self[module] = {}
+
+        for key in value.keys():
+            self[module].setdefault(key, value[key])
+
+    def get(self, module, key=None, default=None):
+        """Returns a configuration value for given key in a given module.
+
+        >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
+        >>> cfg.get('tipfy.ext.i18n')
+        {'locale': 'pt_BR'}
+        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        pt_BR
+        >>> cfg.get('tipfy.ext.i18n', 'invalid-key')
+        None
+        >>> cfg.get('tipfy.ext.i18n', 'invalid-key', 'default-value')
+        default-value
+
+        :param module:
+            The module to get a configuration from, e.g.: 'tipfy.ext.i18n'.
+        :param key:
+            The key from the module configuration.
+        :param default:
+            A default value to return in case the configuration for the
+            module/key is not set.
+        :return:
+            The configuration value.
+        """
+        if module not in self:
+            return default
+
+        if key is None:
+            return self[module]
+        elif key not in self[module]:
+            return default
+
+        return self[module][key]
 
 
 class MiddlewareFactory(object):
@@ -568,7 +703,7 @@ class MiddlewareFactory(object):
 
         :param obj:
             The object to search for related middleware (the
-            ``WSGIApplication`` or ``RequestHandler``).
+            ``Tipfy`` or ``RequestHandler``).
         :param classes:
             A list of middleware classes.
         :return:
@@ -617,15 +752,81 @@ class MiddlewareFactory(object):
         return res
 
 
+def set_wsgi_app(app):
+    """Sets the currently active :class:`Tipfy` instance.
+
+    :param app:
+        The currently active :class:`Tipfy` instance.
+    """
+    Tipfy.instance = local.app = app
+
+
+def get_wsgi_app():
+    """Returns the currently active :class:`Tipfy` instance.
+
+    :return:
+        The currently active :class:`Tipfy` instance.
+    """
+    return Tipfy.instance
+
+
+def set_request(request):
+    """Sets the currently active :class:`Request` instance.
+
+    :param request:
+        The currently active :class:`Request` instance.
+    """
+    Tipfy.request = local.request = request
+
+
+def get_request():
+    """Returns the currently active :class:`Request` instance.
+
+    :return:
+        The currently active :class:`Request` instance.
+    """
+    return Tipfy.request
+
+
+def cleanup_wsgi_app():
+    """Cleans :class:`Tipfy` variables at the end of a request."""
+    Tipfy.instance = None
+    Tipfy.request = None
+    local.__release_local__()
+
+
+def get_config(module, key=None, default=DEFAULT_VALUE):
+    """Returns a configuration value for a module. If it is not already
+    set, loads a ``default_config`` variable from the given module,
+    updates the app configuration with those default values and returns
+    the value for the given key. If the key is still not available,
+    returns the provided default value or raises an exception if no
+    default was provided.
+
+    Every `Tipfy`_ module that allows some kind of configuration sets a
+    ``default_config`` global variable that is loaded by this function,
+    cached and used in case the requested configuration was not defined
+    by the user.
+
+    :param module:
+        The configured module.
+    :param key:
+        The config key.
+    :return:
+        A configuration value.
+    """
+    return get_wsgi_app().get_config(module, key, default)
+
+
 def make_wsgi_app(config):
-    """Returns a instance of :class:`WSGIApplication`.
+    """Returns a instance of :class:`Tipfy`.
 
     :param config:
         A dictionary of configuration values.
     :return:
-        A :class:`WSGIApplication` instance.
+        A :class:`Tipfy` instance.
     """
-    app = WSGIApplication(config)
+    app = Tipfy(config)
 
     if app.dev:
         logging.getLogger().setLevel(logging.DEBUG)
@@ -641,7 +842,7 @@ def run_wsgi_app(app):
     """Executes the application, optionally wrapping it by middleware.
 
     :param app:
-        A :class:`WSGIApplication` instance.
+        A :class:`Tipfy` instance.
     :return:
         ``None``.
     """
@@ -674,8 +875,23 @@ def fix_sys_path():
         sys.path[:] = _ULTIMATE_SYS_PATH
 
 
-__all__ = ['make_wsgi_app',
+__all__ = [
+           'cleanup_wsgi_app',
+           'Config',
+           'get_config',
+           'get_request',
+           'get_wsgi_app',
+           'make_wsgi_app',
            'Request',
            'RequestHandler',
            'run_wsgi_app',
-           'WSGIApplication']
+           'set_wsgi_app',
+           'set_request',
+           'Tipfy',
+           'DEFAULT_VALUE',
+           'REQUIRED_VALUE',]
+
+
+# Old names.
+WSGIApplication = Tipfy
+REQUIRED_CONFIG = REQUIRED_VALUE

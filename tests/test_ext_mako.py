@@ -5,7 +5,7 @@
 import os
 import unittest
 
-from tipfy import local, Response, WSGIApplication
+from tipfy import cleanup_wsgi_app, local, Response, WSGIApplication
 from tipfy.ext import mako
 
 
@@ -15,7 +15,7 @@ templates_dir = os.path.join(current_dir, 'files', 'mako')
 
 class TestMako(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     def test_get_lookup(self):
         app = WSGIApplication({'tipfy.ext.mako': {'templates_dir': templates_dir}})

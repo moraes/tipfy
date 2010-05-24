@@ -12,8 +12,9 @@ import _base
 
 from babel.numbers import NumberFormatError
 
-from tipfy import local, Request, WSGIApplication
+from tipfy import (cleanup_wsgi_app, local, set_request, WSGIApplication)
 from tipfy.ext import i18n
+
 
 class Request(object):
     """A fake request object with GET, POST and cookies."""
@@ -21,6 +22,7 @@ class Request(object):
         self.args = args or {}
         self.form = form or {}
         self.cookies= cookies or {}
+
 
 class Response(object):
     """A dummy response to test setting locale cookies."""
@@ -33,7 +35,7 @@ class Response(object):
 
 class TestI18nMiddleware(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
 
     def test_post_dispatch(self):
         middleware = i18n.I18nMiddleware()
@@ -62,7 +64,8 @@ class TestI18nMiddleware(unittest.TestCase):
                 'locale_request_lookup': [('args', 'language')],
             },
         })
-        local.request = Request(args={'language': 'es_ES'})
+        request = Request(args={'language': 'es_ES'})
+        set_request(request)
 
         middleware = i18n.I18nMiddleware()
         middleware.pre_dispatch_handler()
@@ -91,7 +94,7 @@ class TestI18nMiddleware(unittest.TestCase):
 
 class TestI18n(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        cleanup_wsgi_app()
     #===========================================================================
     # Translations
     #===========================================================================
@@ -109,7 +112,8 @@ class TestI18n(unittest.TestCase):
                 'locale': 'jp_JP',
             },
         })
-        local.request = Request()
+        request = Request()
+        set_request(request)
 
         i18n.set_translations_from_request()
         assert local.locale == 'jp_JP'
@@ -120,7 +124,8 @@ class TestI18n(unittest.TestCase):
                 'locale_request_lookup': [('args', 'language')],
             },
         })
-        local.request = Request(args={'language': 'es_ES'})
+        request = Request(args={'language': 'es_ES'})
+        set_request(request)
 
         i18n.set_translations_from_request()
         assert local.locale == 'es_ES'
@@ -131,7 +136,8 @@ class TestI18n(unittest.TestCase):
                 'locale_request_lookup': [('form', 'language')],
             },
         })
-        local.request = Request(form={'language': 'es_ES'})
+        request = Request(form={'language': 'es_ES'})
+        set_request(request)
 
         i18n.set_translations_from_request()
         assert local.locale == 'es_ES'
@@ -142,7 +148,8 @@ class TestI18n(unittest.TestCase):
                 'locale_request_lookup': [('cookies', 'language')],
             },
         })
-        local.request = Request(cookies={'language': 'es_ES'})
+        request = Request(cookies={'language': 'es_ES'})
+        set_request(request)
 
         i18n.set_translations_from_request()
         assert local.locale == 'es_ES'
@@ -153,7 +160,8 @@ class TestI18n(unittest.TestCase):
                 'locale_request_lookup': [('args', 'foo'), ('form', 'bar'), ('cookies', 'language')],
             },
         })
-        local.request = Request(cookies={'language': 'es_ES'})
+        request = Request(cookies={'language': 'es_ES'})
+        set_request(request)
 
         i18n.set_translations_from_request()
         assert local.locale == 'es_ES'
@@ -164,13 +172,14 @@ class TestI18n(unittest.TestCase):
                 'locale_request_lookup': [('rule_args', 'locale'),],
             },
         })
-        local.request = Request()
+        request = Request()
+        set_request(request)
 
-        local.app.rule_args = {'locale': 'es_ES'}
+        request.rule_args = {'locale': 'es_ES'}
         i18n.set_translations_from_request()
         assert local.locale == 'es_ES'
 
-        local.app.rule_args = {'locale': 'pt_BR'}
+        request.rule_args = {'locale': 'pt_BR'}
         i18n.set_translations_from_request()
         assert local.locale == 'pt_BR'
 
@@ -194,7 +203,8 @@ class TestI18n(unittest.TestCase):
                 'locale_request_lookup': [('args', 'foo'), ('form', 'bar'), ('cookies', 'language')],
             },
         })
-        local.request = Request(cookies={'language': 'es_ES'})
+        request = Request(cookies={'language': 'es_ES'})
+        set_request(request)
 
         assert i18n.get_locale() == 'es_ES'
 

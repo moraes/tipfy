@@ -12,7 +12,7 @@
 """
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
-from tipfy import local, get_config, url_for, Response
+from tipfy import get_config, url_for, Response
 from tipfy.ext import i18n
 
 #: Default configuration values for this module. Keys are:
@@ -68,7 +68,7 @@ def get_env():
         templates_compiled_target = get_config(__name__,
             'templates_compiled_target')
 
-        use_compiled = not local.app.dev or get_config(__name__,
+        use_compiled = not get_config('tipfy', 'dev') or get_config(__name__,
             'force_use_compiled')
 
         if templates_compiled_target is not None and use_compiled:

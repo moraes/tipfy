@@ -68,9 +68,6 @@ app, request = local('app'), local('request')
 #:
 #: - ``version_id``: The current deplyment version id. Default is the value
 #:   of ``os.environ['CURRENT_VERSION_ID']``.
-#:
-#: - ``extensions``: A list of extension modules as strings. This is depreated.
-#:   Please use the ``middleware`` setting instead.
 default_config = {
     'apps_installed': [],
     'apps_entry_points': {},

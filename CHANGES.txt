@@ -1,24 +1,32 @@
-Development Version
-===================
-- ADDED: 'app' and 'request' attributes to RequestHandler, referencing current
-  WSGIApplication and Request. They are set on  __init__(). If you implemented
-  __init__() on RequestHandler, please update it to accept these arguments:
+Version 0.5.3 - May 25, 2010
+============================
+
+Backwards compatibility warnings
+--------------------------------
+
+- ADDED: RequestHandler.__init__(app, request), setting references to current
+  WSGIApplication and Request in the handler. If you implemented __init__() on
+  RequestHandler, please update it to accept these arguments:
 
     class MyRequestHandler(RequestHandler):
         def __init__(self, app, request):
             super(MyRequestHandler, self).__init__(app, request)
             ...
 
-  The idea is to only rely on local in helper functions without access to
-  any context.
+  We now have access to the URL rule and rule arguments that matched on
+  __init__(), and can read app configuration without relying on local.
 
-- CHANGED: the signature of RequestHandler.dispatch(). The old signature
-  dispatch(request_method, **rule_args) will still be valid until 1.0.
+- CHANGED: the signature of RequestHandler.dispatch(), as a consequence of
+  adding __init__() to the handler class. Request method and rule arguments
+  are taken from the request set on __init__().
 
 - REMOVED: tipfy.ext.session.MessagesMixin.set_form_error(). It required
   i18n, which requires Babel. Sessions should not depend on i18n. Now they
   don't. Please implement it on a separate mixin or base handler if you used
   it.
+
+tipfy.routing
+-------------
 
 - CHANGED: Added _anchor keyword argument to url_for() and redirect_to(), to
   append an anchor to the generated URL. Also keyword arguments in these two
@@ -31,13 +39,35 @@ Development Version
   rules. The old, non-prefixed keywords are still accepted, but they should
   be removed on 1.0.
 
+- ADDED: request.url_for(). tipfy.url_for() just calls request.url_for().
 
+tipfy.ext.i18n
+--------------
 
 - ADDED: functions to ext.i18n: get_timezone_name(), parse_date(),
   parse_datetime() and parse_time().
 
 - IMPROVED: All datetime and number format functions in ext.i18n now accept a
   locale argument. If not set, uses the currently loaded locale (as before).
+
+- ADDED: babel.cfg to the buildout directory, with configuration to extract
+  translation messages using pybabel. Also added locale directory to the app
+  dir.
+
+tipfy.application
+-----------------
+
+- ADDED: a Request object that extends werkzeug's Request. This is backwards
+  compatible and stores url_adapter, matched rule and rule arguments.
+  app.url_adapter, app.rule and app.rule_args are still set, but they will be
+  removed on 1.0.
+
+- ADDED: app.dev attribute, as a shortcut to the development flag set in
+  config.
+
+- ADDED: app.get_config(). tipfy.get_config() just calls app.get_config().
+
+- FIXED: logging debug level is set correctly now when in development.
 
 - ADDED some ideas from Flask:
   - Local variables are not cleaned when in development and an exception is
@@ -51,36 +81,16 @@ Development Version
   - Added function get_test_client() to return a werkzeug.Client for the wsgi
     app.
   - Added function ext.jinja2.get_template_attribute().
+  - ADDED: a Response object that extends werkzeug's Response, with default
+    mimetype set to 'text/html'.
 
-- ADDED: a Request object that extends werkzeug's Request. This is backwards
-  compatible and stores url_adapter, matched rule and rule arguments.
-  app.url_adapter, app.rule and app.rule_args are still set, but they will be
-  removed on 1.0.
-
-- ADDED: a Response object that extends werkzeug's Response, with default
-  mimetype set to 'text/html'.
-
-- ADDED: app.dev attribute, as a shortcut to the development flag set in
-  config.
-
-- ADDED: babel.cfg to the buildout directory, with configuration to extract
-  translation messages using pybabel. Also added locale directory to the app
-  dir.
-
-- ADDED: request.url_for(). tipfy. url_for() just calls request.url_for().
-
-- ADDED: app.get_config(). tipfy.get_config() just calls app.get_config().
-
-- FIXED: logging debug level is set correctly now when in development.
+- REMOVED:
+  - tipfy.response and 'extensions' configuration key. They were deprecated
+    since 0.5 and not useful at all since then.
+  - tipfy.local_manager. No longer needed since latest Werkzeug.
 
 - IMPROVED: render_json_response() now accepts all arguments and keyword
   arguments accepted by simplejson.dumps().
-
-- REMOVED:
-    - tipfy.response and 'extensions' configuration key. They were deprecated
-      since 0.5 and not useful at all since then.
-    - tipfy.local_manager. No longer needed since latest Werkzeug.
-
 
 Version 0.5.2 - May 06, 2010
 ============================

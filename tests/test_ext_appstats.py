@@ -9,12 +9,12 @@ from nose.tools import raises
 import _base
 
 
-from tipfy import cleanup_wsgi_app, local, NotFound, WSGIApplication
+from tipfy import local, NotFound, WSGIApplication
 from tipfy.ext.appstats import AppstatsMiddleware
 
 class TestAppstatsMiddleware(unittest.TestCase):
     def tearDown(self):
-        cleanup_wsgi_app()
+        local.__release_local__()
 
     def test_pre_run_app_no_dev(self):
         app = WSGIApplication({

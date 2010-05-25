@@ -12,7 +12,7 @@ import datetime
 import functools
 import logging
 
-from tipfy import local, get_request, HTTPException, RequestRedirect
+from tipfy import local, HTTPException, RequestRedirect
 
 
 class RequestAdapter(object):
@@ -134,7 +134,7 @@ class AuthHandler(object):
         :return:
             A request argument, as unicode.
         """
-        values = get_request().args.get(name, default)
+        values = local.request.args.get(name, default)
         if value == _ARG_DEFAULT:
             raise HTTPException('Missing request argument %s' % name)
 
@@ -153,7 +153,7 @@ class AuthHandler(object):
         :return:
             The cookie value.
         """
-        return get_request().cookies.get(name, default)
+        return local.request.cookies.get(name, default)
 
     def set_cookie(self, name, value, domain=None, expires=None, path="/",
                    expires_days=None):

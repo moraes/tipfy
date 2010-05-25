@@ -10,7 +10,7 @@ from gaetestbed import DataStoreTestCase
 
 import _base
 
-from tipfy import cleanup_wsgi_app, local, WSGIApplication
+from tipfy import local, WSGIApplication
 from tipfy.ext.auth.model import check_password, gen_pwhash, gen_salt, User
 
 
@@ -20,7 +20,7 @@ class TestUserModel(DataStoreTestCase, unittest.TestCase):
         DataStoreTestCase.setUp(self)
 
     def tearDown(self):
-        cleanup_wsgi_app()
+        local.__release_local__()
 
     def test_create(self):
         user = User.create('my_username', 'my_id')
@@ -124,7 +124,7 @@ class TestMiscelaneous(DataStoreTestCase, unittest.TestCase):
         app = WSGIApplication()
 
     def tearDown(self):
-        cleanup_wsgi_app()
+        local.__release_local__()
 
     @raises(ValueError)
     def test_gen_salt(self):

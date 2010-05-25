@@ -23,7 +23,7 @@ from babel.support import Translations, LazyProxy
 from babel import dates, numbers
 from pytz.gae import pytz
 
-from tipfy import local, get_config, get_request, normalize_callable
+from tipfy import local, get_config, normalize_callable
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -169,7 +169,7 @@ def set_translations_from_request():
         ``None``.
     """
     locale = None
-    request = get_request()
+    request = local.request
     for method, key in get_config(__name__, 'locale_request_lookup'):
         if method in ('args', 'form', 'cookies'):
             # Get locale from GET, POST or cookies.

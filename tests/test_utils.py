@@ -9,8 +9,8 @@ import _base
 
 import werkzeug
 
-from tipfy import (cleanup_wsgi_app, local, Map, normalize_callable, redirect,
-    redirect_to, render_json_response, Request, Response, Rule, set_request,
+from tipfy import (local, Map, normalize_callable, redirect,
+    redirect_to, render_json_response, Request, Response, Rule,
     WSGIApplication)
 
 
@@ -35,7 +35,7 @@ def get_app():
 
 class TestUtils(unittest.TestCase):
     def tearDown(self):
-        cleanup_wsgi_app()
+        local.__release_local__()
 
     #===========================================================================
     # normalize_callable()
@@ -99,7 +99,7 @@ class TestUtils(unittest.TestCase):
     def test_redirect_to(self):
         host = 'http://foo.com'
         request = Request.from_values(base_url=host)
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 
@@ -110,7 +110,7 @@ class TestUtils(unittest.TestCase):
     def test_redirect_to2(self):
         host = 'http://foo.com'
         request = Request.from_values(base_url=host)
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 
@@ -129,7 +129,7 @@ class TestUtils(unittest.TestCase):
     def test_redirect_to_301(self):
         host = 'http://foo.com'
         request = Request.from_values(base_url=host)
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 
@@ -141,7 +141,7 @@ class TestUtils(unittest.TestCase):
     def test_redirect_to_invalid_code(self):
         host = 'http://foo.com'
         request = Request.from_values(base_url=host)
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 

@@ -1,6 +1,21 @@
 Development Version
 ===================
-- BREAK: removed tipfy.ext.session.MessagesMixin.set_form_error(). It required
+- ADDED: 'app' and 'request' attributes to RequestHandler, referencing current
+  WSGIApplication and Request. They are set on  __init__(). If you implemented
+  __init__() on RequestHandler, please update it to accept these arguments:
+
+    class MyRequestHandler(RequestHandler):
+        def __init__(self, app, request):
+            super(MyRequestHandler, self).__init__(app, request)
+            ...
+
+  The idea is to only rely on local in helper functions without access to
+  any context.
+
+- CHANGED: the signature of RequestHandler.dispatch(). The old signature
+  dispatch(request_method, **rule_args) will still be valid until 1.0.
+
+- REMOVED: tipfy.ext.session.MessagesMixin.set_form_error(). It required
   i18n, which requires Babel. Sessions should not depend on i18n. Now they
   don't. Please implement it on a separate mixin or base handler if you used
   it.
@@ -12,11 +27,11 @@ Development Version
     url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs)
     redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs)
 
-  ...to avoid collisions with variables set in rules. The old, non-prefixed
-  keywords are still accepted, but they should be removed before 1.0.
+  This is just a sanity measure to avoid collisions with variables set in
+  rules. The old, non-prefixed keywords are still accepted, but they should
+  be removed on 1.0.
 
-- CHANGED: the signature of RequestHandler.dispatch(). The old signature
-  dispatch(request_method, **rule_args) will still be valid until 1.0.
+
 
 - ADDED: functions to ext.i18n: get_timezone_name(), parse_date(),
   parse_datetime() and parse_time().
@@ -44,14 +59,6 @@ Development Version
 
 - ADDED: a Response object that extends werkzeug's Response, with default
   mimetype set to 'text/html'.
-
-- ADDED: 'app' and 'request' attributes to RequestHandler, referencing current
-  WSGIApplication and Request. They are set on  __init__(). If you implemented
-  __init__() on RequestHandler, please update it to accept these arguments:
-
-    class MyRequestHandler(RequestHandler):
-        def __init__(self, app, request):
-            super(MyRequestHandler, self).__init__(app, request)
 
 - ADDED: app.dev attribute, as a shortcut to the development flag set in
   config.

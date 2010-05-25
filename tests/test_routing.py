@@ -7,8 +7,8 @@ from nose.tools import raises
 
 import _base
 
-from tipfy import (cleanup_wsgi_app, local, Map, NotFound, Request, Rule,
-    set_request, url_for, WSGIApplication)
+from tipfy import (local, Map, NotFound, Request, Rule,
+    url_for, WSGIApplication)
 
 def get_url_map():
     # Fake get_rules() for testing.
@@ -31,7 +31,7 @@ def get_app():
 
 class TestUrls(unittest.TestCase):
     def tearDown(self):
-        cleanup_wsgi_app()
+        local.__release_local__()
 
     #===========================================================================
     # Rule
@@ -58,7 +58,7 @@ class TestUrls(unittest.TestCase):
     def test_regex_converter(self):
         host = 'http://foo.com'
         request = Request.from_values(base_url=host, path='/foo')
-        set_request(request)
+        local.request = request
         app = WSGIApplication({'tipfy': {
             'url_map': Map([
                 Rule('/<regex(".*"):path>', endpoint='home',
@@ -74,7 +74,7 @@ class TestUrls(unittest.TestCase):
     def test_regex_converter2(self):
         host = 'http://foo.com'
         request = Request.from_values(base_url=host, path='/foo/bar/baz')
-        set_request(request)
+        local.request = request
         app = WSGIApplication({'tipfy': {
             'url_map': Map([
                 Rule('/<regex(".*"):path>', endpoint='home',
@@ -92,7 +92,7 @@ class TestUrls(unittest.TestCase):
     #===========================================================================
     def test_url_match(self):
         request = Request.from_values(base_url='http://foo.com')
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 
@@ -101,7 +101,7 @@ class TestUrls(unittest.TestCase):
 
     def test_url_match2(self):
         request = Request.from_values(base_url='http://foo.com', path='/people/calvin')
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 
@@ -110,7 +110,7 @@ class TestUrls(unittest.TestCase):
 
     def test_not_found(self):
         request = Request.from_values(base_url='http://foo.com', path='/this-path-is-not-mapped')
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 
@@ -122,7 +122,7 @@ class TestUrls(unittest.TestCase):
     def test_url_for(self):
         host = 'http://foo.com'
         request = Request.from_values(base_url=host)
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 
@@ -131,7 +131,7 @@ class TestUrls(unittest.TestCase):
     def test_url_for2(self):
         host = 'http://foo.com'
         request = Request.from_values(base_url=host)
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 
@@ -142,7 +142,7 @@ class TestUrls(unittest.TestCase):
     def test_url_for_full(self):
         host = 'http://foo.com'
         request = Request.from_values(base_url=host)
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 
@@ -151,7 +151,7 @@ class TestUrls(unittest.TestCase):
     def test_url_for_full2(self):
         host = 'http://foo.com'
         request = Request.from_values(base_url=host)
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 
@@ -164,7 +164,7 @@ class TestUrls(unittest.TestCase):
 
     def test_url_for_with_anchor(self):
         request = Request.from_values(base_url='http://foo.com')
-        set_request(request)
+        local.request = request
         app = get_app()
         app.match_url(request)
 

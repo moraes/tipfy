@@ -92,6 +92,7 @@ tipfy.application
 - IMPROVED: render_json_response() now accepts all arguments and keyword
   arguments accepted by simplejson.dumps().
 
+
 Version 0.5.2 - May 06, 2010
 ============================
 - Added a buildout setup to manage external dependencies. It is now

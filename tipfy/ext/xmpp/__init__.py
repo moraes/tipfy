@@ -54,9 +54,9 @@ class BaseHandler(RequestHandler):
         except xmpp.InvalidMessageError, e:
             logging.error('Invalid XMPP request: Missing required field %s',
                 e[0])
-            return
+            return ''
 
-        self.message_received(self.xmpp_message)
+        return self.message_received(self.xmpp_message)
 
 
 class CommandHandlerMixin(object):
@@ -106,6 +106,8 @@ class CommandHandlerMixin(object):
                 self.unhandled_command(message)
         else:
             self.text_message(message)
+
+        return ''
 
 
 class CommandHandler(CommandHandlerMixin, BaseHandler):

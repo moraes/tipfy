@@ -832,16 +832,12 @@ def fix_sys_path():
 
 
 __all__ = [
-           'cleanup_wsgi_app',
            'Config',
            'get_config',
-           'get_wsgi_app',
            'make_wsgi_app',
            'Request',
            'RequestHandler',
            'run_wsgi_app',
-           'set_wsgi_app',
-           'set_request',
            'Tipfy',
            'DEFAULT_VALUE',
            'REQUIRED_VALUE',]

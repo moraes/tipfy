@@ -18,7 +18,7 @@ import logging
 
 from google.appengine.api import xmpp
 
-from tipfy import local, RequestHandler
+from tipfy import RequestHandler
 
 
 class BaseHandler(RequestHandler):
@@ -36,17 +36,6 @@ class BaseHandler(RequestHandler):
             The message that was sent by the user.
         """
         raise NotImplementedError()
-
-    def handle_exception(self, exception, debug_mode):
-        """Called if this handler throws an exception during execution.
-
-        :param exception:
-            The exception that was thrown.
-        :debug_mode:
-            True if the web application is running in debug mode
-        """
-        if self.xmpp_message:
-            self.xmpp_message.reply('Oops. Something went wrong.')
 
     def post(self, **kwargs):
         try:

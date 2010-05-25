@@ -89,6 +89,12 @@ tipfy.application
     since 0.5 and not useful at all since then.
   - tipfy.local_manager. No longer needed since latest Werkzeug.
 
+
+Miscelaneous
+------------
+
+- FIXED: XMPP handlers. Now fully tested.
+
 - IMPROVED: render_json_response() now accepts all arguments and keyword
   arguments accepted by simplejson.dumps().
 

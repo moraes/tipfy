@@ -38,8 +38,6 @@ class DeferredHandler(RequestHandler):
        Rule('/_ah/queue/deferred', endpoint='tasks/deferred',
            handler='tipfy.ext.tasks:DeferredHandler')
     """
-    use_middlewares = False
-
     def post(self):
         headers = ['%s:%s' % (k, v) for k, v in self.request.headers.items()
                if k.lower().startswith('x-appengine-')]

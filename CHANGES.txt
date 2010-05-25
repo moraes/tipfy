@@ -98,6 +98,8 @@ Miscelaneous
 - IMPROVED: render_json_response() now accepts all arguments and keyword
   arguments accepted by simplejson.dumps().
 
+- ADDED: tipfy.ext.mail, a simple RequestHandler for inbound mail.
+
 
 Version 0.5.2 - May 06, 2010
 ============================

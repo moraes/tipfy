@@ -13,6 +13,5 @@ class XmppHandler(CommandHandler):
         message.reply(message.body)
 
 
-
 class XmppHandler2(BaseHandler):
     pass

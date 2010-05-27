@@ -16,7 +16,7 @@ from mako.lookup import TemplateLookup
 from mako.runtime import Context
 from StringIO import StringIO
 
-from tipfy import local, get_config, Response
+from tipfy import get_config, Response
 
 #: Default configuration values for this module. Keys are:
 #:

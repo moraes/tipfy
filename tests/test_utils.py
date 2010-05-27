@@ -9,9 +9,8 @@ import _base
 
 import werkzeug
 
-from tipfy import (local, Map, normalize_callable, redirect,
-    redirect_to, render_json_response, Request, Response, Rule,
-    WSGIApplication)
+from tipfy import (Map, normalize_callable, redirect, redirect_to,
+    render_json_response, Request, Response, Rule, Tipfy)
 
 
 def get_url_map():
@@ -26,27 +25,35 @@ def get_url_map():
 
 
 def get_app():
-    return WSGIApplication({
+    app = Tipfy({
         'tipfy': {
             'url_map': get_url_map(),
         },
     })
+    app.set_wsgi_app()
+    return app
+
+
+def get_request(app, *args, **kwargs):
+    request = Request.from_values(*args, **kwargs)
+    app.set_request(request)
+    return request
 
 
 class TestUtils(unittest.TestCase):
     def tearDown(self):
-        local.__release_local__()
+        Tipfy.app = Tipfy.request = None
 
     #===========================================================================
     # normalize_callable()
     #===========================================================================
     def test_normalize_callable_string(self):
-        my_callable = normalize_callable('tipfy.WSGIApplication')
-        assert my_callable is WSGIApplication
+        my_callable = normalize_callable('tipfy.Tipfy')
+        assert my_callable is Tipfy
 
     def test_normalize_callable_callable(self):
-        my_callable = normalize_callable(WSGIApplication)
-        assert my_callable is WSGIApplication
+        my_callable = normalize_callable(Tipfy)
+        assert my_callable is Tipfy
 
     @raises(ValueError)
     def test_normalize_callable_not_callable(self):
@@ -97,52 +104,44 @@ class TestUtils(unittest.TestCase):
     # redirect_to()
     #===========================================================================
     def test_redirect_to(self):
-        host = 'http://foo.com'
-        request = Request.from_values(base_url=host)
-        local.request = request
         app = get_app()
+        request = get_request(app, base_url='http://foo.com')
         app.match_url(request)
 
         response = redirect_to('home')
-        assert response.headers['location'] == host + '/'
+        assert response.headers['location'] == 'http://foo.com/'
         assert response.status_code == 302
 
     def test_redirect_to2(self):
-        host = 'http://foo.com'
-        request = Request.from_values(base_url=host)
-        local.request = request
         app = get_app()
+        request = get_request(app, base_url='http://foo.com')
         app.match_url(request)
 
         response = redirect_to('profile', username='calvin')
-        assert response.headers['location'] == host + '/people/calvin'
+        assert response.headers['location'] == 'http://foo.com/people/calvin'
         assert response.status_code == 302
 
         response = redirect_to('profile', username='hobbes')
-        assert response.headers['location'] == host + '/people/hobbes'
+        assert response.headers['location'] == 'http://foo.com/people/hobbes'
         assert response.status_code == 302
 
         response = redirect_to('profile', username='moe')
-        assert response.headers['location'] == host + '/people/moe'
+        assert response.headers['location'] == 'http://foo.com/people/moe'
         assert response.status_code == 302
 
     def test_redirect_to_301(self):
-        host = 'http://foo.com'
-        request = Request.from_values(base_url=host)
-        local.request = request
         app = get_app()
+        request = get_request(app, base_url='http://foo.com')
         app.match_url(request)
 
         response = redirect_to('home', code=301)
-        assert response.headers['location'] == host + '/'
+        assert response.headers['location'] == 'http://foo.com/'
         assert response.status_code == 301
 
     @raises(AssertionError)
     def test_redirect_to_invalid_code(self):
-        host = 'http://foo.com'
-        request = Request.from_values(base_url=host)
-        local.request = request
         app = get_app()
+        request = get_request(app, base_url='http://foo.com')
         app.match_url(request)
 
         redirect_to('home', code=405)

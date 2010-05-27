@@ -11,19 +11,26 @@ from google.appengine.ext import db
 
 import _base
 
-from tipfy import (get_config, local, Request,
-    WSGIApplication)
+from tipfy import (get_config, local, Request, Tipfy)
 from tipfy.ext.session import (DatastoreSession, DatastoreSessionStore,
     MessagesMixin, SecureCookie, Session, SessionMiddleware, SessionMixin,
     SessionStore)
 
 
-def set_app(config=None):
-    return WSGIApplication({
+def get_app(config=None):
+    app = Tipfy({
         'tipfy.ext.session': {
             'secret_key': 'foo',
         },
     })
+    app.set_wsgi_app()
+    return app
+
+
+def get_request(app, *args, **kwargs):
+    request = Request.from_values(*args, **kwargs)
+    app.set_request(request)
+    return request
 
 
 class Response(object):
@@ -61,9 +68,11 @@ class StoreConfig(object):
 
 class TestSessionMiddleware(unittest.TestCase):
     def setUp(self):
-        set_app()
+        self.app = get_app()
+        self.request = get_request(self.app)
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_session_type(self):
@@ -109,7 +118,7 @@ class TestSessionMiddleware(unittest.TestCase):
         assert isinstance(local.session_store, SessionStore)
 
     def test_pre_dispatch_datastore(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy.ext.session': {
                 'secret_key': 'foo',
                 'session_type': 'datastore',
@@ -152,29 +161,28 @@ class TestSessionMiddleware(unittest.TestCase):
 
 class TestSessionMixin(unittest.TestCase):
     def setUp(self):
-        set_app()
+        self.app = get_app()
+        self.request = get_request(self.app)
         self.config = StoreConfig()
         local.session_store = SessionStore(self.config)
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
         self.config = None
 
     def test_get_session(self):
         middleware = SessionMiddleware()
         middleware.pre_dispatch(None)
-        request = Request.from_values()
-        local.request = request
 
         mixin = SessionMixin()
         assert isinstance(mixin.session, SecureCookie)
 
     def test_get_flash(self):
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'tipfy.flash=%s' % cookie.serialize(),
         })
-        local.request = request
 
         mixin = SessionMixin()
         flash = mixin.get_flash()
@@ -188,10 +196,9 @@ class TestSessionMixin(unittest.TestCase):
 
     def test_get_flash_custom_key(self):
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'my_flash=%s' % cookie.serialize(),
         })
-        local.request = request
 
         mixin = SessionMixin()
         flash = mixin.get_flash('my_flash')
@@ -200,19 +207,15 @@ class TestSessionMixin(unittest.TestCase):
         assert flash['foo'] == 'bar'
 
     def test_get_flash_invalid_flash(self):
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'tipfy.flash=foo',
         })
-        local.request = request
 
         mixin = SessionMixin()
         flash = mixin.get_flash()
         assert flash is None
 
     def test_get_flash_no_flash(self):
-        request = Request.from_values()
-        local.request = request
-
         mixin = SessionMixin()
         flash = mixin.get_flash()
         assert flash is None
@@ -230,13 +233,13 @@ class TestSessionMixin(unittest.TestCase):
 
 class TestMessagesMixin(unittest.TestCase):
     def setUp(self):
-        set_app()
+        self.app = get_app()
+        self.request = get_request(self.app)
         self.config = StoreConfig()
         local.session_store = SessionStore(self.config)
-        request = Request.from_values()
-        local.request = request
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
         self.config = None
 
@@ -246,10 +249,9 @@ class TestMessagesMixin(unittest.TestCase):
 
     def test_messages_mixin_with_flash(self):
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'tipfy.flash=%s' % cookie.serialize(),
         })
-        local.request = request
 
         mixin = MessagesMixin()
 
@@ -279,12 +281,14 @@ class TestMessagesMixin(unittest.TestCase):
 
 class TestSessionStore(unittest.TestCase):
     def setUp(self):
-        set_app()
+        self.app = get_app()
+        self.request = get_request(self.app)
         self.config = StoreConfig()
         local.session_store = SessionStore(self.config)
 
     def tearDown(self):
         local.session_store = None
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
         self.config = None
 
@@ -299,10 +303,9 @@ class TestSessionStore(unittest.TestCase):
 
     def test_save_delete_flashes(self):
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'tipfy.flash=%s; my_flash=%s' % (cookie.serialize(), cookie.serialize()),
         })
-        local.request = request
 
         response = Response()
 
@@ -329,8 +332,6 @@ class TestSessionStore(unittest.TestCase):
         assert 'max_age' in response.cookie_args['foo']
 
     def test_save_with_session_expires(self):
-        request = Request.from_values()
-        local.request = request
         response = Response()
         cookie = local.session_store.get_secure_cookie('foo', session_expires=86400)
         cookie['foo'] = 'bar'
@@ -341,9 +342,6 @@ class TestSessionStore(unittest.TestCase):
         assert 'session_expires' in local.session_store._data_args['foo']
 
     def test_get_session(self):
-        request = Request.from_values()
-        local.request = request
-
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
 
@@ -359,9 +357,6 @@ class TestSessionStore(unittest.TestCase):
         assert session is session_2
 
     def test_get_session_with_key(self):
-        request = Request.from_values()
-        local.request = request
-
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
 
@@ -377,9 +372,6 @@ class TestSessionStore(unittest.TestCase):
         assert session is session_2
 
     def test_get_session_with_args(self):
-        request = Request.from_values()
-        local.request = request
-
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
 
@@ -392,9 +384,6 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args['tipfy.session'] == {'max_age': 86400}
 
     def test_get_session_with_max_age(self):
-        request = Request.from_values()
-        local.request = request
-
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
 
@@ -409,9 +398,6 @@ class TestSessionStore(unittest.TestCase):
         assert response.cookie_args[self.config.default_session_key]['expires'] is not None
 
     def test_get_session_after_deletion(self):
-        request = Request.from_values()
-        local.request = request
-
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
 
@@ -429,10 +415,9 @@ class TestSessionStore(unittest.TestCase):
 
     def test_get_existing_session(self):
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'tipfy.session=%s' % cookie.serialize(),
         })
-        local.request = request
 
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
@@ -444,10 +429,9 @@ class TestSessionStore(unittest.TestCase):
         assert session['foo'] == 'bar'
 
     def test_get_existing_but_invalid_session(self):
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'tipfy.session=bar'
         })
-        local.request = request
 
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
@@ -469,10 +453,9 @@ class TestSessionStore(unittest.TestCase):
 
     def test_delete_session_and_existing_data(self):
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'my_session=%s' % cookie.serialize(),
         })
-        local.request = request
 
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
@@ -491,9 +474,6 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args == {'my_session': {}}
 
     def test_get_secure_cookie(self):
-        request = Request.from_values()
-        local.request = request
-
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
 
@@ -508,10 +488,9 @@ class TestSessionStore(unittest.TestCase):
 
     def test_get_secure_cookie_existing(self):
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'my_session=%s' % cookie.serialize(),
         })
-        local.request = request
 
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
@@ -529,10 +508,9 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args['my_session'] == {'max_age': 86400}
 
     def test_get_secure_cookie_existing_but_invalid(self):
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'my_session=bar',
         })
-        local.request = request
 
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
@@ -550,10 +528,9 @@ class TestSessionStore(unittest.TestCase):
 
     def test_get_secure_cookie_without_load(self):
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'my_session=%s' % cookie.serialize(),
         })
-        local.request = request
 
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
@@ -570,9 +547,6 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args['my_session'] == {'max_age': 86400}
 
     def test_load_secure_cookie(self):
-        request = Request.from_values()
-        local.request = request
-
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
 
@@ -587,10 +561,9 @@ class TestSessionStore(unittest.TestCase):
 
     def test_load_secure_cookie_existing(self):
         cookie = SecureCookie([('foo', 'bar')], secret_key=self.config.secret_key)
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'my_session=%s' % cookie.serialize(),
         })
-        local.request = request
 
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
@@ -606,10 +579,9 @@ class TestSessionStore(unittest.TestCase):
         assert local.session_store._data_args == {}
 
     def test_load_secure_cookie_existing_but_invalid(self):
-        request = Request.from_values(headers={
+        request = get_request(self.app, headers={
             'Cookie':   'my_session=bar',
         })
-        local.request = request
 
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
@@ -674,11 +646,13 @@ class TestDatastoreSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.Te
     def setUp(self):
         DataStoreTestCase.setUp(self)
         MemcacheTestCase.setUp(self)
-        set_app()
+        self.app = get_app()
+        self.request = get_request(self.app)
         self.config = StoreConfig()
         local.session_store = DatastoreSessionStore(self.config)
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
         self.config = None
 
@@ -703,9 +677,6 @@ class TestDatastoreSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.Te
         session.delete()
 
     def test_get_session_after_deletion(self):
-        request = Request.from_values()
-        local.request = request
-
         assert local.session_store._data == {}
         assert local.session_store._data_args == {}
 
@@ -726,17 +697,17 @@ class TestDatastoreSession(DataStoreTestCase, MemcacheTestCase, unittest.TestCas
     def setUp(self):
         DataStoreTestCase.setUp(self)
         MemcacheTestCase.setUp(self)
-        set_app()
+        self.app = get_app()
+        self.request = get_request(self.app)
         self.config = StoreConfig()
         local.session_store = DatastoreSessionStore(self.config)
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
         self.config = None
 
     def test_get_session(self):
-        request = Request.from_values()
-        local.request = request
         session = local.session_store._load_session('foo')
         assert isinstance(session, DatastoreSession)
 
@@ -785,7 +756,8 @@ class TestSession(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
         MemcacheTestCase.setUp(self)
-        set_app()
+        self.app = get_app()
+        self.request = get_request(self.app)
         self.config = StoreConfig()
 
     def test_get_by_sid(self):

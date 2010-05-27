@@ -10,17 +10,18 @@ import _base
 
 import jinja2
 
-from tipfy import local, NotFound, WSGIApplication
+from tipfy import local, NotFound, Tipfy
 from tipfy.ext.debugger import DebuggerMiddleware
 from tipfy.ext.debugger.app import (get_template, render_template, seek,
     readline)
 
 class TestDebuggerMiddleware(unittest.TestCase):
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_pre_run_app_no_dev(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy': {
                 'dev': False,
                 'middleware': ['tipfy.ext.debugger.DebuggerMiddleware'],
@@ -33,7 +34,7 @@ class TestDebuggerMiddleware(unittest.TestCase):
         self.assertEqual(new_app.__class__.__name__, 'Tipfy')
 
     def test_pre_run_app_dev(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy': {
                 'dev': True,
                 'middleware': ['tipfy.ext.debugger.DebuggerMiddleware'],

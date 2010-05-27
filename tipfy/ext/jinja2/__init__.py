@@ -83,16 +83,19 @@ def get_env():
             extensions=['jinja2.ext.i18n'])
 
         # Add url_for() by default.
-        _environment.globals.update({
-            'url_for':         url_for,
-            'format_date':     i18n.format_date,
-            'format_time':     i18n.format_time,
-            'format_datetime': i18n.format_datetime,
-        })
+        _environment.globals['url_for'] =url_for
 
-        # Install i18n, first forcing it to be loaded if not yet.
-        i18n.get_translations()
-        _environment.install_gettext_translations(i18n.translations)
+        try:
+            # Install i18n, first forcing it to be loaded if not yet.
+            i18n.get_translations()
+            _environment.install_gettext_translations(i18n.translations)
+            _environment.globals.update({
+                'format_date':     i18n.format_date,
+                'format_time':     i18n.format_time,
+                'format_datetime': i18n.format_datetime,
+            })
+        except AttributeError, e:
+            pass
 
     return _environment
 

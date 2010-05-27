@@ -23,7 +23,7 @@ ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
     'trace'])
 # Value used for required values.
 REQUIRED_VALUE = object()
-# Value used internally for missing default values.
+# Value used for missing default values.
 DEFAULT_VALUE = object()
 
 
@@ -202,7 +202,7 @@ class Tipfy(object):
     #: Default class for responses.
     response_class = Response
     #: The active :class:`Tipfy` instance.
-    instance = None
+    app = None
     #: The active :class:`Request` instance.
     request = None
 
@@ -213,7 +213,7 @@ class Tipfy(object):
             Dictionary with configuration for the application modules.
         """
         # Set the currently active wsgi app instance.
-        local.app = self
+        self.set_wsgi_app()
 
         # Load default config and update with values for this instance.
         self.config = Config(config, {'tipfy': default_config})
@@ -266,8 +266,9 @@ class Tipfy(object):
         cleanup = True
         try:
             # Set the currently active wsgi app and request instances.
-            local.app = self
-            local.request = request = self.request_class(environ)
+            request = self.request_class(environ)
+            self.set_wsgi_app()
+            self.set_request(request)
 
             # Make sure that the requested method is allowed in App Engine.
             if request.method.lower() not in ALLOWED_METHODS:
@@ -299,7 +300,7 @@ class Tipfy(object):
             # exception happened. This allows the debugger to still access
             # request and other variables from local in the interactive shell.
             if cleanup:
-                local.__release_local__()
+                self.cleanup()
 
         # Call the response object as a WSGI application.
         return response(environ, start_response)
@@ -529,6 +530,23 @@ class Tipfy(object):
         rules = import_string('urls.get_rules')()
         kwargs = self.config.get('tipfy').get('url_map_kwargs')
         return Map(rules, **kwargs)
+
+    def set_wsgi_app(self):
+        """Sets the currently active :class:`Tipfy` instance."""
+        Tipfy.app = local.app = self
+
+    def set_request(self, request):
+        """Sets the currently active :class:`Request` instance.
+
+        :param request:
+            The currently active :class:`Request` instance.
+        """
+        Tipfy.request = local.request = request
+
+    def cleanup(self):
+        """Cleans :class:`Tipfy` variables at the end of a request."""
+        Tipfy.app = Tipfy.request = None
+        local.__release_local__()
 
     def get_test_client(self):
         """Creates a test client for this application.
@@ -771,7 +789,7 @@ def get_config(module, key=None, default=DEFAULT_VALUE):
     :return:
         A configuration value.
     """
-    return local.app.get_config(module, key, default)
+    return Tipfy.app.get_config(module, key, default)
 
 
 def make_wsgi_app(config):

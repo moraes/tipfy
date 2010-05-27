@@ -7,7 +7,7 @@ import unittest
 
 import _base
 
-from tipfy import local, Response, WSGIApplication
+from tipfy import local, Response, Tipfy
 from tipfy.ext import jinja2
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -17,11 +17,12 @@ templates_compiled_target = os.path.join(current_dir, 'files', 'jinja2_compiled'
 
 class TestJinja2(unittest.TestCase):
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_render_template(self):
         jinja2._environment = None
-        app = WSGIApplication({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
+        app = Tipfy({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
 
         message = 'Hello, World!'
         res = jinja2.render_template('template1.html', message=message)
@@ -29,7 +30,7 @@ class TestJinja2(unittest.TestCase):
 
     def test_render_response(self):
         jinja2._environment = None
-        app = WSGIApplication({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
+        app = Tipfy({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
 
         message = 'Hello, World!'
         response = jinja2.render_response('template1.html', message=message)
@@ -39,7 +40,7 @@ class TestJinja2(unittest.TestCase):
 
     def test_render_response_force_compiled(self):
         jinja2._environment = None
-        app = WSGIApplication({'tipfy.ext.jinja2': {
+        app = Tipfy({'tipfy.ext.jinja2': {
             'templates_compiled_target': templates_compiled_target,
             'force_use_compiled': True,
         }})
@@ -56,7 +57,7 @@ class TestJinja2(unittest.TestCase):
             def __init__(self):
                 self.context = {}
 
-        app = WSGIApplication({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
+        app = Tipfy({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
         message = 'Hello, World!'
 
         handler = MyHandler()
@@ -67,7 +68,7 @@ class TestJinja2(unittest.TestCase):
 
     def test_get_template_attribute(self):
         jinja2._environment = None
-        app = WSGIApplication({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
+        app = Tipfy({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
 
         hello = jinja2.get_template_attribute('hello.html', 'hello')
         assert hello('World') == 'Hello, World!'

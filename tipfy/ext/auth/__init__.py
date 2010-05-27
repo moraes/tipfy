@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from google.appengine.api import users
 
 from tipfy import (cached_property, get_config, Forbidden, import_string,
-    local, redirect, RequestRedirect, url_for)
+    local, redirect, RequestRedirect, Tipfy, url_for)
 from tipfy.ext import session
 
 #: Default configuration values for this module. Keys are:
@@ -278,7 +278,7 @@ class MultiAuth(BaseAuth):
         if session.get('to_signup', None):
             # Redirect to account creation page.
             if not _is_auth_endpoint('signup_endpoint'):
-                raise RequestRedirect(create_signup_url(local.request.url))
+                raise RequestRedirect(create_signup_url(Tipfy.request.url))
 
             return
 
@@ -333,7 +333,7 @@ class MultiAuth(BaseAuth):
             # Redirect to account creation page.
             # TODO: document this redirect.
             if not _is_auth_endpoint('signup_endpoint'):
-                raise RequestRedirect(create_signup_url(local.request.url))
+                raise RequestRedirect(create_signup_url(Tipfy.request.url))
 
     def logout(self):
         local.user = None
@@ -382,7 +382,7 @@ class AppEngineAuth(BaseAuth):
 
         if local.user is None and not _is_auth_endpoint('signup_endpoint'):
             # User is logged in, but didn't create an account yet.
-            raise RequestRedirect(create_signup_url(local.request.url))
+            raise RequestRedirect(create_signup_url(Tipfy.request.url))
 
     def create_login_url(self, dest_url):
         return users.create_login_url(dest_url)
@@ -490,7 +490,7 @@ def login_required(func):
             return func(*args, **kwargs)
 
         # Redirect to login page.
-        return redirect(create_login_url(local.request.url))
+        return redirect(create_login_url(Tipfy.request.url))
 
     return decorated
 
@@ -511,10 +511,10 @@ def user_required(func):
 
         if is_authenticated():
             # Redirect to signup page.
-            return redirect(create_signup_url(local.request.url))
+            return redirect(create_signup_url(Tipfy.request.url))
         else:
             # Redirect to login page.
-            return redirect(create_login_url(local.request.url))
+            return redirect(create_login_url(Tipfy.request.url))
 
     return decorated
 
@@ -533,7 +533,7 @@ def admin_required(func):
 
         if not is_authenticated():
             # Redirect to signup page.
-            return redirect(create_login_url(local.request.url))
+            return redirect(create_login_url(Tipfy.request.url))
 
         # Nope, user isn't an admin.
         raise Forbidden()
@@ -554,7 +554,7 @@ def basic_auth_required(validator):
     """
     def wrapper(func):
         def decorated(*args, **kwargs):
-            return validator(local.request.authorization, func, *args,
+            return validator(Tipfy.request.authorization, func, *args,
                 **kwargs)
 
         return decorated
@@ -574,7 +574,7 @@ def _is_auth_endpoint(endpoints):
         endpoints = (endpoints,)
 
     auth_system = get_auth_system()
-    rule = local.request.rule
+    rule = Tipfy.request.rule
     for e in endpoints:
         if rule.endpoint == getattr(auth_system, e, None):
             return True

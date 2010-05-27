@@ -13,7 +13,7 @@ from werkzeug.test import create_environ, Client
 
 from tipfy import (local, make_wsgi_app, Map,
     MethodNotAllowed, Request, RequestHandler, Response, Rule, run_wsgi_app,
-    WSGIApplication)
+    Tipfy)
 from tipfy.application import MiddlewareFactory
 
 
@@ -30,7 +30,7 @@ def get_url_map():
 
 
 def get_app():
-    return WSGIApplication({
+    return Tipfy({
         'tipfy': {
             'url_map': get_url_map(),
             'dev': True,
@@ -146,11 +146,12 @@ class Middleware_5(object):
 
 class TestRequestHandler(unittest.TestCase):
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
         Handler.middleware = []
 
     def test_dispatch_without_middleware(self):
-        app = WSGIApplication()
+        app = Tipfy()
         request = Request.from_values()
         handler = Handler(app, request)
         assert handler.dispatch('get', some_arg='foo') == 'handler-get-foo'
@@ -160,14 +161,14 @@ class TestRequestHandler(unittest.TestCase):
 
     @raises(MethodNotAllowed)
     def test_dispatch_not_allowed(self):
-        app = WSGIApplication()
+        app = Tipfy()
         request = Request.from_values()
         handler = Handler(app, request)
         handler.dispatch('put', some_arg='test')
 
     @raises(MethodNotAllowed)
     def test_method_not_allowed(self):
-        app = WSGIApplication()
+        app = Tipfy()
         request = Request.from_values()
         handler = Handler(app, request)
         handler.dispatch('foo', some_arg='test')
@@ -176,7 +177,7 @@ class TestRequestHandler(unittest.TestCase):
     # pre_dispatch()
     #===========================================================================
     def test_pre_dispatch_return_response(self):
-        app = WSGIApplication()
+        app = Tipfy()
         message = 'I got you.'
 
         class MiddlewareThatReturns(object):
@@ -193,7 +194,7 @@ class TestRequestHandler(unittest.TestCase):
         assert handler.dispatch('post', some_arg='bar') == message
 
     def test_pre_dispatch_set_attribute(self):
-        app = WSGIApplication()
+        app = Tipfy()
 
         class MiddlewareThatSetsAttribute(object):
             def pre_dispatch(self, handler):
@@ -214,7 +215,7 @@ class TestRequestHandler(unittest.TestCase):
     #===========================================================================
     @raises(ValueError)
     def test_handle_exception_do_nothing(self):
-        app = WSGIApplication()
+        app = Tipfy()
         message = 'I got you.'
 
         class HandlerThatRaises(RequestHandler):
@@ -233,7 +234,7 @@ class TestRequestHandler(unittest.TestCase):
 
     @raises(NotImplementedError)
     def test_handle_exception_and_raises(self):
-        app = WSGIApplication()
+        app = Tipfy()
         message = 'I got you.'
 
         class HandlerThatRaises(RequestHandler):
@@ -251,7 +252,7 @@ class TestRequestHandler(unittest.TestCase):
         assert handler.dispatch('get', some_arg='foo') == message
 
     def test_handle_exception_return_response(self):
-        app = WSGIApplication()
+        app = Tipfy()
         message = 'I got you.'
 
         class HandlerThatRaises(RequestHandler):
@@ -272,7 +273,7 @@ class TestRequestHandler(unittest.TestCase):
     # post_dispatch()
     #===========================================================================
     def test_post_dispatch_return_response(self):
-        app = WSGIApplication()
+        app = Tipfy()
         message = 'I got you.'
 
         class MiddlewareThatReturns(object):
@@ -289,7 +290,7 @@ class TestRequestHandler(unittest.TestCase):
         assert handler.dispatch('post', some_arg='bar') == message
 
     def test_post_dispatch_set_attribute(self):
-        app = WSGIApplication()
+        app = Tipfy()
 
         class MiddlewareThatSetsAttribute(object):
             def post_dispatch(self, handler, response):
@@ -308,6 +309,7 @@ class TestRequestHandler(unittest.TestCase):
 
 class TestMiddlewareFactory(unittest.TestCase):
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_get_middleware(self):
@@ -536,8 +538,9 @@ class TestMiddlewareFactory(unittest.TestCase):
         assert middleware['handle_exception'][2] == factory.instances['test_application.Middleware_3'].handle_exception
 
 
-class TestWSGIApplication(unittest.TestCase):
+class TestTipfy(unittest.TestCase):
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_hello_world(self):
@@ -548,7 +551,7 @@ class TestWSGIApplication(unittest.TestCase):
         assert response.data == 'Hello, World!'
 
     def test_method_not_allowed(self):
-        app = WSGIApplication()
+        app = Tipfy()
         client = Client(app, response_wrapper=BaseResponse)
 
         response = client.open(method='i_am_not_valid')
@@ -562,7 +565,7 @@ class TestWSGIApplication(unittest.TestCase):
         self.assertEqual(response.status_code, 301)
 
     def test_handle_exception(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy': {
                 'url_map': get_url_map(),
                 'dev': True,
@@ -576,7 +579,7 @@ class TestWSGIApplication(unittest.TestCase):
         self.assertEqual(response.data, 'Exception was handled!')
 
     def test_pre_dispatch_handler(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy': {
                 'url_map': get_url_map(),
                 'dev': True,
@@ -590,7 +593,7 @@ class TestWSGIApplication(unittest.TestCase):
         self.assertEqual(response.data, 'Handler dispatch was aborted!')
 
     def test_post_dispatch_handler(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy': {
                 'url_map': get_url_map(),
                 'dev': True,
@@ -605,7 +608,7 @@ class TestWSGIApplication(unittest.TestCase):
 
     @raises(ValueError)
     def test_handler_raises_exception(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy': {
                 'url_map': get_url_map(),
                 'dev': True,
@@ -618,12 +621,12 @@ class TestWSGIApplication(unittest.TestCase):
 
     @raises(ValueError)
     def test_make_response_none(self):
-        app = WSGIApplication()
+        app = Tipfy()
         local.request = Request.from_values()
         response = app.make_response(local.request, None)
 
     def test_make_response_basestring(self):
-        app = WSGIApplication()
+        app = Tipfy()
         local.request = Request.from_values()
         response = app.make_response(local.request, 'My Response')
 
@@ -633,7 +636,7 @@ class TestWSGIApplication(unittest.TestCase):
         assert response.data == 'My Response'
 
     def test_make_response_tuple(self):
-        app = WSGIApplication()
+        app = Tipfy()
         local.request = Request.from_values()
         response = app.make_response(local.request, ('Ooops!', 404))
 
@@ -643,7 +646,7 @@ class TestWSGIApplication(unittest.TestCase):
         assert response.data == 'Ooops!'
 
     def test_handler_internal_server_error(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy': {
                 'url_map': get_url_map(),
                 'dev': False,
@@ -655,12 +658,13 @@ class TestWSGIApplication(unittest.TestCase):
         self.assertEqual(response.status_code, 500)
 
     def test_get_test_client(self):
-        app = WSGIApplication()
+        app = Tipfy()
         assert isinstance(app.get_test_client(), Client)
 
 
 class TestMiscelaneous(unittest.TestCase):
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
         from os import environ
@@ -672,14 +676,14 @@ class TestMiscelaneous(unittest.TestCase):
         app = make_wsgi_app({'tipfy': {
         }})
 
-        assert isinstance(app, WSGIApplication)
+        assert isinstance(app, Tipfy)
 
     def test_make_wsgi_app2(self):
         app = make_wsgi_app({'tipfy': {
             'foo': 'bar'
         }})
 
-        assert isinstance(app, WSGIApplication)
+        assert isinstance(app, Tipfy)
         assert app.config.get('tipfy', 'foo') == 'bar'
 
     def test_make_wsgi_app_with_middleware(self):

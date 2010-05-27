@@ -23,7 +23,9 @@ from babel.support import Translations, LazyProxy
 from babel import dates, numbers
 from pytz.gae import pytz
 
-from tipfy import local, get_config, normalize_callable
+from werkzeug import LocalProxy
+
+from tipfy import get_config, normalize_callable, Tipfy
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -57,13 +59,8 @@ default_config = {
     'locale_request_lookup': [('args', 'lang'), ('cookies', 'tipfy.locale')],
 }
 
-# Proxies to the i18n variables set on each request.
-local.locale = local.translations = None
-locale, translations = local('locale'), local('translations')
-
-# Cache loaded translations and timezones.
+# Cache for loaded translations.
 _translations = {}
-_timezones = {}
 
 
 class I18nMiddleware(object):
@@ -78,14 +75,16 @@ class I18nMiddleware(object):
         :param response:
             The current ``werkzeug.Response`` instance.
         """
-        if getattr(local, 'locale', None) is None:
+        ctx = Tipfy.request.context
+        locale = ctx.get('locale', None)
+        if locale is None:
             # Locale isn't set.
             return response
 
         if not is_default_locale():
             # Persist locale using a cookie when it differs from default.
             response.set_cookie(get_config(__name__, 'cookie_name'),
-                value=get_locale(), max_age=(86400 * 30))
+                value=locale, max_age=(86400 * 30))
 
         return response
 
@@ -106,15 +105,13 @@ def get_locale():
     :return:
         The current locale code, e.g., ``en_US``.
     """
-    if getattr(local, 'locale', None) is None:
-        try:
-            # Set translations based on the current request.
-            set_translations_from_request()
-        except AttributeError, e:
-            # Simply set translations using default locale.
-            set_translations(get_config(__name__, 'locale'))
+    ctx = Tipfy.request.context
+    value = ctx.get('locale', None)
+    if value is not None:
+        return value
 
-    return local.locale
+    set_translations_from_request()
+    return ctx.get('locale')
 
 
 def get_translations():
@@ -124,15 +121,13 @@ def get_translations():
     :return:
         A ``babel.support.Translations`` object.
     """
-    if getattr(local, 'translations', None) is None:
-        try:
-            # Set translations based on the current request.
-            set_translations_from_request()
-        except AttributeError, e:
-            # Simply set translations using default locale.
-            set_translations(get_config(__name__, 'locale'))
+    ctx = Tipfy.request.context
+    value = ctx.get('translations', None)
+    if value is not None:
+        return value
 
-    return local.translations
+    set_translations_from_request()
+    return ctx.get('translations')
 
 
 def set_translations(locale):
@@ -149,8 +144,9 @@ def set_translations(locale):
         options = list(set([locale, get_config(__name__, 'locale')]))
         _translations[locale] = Translations.load('locale', options, 'messages')
 
-    local.locale = locale
-    local.translations = _translations[locale]
+    ctx = Tipfy.request.context
+    ctx['locale'] = locale
+    ctx['translations'] = _translations[locale]
 
 
 def set_translations_from_request():
@@ -169,7 +165,7 @@ def set_translations_from_request():
         ``None``.
     """
     locale = None
-    request = local.request
+    request = Tipfy.request
     for method, key in get_config(__name__, 'locale_request_lookup'):
         if method in ('args', 'form', 'cookies'):
             # Get locale from GET, POST or cookies.
@@ -192,7 +188,8 @@ def is_default_locale():
     :return:
         ``True`` if locale is set to the default locale, ``False`` otherwise.
     """
-    return getattr(local, 'locale', None) == get_config(__name__, 'locale')
+    ctx = Tipfy.request.context
+    return ctx.get('locale', None) == get_config(__name__, 'locale')
 
 
 def gettext(string):
@@ -260,13 +257,7 @@ def get_tzinfo(timezone=None):
     :return:
         A ``datetime.tzinfo`` object.
     """
-    if timezone is None:
-        timezone = get_config(__name__, 'timezone')
-
-    if timezone not in _timezones:
-        _timezones[timezone] = pytz.timezone(timezone)
-
-    return _timezones[timezone]
+    return pytz.timezone(timezone or get_config(__name__, 'timezone'))
 
 
 def to_local_timezone(datetime, timezone=None):
@@ -652,6 +643,6 @@ parse_decimal = _get_babel_function(numbers.parse_decimal)
 
 # Common alias to gettext.
 _ = gettext
-# Old names, kept here for backwards compatibility.
-set_locale = set_translations
-set_requested_locale = set_translations_from_request
+
+# Current translations.
+translations = LocalProxy(get_translations)

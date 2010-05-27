@@ -11,7 +11,7 @@ from google.appengine.api import memcache
 
 import _base
 
-from tipfy import local, WSGIApplication
+from tipfy import local, Tipfy
 from tipfy.ext.auth.acl import Acl, AclRules, _rules_map, AclMixin
 
 
@@ -20,9 +20,10 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         # Clean up datastore.
         super(TestAcl, self).setUp()
 
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
-        self.app = WSGIApplication()
+        self.app = Tipfy()
         self.app.config['tipfy']['dev'] = False
 
         Acl.roles_map = {}
@@ -30,6 +31,7 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         _rules_map.clear()
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
         self.app.config['tipfy']['dev'] = True
 

@@ -19,7 +19,7 @@ from google.appengine.ext import db
 from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import generate_key, ModificationTrackingDict
 
-from tipfy import cached_property, local, get_config, REQUIRED_VALUE
+from tipfy import cached_property, get_config, local, REQUIRED_VALUE, Tipfy
 from tipfy.ext.db import (get_protobuf_from_entity, get_entity_from_protobuf,
     PickleProperty)
 
@@ -424,7 +424,7 @@ class SessionStore(object):
         :return:
             A ``werkzeug.contrib.SecureCookie`` instance.
         """
-        return SecureCookie.load_cookie(local.request, key=key,
+        return SecureCookie.load_cookie(Tipfy.request, key=key,
                                         secret_key=self.config.secret_key)
 
     def create_secure_cookie(self, data=None):
@@ -466,7 +466,7 @@ class SessionStore(object):
 
         self._flash_read.append(key)
 
-        if key in local.request.cookies:
+        if key in Tipfy.request.cookies:
             if key not in self._data:
                 # Only mark for deletion if it was not set.
                 self._data[key] = None

@@ -10,7 +10,7 @@
 """
 from werkzeug.routing import BaseConverter, Map, Rule as WerkzeugRule
 
-from tipfy import local
+from tipfy import Tipfy
 
 
 class Rule(WerkzeugRule):
@@ -98,7 +98,7 @@ def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
     full = kwargs.pop('full', _full)
     method = kwargs.pop('method', _method)
 
-    return local.request.url_for(endpoint, _full=full, _method=method,
+    return Tipfy.request.url_for(endpoint, _full=full, _method=method,
         _anchor=_anchor, **kwargs)
 
 

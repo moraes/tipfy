@@ -91,6 +91,7 @@ class TestCommandHandler(unittest.TestCase):
         tipfy.ext.xmpp.xmpp = sys.modules[__name__]
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
         fake_local.clear()
 

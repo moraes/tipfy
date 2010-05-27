@@ -9,11 +9,12 @@ from nose.tools import assert_raises, raises
 import _base
 
 from tipfy import (Config, default_config, get_config, local,
-    WSGIApplication)
+    Tipfy)
 
 
 class TestConfig(unittest.TestCase):
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_get_existing_keys(self):
@@ -157,10 +158,11 @@ class TestConfig(unittest.TestCase):
 
 class TestGetConfig(unittest.TestCase):
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_default_config(self):
-        app = WSGIApplication()
+        app = Tipfy()
 
         from tipfy.ext.jinja2 import default_config as jinja2_config
         from tipfy.ext.i18n import default_config as i18n_config
@@ -171,7 +173,7 @@ class TestGetConfig(unittest.TestCase):
         assert get_config('tipfy.ext.i18n', 'timezone') == i18n_config['timezone']
 
     def test_default_config_with_non_existing_key(self):
-        app = WSGIApplication()
+        app = Tipfy()
 
         from tipfy.ext.i18n import default_config as i18n_config
 
@@ -182,7 +184,7 @@ class TestGetConfig(unittest.TestCase):
         assert get_config('tipfy.ext.i18n', 'i_dont_exist', 'foo') == 'foo'
 
     def test_override_config(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy': {
                 'dev': True,
             },
@@ -201,7 +203,7 @@ class TestGetConfig(unittest.TestCase):
         assert get_config('tipfy.ext.i18n', 'timezone') == 'America/Sao_Paulo'
 
     def test_override_config2(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy.ext.i18n': {
                 'timezone': 'America/Sao_Paulo',
             },
@@ -211,47 +213,47 @@ class TestGetConfig(unittest.TestCase):
         assert get_config('tipfy.ext.i18n', 'timezone') == 'America/Sao_Paulo'
 
     def test_get(self):
-        app = WSGIApplication({'foo': {
+        app = Tipfy({'foo': {
             'bar': 'baz',
         }})
 
         assert get_config('foo', 'bar') == 'baz'
 
     def test_get_with_default(self):
-        app = WSGIApplication()
+        app = Tipfy()
 
         assert get_config('tipfy.ext.i18n', 'bar', 'baz') == 'baz'
 
     def test_get_with_default_and_none(self):
-        app = WSGIApplication({'foo': {
+        app = Tipfy({'foo': {
             'bar': None,
         }})
 
         assert get_config('foo', 'bar', 'ooops') is None
 
     def test_get_with_default_and_module_load(self):
-        app = WSGIApplication()
+        app = Tipfy()
         assert get_config('tipfy.ext.i18n', 'locale') == 'en_US'
 
-        app = WSGIApplication()
+        app = Tipfy()
         assert get_config('tipfy.ext.i18n', 'locale', 'foo') == 'en_US'
 
     @raises(KeyError)
     def test_required_config(self):
-        app = WSGIApplication()
+        app = Tipfy()
         assert get_config('tipfy.ext.i18n', 'i_dont_exist') == 'baz'
 
     @raises(KeyError)
     def test_required_config2(self):
-        app = WSGIApplication()
+        app = Tipfy()
         assert get_config('tipfy.ext.session', 'secret_key') == 'baz'
 
     @raises(AttributeError)
     def test_missing_default_config(self):
-        app = WSGIApplication()
+        app = Tipfy()
         assert get_config('tipfy.ext.db', 'foo') == 'baz'
 
     @raises(ImportError)
     def test_missing_module(self):
-        app = WSGIApplication()
+        app = Tipfy()
         assert get_config('i_dont_exist', 'i_dont_exist') == 'baz'

@@ -5,7 +5,7 @@
 import os
 import unittest
 
-from tipfy import local, Response, WSGIApplication
+from tipfy import local, Response, Tipfy
 from tipfy.ext import mako
 
 
@@ -15,20 +15,21 @@ templates_dir = os.path.join(current_dir, 'files', 'mako')
 
 class TestMako(unittest.TestCase):
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_get_lookup(self):
-        app = WSGIApplication({'tipfy.ext.mako': {'templates_dir': templates_dir}})
+        app = Tipfy({'tipfy.ext.mako': {'templates_dir': templates_dir}})
         assert isinstance(mako.get_lookup(), mako.TemplateLookup)
 
     def test_render_template(self):
-        app = WSGIApplication({'tipfy.ext.mako': {'templates_dir': templates_dir}})
+        app = Tipfy({'tipfy.ext.mako': {'templates_dir': templates_dir}})
         message = 'Hello, World!'
         res = mako.render_template('template1.html', message=message)
         assert res == message + '\n'
 
     def test_render_response(self):
-        app = WSGIApplication({'tipfy.ext.mako': {'templates_dir': templates_dir}})
+        app = Tipfy({'tipfy.ext.mako': {'templates_dir': templates_dir}})
 
         message = 'Hello, World!'
         response = mako.render_response('template1.html', message=message)
@@ -41,7 +42,7 @@ class TestMako(unittest.TestCase):
             def __init__(self):
                 self.context = {}
 
-        app = WSGIApplication({'tipfy.ext.mako': {'templates_dir': templates_dir}})
+        app = Tipfy({'tipfy.ext.mako': {'templates_dir': templates_dir}})
         message = 'Hello, World!'
 
         handler = MyHandler()

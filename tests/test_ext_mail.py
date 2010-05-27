@@ -47,6 +47,7 @@ class TestInboundMailHandler(unittest.TestCase):
         pass
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_mail(self):
@@ -63,5 +64,4 @@ class TestInboundMailHandler(unittest.TestCase):
         app = get_app()
         client = app.get_test_client()
 
-        data = 'hi there'
-        client.open(method='POST', path='/test2', data=data, content_type='text/plain')
+        client.open(method='POST', path='/test2', data=MESSAGE, content_type='text/plain')

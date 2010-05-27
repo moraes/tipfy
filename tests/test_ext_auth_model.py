@@ -10,16 +10,17 @@ from gaetestbed import DataStoreTestCase
 
 import _base
 
-from tipfy import local, WSGIApplication
+from tipfy import local, Tipfy
 from tipfy.ext.auth.model import check_password, gen_pwhash, gen_salt, User
 
 
 class TestUserModel(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
-        app = WSGIApplication()
+        app = Tipfy()
         DataStoreTestCase.setUp(self)
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_create(self):
@@ -56,14 +57,14 @@ class TestUserModel(DataStoreTestCase, unittest.TestCase):
         assert len(user.password.split('$')) == 3
 
     def test_check_password(self):
-        app = WSGIApplication()
+        app = Tipfy()
         user = User.create('my_username', 'my_id', password='foo')
 
         assert user.check_password('foo') is True
         assert user.check_password('bar') is False
 
     def test_check_session(self):
-        app = WSGIApplication()
+        app = Tipfy()
         user = User.create('my_username', 'my_id', password='foo')
 
         session_id = user.session_id
@@ -108,12 +109,12 @@ class TestUserModel(DataStoreTestCase, unittest.TestCase):
         assert user_1 != user_2
 
     def test_renew_session(self):
-        app = WSGIApplication()
+        app = Tipfy()
         user = User.create('my_username', 'my_id')
         user._renew_session()
 
     def test_renew_session_force(self):
-        app = WSGIApplication()
+        app = Tipfy()
         user = User.create('my_username', 'my_id')
         user._renew_session(force=True)
 
@@ -121,9 +122,10 @@ class TestUserModel(DataStoreTestCase, unittest.TestCase):
 class TestMiscelaneous(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
-        app = WSGIApplication()
+        app = Tipfy()
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     @raises(ValueError)

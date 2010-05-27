@@ -9,15 +9,16 @@ from nose.tools import raises
 import _base
 
 
-from tipfy import local, NotFound, WSGIApplication
+from tipfy import local, NotFound, Tipfy
 from tipfy.ext.appstats import AppstatsMiddleware
 
 class TestAppstatsMiddleware(unittest.TestCase):
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_pre_run_app_no_dev(self):
-        app = WSGIApplication({
+        app = Tipfy({
             'tipfy': {
                 'middleware': ['tipfy.ext.appstats.AppstatsMiddleware'],
             }

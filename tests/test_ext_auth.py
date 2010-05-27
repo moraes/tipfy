@@ -17,7 +17,7 @@ from werkzeug.test import create_environ, Client
 from gaetestbed import DataStoreTestCase
 
 from tipfy import (abort, Forbidden, local,
-    Map, Request, Rule, WSGIApplication)
+    Map, Request, Rule, Tipfy)
 from tipfy.ext.auth import (AppEngineAuth, AuthMiddleware, BaseAuth,
     basic_auth_required, create_login_url, create_logout_url,
     create_signup_url, get_auth_system, get_current_user,
@@ -45,7 +45,7 @@ def gae_logout():
 class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
-        app = WSGIApplication({'tipfy': {
+        app = Tipfy({'tipfy': {
             'url_map': get_url_map(),
         }})
         app.url_adapter = app.url_map.bind('foo.com')
@@ -53,12 +53,13 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         self.temp_gcu = users.get_current_user
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
         users.get_current_user = self.temp_gcu
 
     def test_pre_dispatch_no_user(self):
-        app = WSGIApplication({'tipfy': {
+        app = Tipfy({'tipfy': {
             'url_map': get_url_map(),
         }})
         app.url_adapter = app.url_map.bind('foo.com')
@@ -72,7 +73,7 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(response.data, 'Hello, World!')
 
     def test_pre_dispatch_user_without_account(self):
-        app = WSGIApplication({'tipfy': {
+        app = Tipfy({'tipfy': {
             'url_map': get_url_map(),
         }})
         #app.url_adapter = app.url_map.bind('foo.com')
@@ -86,7 +87,7 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(response.headers['Location'], 'http://localhost/account/signup?redirect=http%3A%2F%2Flocalhost%2F')
 
     def test_pre_dispatch_user_with_account(self):
-        app = WSGIApplication({'tipfy': {
+        app = Tipfy({'tipfy': {
             'url_map': get_url_map(),
         }})
         app.url_adapter = app.url_map.bind('foo.com')
@@ -104,7 +105,7 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(current_user, get_current_user())
 
     def test_pre_dispatch_user_with_admin_account(self):
-        app = WSGIApplication({'tipfy': {
+        app = Tipfy({'tipfy': {
             'url_map': get_url_map(),
         }})
         app.url_adapter = app.url_map.bind('foo.com')
@@ -125,14 +126,17 @@ class TestAuthMiddlewareWithAppEngineAuth(DataStoreTestCase, unittest.TestCase):
 class TestBaseAuth(DataStoreTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
-        request = Request.from_values(base_url='http://foo.com')
-        local.request = request
-        app = WSGIApplication({'tipfy': {
+
+        app = Tipfy({'tipfy': {
             'url_map': get_url_map(),
         }})
+        request = Request.from_values(base_url='http://foo.com')
+        app.set_wsgi_app()
+        app.set_request(request)
         app.match_url(request)
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_user_model(self):
@@ -220,23 +224,25 @@ class TestBaseAuth(DataStoreTestCase, unittest.TestCase):
 
 class TestMultiAuth(unittest.TestCase):
     def setUp(self):
-        app = WSGIApplication({'tipfy': {
+        app = Tipfy({'tipfy': {
             'url_map': get_url_map(),
         }})
         app.url_adapter = app.url_map.bind('foo.com')
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
 
 
 class TestMiscelaneous(unittest.TestCase):
     def setUp(self):
-        request = Request.from_values(base_url='http://foo.com')
-        local.request = request
-        app = WSGIApplication({'tipfy': {
+        app = Tipfy({'tipfy': {
             'url_map': get_url_map(),
         }})
+        request = Request.from_values(base_url='http://foo.com')
+        app.set_wsgi_app()
+        app.set_request(request)
         app.match_url(request)
 
         import os
@@ -245,6 +251,7 @@ class TestMiscelaneous(unittest.TestCase):
         os.environ['SERVER_PORT'] = '8080'
 
     def tearDown(self):
+        Tipfy.app = Tipfy.request = None
         local.__release_local__()
 
     def test_create_signup_url(self):
@@ -276,10 +283,16 @@ class TestMiscelaneous(unittest.TestCase):
         assert res is True
 
     def test_basic_auth_required(self):
+        app = Tipfy({'tipfy': {
+            'url_map': get_url_map(),
+        }})
         request = Request.from_values(environ_base={
             'HTTP_AUTHORIZATION': 'BASIC %s' % 'foo:bar'.encode('base64'),
         })
-        local.request = request
+        app.set_wsgi_app()
+        app.set_request(request)
+        app.match_url(request)
+
         assert request.authorization is not None
 
         def validator(authorization, func, *args, **kwargs):

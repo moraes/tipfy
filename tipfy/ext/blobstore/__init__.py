@@ -31,8 +31,6 @@ from google.appengine.api import blobstore as api_blobstore
 
 from werkzeug import FileStorage, Response
 
-from tipfy import local
-
 
 _BASE_CREATION_HEADER_FORMAT = '%Y-%m-%d %H:%M:%S'
 _CONTENT_DISPOSITION_FORMAT = 'attachment; filename="%s"'

@@ -23,7 +23,7 @@ from werkzeug.routing import (EndpointPrefix, Map, RequestRedirect,
 
 from tipfy.local import Local
 
-__version__ = '0.5.3'
+__version__ = '0.5.3b'
 
 # Variable store for a single request.
 local = Local()

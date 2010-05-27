@@ -112,7 +112,7 @@ class BlobstoreUploadMixin(object):
             A list of BlobInfo records corresponding to each upload. Empty list
             if there are no blob-info records for field_name.
         """
-        if getattr(self, '__uploads', None) is None:
+        if getattr(self, '_BlobstoreUploadMixin__uploads', None) is None:
             self.__uploads = {}
             for key, value in self.request.files.items():
                 if isinstance(value, FileStorage):
@@ -121,17 +121,17 @@ class BlobstoreUploadMixin(object):
                             self.__uploads.setdefault(key, []).append(
                                 parse_blob_info(value, key))
 
-            if field_name:
-                try:
-                    return list(self.__uploads[field_name])
-                except KeyError:
-                    return []
-            else:
-                results = []
-                for uploads in self.__uploads.itervalues():
-                    results += uploads
+        if field_name:
+            try:
+                return list(self.__uploads[field_name])
+            except KeyError:
+                return []
+        else:
+            results = []
+            for uploads in self.__uploads.itervalues():
+                results += uploads
 
-            return results
+        return results
 
 
 def parse_blob_info(file_storage, field_name):

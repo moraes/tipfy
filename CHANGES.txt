@@ -1,4 +1,4 @@
-Version 0.5.3 - May 25, 2010
+Version 0.5.3 - May 27, 2010
 ============================
 
 Backwards compatibility warnings
@@ -24,6 +24,41 @@ Backwards compatibility warnings
   i18n, which requires Babel. Sessions should not depend on i18n. Now they
   don't. Please implement it on a separate mixin or base handler if you used
   it.
+
+- We're now slowly getting rid of globals and local is the first target, as it
+  doesn't make sense on App Engine.
+
+  While local.request and local.app still works, you should start using
+  Tipfy.request and Tipfy.app if globals are required in helper functions (they
+  are now available in the handler, which should cover most use cases).
+
+  Tipfy.request and Tipfy.app are set and cleaned on each request. It is
+  fast and perfectly valid on App Engine, but unfortunately this is not a
+  good idea outside of App Engine where you need to take care of threading.
+
+  So an application using Tipfy outside of App Engine needs to setup a proxy on
+  these attributes pointing to a thread local. This monkeypatch covers it all:
+
+    from werkzeug import Local
+
+    local = Local()
+
+    def set_wsgi_app(self):
+        local.app = self
+
+    def set_request(self, request):
+        local.request = request
+
+    def cleanup(self):
+        local.__release_local__()
+
+    Tipfy.set_wsgi_app = set_wsgi_app
+    Tipfy.set_request = set_request
+    Tipfy.cleanup = cleanup
+    Tipfy.app = local('app')
+    Tipfy.request = local('request')
+
+  This makes Tipfy.app and Tipfy.request thread-safe outside of App Engine.
 
 tipfy.routing
 -------------

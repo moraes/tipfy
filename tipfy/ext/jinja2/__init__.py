@@ -140,7 +140,7 @@ def get_template_attribute(filename, attribute):
         hello = get_template_attribute('_foo.html', 'hello')
         return hello('World')
 
-    This function comes from `Flask`_.
+    This function comes from `Flask`.
 
     :param filename:
         The template filename.

@@ -37,13 +37,17 @@ class RequestHandler(object):
     #: A list of middleware classes or callables. A middleware can implement
     #: three methods that are called before and after
     #: the current request method is executed, or if an exception occurs:
-    #: ``pre_dispatch(handler)``: Called before the requested method is
-    #:     executed. If returns a response, stops the middleware chain and
-    #:     uses that response, not calling the requested method.
-    #: ``post_dispatch(exception, handler)``: Called after the requested
-    #;     method is executed. Must always return a response. All
-    #:     ``post_dispatch`` middleware are always executed.
-    #: ``handle_exception(exception, handler)``: Called if an exception occurs.
+    #:
+    #: - ``pre_dispatch(handler)``: Called before the requested method is
+    #:   executed. If returns a response, stops the middleware chain and
+    #:   uses that response, not calling the requested method.
+    #:
+    #: - ``post_dispatch(exception, handler)``: Called after the requested
+    #;   method is executed. Must always return a response. All
+    #:   ``post_dispatch`` middleware are always executed.
+    #:
+    #: - ``handle_exception(exception, handler)``: Called if an exception
+    #:   occurs.
     middleware = []
 
     def __init__(self, app, request):
@@ -692,7 +696,6 @@ class MiddlewareFactory(object):
     #: All middleware methods to look for.
     names = (
         'post_make_app',
-        'pre_run_app',
         'pre_dispatch_handler',
         'post_dispatch_handler',
         'pre_dispatch',
@@ -823,10 +826,6 @@ def run_wsgi_app(app):
     # Fix issue #772.
     if app.dev:
         fix_sys_path()
-
-    # Execute pre_run_app middleware.
-    for hook in app.middleware.get('pre_run_app', []):
-        app = hook(app)
 
     # Run it.
     CGIHandler().run(app)

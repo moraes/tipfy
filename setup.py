@@ -31,7 +31,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy',
-    version = '0.5.3',
+    version = '0.5.3b',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/downloads/tipfy.latest.tar.bz2',

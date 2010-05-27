@@ -1,3 +1,19 @@
+Version 0.5.3b - May 27, 2010
+=============================
+Bug fix release following 0.5.3.
+
+- REMOVED 'pre_run_app' hook. Use post_make_app instead:
+
+    def post_make_app(self, app):
+        # Wrap the callable, so we keep a reference to the app...
+        app.wsgi_app = my_middleware(app.wsgi_app)
+        # ...and return the original app.
+        return app
+
+- IMPROVED tipfy.ext.appstatts and tipfy.ext.debugger: middleware is set on
+  'post_make_app'.
+
+
 Version 0.5.3 - May 27, 2010
 ============================
 

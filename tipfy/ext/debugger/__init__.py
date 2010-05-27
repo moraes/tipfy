@@ -16,7 +16,7 @@
 
 
 class DebuggerMiddleware(object):
-    def pre_run_app(self, app):
+    def post_make_app(self, app):
         """Wraps the application by Werkzeug's debugger.
 
         :param app:
@@ -29,4 +29,8 @@ class DebuggerMiddleware(object):
             return app
 
         from tipfy.ext.debugger.app import get_debugged_app
-        return get_debugged_app(app)
+
+        # Wrap the callable, so we keep a reference to the app...
+        app.wsgi_app = get_debugged_app(app.wsgi_app)
+        # ...and return the original app.
+        return app

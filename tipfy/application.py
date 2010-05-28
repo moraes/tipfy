@@ -525,15 +525,23 @@ class Tipfy(object):
 
     def get_url_map(self):
         """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
-        application. Rules are cached in production; the cache is automatically
-        renewed on each deployment.
+        application.
 
         :return:
             A ``werkzeug.routing.Map`` instance.
         """
-        rules = import_string('urls.get_rules')()
-        kwargs = self.config.get('tipfy').get('url_map_kwargs')
-        return Map(rules, **kwargs)
+        try:
+            rules = import_string('urls.get_rules')()
+            kwargs = self.config.get('tipfy').get('url_map_kwargs')
+            return Map(rules, **kwargs)
+        except AttributeError, e:
+            logging.warning('Missing get_rules() function in urls.py. No URL '
+                'rules were loaded.')
+        except ImportError, e:
+            logging.warning('Missing urls.py module. No URL rules were '
+                'loaded.')
+
+        return Map([])
 
     def set_wsgi_app(self):
         """Sets the currently active :class:`Tipfy` instance."""

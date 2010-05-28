@@ -8,6 +8,8 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
+__import__('pkg_resources').declare_namespace(__name__)
+
 import os
 
 # Werkzeug swiss knife.

@@ -1,5 +1,5 @@
-Version 0.5.3b - May 27, 2010
-=============================
+Version 0.5.4 - May 27, 2010
+============================
 Bug fix release following 0.5.3.
 
 - REMOVED 'pre_run_app' hook. Use post_make_app instead:

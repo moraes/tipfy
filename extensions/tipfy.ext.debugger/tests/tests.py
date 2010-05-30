@@ -6,8 +6,6 @@ import unittest
 
 from nose.tools import raises
 
-import _base
-
 import jinja2
 
 from tipfy import local, NotFound, Tipfy

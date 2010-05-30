@@ -42,12 +42,9 @@ def get_app():
 
 class TestInboundMailHandler(unittest.TestCase):
     def setUp(self):
-        self.old_sys_path = sys.path[:]
-        sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
         pass
 
     def tearDown(self):
-        sys.path = self.old_sys_path
         Tipfy.app = Tipfy.request = None
 
     def test_mail(self):

@@ -17,8 +17,9 @@ Then run the tests from the repository root:
 import os
 import sys
 
-TIPFY_PATH   = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-APP_PATH     = os.path.join(TIPFY_PATH, 'buildout', 'app')
+CURR_PATH  = os.path.abspath(os.path.dirname(__file__))
+TIPFY_PATH = os.path.abspath(os.path.join(CURR_PATH, '..'))
+APP_PATH   = os.path.join(TIPFY_PATH, 'buildout', 'app')
 
 paths = [TIPFY_PATH, APP_PATH]
 
@@ -32,7 +33,11 @@ for path in paths:
 __import__('pkg_resources').declare_namespace('tipfy.ext')
 
 def setup():
-    sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+    if 'handlers' in sys.modules:
+        del sys.modules['handlers']
+
+    sys.path.insert(0, CURR_PATH)
 
 def teardown():
-    pass
+    if CURR_PATH in sys.path:
+        sys.path.remove(CURR_PATH)

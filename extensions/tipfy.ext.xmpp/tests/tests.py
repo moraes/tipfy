@@ -99,8 +99,14 @@ class TestCommandHandler(unittest.TestCase):
         app = get_app()
         client = app.get_test_client()
 
-        data = {}
-        client.open(method='POST', data=data)
+        try:
+            data = {}
+            client.open(method='POST', data=data)
+        except:
+            import sys
+            x = list(sys.modules.keys())
+            sys.sort()
+            sys.exit('\n'.join(x))
 
         assert fake_local.get('message', None) is None
 

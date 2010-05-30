@@ -2,6 +2,8 @@
 """
     Tests for tipfy.ext.auth
 """
+import os
+import sys
 import unittest
 
 from nose.tools import raises
@@ -26,8 +28,8 @@ from tipfy.ext.session import SessionMiddleware
 
 def get_url_map():
     return Map([
-        Rule('/', endpoint='home', handler='handlers.handlers.AuthHandler'),
-        Rule('/account/signup', endpoint='auth/signup', handler='handlers.handlers.SignupHandler'),
+        Rule('/', endpoint='home', handler='handlers.AuthHandler'),
+        Rule('/account/signup', endpoint='auth/signup', handler='handlers.SignupHandler'),
         Rule('/account/login', endpoint='auth/login', handler='undefined'),
         Rule('/account/logout', endpoint='auth/logout', handler='undefined'),
     ])

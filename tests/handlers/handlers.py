@@ -13,7 +13,7 @@ class HandlerWithException(RequestHandler):
         raise ValueError('ooops!')
 
 
-class AuthHandler(RequestHandler):
+class SimpleAuthHandler(RequestHandler):
     middleware = [SessionMiddleware, AuthMiddleware]
 
     def get(self, **kwargs):
@@ -24,3 +24,4 @@ class AuthHandler(RequestHandler):
             r = 'no user'
 
         return Response(r)
+

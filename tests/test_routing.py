@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.routing
+    Tests for tipfy routing
 """
 import unittest
 from nose.tools import raises
-
-import _base
 
 from tipfy import (Map, NotFound, Request, Rule, url_for, Tipfy)
 

@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.utils
+    Tests for tipfy utils
 """
 import unittest
 from nose.tools import raises
-
-import _base
 
 import werkzeug
 

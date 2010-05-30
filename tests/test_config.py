@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.config
+    Tests for tipfy config
 """
 import unittest
 
 from nose.tools import assert_raises, raises
 
-import _base
-
-from tipfy import (Config, default_config, get_config, local,
-    Tipfy)
+from tipfy import (Config, default_config, get_config, Tipfy)
 
 
 class TestConfig(unittest.TestCase):
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
-        local.__release_local__()
 
     def test_get_existing_keys(self):
         config = Config({'foo': {
@@ -159,7 +155,6 @@ class TestConfig(unittest.TestCase):
 class TestGetConfig(unittest.TestCase):
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
-        local.__release_local__()
 
     def test_default_config(self):
         app = Tipfy()

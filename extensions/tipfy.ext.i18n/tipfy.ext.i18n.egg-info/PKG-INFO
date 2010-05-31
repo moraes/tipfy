@@ -1,0 +1,33 @@
+Metadata-Version: 1.0
+Name: tipfy.ext.i18n
+Version: 0.5.4
+Summary: Internatinalization extension for tipfy
+Home-page: http://www.tipfy.org/
+Author: Rodrigo Moraes
+Author-email: rodrigo.moraes@gmail.com
+License: BSD
+Description: 
+        tipfy.ext.i18n
+        ==============
+        
+        This extension provides internationalization and localization utilities for
+        tipfy, the almighty little framework for Google pp Engine.
+        
+        Links
+        -----
+        * `Tipfy's website <http://www.tipfy.org/>`_
+        * `API Documentation <http://www.tipfy.org/docs/>`_
+        * `Wiki <http://www.tipfy.org/wiki/>`_
+        * `Discussion Group <http://groups.google.com/group/tipfy>`_
+        * `Issue Tracker <http://code.google.com/p/tipfy/issues/list>`_
+        * `Repository <http://code.google.com/p/tipfy/>`_
+        
+Platform: any
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Software Development :: Libraries :: Python Modules

@@ -2,17 +2,26 @@
 tipfy.ext.i18n
 ==============
 
+This extension provides internationalization and localization utilities for
+tipfy, the almighty little framework for Google App Engine.
+
+Links
+-----
+* `Tipfy's website <http://www.tipfy.org/>`_
+* `API Documentation <http://www.tipfy.org/docs/>`_
+* `Wiki <http://www.tipfy.org/wiki/>`_
+* `Discussion Group <http://groups.google.com/group/tipfy>`_
+* `Issue Tracker <http://code.google.com/p/tipfy/issues/list>`_
+* `Repository <http://code.google.com/p/tipfy/>`_
 """
 from setuptools import setup
 
 setup(
     name = 'tipfy.ext.i18n',
-    version = '1.0',
+    version = '0.5.4',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
-    download_url = 'http://www.tipfy.org/downloads/tipfy.latest.tar.bz2',
-    description = 'An almighty little framework made specifically for Google '
-        'App Engine',
+    description = 'Internationalization extension for tipfy',
     long_description=__doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
@@ -21,23 +30,13 @@ setup(
     packages = [
         'tipfy',
         'tipfy.ext',
-        'tipfy.ext.appstats',
-        'tipfy.ext.auth',
-        'tipfy.ext.blobstore',
-        'tipfy.ext.db',
-        'tipfy.ext.debugger',
-        'tipfy.ext.i18n',
-        'tipfy.ext.jinja2',
-        'tipfy.ext.mako',
-        'tipfy.ext.session',
-        'tipfy.ext.taskqueue',
-        'tipfy.ext.xmpp',
     ],
+    namespace_packages = ['tipfy.ext'],
     include_package_data=True,
     install_requires = [
-        'babel>=0.9.5',
-        'Jinja2>=2.4',
-        'werkzeug>=0.6.1',
+        'tipfy',
+        'babel',
+        'gaepytz',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

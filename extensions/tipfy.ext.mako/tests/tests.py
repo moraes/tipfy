@@ -12,7 +12,7 @@ from tipfy.ext import mako
 
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
-templates_dir = os.path.join(current_dir, 'templates')
+templates_dir = os.path.join(current_dir, 'resources', 'templates')
 
 
 class TestMako(unittest.TestCase):

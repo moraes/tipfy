@@ -17,10 +17,10 @@ from tipfy import (local, make_wsgi_app, Map, MethodNotAllowed,
 def get_url_map():
     # Fake get_rules() for testing.
     rules = [
-        Rule('/', endpoint='home', handler='handlers.handlers.HomeHandler'),
-        Rule('/test-redirect/', endpoint='test-redirect', handler='handlers.handlers.HomeHandler'),
-        Rule('/test-redirect/leaf', endpoint='test-redirect/leaf', handler='handlers.handlers.HomeHandler'),
-        Rule('/test-exception', endpoint='test-exception', handler='handlers.handlers.HandlerWithException'),
+        Rule('/', endpoint='home', handler='resources.handlers.HomeHandler'),
+        Rule('/test-redirect/', endpoint='test-redirect', handler='resources.handlers.HomeHandler'),
+        Rule('/test-redirect/leaf', endpoint='test-redirect/leaf', handler='resources.handlers.HomeHandler'),
+        Rule('/test-exception', endpoint='test-exception', handler='resources.handlers.HandlerWithException'),
     ]
 
     return Map(rules)

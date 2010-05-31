@@ -24,8 +24,8 @@ Test message!"""
 def get_url_map():
     # Fake get_rules() for testing.
     rules = [
-        Rule('/', endpoint='xmpp-test', handler='handlers.mail_handlers.MailHandler'),
-        Rule('/test2', endpoint='xmpp-test', handler='handlers.mail_handlers.MailHandler2'),
+        Rule('/', endpoint='xmpp-test', handler='resources.mail_handlers.MailHandler'),
+        Rule('/test2', endpoint='xmpp-test', handler='resources.mail_handlers.MailHandler2'),
     ]
 
     return Map(rules)

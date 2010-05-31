@@ -1,0 +1,13 @@
+MANIFEST.in
+README.txt
+setup.py
+tipfy/__init__.py
+tipfy.ext.i18n.egg-info/PKG-INFO
+tipfy.ext.i18n.egg-info/SOURCES.txt
+tipfy.ext.i18n.egg-info/dependency_links.txt
+tipfy.ext.i18n.egg-info/namespace_packages.txt
+tipfy.ext.i18n.egg-info/not-zip-safe
+tipfy.ext.i18n.egg-info/requires.txt
+tipfy.ext.i18n.egg-info/top_level.txt
+tipfy/ext/__init__.py
+tipfy/ext/i18n.py

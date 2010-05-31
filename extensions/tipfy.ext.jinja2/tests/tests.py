@@ -9,8 +9,8 @@ from tipfy import Response, Tipfy
 from tipfy.ext import jinja2
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
-templates_dir = os.path.join(current_dir, 'templates')
-templates_compiled_target = os.path.join(current_dir, 'templates_compiled')
+templates_dir = os.path.join(current_dir, 'resources', 'templates')
+templates_compiled_target = os.path.join(current_dir, 'resources', 'templates_compiled')
 
 
 class TestJinja2(unittest.TestCase):

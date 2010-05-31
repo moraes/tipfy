@@ -1,0 +1,1 @@
+tipfy.ext.debugger is developed and maintained by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.

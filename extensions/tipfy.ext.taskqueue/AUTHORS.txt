@@ -1,0 +1,7 @@
+tipfy.ext.i18n is developed and maintained by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+
+to_local_timezone() and to_utc() functions were adapted from Kay Framework:
+
+- `Kay <http://code.google.com/p/kay-framework/>`_
+  Copyright (c) 2009 Accense Technology, Inc. All rights reserved.
+  License: BSD

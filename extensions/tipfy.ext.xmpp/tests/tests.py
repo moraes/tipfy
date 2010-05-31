@@ -18,8 +18,8 @@ from google.appengine.api.xmpp import Message as ApiMessage
 def get_url_map():
     # Fake get_rules() for testing.
     rules = [
-        Rule('/', endpoint='xmpp-test', handler='handlers.xmpp_handlers.XmppHandler'),
-        Rule('/test2', endpoint='xmpp-test', handler='handlers.xmpp_handlers.XmppHandler2'),
+        Rule('/', endpoint='xmpp-test', handler='resources.xmpp_handlers.XmppHandler'),
+        Rule('/test2', endpoint='xmpp-test', handler='resources.xmpp_handlers.XmppHandler2'),
     ]
 
     return Map(rules)
@@ -84,16 +84,16 @@ class Message(ApiMessage):
 
 class TestCommandHandler(unittest.TestCase):
     def setUp(self):
-        import tipfy.ext.xmpp
-        self.xmpp_module = tipfy.ext.xmpp.xmpp
-        tipfy.ext.xmpp.xmpp = sys.modules[__name__]
+        from tipfy.ext import xmpp
+        self.xmpp_module = xmpp.xmpp
+        xmpp.xmpp = sys.modules[__name__]
 
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
         fake_local.clear()
 
-        import tipfy.ext.xmpp
-        tipfy.ext.xmpp.xmpp = self.xmpp_module
+        from tipfy.ext import xmpp
+        xmpp.xmpp = self.xmpp_module
 
     def test_no_command(self):
         app = get_app()

@@ -1078,6 +1078,7 @@ def normalize_callable(spec):
 
 
 __all__ = [
+    'cached_property',
     'normalize_callable',
     'redirect_to',
     'render_json_response',

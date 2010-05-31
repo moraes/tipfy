@@ -1,0 +1,1 @@
+tipfy.ext.blobstore is developed and maintained by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.

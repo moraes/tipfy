@@ -31,11 +31,11 @@ from setuptools import setup
 
 setup(
     name = 'tipfy',
-    version = '0.5.4',
+    version = '0.5.5',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/tipfy.tar.gz',
-    description = 'An almighty little framework made specifically for Google '
+    description = 'The almighty little framework made specifically for Google '
         'App Engine',
     long_description=__doc__,
     author = 'Rodrigo Moraes',
@@ -45,22 +45,14 @@ setup(
     packages = [
         'tipfy',
         'tipfy.ext',
-        'tipfy.ext.appstats',
-        'tipfy.ext.auth',
-        'tipfy.ext.blobstore',
-        'tipfy.ext.db',
-        'tipfy.ext.debugger',
-        'tipfy.ext.i18n',
-        'tipfy.ext.jinja2',
-        'tipfy.ext.mako',
-        'tipfy.ext.session',
-        'tipfy.ext.taskqueue',
-        'tipfy.ext.xmpp',
+    ],
+    namespace_packages = [
+        'tipfy',
+        'tipfy.ext',
     ],
     include_package_data=True,
     install_requires = [
-        'babel>=0.9.5',
-        'Jinja2>=2.4',
+        'setuptools',
         'werkzeug>=0.6.1',
     ],
     classifiers=[

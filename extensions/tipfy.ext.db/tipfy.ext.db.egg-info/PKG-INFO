@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: tipfy.ext.db
-Version: 0.5.4
+Version: 0.5.5
 Summary: Database extension for tipfy
 Home-page: http://www.tipfy.org/
 Author: Rodrigo Moraes
@@ -8,7 +8,7 @@ Author-email: rodrigo.moraes@gmail.com
 License: BSD
 Description: 
         tipfy.ext.db
-        ==============
+        ============
         
         This extension provides database utilities for tipfy, the almighty little
         framework for Google App Engine.

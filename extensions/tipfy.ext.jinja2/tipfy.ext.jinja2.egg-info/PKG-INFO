@@ -1,7 +1,7 @@
 Metadata-Version: 1.0
 Name: tipfy.ext.jinja2
-Version: 0.5.4
-Summary: Jinjs2 extension for tipfy
+Version: 0.5.5
+Summary: Jinja2 extension for tipfy
 Home-page: http://www.tipfy.org/
 Author: Rodrigo Moraes
 Author-email: rodrigo.moraes@gmail.com

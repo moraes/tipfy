@@ -18,7 +18,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.mako',
-    version = '0.5.4',
+    version = '0.5.5',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Mako extension for tipfy',
@@ -31,7 +31,10 @@ setup(
         'tipfy',
         'tipfy.ext',
     ],
-    namespace_packages = ['tipfy.ext'],
+    namespace_packages = [
+        'tipfy',
+        'tipfy.ext',
+    ],
     include_package_data=True,
     install_requires = [
         'tipfy',

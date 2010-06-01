@@ -24,6 +24,11 @@ from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
 from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
     RequestRedirect, Rule as WerkzeugRule, RuleTemplate, Subdomain, Submount)
 
+try:
+    __import__('pkg_resources').declare_namespace(__name__)
+except ImportError, e:
+    pass
+
 __version__ = '0.5.4'
 
 # Variable store for a single request.

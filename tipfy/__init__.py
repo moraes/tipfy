@@ -31,7 +31,7 @@ try:
 except ImportError, e:
     pass
 
-__version__ = '0.5.4'
+__version__ = '0.5.5'
 
 # Variable store for a single request.
 local = Local()
@@ -1085,21 +1085,36 @@ def normalize_callable(spec):
 
 
 __all__ = [
-    'cached_property',
-    'normalize_callable',
-    'redirect_to',
-    'render_json_response',
-    'Rule',
-    'url_for',
     'Config',
-    'get_config',
-    'make_wsgi_app',
+    'DEFAULT_VALUE',
+    'EndpointPrefix',
+    'HTTPException',
+    'InternalServerError',
+    'Map',
+    'REQUIRED_VALUE',
     'Request',
     'RequestHandler',
-    'run_wsgi_app',
+    'RequestRedirect',
+    'Response',
+    'Rule',
+    'RuleTemplate',
+    'Subdomain',
+    'Submount',
     'Tipfy',
-    'DEFAULT_VALUE',
-    'REQUIRED_VALUE',
+    'abort',
+    'cached_property',
+    'default_config',
+    'escape',
+    'get_config',
+    'import_string',
+    'make_wsgi_app',
+    'normalize_callable',
+    'redirect',
+    'redirect_to',
+    'render_json_response',
+    'run_wsgi_app',
+    'url_for',
+    'url_quote',
 ]
 
 

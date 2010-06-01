@@ -1,3 +1,8 @@
+Version 0.5.6 - June 1st, 2010
+==============================
+- Fixed response status code in BlobstoreDownloadMixin. Fixes issue #19.
+
+
 Version 0.5.5 - June 1st, 2010
 ==============================
 - Fixed namespace warnings.

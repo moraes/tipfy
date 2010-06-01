@@ -25,6 +25,8 @@ from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
     RequestRedirect, Rule as WerkzeugRule, RuleTemplate, Subdomain, Submount)
 
 try:
+    # We declare the namespace to be used outside of App Engine, so that
+    # we can distribute and install separate extensions.
     __import__('pkg_resources').declare_namespace(__name__)
 except ImportError, e:
     pass

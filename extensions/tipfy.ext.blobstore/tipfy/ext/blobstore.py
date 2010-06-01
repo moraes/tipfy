@@ -21,13 +21,18 @@
     :license: Apache 2.0 License, see LICENSE.txt for more details.
 """
 import cgi
+import cStringIO
 import datetime
 import email
 import logging
+import re
+import sys
 import time
 
 from google.appengine.ext import blobstore
 from google.appengine.api import blobstore as api_blobstore
+
+from webob import byterange
 
 from werkzeug import FileStorage, Response
 
@@ -35,14 +40,36 @@ from werkzeug import FileStorage, Response
 _BASE_CREATION_HEADER_FORMAT = '%Y-%m-%d %H:%M:%S'
 _CONTENT_DISPOSITION_FORMAT = 'attachment; filename="%s"'
 
+_SEND_BLOB_PARAMETERS = frozenset(['use_range'])
+
+_RANGE_NUMERIC_FORMAT = r'([0-9]*)-([0-9]*)'
+_RANGE_FORMAT = r'([a-zA-Z]+)=%s' % _RANGE_NUMERIC_FORMAT
+_RANGE_FORMAT_REGEX = re.compile('^%s$' % _RANGE_FORMAT)
+_UNSUPPORTED_RANGE_FORMAT_REGEX = re.compile(
+    '^%s(?:,%s)+$' % (_RANGE_FORMAT, _RANGE_NUMERIC_FORMAT))
+_BYTES_UNIT = 'bytes'
+
 
 class CreationFormatError(api_blobstore.Error):
   """Raised when attempting to parse bad creation date format."""
 
 
+class Error(Exception):
+  """Base class for all errors in blobstore handlers module."""
+
+
+class RangeFormatError(Error):
+  """Raised when Range header incorrectly formatted."""
+
+
+class UnsupportedRangeFormatError(RangeFormatError):
+  """Raised when Range format is correct, but not supported."""
+
+
 class BlobstoreDownloadMixin(object):
     """Mixin for handlers that may send blobs to users."""
-    def send_blob(self, blob_key_or_info, content_type=None, save_as=None):
+    def send_blob(self, blob_key_or_info, content_type=None, save_as=None,
+        **kwargs):
         """Sends a blob-response based on a blob_key.
 
         Sets the correct response header for serving a blob.  If BlobInfo
@@ -62,6 +89,19 @@ class BlobstoreDownloadMixin(object):
         :raise:
             ``ValueError`` on invalid save_as parameter.
         """
+        if set(kwargs) - _SEND_BLOB_PARAMETERS:
+            invalid_keywords = []
+            for keyword in kwargs:
+                if keyword not in _SEND_BLOB_PARAMETERS:
+                    invalid_keywords.append(keyword)
+
+            if len(invalid_keywords) == 1:
+                raise TypeError('send_blob got unexpected keyword argument '
+                    '%s.' % invalid_keywords[0])
+            else:
+                raise TypeError('send_blob got unexpected keyword arguments: '
+                    '%s.' % sorted(invalid_keywords))
+
         if isinstance(blob_key_or_info, blobstore.BlobInfo):
             blob_key = blob_key_or_info.key()
             blob_info = blob_key_or_info
@@ -98,7 +138,49 @@ class BlobstoreDownloadMixin(object):
                 else:
                     raise ValueError('Unexpected value for save_as')
 
-        return Response('', headers=headers, status=302)
+        return Response('', headers=headers)
+
+    def get_range(self):
+        """Get range from header if it exists.
+
+        Returns:
+          Tuple (start, end):
+            start: Start index.  None if there is None.
+            end: End index.  None if there is None.
+          None if there is no request header.
+
+        Raises:
+          UnsupportedRangeFormatError: If the range format in the header is
+            valid, but not supported.
+          RangeFormatError: If the range format in the header is not valid.
+        """
+        range_header = self.request.headers.get('range', None)
+        if range_header is None:
+            return None
+
+        try:
+            original_stdout = sys.stdout
+            sys.stdout = cStringIO.StringIO()
+            try:
+                parsed_range = byterange.Range.parse_bytes(range_header)
+            finally:
+                sys.stdout = original_stdout
+        except TypeError, err:
+            raise RangeFormatError('Invalid range header: %s' % err)
+
+        if parsed_range is None:
+            raise RangeFormatError('Invalid range header: %s' % range_header)
+
+        units, ranges = parsed_range
+        if len(ranges) != 1:
+            raise UnsupportedRangeFormatError(
+                'Unable to support multiple range values in Range header.')
+
+        if units != _BYTES_UNIT:
+            raise UnsupportedRangeFormatError(
+                'Invalid unit in range header type: %s', range_header)
+
+        return ranges[0]
 
 
 class BlobstoreUploadMixin(object):

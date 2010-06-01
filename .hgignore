@@ -1,3 +1,5 @@
 \.py[co]$
 \.DS_Store$
 \.coverage
+\.egg-info
+dist

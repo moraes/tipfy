@@ -18,7 +18,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.jinja2',
-    version = '0.5.7',
+    version = '0.5.8',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Jinja2 extension for tipfy',
@@ -30,6 +30,7 @@ setup(
     packages = [
         'tipfy',
         'tipfy.ext',
+        'tipfy.ext.jinja2',
     ],
     namespace_packages = [
         'tipfy',
@@ -42,7 +43,7 @@ setup(
     ],
     entry_points = {
         'console_scripts': [
-            'jinja2_compile = tipfy.ext.jinja2:compile_templates',
+            'jinja2_compile = tipfy.ext.jinja2.scripts:compile_templates',
         ],
     },
     classifiers=[

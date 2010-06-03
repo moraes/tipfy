@@ -1,3 +1,18 @@
+Version 0.5.7 - June 3rd, 2010
+==============================
+- Compilation script now also works with list of template directories.
+
+
+Version 0.5.6 - June 3rd, 2010
+==============================
+- Added script to compile templates from command line. Just run:
+
+    bin/jinja2_compile
+
+  It will compile templates from the directory configured for 'templates_dir'
+  to the one configured for 'templates_compiled_target'.
+
+
 Version 0.5.5 - June 1st, 2010
 ==============================
 - Fixed namespace warnings.

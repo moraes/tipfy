@@ -52,7 +52,6 @@ setup(
     ],
     include_package_data=True,
     install_requires = [
-        'setuptools',
         'werkzeug>=0.6.1',
     ],
     classifiers=[

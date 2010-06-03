@@ -8,6 +8,7 @@ tipfy/__init__.py
 tipfy.ext.jinja2.egg-info/PKG-INFO
 tipfy.ext.jinja2.egg-info/SOURCES.txt
 tipfy.ext.jinja2.egg-info/dependency_links.txt
+tipfy.ext.jinja2.egg-info/entry_points.txt
 tipfy.ext.jinja2.egg-info/namespace_packages.txt
 tipfy.ext.jinja2.egg-info/not-zip-safe
 tipfy.ext.jinja2.egg-info/requires.txt

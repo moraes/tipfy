@@ -1,4 +1,11 @@
-Version 0.5.5 - June 1st, 2010
+Development version
+===================
+- REMOVED: RegexConverter. Unused and undocumented.
+
+- REMOVED: wsgi_app_id config key. Unused.
+
+
+Version 0.5.5 - June 2nd, 2010
 ==============================
 - All .ext packages were moved to separate releases. Tipfy is again a single
   file with a single dependency (Werkzeug), as it was in the beginning.

@@ -72,10 +72,10 @@ def get_env():
             'force_use_compiled')
 
         if templates_compiled_target is not None and use_compiled:
-            # Use precompiled templates loaded from a module.
+            # Use precompiled templates loaded from a module or zip.
             loader = ModuleLoader(templates_compiled_target)
         else:
-            # Parse templates on every request.
+            # Parse templates for every new environment instances.
             loader = FileSystemLoader(get_config(__name__, 'templates_dir'))
 
         # Initialize the environment.
@@ -83,7 +83,7 @@ def get_env():
             extensions=['jinja2.ext.i18n'])
 
         # Add url_for() by default.
-        _environment.globals['url_for'] =url_for
+        _environment.globals['url_for'] = url_for
 
         try:
             from tipfy.ext import i18n
@@ -149,3 +149,123 @@ def get_template_attribute(filename, attribute):
         The name of the variable of macro to acccess.
     """
     return getattr(get_env().get_template(filename).module, attribute)
+
+
+def compile_templates(argv=None):
+    """Compiles templates for better performance. This is a command line
+    script. From the buildout directory, run:
+
+        bin/jinja2_compile
+
+    It will compile templates from the directory configured for 'templates_dir'
+    to the one configured for 'templates_compiled_target'.
+
+    At this time it doesn't accept any arguments.
+    """
+    import os
+    import sys
+
+    if argv is None:
+        argv = sys.argv
+
+    cwd = os.getcwd()
+    app_path = os.path.join(cwd, 'app')
+    gae_path = os.path.join(cwd, 'etc/parts/google_appengine')
+
+    extra_paths = [
+        app_path,
+        gae_path,
+        # These paths are required by the SDK.
+        os.path.join(gae_path, 'lib', 'antlr3'),
+        os.path.join(gae_path, 'lib', 'django'),
+        os.path.join(gae_path, 'lib', 'ipaddr'),
+        os.path.join(gae_path, 'lib', 'webob'),
+        os.path.join(gae_path, 'lib', 'yaml', 'lib'),
+    ]
+
+    sys.path = extra_paths + sys.path
+
+    from config import config
+    from tipfy import make_wsgi_app
+
+    def logger(msg):
+        sys.stderr.write('\n%s\n' % msg)
+
+    def filter_templates(tpl):
+        # Only ignore templates that start with '.'.
+        return not os.path.basename(tpl).startswith('.')
+
+    app = make_wsgi_app(config)
+    template_path = get_config('tipfy.ext.jinja2', 'templates_dir')
+    compiled_path = get_config('tipfy.ext.jinja2', 'templates_compiled_target')
+
+    if compiled_path is None:
+        raise ValueError('Missing configuration key to compile templates.')
+
+    if isinstance(template_path, basestring):
+        # A single path.
+        source = os.path.join(app_path, template_path)
+    else:
+        # A list of paths.
+        source = [os.path.join(app_path, p) for p in template_path]
+
+    target = os.path.join(app_path, compiled_path)
+
+    # Set templates dir and deactivate compiled dir to use normal loader to
+    # find the templates to be compiled.
+    app.config['tipfy.ext.jinja2']['templates_dir'] = source
+    app.config['tipfy.ext.jinja2']['templates_compiled_target'] = None
+
+    if target.endswith('.zip'):
+        zip_cfg = 'deflated'
+    else:
+        zip_cfg = None
+
+    def walk(top, topdown=True, onerror=None, followlinks=False):
+        from os.path import join, isdir, islink
+        try:
+            names = os.listdir(top)
+        except os.error, err:
+            if onerror is not None:
+                onerror(err)
+            return
+
+        dirs, nondirs = [], []
+        for name in names:
+            if isdir(join(top, name)):
+                dirs.append(name)
+            else:
+                nondirs.append(name)
+
+        if topdown:
+            yield top, dirs, nondirs
+        for name in dirs:
+            path = join(top, name)
+            if followlinks or not islink(path):
+                for x in walk(path, topdown, onerror, followlinks):
+                    yield x
+        if not topdown:
+            yield top, dirs, nondirs
+
+    # Set it to follow symlinks.
+    def list_templates(self):
+        found = set()
+        for searchpath in self.searchpath:
+            for dirpath, dirnames, filenames in walk(searchpath,
+                followlinks=True):
+                for filename in filenames:
+                    template = os.path.join(dirpath, filename) \
+                        [len(searchpath):].strip(os.path.sep) \
+                                          .replace(os.path.sep, '/')
+                    if template[:2] == './':
+                        template = template[2:]
+                    if template not in found:
+                        found.add(template)
+        return sorted(found)
+
+    FileSystemLoader.list_templates = list_templates
+
+    env = get_env()
+    env.compile_templates(target, extensions=None, filter_func=filter_templates,
+                          zip=zip_cfg, log_function=logger,
+                          ignore_errors=False, py_compile=False)

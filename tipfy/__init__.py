@@ -63,11 +63,6 @@ app, request = local('app'), local('request')
 #: - ``url_map``: A ``werkzeug.routing.Map`` with the URL rules defined for
 #:   the application. If not set, build one with rules defined in ``urls.py``
 #:
-#: - ``wsgi_app_id``: An identifier for this WSGIApplication instance, in
-#:   case multiple instances are being used by the same app. This is used
-#:   to identify instance specific data such as cached URL rules. Default is
-#:   ``main``.
-#:
 #: - ``dev``: ``True`` is this is the development server, ``False`` otherwise.
 #:   Default is the value of ``os.environ['SERVER_SOFTWARE']``.
 #:
@@ -283,14 +278,22 @@ class Tipfy(object):
     #: The active :class:`Request` instance.
     request = None
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, app_id='__main__'):
         """Initializes the application.
 
         :param config:
             Dictionary with configuration for the application modules.
+        :param app_id:
+            An identifier for this instance, in case multiple instances are
+            being used by the same app. This can be used to identify instance
+            specific data such as cache and whatever needs to be tied to this
+            instance.
         """
         # Set the currently active wsgi app instance.
         self.set_wsgi_app()
+
+        # Set the instance id.
+        self.app_id = app_id
 
         # Load default config and update with values for this instance.
         self.config = Config(config, {'tipfy': default_config})
@@ -853,82 +856,6 @@ class MiddlewareFactory(object):
         return res
 
 
-def get_config(module, key=None, default=DEFAULT_VALUE):
-    """Returns a configuration value for a module. If it is not already
-    set, loads a ``default_config`` variable from the given module,
-    updates the app configuration with those default values and returns
-    the value for the given key. If the key is still not available,
-    returns the provided default value or raises an exception if no
-    default was provided.
-
-    Every `Tipfy`_ module that allows some kind of configuration sets a
-    ``default_config`` global variable that is loaded by this function,
-    cached and used in case the requested configuration was not defined
-    by the user.
-
-    :param module:
-        The configured module.
-    :param key:
-        The config key.
-    :return:
-        A configuration value.
-    """
-    return Tipfy.app.get_config(module, key, default)
-
-
-def make_wsgi_app(config):
-    """Returns a instance of :class:`Tipfy`.
-
-    :param config:
-        A dictionary of configuration values.
-    :return:
-        A :class:`Tipfy` instance.
-    """
-    app = Tipfy(config)
-
-    if app.dev:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    # Execute post_make_app middleware.
-    for hook in app.middleware.get('post_make_app', []):
-        app = hook(app)
-
-    return app
-
-
-def run_wsgi_app(app):
-    """Executes the application, optionally wrapping it by middleware.
-
-    :param app:
-        A :class:`Tipfy` instance.
-    :return:
-        ``None``.
-    """
-    # Fix issue #772.
-    if app.dev:
-        fix_sys_path()
-
-    # Run it.
-    CGIHandler().run(app)
-
-
-_ULTIMATE_SYS_PATH = None
-
-
-def fix_sys_path():
-    """A fix for issue 772. We must keep this here until it is fixed in the dev
-    server.
-
-    See: http://code.google.com/p/googleappengine/issues/detail?id=772
-    """
-    global _ULTIMATE_SYS_PATH
-    import sys
-    if _ULTIMATE_SYS_PATH is None:
-        _ULTIMATE_SYS_PATH = list(sys.path)
-    elif sys.path != _ULTIMATE_SYS_PATH:
-        sys.path[:] = _ULTIMATE_SYS_PATH
-
-
 class Rule(WerkzeugRule):
     """Extends Werkzeug routing to support a handler definition for each Rule.
     Handler is a :class:`RequestHandler` module and class specification, and
@@ -962,16 +889,27 @@ class Rule(WerkzeugRule):
                     self.redirect_to, handler=self.handler)
 
 
-# Extra URL rule converter from
-# http://groups.google.com/group/pocoo-libs/browse_thread/thread/ff5a3fddee12a955/
-class RegexConverter(BaseConverter):
-    """Matches a regular expression::
+def get_config(module, key=None, default=DEFAULT_VALUE):
+    """Returns a configuration value for a module. If it is not already
+    set, loads a ``default_config`` variable from the given module,
+    updates the app configuration with those default values and returns
+    the value for the given key. If the key is still not available,
+    returns the provided default value or raises an exception if no
+    default was provided.
 
-       Rule('/<regex(".*$"):name>')
+    Every `Tipfy`_ module that allows some kind of configuration sets a
+    ``default_config`` global variable that is loaded by this function,
+    cached and used in case the requested configuration was not defined
+    by the user.
+
+    :param module:
+        The configured module.
+    :param key:
+        The config key.
+    :return:
+        A configuration value.
     """
-    def __init__(self, map, *items):
-        BaseConverter.__init__(self, map)
-        self.regex = items[0]
+    return Tipfy.app.get_config(module, key, default)
 
 
 def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
@@ -1016,10 +954,6 @@ def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
 
     return Tipfy.request.url_for(endpoint, _full=full, _method=method,
         _anchor=_anchor, **kwargs)
-
-
-Map.default_converters = dict(Map.default_converters)
-Map.default_converters['regex'] = RegexConverter
 
 
 def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
@@ -1082,6 +1016,59 @@ def normalize_callable(spec):
         raise ValueError('%s is not a callable.' % str(spec))
 
     return spec
+
+
+def make_wsgi_app(config=None, app_id='__main__'):
+    """Returns a instance of :class:`Tipfy`.
+
+    :param config:
+        A dictionary of configuration values.
+    :return:
+        A :class:`Tipfy` instance.
+    """
+    app = Tipfy(config, app_id)
+
+    if app.dev:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    # Execute post_make_app middleware.
+    for hook in app.middleware.get('post_make_app', []):
+        app = hook(app)
+
+    return app
+
+
+def run_wsgi_app(app):
+    """Executes the application, optionally wrapping it by middleware.
+
+    :param app:
+        A :class:`Tipfy` instance.
+    :return:
+        ``None``.
+    """
+    # Fix issue #772.
+    if app.dev:
+        fix_sys_path()
+
+    # Run it.
+    CGIHandler().run(app)
+
+
+_ULTIMATE_SYS_PATH = None
+
+
+def fix_sys_path():
+    """A fix for issue 772. We must keep this here until it is fixed in the dev
+    server.
+
+    See: http://code.google.com/p/googleappengine/issues/detail?id=772
+    """
+    global _ULTIMATE_SYS_PATH
+    import sys
+    if _ULTIMATE_SYS_PATH is None:
+        _ULTIMATE_SYS_PATH = list(sys.path)
+    elif sys.path != _ULTIMATE_SYS_PATH:
+        sys.path[:] = _ULTIMATE_SYS_PATH
 
 
 __all__ = [

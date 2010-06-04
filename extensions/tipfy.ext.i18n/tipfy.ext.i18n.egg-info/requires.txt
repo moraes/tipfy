@@ -1,3 +1,0 @@
-tipfy
-babel
-gaepytz

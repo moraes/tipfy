@@ -1,6 +1,6 @@
 """
 tipfy.ext.appstats
-==============
+==================
 
 This extension provides an appstats middleware for tipfy, the almighty little
 framework for Google App Engine.

@@ -90,7 +90,7 @@ class AmfRequestHandler(RequestHandler):
         for name, message in request:
             self.request.amf_request = message
 
-            processor = self.getProcessor(message)
+            processor = self.gateway.getProcessor(message)
             response[name] = processor(message, http_request=self.request)
 
         return response

@@ -84,7 +84,7 @@ class OAuthMixin(object):
         args = dict(oauth_token=request_token["key"])
         if callback_uri:
             args["oauth_callback"] = urlparse.urljoin(
-                self.request.full_url(), callback_uri)
+                self.request.url, callback_uri)
         self.redirect(authorize_url + "?" + urllib.urlencode(args))
 
     def _oauth_access_token_url(self, request_token):

@@ -11,6 +11,18 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+from tipfy import REQUIRED_VALUE
+
+#: Default configuration values for this module. Keys are:
+#:
+#: - ``facebook_api_key``:
+#: - ``facebook_secret``:
+default_config = {
+    'facebook_api_key': REQUIRED_VALUE,
+    'facebook_secret':  REQUIRED_VALUE,
+}
+
+
 class FacebookMixin(object):
     """Facebook Connect authentication.
 
@@ -42,22 +54,29 @@ class FacebookMixin(object):
     required to make requests on behalf of the user later with
     facebook_request().
     """
+    @property
+    def _facebook_api_key(self):
+        self.app.get_config(__name__, 'facebook_api_key')
+
+    @property
+    def _facebook_secret(self):
+        self.app.get_config(__name__, 'facebook_secret')
+
     def authenticate_redirect(self, callback_uri=None, cancel_uri=None,
                               extended_permissions=None):
         """Authenticates/installs this app for the current user."""
-        self.require_setting("facebook_api_key", "Facebook Connect")
         callback_uri = callback_uri or self.request.path
         args = {
-            "api_key": self.settings["facebook_api_key"],
+            "api_key": self._facebook_api_key,
             "v": "1.0",
             "fbconnect": "true",
             "display": "page",
-            "next": urlparse.urljoin(self.request.full_url(), callback_uri),
+            "next": urlparse.urljoin(self.request.url, callback_uri),
             "return_session": "true",
         }
         if cancel_uri:
             args["cancel_url"] = urlparse.urljoin(
-                self.request.full_url(), cancel_uri)
+                self.request.url, cancel_uri)
         if extended_permissions:
             if isinstance(extended_permissions, basestring):
                 extended_permissions = [extended_permissions]
@@ -93,7 +112,6 @@ class FacebookMixin(object):
         'session_key' and 'facebook_uid' in addition to the standard
         user attributes like 'name'.
         """
-        self.require_setting("facebook_api_key", "Facebook Connect")
         session = escape.json_decode(self.get_argument("session"))
         self.facebook_request(
             method="facebook.users.getInfo",
@@ -134,11 +152,9 @@ class FacebookMixin(object):
                 self.render("stream.html", stream=stream)
 
         """
-        self.require_setting("facebook_api_key", "Facebook Connect")
-        self.require_setting("facebook_secret", "Facebook Connect")
         if not method.startswith("facebook."):
             method = "facebook." + method
-        args["api_key"] = self.settings["facebook_api_key"]
+        args["api_key"] = self._facebook_api_key
         args["v"] = "1.0"
         args["method"] = method
         args["call_id"] = str(long(time.time() * 1e6))
@@ -187,6 +203,6 @@ class FacebookMixin(object):
 
     def _signature(self, args):
         parts = ["%s=%s" % (n, args[n]) for n in sorted(args.keys())]
-        body = "".join(parts) + self.settings["facebook_secret"]
+        body = "".join(parts) + self._facebook_secret
         if isinstance(body, unicode): body = body.encode("utf-8")
         return hashlib.md5(body).hexdigest()

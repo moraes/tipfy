@@ -11,8 +11,18 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+from tipfy import REQUIRED_VALUE
 from tipfy.ext.auth.providers.oauth import OAuthMixin
 from tipfy.ext.auth.providers.openid import OpenIdMixin
+
+#: Default configuration values for this module. Keys are:
+#:
+#: - ``google_consumer_key``:
+#: - ``google_consumer_secret``:
+default_config = {
+    'google_consumer_key':    REQUIRED_VALUE,
+    'google_consumer_secret': REQUIRED_VALUE,
+}
 
 
 class GoogleMixin(OpenIdMixin, OAuthMixin):
@@ -41,6 +51,14 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
     """
     _OPENID_ENDPOINT = "https://www.google.com/accounts/o8/ud"
     _OAUTH_ACCESS_TOKEN_URL = "https://www.google.com/accounts/OAuthGetAccessToken"
+
+    @property
+    def _google_consumer_key(self):
+        self.app.get_config(__name__, 'google_consumer_key')
+
+    @property
+    def _google_consumer_secret(self):
+        self.app.get_config(__name__, 'google_consumer_secret')
 
     def authorize_redirect(self, oauth_scope, callback_uri=None,
                            ax_attrs=["name","email","language","username"]):
@@ -79,11 +97,9 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
             OpenIdMixin.get_authenticated_user(self, callback)
 
     def _oauth_consumer_token(self):
-        self.require_setting("google_consumer_key", "Google OAuth")
-        self.require_setting("google_consumer_secret", "Google OAuth")
         return dict(
-            key=self.settings["google_consumer_key"],
-            secret=self.settings["google_consumer_secret"])
+            key=self._google_consumer_key,
+            secret=self._google_consumer_secret)
 
     def _oauth_get_user(self, access_token, callback):
         OpenIdMixin.get_authenticated_user(self, callback)

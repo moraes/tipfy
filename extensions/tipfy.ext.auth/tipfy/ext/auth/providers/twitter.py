@@ -11,7 +11,17 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+from tipfy import REQUIRED_VALUE
 from tipfy.ext.auth.providers.oauth import OAuthMixin
+
+#: Default configuration values for this module. Keys are:
+#:
+#: - ``twitter_consumer_key``:
+#: - ``google_consumer_secret``:
+default_config = {
+    'twitter_consumer_key':    REQUIRED_VALUE,
+    'twitter_consumer_secret': REQUIRED_VALUE,
+}
 
 
 class TwitterMixin(OAuthMixin):
@@ -53,6 +63,14 @@ class TwitterMixin(OAuthMixin):
     _OAUTH_AUTHORIZE_URL = "http://api.twitter.com/oauth/authorize"
     _OAUTH_AUTHENTICATE_URL = "http://api.twitter.com/oauth/authenticate"
     _OAUTH_NO_CALLBACKS = True
+
+    @property
+    def _twitter_consumer_key(self):
+        self.app.get_config(__name__, 'twitter_consumer_key')
+
+    @property
+    def _twitter_consumer_secret(self):
+        self.app.get_config(__name__, 'twitter_consumer_secret')
 
     def authenticate_redirect(self):
         """Just like authorize_redirect(), but auto-redirects if authorized.
@@ -131,11 +149,9 @@ class TwitterMixin(OAuthMixin):
         callback(escape.json_decode(response.body))
 
     def _oauth_consumer_token(self):
-        self.require_setting("twitter_consumer_key", "Twitter OAuth")
-        self.require_setting("twitter_consumer_secret", "Twitter OAuth")
         return dict(
-            key=self.settings["twitter_consumer_key"],
-            secret=self.settings["twitter_consumer_secret"])
+            key=self._twitter_consumer_key,
+            secret=self._twitter_consumer_secret)
 
     def _oauth_get_user(self, access_token, callback):
         callback = self.async_callback(self._parse_user_response, callback)

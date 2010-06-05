@@ -11,7 +11,17 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+from tipfy import REQUIRED_VALUE
 from tipfy.ext.auth.providers.oauth import OAuthMixin
+
+#: Default configuration values for this module. Keys are:
+#:
+#: - ``friendfeed_consumer_key``:
+#: - ``friendfeed_consumer_secret``:
+default_config = {
+    'friendfeed_consumer_key':    REQUIRED_VALUE,
+    'friendfeed_consumer_secret': REQUIRED_VALUE,
+}
 
 
 class FriendFeedMixin(OAuthMixin):
@@ -51,6 +61,14 @@ class FriendFeedMixin(OAuthMixin):
     _OAUTH_ACCESS_TOKEN_URL = "https://friendfeed.com/account/oauth/access_token"
     _OAUTH_AUTHORIZE_URL = "https://friendfeed.com/account/oauth/authorize"
     _OAUTH_NO_CALLBACKS = True
+
+    @property
+    def _friendfeed_consumer_key(self):
+        self.app.get_config(__name__, 'friendfeed_consumer_key')
+
+    @property
+    def _friendfeed_consumer_secret(self):
+        self.app.get_config(__name__, 'friendfeed_consumer_secret')
 
     def friendfeed_request(self, path, callback, access_token=None,
                            post_args=None, **args):
@@ -116,11 +134,9 @@ class FriendFeedMixin(OAuthMixin):
         callback(escape.json_decode(response.body))
 
     def _oauth_consumer_token(self):
-        self.require_setting("friendfeed_consumer_key", "FriendFeed OAuth")
-        self.require_setting("friendfeed_consumer_secret", "FriendFeed OAuth")
         return dict(
-            key=self.settings["friendfeed_consumer_key"],
-            secret=self.settings["friendfeed_consumer_secret"])
+            key=self._friendfeed_consumer_key,
+            secret=self._friendfeed_consumer_secret)
 
     def _oauth_get_user(self, access_token, callback):
         callback = self.async_callback(self._parse_user_response, callback)

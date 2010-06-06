@@ -24,7 +24,8 @@ default_config = {
 
 
 class FacebookMixin(object):
-    """Facebook Connect authentication.
+    """A :class:`tipfy.RequestHandler` mixin that implements Facebook Connect
+    authentication.
 
     To authenticate with Facebook, register your application with
     Facebook at http://www.facebook.com/developers/apps.php. Then
@@ -34,18 +35,17 @@ class FacebookMixin(object):
     When your application is set up, you can use this Mixin like this
     to authenticate the user with Facebook:
 
-    class FacebookHandler(tornado.web.RequestHandler,
-                          tornado.auth.FacebookMixin):
-        @tornado.web.asynchronous
+    class FacebookHandler(tipfy.RequestHandler,
+                          tipfy.ext.auth.providers.FacebookMixin):
         def get(self):
-            if self.get_argument("session", None):
-                self.get_authenticated_user(self.async_callback(self._on_auth))
+            if self.get_argument('session', None):
+                self.get_authenticated_user(self._on_auth)
                 return
             self.authenticate_redirect()
 
         def _on_auth(self, user):
             if not user:
-                raise tornado.web.HTTPError(500, "Facebook auth failed")
+                raise tornado.web.HTTPError(500, 'Facebook auth failed')
             # Save the user using, e.g., set_secure_cookie()
 
     The user object returned by get_authenticated_user() includes the
@@ -67,21 +67,21 @@ class FacebookMixin(object):
         """Authenticates/installs this app for the current user."""
         callback_uri = callback_uri or self.request.path
         args = {
-            "api_key": self._facebook_api_key,
-            "v": "1.0",
-            "fbconnect": "true",
-            "display": "page",
-            "next": urlparse.urljoin(self.request.url, callback_uri),
-            "return_session": "true",
+            'api_key': self._facebook_api_key,
+            'v': '1.0',
+            'fbconnect': 'true',
+            'display': 'page',
+            'next': urlparse.urljoin(self.request.url, callback_uri),
+            'return_session': 'true',
         }
         if cancel_uri:
-            args["cancel_url"] = urlparse.urljoin(
+            args['cancel_url'] = urlparse.urljoin(
                 self.request.url, cancel_uri)
         if extended_permissions:
             if isinstance(extended_permissions, basestring):
                 extended_permissions = [extended_permissions]
-            args["req_perms"] = ",".join(extended_permissions)
-        self.redirect("http://www.facebook.com/login.php?" +
+            args['req_perms'] = ','.join(extended_permissions)
+        self.redirect('http://www.facebook.com/login.php?' +
                       urllib.urlencode(args))
 
     def authorize_redirect(self, extended_permissions, callback_uri=None,
@@ -112,15 +112,15 @@ class FacebookMixin(object):
         'session_key' and 'facebook_uid' in addition to the standard
         user attributes like 'name'.
         """
-        session = escape.json_decode(self.get_argument("session"))
+        session = escape.json_decode(self.get_argument('session'))
         self.facebook_request(
-            method="facebook.users.getInfo",
-            callback=self.async_callback(
+            method='facebook.users.getInfo',
+            callback=functools.partial(
                 self._on_get_user_info, callback, session),
-            session_key=session["session_key"],
-            uids=session["uid"],
-            fields="uid,first_name,last_name,name,locale,pic_square," \
-                   "profile_url,username")
+            session_key=session['session_key'],
+            uids=session['uid'],
+            fields='uid,first_name,last_name,name,locale,pic_square,' \
+                   'profile_url,username')
 
     def facebook_request(self, method, callback, **args):
         """Makes a Facebook API REST request.
@@ -134,36 +134,34 @@ class FacebookMixin(object):
 
         Here is an example for the stream.get() method:
 
-        class MainHandler(tornado.web.RequestHandler,
-                          tornado.auth.FacebookMixin):
-            @tornado.web.authenticated
-            @tornado.web.asynchronous
+        class MainHandler(tipfy.RequestHandler,
+                          tipfy.ext.auth.providers.FacebookMixin):
             def get(self):
                 self.facebook_request(
-                    method="stream.get",
-                    callback=self.async_callback(self._on_stream),
-                    session_key=self.current_user["session_key"])
+                    method='stream.get',
+                    callback=self._on_stream,
+                    session_key=self.current_user['session_key'])
 
             def _on_stream(self, stream):
                 if stream is None:
                    # Not authorized to read the stream yet?
-                   self.redirect(self.authorize_redirect("read_stream"))
+                   self.redirect(self.authorize_redirect('read_stream'))
                    return
-                self.render("stream.html", stream=stream)
+                self.render('stream.html', stream=stream)
 
         """
-        if not method.startswith("facebook."):
-            method = "facebook." + method
-        args["api_key"] = self._facebook_api_key
-        args["v"] = "1.0"
-        args["method"] = method
-        args["call_id"] = str(long(time.time() * 1e6))
-        args["format"] = "json"
-        args["sig"] = self._signature(args)
-        url = "http://api.facebook.com/restserver.php?" + \
+        if not method.startswith('facebook.'):
+            method = 'facebook.' + method
+        args['api_key'] = self._facebook_api_key
+        args['v'] = '1.0'
+        args['method'] = method
+        args['call_id'] = str(long(time.time() * 1e6))
+        args['format'] = 'json'
+        args['sig'] = self._signature(args)
+        url = 'http://api.facebook.com/restserver.php?' + \
             urllib.urlencode(args)
         http = httpclient.AsyncHTTPClient()
-        http.fetch(url, callback=self.async_callback(
+        http.fetch(url, callback=functools.partial(
             self._parse_response, callback))
 
     def _on_get_user_info(self, callback, session, users):
@@ -171,38 +169,38 @@ class FacebookMixin(object):
             callback(None)
             return
         callback({
-            "name": users[0]["name"],
-            "first_name": users[0]["first_name"],
-            "last_name": users[0]["last_name"],
-            "uid": users[0]["uid"],
-            "locale": users[0]["locale"],
-            "pic_square": users[0]["pic_square"],
-            "profile_url": users[0]["profile_url"],
-            "username": users[0].get("username"),
-            "session_key": session["session_key"],
-            "session_expires": session.get("expires"),
+            'name': users[0]['name'],
+            'first_name': users[0]['first_name'],
+            'last_name': users[0]['last_name'],
+            'uid': users[0]['uid'],
+            'locale': users[0]['locale'],
+            'pic_square': users[0]['pic_square'],
+            'profile_url': users[0]['profile_url'],
+            'username': users[0].get('username'),
+            'session_key': session['session_key'],
+            'session_expires': session.get('expires'),
         })
 
     def _parse_response(self, callback, response):
         if response.error:
-            logging.warning("HTTP error from Facebook: %s", response.error)
+            logging.warning('HTTP error from Facebook: %s', response.error)
             callback(None)
             return
         try:
-            json = escape.json_decode(response.body)
+            json = escape.json_decode(response.content)
         except:
-            logging.warning("Invalid JSON from Facebook: %r", response.body)
+            logging.warning('Invalid JSON from Facebook: %r', response.content)
             callback(None)
             return
-        if isinstance(json, dict) and json.get("error_code"):
-            logging.warning("Facebook error: %d: %r", json["error_code"],
-                            json.get("error_msg"))
+        if isinstance(json, dict) and json.get('error_code'):
+            logging.warning('Facebook error: %d: %r', json['error_code'],
+                            json.get('error_msg'))
             callback(None)
             return
         callback(json)
 
     def _signature(self, args):
-        parts = ["%s=%s" % (n, args[n]) for n in sorted(args.keys())]
-        body = "".join(parts) + self._facebook_secret
-        if isinstance(body, unicode): body = body.encode("utf-8")
+        parts = ['%s=%s' % (n, args[n]) for n in sorted(args.keys())]
+        body = ''.join(parts) + self._facebook_secret
+        if isinstance(body, unicode): body = body.encode('utf-8')
         return hashlib.md5(body).hexdigest()

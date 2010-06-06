@@ -25,7 +25,8 @@ default_config = {
 
 
 class FriendFeedMixin(OAuthMixin):
-    """FriendFeed OAuth authentication.
+    """A :class:`tipfy.RequestHandler` mixin that implements FriendFeed OAuth
+    authentication.
 
     To authenticate with FriendFeed, register your application with
     FriendFeed at http://friendfeed.com/api/applications. Then
@@ -37,18 +38,17 @@ class FriendFeedMixin(OAuthMixin):
     When your application is set up, you can use this Mixin like this
     to authenticate the user with FriendFeed and get access to their feed:
 
-    class FriendFeedHandler(tornado.web.RequestHandler,
-                            tornado.auth.FriendFeedMixin):
-        @tornado.web.asynchronous
+    class FriendFeedHandler(tipfy.RequestHandler,
+                            tipfy.ext.auth.providers.FriendFeedMixin):
         def get(self):
-            if self.get_argument("oauth_token", None):
-                self.get_authenticated_user(self.async_callback(self._on_auth))
+            if self.get_argument('oauth_token', None):
+                self.get_authenticated_user(self._on_auth)
                 return
             self.authorize_redirect()
 
         def _on_auth(self, user):
             if not user:
-                raise tornado.web.HTTPError(500, "FriendFeed auth failed")
+                raise tornado.web.HTTPError(500, 'FriendFeed auth failed')
             # Save the user using, e.g., set_secure_cookie()
 
     The user object returned by get_authenticated_user() includes the
@@ -57,9 +57,9 @@ class FriendFeedMixin(OAuthMixin):
     it is required to make requests on behalf of the user later with
     friendfeed_request().
     """
-    _OAUTH_REQUEST_TOKEN_URL = "https://friendfeed.com/account/oauth/request_token"
-    _OAUTH_ACCESS_TOKEN_URL = "https://friendfeed.com/account/oauth/access_token"
-    _OAUTH_AUTHORIZE_URL = "https://friendfeed.com/account/oauth/authorize"
+    _OAUTH_REQUEST_TOKEN_URL = 'https://friendfeed.com/account/oauth/request_token'
+    _OAUTH_ACCESS_TOKEN_URL = 'https://friendfeed.com/account/oauth/access_token'
+    _OAUTH_AUTHORIZE_URL = 'https://friendfeed.com/account/oauth/authorize'
     _OAUTH_NO_CALLBACKS = True
 
     @property
@@ -72,7 +72,7 @@ class FriendFeedMixin(OAuthMixin):
 
     def friendfeed_request(self, path, callback, access_token=None,
                            post_args=None, **args):
-        """Fetches the given relative API path, e.g., "/bret/friends"
+        """Fetches the given relative API path, e.g., '/bret/friends'
 
         If the request is a POST, post_args should be provided. Query
         string arguments should be given as keyword arguments.
@@ -86,52 +86,50 @@ class FriendFeedMixin(OAuthMixin):
         attribute that can be used to make authenticated requests via
         this method. Example usage:
 
-        class MainHandler(tornado.web.RequestHandler,
-                          tornado.auth.FriendFeedMixin):
-            @tornado.web.authenticated
-            @tornado.web.asynchronous
+        class MainHandler(tipfy.RequestHandler,
+                          tipfy.ext.auth.providers.FriendFeedMixin):
             def get(self):
                 self.friendfeed_request(
-                    "/entry",
-                    post_args={"body": "Testing Tornado Web Server"},
-                    access_token=self.current_user["access_token"],
-                    callback=self.async_callback(self._on_post))
+                    '/entry',
+                    post_args={'body': 'Testing Tornado Web Server'},
+                    access_token=self.current_user['access_token'],
+                    callback=self._on_post)
 
             def _on_post(self, new_entry):
                 if not new_entry:
                     # Call failed; perhaps missing permission?
                     self.authorize_redirect()
                     return
-                self.finish("Posted a message!")
+                self.finish('Posted a message!')
 
         """
         # Add the OAuth resource request signature if we have credentials
-        url = "http://friendfeed-api.com/v2" + path
+        url = 'http://friendfeed-api.com/v2' + path
         if access_token:
             all_args = {}
             all_args.update(args)
             all_args.update(post_args or {})
             consumer_token = self._oauth_consumer_token()
-            method = "POST" if post_args is not None else "GET"
+            method = 'POST' if post_args is not None else 'GET'
             oauth = self._oauth_request_parameters(
                 url, access_token, all_args, method=method)
             args.update(oauth)
-        if args: url += "?" + urllib.urlencode(args)
-        callback = self.async_callback(self._on_friendfeed_request, callback)
+        if args: url += '?' + urllib.urlencode(args)
+        callback = functools.partial(self._on_friendfeed_request, callback)
         http = httpclient.AsyncHTTPClient()
         if post_args is not None:
-            http.fetch(url, method="POST", payload=urllib.urlencode(post_args),
+            http.fetch(url, method='POST', payload=urllib.urlencode(post_args),
                        callback=callback)
         else:
             http.fetch(url, callback=callback)
 
     def _on_friendfeed_request(self, callback, response):
         if response.error:
-            logging.warning("Error response %s fetching %s", response.error,
+            logging.warning('Error response %s fetching %s', response.error,
                             response.request.url)
             callback(None)
             return
-        callback(escape.json_decode(response.body))
+        callback(escape.json_decode(response.content))
 
     def _oauth_consumer_token(self):
         return dict(
@@ -139,13 +137,13 @@ class FriendFeedMixin(OAuthMixin):
             secret=self._friendfeed_consumer_secret)
 
     def _oauth_get_user(self, access_token, callback):
-        callback = self.async_callback(self._parse_user_response, callback)
+        callback = functools.partial(self._parse_user_response, callback)
         self.friendfeed_request(
-            "/feedinfo/" + access_token["username"],
-            include="id,name,description", access_token=access_token,
+            '/feedinfo/' + access_token['username'],
+            include='id,name,description', access_token=access_token,
             callback=callback)
 
     def _parse_user_response(self, callback, user):
         if user:
-            user["username"] = user["id"]
+            user['username'] = user['id']
         callback(user)

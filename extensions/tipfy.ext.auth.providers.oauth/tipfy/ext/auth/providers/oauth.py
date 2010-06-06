@@ -12,6 +12,7 @@
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
 import functools
+import logging
 import urllib
 import urlparse
 
@@ -20,7 +21,8 @@ from tipfy.ext.auth.providers import fetch_and_call
 
 
 class OAuthMixin(object):
-    """Abstract implementation of OAuth."""
+    """A :class:`tipfy.RequestHandler` mixin that implements OAuth
+    authentication."""
 
     _OAUTH_AUTHORIZE_URL = None
     _OAUTH_NO_CALLBACKS = False
@@ -61,22 +63,21 @@ class OAuthMixin(object):
         :param callback:
         :return:
         """
-        request_key = self.get_argument('oauth_token')
-        request_cookie = self.get_cookie('_oauth_request_token')
+        request_key = self.request.args.get('oauth_token')
+        request_cookie = self.request.cookies.get('_oauth_request_token')
         if not request_cookie:
             logging.warning('Missing OAuth request token cookie')
-            callback(None)
-            return
+            return callback(None)
 
         cookie_key, cookie_secret = request_cookie.split('|')
         if cookie_key != request_key:
             logging.warning('Request token does not match cookie')
-            callback(None)
-            return
+            return callback(None)
 
         token = dict(key=cookie_key, secret=cookie_secret)
         url = self._oauth_access_token_url(token)
-        fetch_and_call(url, functools.partial(self._on_access_token, callback))
+        return fetch_and_call(url, functools.partial(self._on_access_token,
+            callback))
 
     def _oauth_request_token_url(self):
         """
@@ -104,7 +105,7 @@ class OAuthMixin(object):
         if response.error:
             raise Exception('Could not get request token')
 
-        request_token = _oauth_parse_response(response.body)
+        request_token = _oauth_parse_response(response.content)
         data = '|'.join([request_token['key'], request_token['secret']])
         self.set_cookie('_oauth_request_token', data)
         args = dict(oauth_token=request_token['key'])
@@ -112,7 +113,7 @@ class OAuthMixin(object):
             args['oauth_callback'] = urlparse.urljoin(
                 self.request.url, callback_uri)
 
-        self.redirect(authorize_url + '?' + urllib.urlencode(args))
+        raise RequestRedirect(authorize_url + '?' + urllib.urlencode(args))
 
     def _oauth_access_token_url(self, request_token):
         """
@@ -145,8 +146,8 @@ class OAuthMixin(object):
             callback(None)
             return
 
-        access_token = _oauth_parse_response(response.body)
-        user = self._oauth_get_user(access_token, self.async_callback(
+        access_token = _oauth_parse_response(response.content)
+        user = self._oauth_get_user(access_token, functools.partial(
              self._on_oauth_get_user, access_token, callback))
 
     def _oauth_get_user(self, access_token, callback):
@@ -169,7 +170,7 @@ class OAuthMixin(object):
             return
 
         user['access_token'] = access_token
-        callback(user)
+        return callback(user)
 
     def _oauth_request_parameters(self, url, access_token, parameters={},
                                   method='GET'):
@@ -240,6 +241,7 @@ def _oauth_escape(val):
     """
     if isinstance(val, unicode):
         val = val.encode('utf-8')
+
     return urllib.quote(val, safe='~')
 
 

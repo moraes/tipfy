@@ -23,7 +23,7 @@ setup(
     version = '0.1',
     license = 'Apache Software License',
     url = 'http://www.tipfy.org/',
-    description = 'FriendFeed authentication extension for tipfy',
+    description = 'FriendFeed authentication extension for tipfy using OAuth',
     long_description=__doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',

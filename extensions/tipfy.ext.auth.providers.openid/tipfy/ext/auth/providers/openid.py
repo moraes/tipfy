@@ -21,7 +21,9 @@ from tipfy.ext.auth import urlfetch_and_call
 
 
 class OpenIdMixin(object):
-    """Abstract implementation of OpenID and Attribute Exchange."""
+    """A :class:`tipfy.RequestHandler` mixin that implements OpenID
+    authentication with Attribute Exchange.
+    """
 
     #: OpenId provider endpoint. For example,
     #: 'https://www.google.com/accounts/o8/ud'

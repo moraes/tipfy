@@ -1,6 +1,3 @@
-tipfy.ext.auth.providers.openid is developed and maintained by
-`Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
-
 tipfy.ext.auth.providers.openid was ported from
 `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
 

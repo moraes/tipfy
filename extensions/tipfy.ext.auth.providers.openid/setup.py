@@ -1,9 +1,11 @@
 """
-tipfy.ext.auth
-==============
+tipfy.ext.auth.providers.openid
+===============================
 
-This extension provides authentication utilities for tipfy, the almighty
+This extension provides an OpenId authentication provider tipfy, the almighty
 little framework for Google App Engine.
+
+Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
 
 Links
 -----
@@ -17,11 +19,11 @@ Links
 from setuptools import setup
 
 setup(
-    name = 'tipfy.ext.auth',
-    version = '0.5.5',
-    license = 'BSD',
+    name = 'tipfy.ext.auth.providers.openid',
+    version = '0.1',
+    license = 'Apache Software License',
     url = 'http://www.tipfy.org/',
-    description = 'Authentication extension for tipfy',
+    description = 'OpenId authentication extension for tipfy',
     long_description=__doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
@@ -41,15 +43,13 @@ setup(
     ],
     include_package_data=True,
     install_requires = [
-        'tipfy',
-        'tipfy.ext.db',
-        'tipfy.ext.session',
+        'tipfy.ext.auth',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',

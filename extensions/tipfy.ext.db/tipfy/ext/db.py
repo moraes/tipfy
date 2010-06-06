@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
     tipfy.ext.db
-    ~~~~~~~~~~~~~~~
+    ~~~~~~~~~~~~
 
     Model utilities extension.
 

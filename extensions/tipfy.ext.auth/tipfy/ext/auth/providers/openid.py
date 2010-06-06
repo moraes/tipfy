@@ -17,12 +17,14 @@ import urllib
 import urlparse
 
 from tipfy import RequestRedirect
-from tipfy.ext.auth.providers import fetch_and_call
+from tipfy.ext.auth import urlfetch_and_call
 
 
 class OpenIdMixin(object):
     """Abstract implementation of OpenID and Attribute Exchange."""
 
+    #: OpenId provider endpoint. For example,
+    #: 'https://www.google.com/accounts/o8/ud'
     _OPENID_ENDPOINT = None
 
     def authenticate_redirect(self, callback_uri=None, ax_attrs=None):
@@ -57,12 +59,12 @@ class OpenIdMixin(object):
         :return:
         """
         # Verify the OpenID response via direct request to the OP
-        args = dict((k, v[-1]) for k, v in self.request.arguments.iteritems())
+        args = dict((k, v[-1]) for k, v in self.request.args.lists())
         args['openid.mode'] = u'check_authentication'
         url = self._OPENID_ENDPOINT + '?' + urllib.urlencode(args)
 
-        fetch_and_call(url, functools.partial(self._on_authentication_verified,
-            callback))
+        return urlfetch_and_call(url, functools.partial(
+            self._on_authentication_verified, callback))
 
     def _openid_args(self, callback_uri, ax_attrs=None, oauth_scope=None):
         """
@@ -80,8 +82,8 @@ class OpenIdMixin(object):
             'openid.identity':
                 'http://specs.openid.net/auth/2.0/identifier_select',
             'openid.return_to': url,
-            'openid.realm': self.request.environ['wsgi.url_scheme'] + '://' + \ 
-                self.request.host + '/',
+            'openid.realm': self.request.environ['wsgi.url_scheme'] + \
+                '://' + self.request.host + '/',
             'openid.mode': 'checkid_setup',
         }
         if ax_attrs:
@@ -140,7 +142,7 @@ class OpenIdMixin(object):
 
         # Make sure we got back at least an email from attribute exchange
         ax_ns = None
-        for name, values in self.request.iterlists():
+        for name, values in self.request.args.iterlists():
             if name.startswith('openid.ns.') and \
                values[-1] == u'http://openid.net/srv/ax/1.0':
                 ax_ns = name[10:]
@@ -170,7 +172,7 @@ class OpenIdMixin(object):
             elif user.get('email'):
                 user['name'] = user.get('email').split('@', 1)[0]
 
-        callback(user)
+        return callback(user)
 
     def _get_ax_arg(self, uri, ax_ns):
         """
@@ -184,7 +186,7 @@ class OpenIdMixin(object):
 
         prefix = 'openid.' + ax_ns + '.type.'
         ax_name = None
-        for name, values in self.request.iterlists():
+        for name, values in self.request.args.iterlists():
             if values[-1] == uri and name.startswith(prefix):
                 part = name[len(prefix):]
                 ax_name = 'openid.' + ax_ns + '.value.' + part

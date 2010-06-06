@@ -1,0 +1,11 @@
+tipfy.ext.auth.providers.openid is developed and maintained by
+`Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+
+tipfy.ext.auth.providers.openid was ported from
+`tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
+
+Tornado is licensed under the Apache Licence, Version 2.0
+(http://www.apache.org/licenses/LICENSE-2.0.html).
+
+Copyright (c) 2009 Facebook.
+Copyright (c) 2010 tipfy.org.

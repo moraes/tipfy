@@ -1,8 +1,8 @@
 """
-tipfy.ext.auth.providers.openid
-===============================
+tipfy.ext.auth.providers.twitter
+================================
 
-This extension provides an OpenId authentication provider tipfy, the almighty
+This extension provides a Twitter authentication provider tipfy, the almighty
 little framework for Google App Engine.
 
 Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
@@ -19,11 +19,11 @@ Links
 from setuptools import setup
 
 setup(
-    name = 'tipfy.ext.auth.providers.openid',
+    name = 'tipfy.ext.auth.providers.twitter',
     version = '0.1',
     license = 'Apache Software License',
     url = 'http://www.tipfy.org/',
-    description = 'OpenId authentication extension for tipfy',
+    description = 'Twitter authentication extension for tipfy using OAuth',
     long_description=__doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
@@ -43,7 +43,7 @@ setup(
     ],
     include_package_data=True,
     install_requires = [
-        'tipfy.ext.auth',
+        'tipfy.ext.auth.providers.oauth',
     ],
     classifiers=[
         'Development Status :: 1 - Planning',

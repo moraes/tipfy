@@ -1,5 +1,5 @@
 """
-tipfy.ext.auth.providers.openid
+tipfy.ext.auth.providers.google
 ===============================
 
 This extension provides an OpenId authentication provider tipfy, the almighty
@@ -19,11 +19,11 @@ Links
 from setuptools import setup
 
 setup(
-    name = 'tipfy.ext.auth.providers.openid',
+    name = 'tipfy.ext.auth.providers.google',
     version = '0.1',
     license = 'Apache Software License',
     url = 'http://www.tipfy.org/',
-    description = 'OpenId authentication extension for tipfy',
+    description = 'Google authentication extension for tipfy using OpenId/Oauth',
     long_description=__doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
@@ -43,7 +43,8 @@ setup(
     ],
     include_package_data=True,
     install_requires = [
-        'tipfy.ext.auth',
+        'tipfy.ext.auth.providers.oauth',
+        'tipfy.ext.auth.providers.openid',
     ],
     classifiers=[
         'Development Status :: 1 - Planning',

@@ -18,7 +18,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.db',
-    version = '0.5.5',
+    version = '0.5.6',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Database extension for tipfy',

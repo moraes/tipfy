@@ -21,7 +21,11 @@ from google.net.proto.ProtocolBuffer import ProtocolBufferDecodeError
 
 from django.utils import simplejson
 
-from pytz.gae import pytz
+try:
+    # This is optional, only required by TimezoneProperty.
+    from pytz.gae import pytz
+except ImportError, e:
+    pass
 
 from tipfy import NotFound
 

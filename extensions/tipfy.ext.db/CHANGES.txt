@@ -1,3 +1,8 @@
+Version 0.5.6 - June 6, 2010
+============================
+- Made pytz optional - it is only required by TimezoneProperty..
+
+
 Version 0.5.5 - June 1st, 2010
 ==============================
 - Fixed namespace warnings.

@@ -120,7 +120,7 @@ class FriendFeedMixin(OAuthMixin):
         callback = self.async_callback(self._on_friendfeed_request, callback)
         http = httpclient.AsyncHTTPClient()
         if post_args is not None:
-            http.fetch(url, method="POST", body=urllib.urlencode(post_args),
+            http.fetch(url, method="POST", payload=urllib.urlencode(post_args),
                        callback=callback)
         else:
             http.fetch(url, callback=callback)

@@ -12,7 +12,41 @@ import datetime
 import functools
 import logging
 
+from google.appengine.api import urlfetch
+
 from tipfy import local, HTTPException, RequestRedirect, Tipfy
+
+
+class HttpResponseError(object):
+    """A dummy response used when urlfetch raises an exception."""
+    status_code = 404
+    content = '404 Not Found'
+    error = 'Error 404'
+
+
+def fetch_and_call(url, callback, **kwargs):
+    """
+
+    :param url:
+    :param callback:
+    :param kwargs:
+    :return:
+    """
+    # Replace kwarg keys.
+    # kwargs['payload'] = kwargs.pop('body', None)
+    # setattr(result, 'body', result.content)
+    kwargs['deadline'] = 10
+
+    try:
+        result = urlfetch.fetch(url, **kwargs)
+        if result.status_code < 200 or result.status_code >= 300:
+            setattr(result, 'error', 'Error %d' % result.status_code)
+        else:
+            setattr(result, 'error', None)
+    except urlfetch.DownloadError, e:
+        result = HttpResponseError()
+
+    return callback(result)
 
 
 class RequestAdapter(object):

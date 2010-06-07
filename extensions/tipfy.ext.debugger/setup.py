@@ -2,8 +2,11 @@
 tipfy.ext.debugger
 ==================
 
-This extension provides debugger utilities for tipfy, the almighty little
-framework for Google App Engine.
+This extension provides a middleware that enables a useful debugger for
+development with tipfy, the almighty little framework for Google App Engine.
+
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/debugger/ <http://www.tipfy.org/wiki/extensions/debugger/>`_.
 
 Links
 -----

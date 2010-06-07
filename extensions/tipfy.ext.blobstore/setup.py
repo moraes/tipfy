@@ -5,6 +5,9 @@ tipfy.ext.blobstore
 This extension provides handlers to deal with blobstore for tipfy, the almighty
 little framework for Google App Engine.
 
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/blobstore/ <http://www.tipfy.org/wiki/extensions/blobstore/>`_.
+
 Links
 -----
 * `Tipfy <http://www.tipfy.org/>`_
@@ -19,7 +22,7 @@ from setuptools import setup
 setup(
     name = 'tipfy.ext.blobstore',
     version = '0.5.6',
-    license = 'BSD',
+    license = 'Apache Software License',
     url = 'http://www.tipfy.org/',
     description = 'Blobstore extension for tipfy',
     long_description = __doc__,
@@ -43,7 +46,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',

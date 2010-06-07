@@ -16,8 +16,10 @@ import logging
 import urllib
 import urlparse
 
-from tipfy import RequestRedirect
-from tipfy.ext.auth import fetch_and_call
+from google.appengine.api import urlfetch
+
+from tipfy import redirect
+#from tipfy.ext.auth import fetch_and_call
 
 
 class OAuthMixin(object):
@@ -27,7 +29,7 @@ class OAuthMixin(object):
     _OAUTH_AUTHORIZE_URL = None
     _OAUTH_NO_CALLBACKS = False
 
-    def authorize_redirect(self, callback_uri=None):
+    def authorize_redirect(self, callback_uri=None, oauth_authorize_url=None):
         """Redirects the user to obtain OAuth authorization for this service.
 
         Twitter and FriendFeed both require that you register a Callback
@@ -41,14 +43,29 @@ class OAuthMixin(object):
         security purposes.
 
         :param callback_uri:
+        :param oauth_authorize_url:
+            OAuth authorization URL. If not set, uses the value set in
+            :attr:`_OAUTH_AUTHORIZE_URL`.
         :return:
         """
         if callback_uri and getattr(self, '_OAUTH_NO_CALLBACKS', False):
             raise Exception('This service does not support oauth_callback')
 
+        oauth_authorize_url = oauth_authorize_url or self._OAUTH_AUTHORIZE_URL
+
         url = self._oauth_request_token_url()
-        fetch_and_call(url, functools.partial(self._on_request_token,
-            self._OAUTH_AUTHORIZE_URL, callback_uri))
+        try:
+            response = urlfetch.fetch(url, deadline=10)
+            if response.status_code < 200 or response.status_code >= 300:
+                logging.warning('Invalid OAuth response: %s',
+                    response.content)
+            else:
+                return self._on_request_token(oauth_authorize_url,
+                    callback_uri, response)
+        except urlfetch.DownloadError, e:
+            logging.exception(e)
+
+        return self._on_request_token(oauth_authorize_url, callback_uri, None)
 
     def get_authenticated_user(self, callback):
         """Gets the OAuth authorized user and access token on callback.
@@ -113,7 +130,7 @@ class OAuthMixin(object):
             args['oauth_callback'] = urlparse.urljoin(
                 self.request.url, callback_uri)
 
-        raise RequestRedirect(authorize_url + '?' + urllib.urlencode(args))
+        return redirect(authorize_url + '?' + urllib.urlencode(args))
 
     def _oauth_access_token_url(self, request_token):
         """

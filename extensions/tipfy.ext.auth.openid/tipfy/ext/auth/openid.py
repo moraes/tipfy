@@ -45,10 +45,10 @@ class OpenIdMixin(object):
         :param ax_attrs:
             List of Attribute Exchange attributes to be fetched.
         :param openid_endpoint:
-            OpenId provider endpoint. For example,
-            'https://www.google.com/accounts/o8/ud'.
+            OpenId provider endpoint. If not set, uses the value set in
+            :attr:`_OPENID_ENDPOINT`.
         :return:
-            ``None``
+            ``None``.
         """
         callback_uri = callback_uri or self.request.path
         ax_attrs = ax_attrs or ('name', 'email', 'language', 'username')

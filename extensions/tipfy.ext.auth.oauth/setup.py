@@ -5,6 +5,9 @@ tipfy.ext.auth.oauth
 This extension provides an OAuth authentication provider tipfy, the almighty
 little framework for Google App Engine.
 
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/auth/oauth/ <http://www.tipfy.org/wiki/extensions/auth/oauth/>`_.
+
 Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
 
 Links
@@ -44,7 +47,7 @@ setup(
         'tipfy.ext.auth',
     ],
     classifiers = [
-        'Development Status :: 1 - Planning',
+        'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',

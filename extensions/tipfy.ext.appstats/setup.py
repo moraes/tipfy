@@ -5,6 +5,9 @@ tipfy.ext.appstats
 This extension provides an appstats middleware for tipfy, the almighty little
 framework for Google App Engine.
 
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/appstats/ <http://www.tipfy.org/wiki/extensions/appstats/>`_.
+
 Links
 -----
 * `Tipfy <http://www.tipfy.org/>`_

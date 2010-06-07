@@ -20,7 +20,7 @@ class DebuggerMiddleware(object):
         """Wraps the application by Werkzeug's debugger.
 
         :param app:
-            The ``WSGIApplication`` instance.
+            The WSGI application instance.
         :return:
             The application, wrapped or not.
         """

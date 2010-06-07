@@ -14,10 +14,10 @@ from google.appengine.ext.appstats.recording import appstats_wsgi_middleware
 
 class AppstatsMiddleware(object):
     def post_make_app(self, app):
-        """Wraps the application by by AppEngine's appstats
+        """Wraps the application by by App Engine's appstats.
 
         :param app:
-            The ``WSGIApplication`` instance.
+            The WSGI application instance.
         :return:
             The application, wrapped or not.
         """

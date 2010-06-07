@@ -1,0 +1,5 @@
+tipfy.ext.acl is developed and maintained by
+`Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+
+Based on concept from `Solar's Access and Role classes <http://solarphp.com>`_,
+by `Paul M. Jones <pmjones@solarphp.com>`_.

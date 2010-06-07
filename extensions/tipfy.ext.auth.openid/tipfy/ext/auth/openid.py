@@ -11,25 +11,25 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
-import functools
 import logging
 import urllib
 import urlparse
 
-from tipfy import RequestRedirect
-from tipfy.ext.auth import urlfetch_and_call
+from google.appengine.api import urlfetch
+
+from tipfy import redirect
 
 
 class OpenIdMixin(object):
     """A :class:`tipfy.RequestHandler` mixin that implements OpenID
     authentication with Attribute Exchange.
     """
-
     #: OpenId provider endpoint. For example,
     #: 'https://www.google.com/accounts/o8/ud'
     _OPENID_ENDPOINT = None
 
-    def authenticate_redirect(self, callback_uri=None, ax_attrs=None):
+    def authenticate_redirect(self, callback_uri=None, ax_attrs=None,
+        openid_endpoint=None):
         """Returns the authentication URL for this service.
 
         After authentication, the service will redirect back to the given
@@ -41,16 +41,22 @@ class OpenIdMixin(object):
         the ax_attrs keyword argument.
 
         :param callback_uri:
+            The URL to redirect to after authentication.
         :param ax_attrs:
+            List of Attribute Exchange attributes to be fetched.
+        :param openid_endpoint:
+            OpenId provider endpoint. For example,
+            'https://www.google.com/accounts/o8/ud'.
         :return:
+            ``None``
         """
-        ax_attrs = ax_attrs or ['name', 'email', 'language', 'username']
         callback_uri = callback_uri or self.request.path
+        ax_attrs = ax_attrs or ('name', 'email', 'language', 'username')
+        openid_endpoint = openid_endpoint or self._OPENID_ENDPOINT
         args = self._openid_args(callback_uri, ax_attrs=ax_attrs)
-        raise RequestRedirect(self._OPENID_ENDPOINT + '?' +
-            urllib.urlencode(args))
+        return redirect(openid_endpoint + '?' + urllib.urlencode(args))
 
-    def get_authenticated_user(self, callback):
+    def get_authenticated_user(self, callback, openid_endpoint=None):
         """Fetches the authenticated user data upon redirect.
 
         This method should be called by the handler that receives the
@@ -58,23 +64,44 @@ class OpenIdMixin(object):
         methods.
 
         :param callback:
+            A function that is called after the authentication attempt. It
+            is called passing a dictionary with the requested user attributes
+            or ``None`` if the authentication failed.
+        :param openid_endpoint:
+            OpenId provider endpoint. For example,
+            'https://www.google.com/accounts/o8/ud'.
         :return:
+            The result from the callback function.
         """
         # Verify the OpenID response via direct request to the OP
+        openid_endpoint = openid_endpoint or self._OPENID_ENDPOINT
         args = dict((k, v[-1]) for k, v in self.request.args.lists())
         args['openid.mode'] = u'check_authentication'
-        url = self._OPENID_ENDPOINT + '?' + urllib.urlencode(args)
+        url = openid_endpoint + '?' + urllib.urlencode(args)
 
-        return urlfetch_and_call(url, functools.partial(
-            self._on_authentication_verified, callback))
+        try:
+            response = urlfetch.fetch(url, deadline=10)
+            if response.status_code < 200 or response.status_code >= 300:
+                logging.warning('Invalid OpenID response: %s',
+                    response.content)
+            else:
+                return self._on_authentication_verified(callback, response)
+        except urlfetch.DownloadError, e:
+            logging.exception(e)
+
+        return self._on_authentication_verified(callback, None)
 
     def _openid_args(self, callback_uri, ax_attrs=None, oauth_scope=None):
-        """
+        """Builds and returns the OpenId arguments used in the authentication
+        request.
 
         :param callback_uri:
+            The URL to redirect to after authentication.
         :param ax_attrs:
+            List of Attribute Exchange attributes to be fetched.
         :param oauth_scope:
         :return:
+            A dictionary of arguments for the authentication URL.
         """
         url = urlparse.urljoin(self.request.url, callback_uri)
         args = {
@@ -130,19 +157,25 @@ class OpenIdMixin(object):
         return args
 
     def _on_authentication_verified(self, callback, response):
-        """
+        """Called after the authentication attempt. It calls the callback
+        function set when the authentication process started, passing a
+        dictionary of user data if the authentication was successful or
+        ``None`` if it failed.
 
         :param callback:
+            A function that is called after the authentication attempt. It
+            is called passing a dictionary with the requested user attributes
+            or ``None`` if the authentication failed.
         :param response:
+            The response returned from the urlfetch call after the
+            authentication attempt.
         :return:
+            The result from the callback function.
         """
-        if response.error or u'is_valid:true' not in response.content:
-            logging.warning('Invalid OpenID response: %s', response.error or
-                            response.content)
-            callback(None)
-            return
+        if not response:
+            return callback(None)
 
-        # Make sure we got back at least an email from attribute exchange
+        # Make sure we got back at least an email from Attribute Exchange.
         ax_ns = None
         for name, values in self.request.args.iterlists():
             if name.startswith('openid.ns.') and \
@@ -150,18 +183,18 @@ class OpenIdMixin(object):
                 ax_ns = name[10:]
                 break
 
-        _ax_args = {
-            'email':      'http://axschema.org/contact/email',
-            'name':       'http://axschema.org/namePerson',
-            'first_name': 'http://axschema.org/namePerson/first',
-            'last_name':  'http://axschema.org/namePerson/last',
-            'username':   'http://axschema.org/namePerson/friendly',
-            'locale':     'http://axschema.org/pref/language',
-        }
+        _ax_args = [
+            ('email',      'http://axschema.org/contact/email'),
+            ('name',       'http://axschema.org/namePerson'),
+            ('first_name', 'http://axschema.org/namePerson/first'),
+            ('last_name',  'http://axschema.org/namePerson/last'),
+            ('username',   'http://axschema.org/namePerson/friendly'),
+            ('locale',     'http://axschema.org/pref/language'),
+        ]
 
         user = {}
         name_parts = []
-        for name, uri in _ax_args.iteritems():
+        for name, uri in _ax_args:
             value = self._get_ax_arg(uri, ax_ns)
             if value:
                 user[name] = value
@@ -177,11 +210,14 @@ class OpenIdMixin(object):
         return callback(user)
 
     def _get_ax_arg(self, uri, ax_ns):
-        """
+        """Returns an Attribute Exchange value from request.
 
         :param uri:
+            Attribute Exchange URI.
         :param ax_ns:
+            Attribute Exchange namespace.
         :return:
+            The Attribute Exchange value, if found in request.
         """
         if not ax_ns:
             return u''

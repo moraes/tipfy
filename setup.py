@@ -20,7 +20,7 @@ need.
 
 Links
 -----
-* `Tipfy's website <http://www.tipfy.org/>`_
+* `Tipfy <http://www.tipfy.org/>`_
 * `API Documentation <http://www.tipfy.org/docs/>`_
 * `Wiki <http://www.tipfy.org/wiki/>`_
 * `Discussion Group <http://groups.google.com/group/tipfy>`_

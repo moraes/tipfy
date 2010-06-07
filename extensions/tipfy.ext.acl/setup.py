@@ -1,9 +1,9 @@
 """
-tipfy.ext.jinja2
-================
+tipfy.ext.acl
+=============
 
-This extension provides Jinja2 support for tipfy, the almighty little framework
-for Google App Engine.
+This extension provides an Access Control implementation for tipfy, the
+almighty little framework for Google App Engine.
 
 Links
 -----
@@ -17,11 +17,11 @@ Links
 from setuptools import setup
 
 setup(
-    name = 'tipfy.ext.jinja2',
-    version = '0.5.8',
+    name = 'tipfy.ext.acl',
+    version = '0.5.5',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
-    description = 'Jinja2 extension for tipfy',
+    description = 'Access Control extension for tipfy',
     long_description = __doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
@@ -30,7 +30,6 @@ setup(
     packages = [
         'tipfy',
         'tipfy.ext',
-        'tipfy.ext.jinja2',
     ],
     namespace_packages = [
         'tipfy',
@@ -39,13 +38,8 @@ setup(
     include_package_data = True,
     install_requires = [
         'tipfy',
-        'jinja2',
+        'tipfy.ext.db',
     ],
-    entry_points = {
-        'console_scripts': [
-            'jinja2_compile = tipfy.ext.jinja2.scripts:compile_templates',
-        ],
-    },
     classifiers = [
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',

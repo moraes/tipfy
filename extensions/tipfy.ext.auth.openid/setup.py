@@ -2,14 +2,17 @@
 tipfy.ext.auth.openid
 =====================
 
-This extension provides an OpenId authentication provider tipfy, the almighty
+This extension implements an OpenId authentication provider tipfy, the almighty
 little framework for Google App Engine.
+
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/auth/openid/ <http://www.tipfy.org/wiki/extensions/auth/openid/>`_.
 
 Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
 
 Links
 -----
-* `Tipfy's website <http://www.tipfy.org/>`_
+* `Tipfy <http://www.tipfy.org/>`_
 * `API Documentation <http://www.tipfy.org/docs/>`_
 * `Wiki <http://www.tipfy.org/wiki/>`_
 * `Discussion Group <http://groups.google.com/group/tipfy>`_
@@ -44,7 +47,7 @@ setup(
         'tipfy.ext.auth',
     ],
     classifiers = [
-        'Development Status :: 1 - Planning',
+        'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',

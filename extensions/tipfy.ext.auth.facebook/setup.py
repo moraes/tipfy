@@ -1,9 +1,11 @@
 """
-tipfy.ext.taskqueue
-===================
+tipfy.ext.auth.facebook
+=======================
 
-This extension provides task queue utilities for tipfy, the almighty little
-framework for Google App Engine.
+This extension provides a Facebook authentication provider tipfy, the almighty
+little framework for Google App Engine.
+
+Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
 
 Links
 -----
@@ -17,11 +19,11 @@ Links
 from setuptools import setup
 
 setup(
-    name = 'tipfy.ext.taskqueue',
-    version = '0.5.5',
-    license = 'BSD',
+    name = 'tipfy.ext.auth.facebook',
+    version = '0.1',
+    license = 'Apache Software License',
     url = 'http://www.tipfy.org/',
-    description = 'Task queue extension for tipfy',
+    description = 'Facebook authentication extension for tipfy',
     long_description = __doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
@@ -30,20 +32,22 @@ setup(
     packages = [
         'tipfy',
         'tipfy.ext',
+        'tipfy.ext.auth',
     ],
     namespace_packages = [
         'tipfy',
         'tipfy.ext',
+        'tipfy.ext.auth',
     ],
     include_package_data = True,
     install_requires = [
-        'tipfy',
+        'tipfy.ext.auth',
     ],
     classifiers = [
-        'Development Status :: 4 - Beta',
+        'Development Status :: 1 - Planning',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',

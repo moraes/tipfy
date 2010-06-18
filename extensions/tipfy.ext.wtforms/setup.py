@@ -1,12 +1,17 @@
 """
-tipfy.ext.mail
-==============
+tipfy.ext.wtforms
+=================
 
-This extension provides a handler for inbound emails for tipfy, the almighty
-little framework for Google App Engine.
+This tipfy extension is a wrapper to `WTForms <http://wtforms.simplecodes.com/>`_
+that provides better integration with tipfy's request object. For example,
+input files are read from the form object, which is not supported by WTForms
+because it is framework dependant.
+
+The extension will also provide CSRF protection and captcha support in the
+future.
 
 Documentation is available at
-`http://www.tipfy.org/wiki/extensions/mail/ <http://www.tipfy.org/wiki/extensions/mail/>`_.
+`http://www.tipfy.org/wiki/extensions/wtforms/ <http://www.tipfy.org/wiki/extensions/wtforms/>`_.
 
 Links
 -----
@@ -20,11 +25,11 @@ Links
 from setuptools import setup
 
 setup(
-    name = 'tipfy.ext.mail',
-    version = '0.5.5',
-    license = 'Apache Software License',
+    name = 'tipfy.ext.wtforms',
+    version = '0.1',
+    license = 'BSD',
     url = 'http://www.tipfy.org/',
-    description = 'Inbound mail extension for tipfy',
+    description = 'WTForms extension for tipfy',
     long_description = __doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
@@ -40,13 +45,13 @@ setup(
     ],
     include_package_data = True,
     install_requires = [
-        'tipfy',
+        'wtforms',
     ],
     classifiers = [
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: Apache Software License',
+        'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',

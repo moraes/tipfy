@@ -24,7 +24,7 @@ from pytz.gae import pytz
 
 from werkzeug import LocalProxy
 
-from tipfy import get_config, normalize_callable, Tipfy
+from tipfy import Tipfy, get_config
 
 #: Default configuration values for this module. Keys are:
 #:

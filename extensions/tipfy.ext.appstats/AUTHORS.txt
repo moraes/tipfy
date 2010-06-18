@@ -1,2 +1,2 @@
 tipfy.ext.appstats was originally developed by Bryan McLemore and is maintained
-by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+by Rodrigo Moraes <rodrigo.moraes@gmail.com>.

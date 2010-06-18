@@ -1,5 +1,5 @@
 tipfy.ext.auth.providers.google is developed and maintained by
-`Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+Rodrigo Moraes <rodrigo.moraes@gmail.com>.
 
 tipfy.ext.auth.providers.google was ported from
 `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.

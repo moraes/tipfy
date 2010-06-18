@@ -31,4 +31,4 @@ And if you have any issues, open a ticket at Google Code:
 Installation
 ============
 
-Read the instructions in `/buildout/README.txt`.
+Read the instructions in `buildout/README.txt`.

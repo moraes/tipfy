@@ -1,4 +1,4 @@
-Tipfy was started by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+Tipfy was started by Rodrigo Moraes <rodrigo.moraes@gmail.com>.
 
 Several people contributed with code, documentation, bug reports, suggestions
 and patches:

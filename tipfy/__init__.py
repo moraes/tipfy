@@ -42,7 +42,7 @@ app, request = local('app'), local('request')
 #: Default configuration values for this module. Keys are:
 #:
 #: - ``apps_installed``: A list of active app modules as a string. Default is
-#:   an empty list
+#:   an empty list.
 #:
 #: - ``apps_entry_points``: URL entry points for the installed apps, in case
 #:   their URLs are mounted using base paths.
@@ -55,13 +55,13 @@ app, request = local('app'), local('request')
 #:
 #: - ``server_name``: A server name hint, used to calculate current subdomain.
 #:   If you plan to use dynamic subdomains, you must define the main domain
-#:   here so that the subdomain can be extracted and applied to URL rules..
+#:   here so that the subdomain can be extracted and applied to URL rules.
 #:
 #: - ``subdomain``: Force this subdomain to be used instead of extracting
 #:   the subdomain from the current url.
 #:
 #: - ``url_map``: A ``werkzeug.routing.Map`` with the URL rules defined for
-#:   the application. If not set, build one with rules defined in ``urls.py``
+#:   the application. If not set, build one with rules defined in ``urls.py``.
 #:
 #: - ``dev``: ``True`` is this is the development server, ``False`` otherwise.
 #:   Default is the value of ``os.environ['SERVER_SOFTWARE']``.
@@ -71,6 +71,8 @@ app, request = local('app'), local('request')
 #:
 #: - ``version_id``: The current deplyment version id. Default is the value
 #:   of ``os.environ['CURRENT_VERSION_ID']``.
+#:
+#: 'url_rules', 'urls.get_rules'
 default_config = {
     'apps_installed': [],
     'apps_entry_points': {},
@@ -78,12 +80,12 @@ default_config = {
     'server_name': None,
     'subdomain': None,
     'url_map': None,
+    'url_rules': 'urls.get_rules',
+
     'wsgi_app_id': 'main',
     'dev': os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
     'app_id': os.environ.get('APPLICATION_ID', None),
     'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
-    # Undocumented for now.
-    'url_map_kwargs': {},
 }
 
 # Allowed request methods.
@@ -203,6 +205,10 @@ class Request(WerkzeugRequest):
     rule_args = None
     #: Exception raised when matching URL rules, if any.
     routing_exception = None
+    #: Current server_name.
+    server_name = None
+    #: Current subdomain.
+    subdomain = None
 
     def __init__(self, environ):
         """Initializes the request. This also sets a context attribute to
@@ -304,11 +310,6 @@ class Tipfy(object):
         # Set a shortcut to the development flag.
         self.dev = self.config.get('tipfy', 'dev', False)
 
-        # Set the url rules.
-        self.url_map = self.config.get('tipfy', 'url_map')
-        if not self.url_map:
-            self.url_map = self.get_url_map()
-
         # Cache for loaded handler classes.
         self.handlers = {}
 
@@ -385,6 +386,52 @@ class Tipfy(object):
         # Call the response object as a WSGI application.
         return response(environ, start_response)
 
+    @cached_property
+    def url_map(self):
+        """Returns the map of URL rules for this app.
+
+        :return:
+            A :class:`werkzeug.Map` instance.
+        """
+        return self.get_url_map()
+
+    def get_url_map(self):
+        """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
+        application.
+
+        :return:
+            A ``werkzeug.routing.Map`` instance.
+        """
+        rv = self.config.get('tipfy', 'url_map')
+
+        if isinstance(rv, basestring):
+            try:
+                rv = import_string(rv)
+            except (AttributeError, ImportError), e:
+                logging.warning('Missing %s. No URL map was loaded.' % rv)
+                return Map(self.get_url_rules())
+
+        if isinstance(rv, Map):
+            return rv
+
+        return rv(self, self.get_url_rules())
+
+    def get_url_rules(self):
+        rv = self.config.get('tipfy', 'url_rules')
+
+        if isinstance(rv, basestring):
+            try:
+                rv = import_string(rv)
+            except (AttributeError, ImportError), e:
+                logging.warning('Missing %s. No URL rules were loaded.' % rv)
+                return []
+
+        if isinstance(rv, list):
+            return rv
+
+        # TODO pass self.
+        return rv()
+
     def match_url(self, request):
         """Matches registered URL rules against the request. This will store
         the URL adapter, matched rule and rule arguments in the request
@@ -399,15 +446,9 @@ class Tipfy(object):
         :return:
             ``None``.
         """
-        # Bind url map to the current request location.
-        server_name = self.config.get('tipfy', 'server_name', None)
-        subdomain = self.config.get('tipfy', 'subdomain', None)
         # Set self.url_adapter for backwards compatibility only.
-        request.url_adapter = self.url_adapter = self.url_map.bind_to_environ(
-            request.environ, server_name=server_name, subdomain=subdomain)
-
-        # For backwards compatibility only.
-        self.rule = self.rule_args = None
+        request.url_adapter = self.url_map.bind_to_environ(request.environ,
+            server_name=request.server_name, subdomain=request.subdomain)
 
         try:
             # Match the path against registered rules.
@@ -415,9 +456,6 @@ class Tipfy(object):
                 return_rule=True)
         except HTTPException, e:
             request.routing_exception = e
-
-        # For backwards compatibility only.
-        self.rule, self.rule_args = request.rule, request.rule_args
 
     def pre_dispatch(self, request):
         """Executes pre_dispatch_handler middleware. If a middleware returns
@@ -450,7 +488,7 @@ class Tipfy(object):
             # Import handler set in matched rule.
             self.handlers[name] = import_string(name)
 
-        # Instantiate handler and dispatch request method.
+        # Instantiate handler and dispatch requested method.
         return self.handlers[name](self, request).dispatch()
 
     def post_dispatch(self, request, response):
@@ -550,6 +588,9 @@ class Tipfy(object):
         :return:
             A dictionary with middleware instance methods.
         """
+        if not classes:
+            return {}
+
         return self.middleware_factory.get_middleware(obj, classes)
 
     def get_config(self, module, key=None, default=DEFAULT_VALUE):
@@ -588,7 +629,6 @@ class Tipfy(object):
                 config.setdefault(module, import_string(
                     module + ':default_config'))
                 config.modules.append(module)
-
                 value = config.get(module, key, default)
             else:
                 value = default
@@ -598,26 +638,6 @@ class Tipfy(object):
                 'set.' % (module, key))
 
         return value
-
-    def get_url_map(self):
-        """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
-        application.
-
-        :return:
-            A ``werkzeug.routing.Map`` instance.
-        """
-        try:
-            rules = import_string('urls.get_rules')()
-            kwargs = self.config.get('tipfy').get('url_map_kwargs')
-            return Map(rules, **kwargs)
-        except AttributeError, e:
-            logging.warning('Missing get_rules() function in urls.py. No URL '
-                'rules were loaded.')
-        except ImportError, e:
-            logging.warning('Missing urls.py module. No URL rules were '
-                'loaded.')
-
-        return Map([])
 
     def set_wsgi_app(self):
         """Sets the currently active :class:`Tipfy` instance."""
@@ -957,8 +977,9 @@ def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
 
 
 def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
-    """Convenience function mixing :func:`redirect` and :func:`url_for`:
-    redirects the client to a URL built using a named :class:`Rule`.
+    """Convenience function mixing :func:`werkzeug.redirect` and
+    :func:`url_for`: redirects the client to a URL built using a named
+    :class:`Rule`.
 
     :param endpoint:
         The rule endpoint.
@@ -978,8 +999,8 @@ def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
     method = kwargs.pop('method', _method)
     code = kwargs.pop('code', _code)
 
-    url = url_for(endpoint, _full=True, _method=method, _anchor=_anchor,
-        **kwargs)
+    url = Tipfy.request.url_for(endpoint, _full=True, _method=method,
+        _anchor=_anchor, **kwargs)
     return redirect(url, code=code)
 
 

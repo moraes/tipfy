@@ -65,6 +65,12 @@ class TwitterMixin(OAuthMixin):
     _OAUTH_NO_CALLBACKS = True
 
     @property
+    def _oauth_consumer_token(self):
+        return dict(
+            key=self._twitter_consumer_key,
+            secret=self._twitter_consumer_secret)
+
+    @property
     def _twitter_consumer_key(self):
         self.app.get_config(__name__, 'twitter_consumer_key')
 
@@ -124,7 +130,6 @@ class TwitterMixin(OAuthMixin):
             all_args = {}
             all_args.update(args)
             all_args.update(post_args or {})
-            consumer_token = self._oauth_consumer_token()
             method = 'POST' if post_args is not None else 'GET'
             oauth = self._oauth_request_parameters(
                 url, access_token, all_args, method=method)
@@ -145,11 +150,6 @@ class TwitterMixin(OAuthMixin):
             callback(None)
             return
         callback(escape.json_decode(response.content))
-
-    def _oauth_consumer_token(self):
-        return dict(
-            key=self._twitter_consumer_key,
-            secret=self._twitter_consumer_secret)
 
     def _oauth_get_user(self, access_token, callback):
         callback = functools.partial(self._parse_user_response, callback)

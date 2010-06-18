@@ -11,6 +11,7 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+import binascii
 import functools
 import logging
 import urllib
@@ -19,7 +20,6 @@ import urlparse
 from google.appengine.api import urlfetch
 
 from tipfy import redirect
-#from tipfy.ext.auth import fetch_and_call
 
 
 class OAuthMixin(object):
@@ -59,13 +59,13 @@ class OAuthMixin(object):
             if response.status_code < 200 or response.status_code >= 300:
                 logging.warning('Invalid OAuth response: %s',
                     response.content)
-            else:
-                return self._on_request_token(oauth_authorize_url,
-                    callback_uri, response)
+                response = None
         except urlfetch.DownloadError, e:
             logging.exception(e)
+            response = None
 
-        return self._on_request_token(oauth_authorize_url, callback_uri, None)
+        return self._on_request_token(oauth_authorize_url, callback_uri,
+            response)
 
     def get_authenticated_user(self, callback):
         """Gets the OAuth authorized user and access token on callback.
@@ -93,11 +93,23 @@ class OAuthMixin(object):
 
         token = dict(key=cookie_key, secret=cookie_secret)
         url = self._oauth_access_token_url(token)
-        return fetch_and_call(url, functools.partial(self._on_access_token,
-            callback))
+
+        try:
+            response = urlfetch.fetch(url, deadline=10)
+            if response.status_code < 200 or response.status_code >= 300:
+                logging.warning('Invalid OAuth response: %s',
+                    response.content)
+                response = None
+        except urlfetch.DownloadError, e:
+            logging.exception(e)
+            response = None
+
+        return self._on_access_token(callback, response)
 
     def _oauth_request_token_url(self):
         """
+
+        :return:
         """
         consumer_token = self._oauth_consumer_token()
         url = self._OAUTH_REQUEST_TOKEN_URL
@@ -164,7 +176,7 @@ class OAuthMixin(object):
             return
 
         access_token = _oauth_parse_response(response.content)
-        user = self._oauth_get_user(access_token, functools.partial(
+        return self._oauth_get_user(access_token, functools.partial(
              self._on_oauth_get_user, access_token, callback))
 
     def _oauth_get_user(self, access_token, callback):

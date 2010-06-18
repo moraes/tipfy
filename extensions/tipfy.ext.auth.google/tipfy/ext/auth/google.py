@@ -61,8 +61,7 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
     def _google_consumer_secret(self):
         self.app.get_config(__name__, 'google_consumer_secret')
 
-    def authorize_redirect(self, oauth_scope, callback_uri=None,
-                           ax_attrs=['name','email','language','username']):
+    def authorize_redirect(self, oauth_scope, callback_uri=None, ax_attrs=None):
         """Authenticates and authorizes for the given Google resource.
 
         Some of the available resources are:
@@ -75,6 +74,7 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
         URLs with a space.
         """
         callback_uri = callback_uri or self.request.path
+        ax_attrs = ax_attrs or ['name','email','language','username']
         args = self._openid_args(callback_uri, ax_attrs=ax_attrs,
                                  oauth_scope=oauth_scope)
         self.redirect(self._OPENID_ENDPOINT + '?' + urllib.urlencode(args))

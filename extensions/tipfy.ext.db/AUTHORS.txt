@@ -1,1 +1,1 @@
-tipfy.ext.db is developed and maintained by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+tipfy.ext.db is developed and maintained by Rodrigo Moraes <rodrigo.moraes@gmail.com>.

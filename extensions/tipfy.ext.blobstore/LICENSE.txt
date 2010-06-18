@@ -1,9 +1,2 @@
 tipfy.ext.blobstore is licensed under the Apache Licence, Version 2.0
 (http://www.apache.org/licenses/LICENSE-2.0.html).
-
-Based on the original App Engine library `google.appengine.ext.blobstore` and
-the adaptation to Werkzeug from Kay framework.
-
-Copyright (c) 2010 Google.
-Copyright (c) 2010 Accense Technology, Inc.
-Copyright (c) 2010 tipfy.org.

@@ -1,4 +1,4 @@
-tipfy.ext.i18n is developed and maintained by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+tipfy.ext.i18n is developed and maintained by Rodrigo Moraes <rodrigo.moraes@gmail.com>.
 
 to_local_timezone() and to_utc() functions were adapted from Kay Framework:
 

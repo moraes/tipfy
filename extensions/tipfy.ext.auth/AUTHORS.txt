@@ -1,2 +1,2 @@
 tipfy.ext.auth is developed and maintained by
-`Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+Rodrigo Moraes <rodrigo.moraes@gmail.com>.

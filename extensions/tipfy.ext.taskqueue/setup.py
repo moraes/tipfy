@@ -19,7 +19,7 @@ from setuptools import setup
 setup(
     name = 'tipfy.ext.taskqueue',
     version = '0.5.5',
-    license = 'BSD',
+    license = 'Apache Software License',
     url = 'http://www.tipfy.org/',
     description = 'Task queue extension for tipfy',
     long_description = __doc__,
@@ -43,7 +43,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',

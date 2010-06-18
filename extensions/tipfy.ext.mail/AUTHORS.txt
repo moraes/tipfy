@@ -1,7 +1,11 @@
-tipfy.ext.i18n is developed and maintained by `Rodrigo Moraes <rodrigo.moraes@gmail.com>`_.
+tipfy.ext.mail is developed and maintained by
+Rodrigo Moraes <rodrigo.moraes@gmail.com>.
 
-to_local_timezone() and to_utc() functions were adapted from Kay Framework:
+Based on `google.appengine.ext.webapp.mail_handlers`, from Google App Engine
+SDK.
 
-- `Kay <http://code.google.com/p/kay-framework/>`_
-  Copyright (c) 2009 Accense Technology, Inc. All rights reserved.
-  License: BSD
+Google App Engine SDK is licensed under the Apache Licence, Version 2.0
+(http://www.apache.org/licenses/LICENSE-2.0.html).
+
+Copyright (c) 2010 Google.
+Copyright (c) 2010 tipfy.org.

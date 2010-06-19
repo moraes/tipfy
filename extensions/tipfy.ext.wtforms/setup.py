@@ -7,8 +7,8 @@ that provides better integration with tipfy's request object. For example,
 input files are read from the form object, which is not supported by WTForms
 because it is framework dependant.
 
-The extension will also provide CSRF protection and captcha support in the
-future.
+The extension also provides builtin ReCaptcha support and will provide
+CSRF protection in the future.
 
 Documentation is available at
 `http://www.tipfy.org/wiki/extensions/wtforms/ <http://www.tipfy.org/wiki/extensions/wtforms/>`_.
@@ -26,7 +26,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.wtforms',
-    version = '0.2',
+    version = '0.3',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'WTForms extension for tipfy',

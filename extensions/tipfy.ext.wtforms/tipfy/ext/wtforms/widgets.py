@@ -52,21 +52,27 @@ class RecaptchaWidget(object):
 
         query = url_encode(options)
 
+        # Default options.
+        options = {
+            'theme': 'clean',
+            'custom_translations': {
+                'visual_challenge':    _('Get a visual challenge'),
+                'audio_challenge':     _('Get an audio challenge'),
+                'refresh_btn':         _('Get a new challenge'),
+                'instructions_visual': _('Type the two words:'),
+                'instructions_audio':  _('Type what you hear:'),
+                'help_btn':            _('Help'),
+                'play_again':          _('Play sound again'),
+                'cant_hear_this':      _('Download sound as MP3'),
+                'incorrect_try_again': _('Incorrect. Try again.')
+            }
+        }
+        custom_options = get_config('tipfy.ext.wtforms', 'recaptcha_options')
+        if custom_options:
+            options.update(custom_options)
+
         return RECAPTCHA_HTML % dict(
             script_url='%schallenge?%s' % (server, query),
             frame_url='%snoscript?%s' % (server, query),
-            options=dumps({
-                'theme':    'clean',
-                'custom_translations': {
-                    'visual_challenge': _('Get a visual challenge'),
-                    'audio_challenge': _('Get an audio challenge'),
-                    'refresh_btn': _('Get a new challenge'),
-                    'instructions_visual': _('Type the two words:'),
-                    'instructions_audio': _('Type what you hear:'),
-                    'help_btn': _('Help'),
-                    'play_again': _('Play sound again'),
-                    'cant_hear_this': _('Download sound as MP3'),
-                    'incorrect_try_again': _('Incorrect. Try again.')
-                }
-            })
+            options=dumps(options)
         )

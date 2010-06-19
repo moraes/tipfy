@@ -52,7 +52,7 @@ class RecaptchaWidget(object):
 
         query = url_encode(options)
 
-        # Default options.
+        # Widget default options.
         options = {
             'theme': 'clean',
             'custom_translations': {
@@ -64,7 +64,7 @@ class RecaptchaWidget(object):
                 'help_btn':            _('Help'),
                 'play_again':          _('Play sound again'),
                 'cant_hear_this':      _('Download sound as MP3'),
-                'incorrect_try_again': _('Incorrect. Try again.')
+                'incorrect_try_again': _('Incorrect. Try again.'),
             }
         }
         custom_options = get_config('tipfy.ext.wtforms', 'recaptcha_options')

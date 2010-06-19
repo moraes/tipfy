@@ -19,6 +19,10 @@ from tipfy.ext.wtforms.validators import ValidationError
 
 #: Default configuration values for this module. Keys are:
 #:
+#: - ``recaptcha_options``: A dictionary of options to customize the look of
+#:   the reCAPTCHA widget. See a description of the available options in
+#:   the `API docs <http://recaptcha.net/apidocs/captcha/client.html>`_.
+#:
 #: - ``recaptcha_use_ssl``: ``True`` to use SSL for ReCaptcha requests,
 #:   ``False`` otherwise.
 #:
@@ -26,6 +30,7 @@ from tipfy.ext.wtforms.validators import ValidationError
 #:
 #: - ``recaptcha_private_key``: Private key for ReCaptcha.
 default_config = {
+    'recaptcha_options':     None,
     'recaptcha_use_ssl':     False,
     'recaptcha_public_key':  REQUIRED_VALUE,
     'recaptcha_private_key': REQUIRED_VALUE,

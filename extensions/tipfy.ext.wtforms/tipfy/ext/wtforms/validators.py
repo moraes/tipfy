@@ -10,3 +10,4 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from wtforms.validators import *
+from wtforms.validators import ValidationError

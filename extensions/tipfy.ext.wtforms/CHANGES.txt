@@ -1,3 +1,8 @@
+Version 0.2 - June 18, 2010
+===========================
+- Fixed an import error.
+
+
 Version 0.1 - June 18, 2010
 ===========================
 - Initial version.

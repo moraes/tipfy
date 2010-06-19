@@ -1,3 +1,13 @@
+Version 0.4 - June 18, 2010
+===========================
+- Added configurable options to set reCAPTCHA widget.
+
+
+Version 0.3 - June 18, 2010
+===========================
+- Added reCAPTCHA support.
+
+
 Version 0.2 - June 18, 2010
 ===========================
 - Fixed an import error.

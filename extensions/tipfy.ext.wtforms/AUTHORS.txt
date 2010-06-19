@@ -2,3 +2,5 @@ tipfy.ext.wtforms is developed and maintained by
 Rodrigo Moraes <rodrigo.moraes@gmail.com>.
 
 Some code is based on original from `WTForms <http://wtforms.simplecodes.com/>`_.
+
+Recaptch implementation is adapted from `Solace <http://opensource.plurk.com/Solace/>`_.

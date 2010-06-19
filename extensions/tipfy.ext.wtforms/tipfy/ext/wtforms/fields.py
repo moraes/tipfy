@@ -5,15 +5,18 @@
 
     Form fields.
 
-    :copyright: 2010 tipfy.org.
     :copyright: 2010 WTForms authors.
+    :copyright: 2010 tipfy.org.
+    :copyright: 2009 Plurk Inc.
     :license: BSD, see LICENSE.txt for more details.
 """
 from wtforms.fields import (BooleanField, DecimalField, DateField,
-    DateTimeField, FieldList, FloatField, FormField, HiddenField, IntegerField,
-    PasswordField, RadioField, SelectField, SelectMultipleField, SubmitField,
-    TextField, TextAreaField)
-from wtforms import widgets
+    DateTimeField, Field, FieldList, FloatField, FormField, HiddenField,
+    IntegerField, PasswordField, RadioField, SelectField, SelectMultipleField,
+    SubmitField, TextField, TextAreaField)
+
+from tipfy.ext.wtforms import widgets
+from tipfy.ext.wtforms import validators
 
 
 class FileField(TextField):
@@ -27,3 +30,11 @@ class FileField(TextField):
 
     def _value(self):
         return u''
+
+
+class RecaptchaField(Field):
+    widget = widgets.RecaptchaWidget()
+
+    def __init__(self, *args, **kwargs):
+        kwargs['validators'] = [validators.Recaptcha()]
+        super(RecaptchaField, self).__init__(*args, **kwargs)

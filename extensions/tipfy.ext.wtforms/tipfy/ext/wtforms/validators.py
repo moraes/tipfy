@@ -25,7 +25,16 @@ RECAPTCHA_VERIFY_SERVER = 'http://api-verify.recaptcha.net/verify'
 
 class Recaptcha(object):
     """Validates a ReCaptcha."""
-    def __init__(self, message=u'Invalid word. Please try again'):
+    _error_codes = {
+        'invalid-site-public-key': 'The public key for reCAPTCHA is invalid',
+        'invalid-site-private-key': 'The private key for reCAPTCHA is invalid',
+        'invalid-referrer': 'The public key for reCAPTCHA is not valid for '
+            'this domainin',
+        'verify-params-incorrect': 'The parameters passed to reCAPTCHA '
+            'verification are incorrect',
+    }
+
+    def __init__(self, message=u'Invalid word. Please try again.'):
         self.message = message
 
     def __call__(self, form, field):
@@ -38,6 +47,7 @@ class Recaptcha(object):
             raise ValidationError('This field is required.')
 
         if not self._validate_recaptcha(challenge, response, remote_ip):
+            field.recaptcha_error = 'incorrect-captcha-sol'
             raise ValidationError(self.message)
 
     def _validate_recaptcha(self, challenge, response, remote_addr):
@@ -56,17 +66,19 @@ class Recaptcha(object):
         if result.status_code != 200:
             return False
 
-        rv = result.content.splitlines()
+        rv = [l.strip() for l in result.content.splitlines()]
+
+        import logging
+        logging.info('-' * 100)
+        logging.info(rv)
+        logging.info('-' * 100)
+
         if rv and rv[0] == 'true':
             return True
 
         if len(rv) > 1:
             error = rv[1]
-            if error == 'invalid-site-public-key':
-                raise RuntimeError('invalid public key for recaptcha set')
-            if error == 'invalid-site-private-key':
-                raise RuntimeError('invalid private key for recaptcha set')
-            if error == 'invalid-referrer':
-                raise RuntimeError('key not valid for the current domain')
+            if error in self._error_codes:
+                raise RuntimeError(self._error_codes[error])
 
         return False

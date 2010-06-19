@@ -35,6 +35,9 @@ class FileField(TextField):
 class RecaptchaField(Field):
     widget = widgets.RecaptchaWidget()
 
+    #: Set if validation fails.
+    recaptcha_error = None
+
     def __init__(self, *args, **kwargs):
         kwargs['validators'] = [validators.Recaptcha()]
         super(RecaptchaField, self).__init__(*args, **kwargs)

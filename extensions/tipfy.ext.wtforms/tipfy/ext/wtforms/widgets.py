@@ -36,21 +36,20 @@ RECAPTCHA_HTML = u'''
 '''
 
 class RecaptchaWidget(object):
-    def __call__(self, field, **kwargs):
+    def __call__(self, field, error=None, **kwargs):
         """Returns the recaptcha input HTML."""
         if get_config('tipfy.ext.wtforms', 'recaptcha_use_ssl'):
             server = RECAPTCHA_SSL_API_SERVER
         else:
             server = RECAPTCHA_API_SERVER
 
-        public_key = get_config('tipfy.ext.wtforms', 'recaptcha_public_key')
-        options = dict(k=public_key)
+        query_options = dict(k=get_config('tipfy.ext.wtforms',
+            'recaptcha_public_key'))
 
-        # TODO
-        #if error is not None:
-        #    options['error'] = unicode(error)
+        if field.recaptcha_error is not None:
+            query_options['error'] = unicode(field.recaptcha_error)
 
-        query = url_encode(options)
+        query = url_encode(query_options)
 
         # Widget default options.
         options = {

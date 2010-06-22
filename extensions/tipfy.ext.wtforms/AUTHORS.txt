@@ -1,6 +1,13 @@
 tipfy.ext.wtforms is developed and maintained by
 Rodrigo Moraes <rodrigo.moraes@gmail.com>.
 
-Some code is based on original from `WTForms <http://wtforms.simplecodes.com/>`_.
+tipfy.ext.wtforms also includes open source libraries or adapted code from the
+following projects:
 
-Recaptcha implementation is adapted from `Solace <http://opensource.plurk.com/Solace/>`_.
+- `WTForms <http://wtforms.simplecodes.com/>`_
+  Copyright (c) 2009 by Thomas Johansson, James Crasta and others.
+  License: BSD
+
+- `Solace <http://opensource.plurk.com/Solace/>`_.
+  Copyright (c) 2009 by the Solace Team.
+  License: BSD

@@ -1,1 +1,12 @@
 tipfy.ext.db is developed and maintained by Rodrigo Moraes <rodrigo.moraes@gmail.com>.
+
+tipfy.ext.db also includes open source libraries or adapted code from the
+following projects:
+
+- `aetycoon <http://github.com/Arachnid/aetycoon>`_
+  Copyright (c) 2010 Nick Hohnson.
+  License: Apache Sofware License
+
+- `Kay <http://code.google.com/p/kay-framework/>`_
+  Copyright (c) 2009 Accense Technology, Inc. All rights reserved.
+  License: BSD

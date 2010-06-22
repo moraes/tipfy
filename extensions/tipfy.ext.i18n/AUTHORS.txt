@@ -1,6 +1,15 @@
 tipfy.ext.i18n is developed and maintained by Rodrigo Moraes <rodrigo.moraes@gmail.com>.
 
-to_local_timezone() and to_utc() functions were adapted from Kay Framework:
+tipfy.ext.i18n also includes open source libraries or adapted code from the
+following projects:
+
+- `Babel <http://babel.edgewall.org/>`_
+  Copyright (c) 2007-2008 Edgewall Software.
+  License: BSD
+
+- `Pytz <http://pytz.sourceforge.net/>`_
+  Copyright (c) 2003-2009 Stuart Bishop <stuart@stuartbishop.net>.
+  License: MIT
 
 - `Kay <http://code.google.com/p/kay-framework/>`_
   Copyright (c) 2009 Accense Technology, Inc. All rights reserved.

@@ -1,1 +1,9 @@
-tipfy.ext.debugger is developed and maintained by Rodrigo Moraes <rodrigo.moraes@gmail.com>.
+tipfy.ext.debugger is developed and maintained by Rodrigo Moraes
+<rodrigo.moraes@gmail.com>.
+
+tipfy.ext.i18n also includes open source libraries or adapted code from the
+following projects:
+
+- `Werkzeug <http://werkzeug.pocoo.org/>`_
+  Copyright (c) 2009 by the Werkzeug Team.
+  License: BSD

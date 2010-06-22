@@ -1,12 +1,13 @@
 tipfy.ext.blobstore is developed and maintained by
 Rodrigo Moraes <rodrigo.moraes@gmail.com>.
 
-Based on `google.appengine.ext.blobstore`, from Google App Engine SDK, and
-the adaptation to Werkzeug from Kay framework.
+tipfy.ext.blobstore also includes open source libraries or adapted code from
+the following projects:
 
-Google App Engine SDK is licensed under the Apache Licence, Version 2.0
-(http://www.apache.org/licenses/LICENSE-2.0.html).
+- `Google App Engine SDK <http://code.google.com/appengine/>`_
+  Copyright (c) 2007 Google Inc.
+  License: Apache 2.0
 
-Copyright (c) 2010 Google.
-Copyright (c) 2009 Accense Technology, Inc.
-Copyright (c) 2010 tipfy.org.
+- `Kay <http://code.google.com/p/kay-framework/>`_
+  Copyright (c) 2009 Accense Technology, Inc. All rights reserved.
+  License: BSD

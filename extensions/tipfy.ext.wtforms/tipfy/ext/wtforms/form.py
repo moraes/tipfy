@@ -14,6 +14,11 @@ from wtforms import Form as BaseForm
 from tipfy import Request
 from tipfy.ext.wtforms.fields import FileField
 
+try:
+    from tipfy.ext import i18n
+except ImportError, e:
+    i18n = None
+
 
 class Form(BaseForm):
     def process(self, formdata=None, obj=None, **kwargs):
@@ -54,3 +59,11 @@ class Form(BaseForm):
                 field.process(data, kwargs[name])
             else:
                 field.process(data)
+
+    def _get_translations(self):
+        ctx = _request_ctx_stack.top
+
+        if ctx is not None and hasattr(ctx, 'babel_instance'):
+            return babel.get_translations()
+
+        return None

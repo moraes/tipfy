@@ -1,11 +1,9 @@
 tipfy.ext.xmpp is developed and maintained by
 Rodrigo Moraes <rodrigo.moraes@gmail.com>.
 
-Based on `google.appengine.ext.webapp.xmpp_handlers`, from Google App Engine
-SDK.
+tipfy.ext.blobstore also includes open source libraries or adapted code from
+the following projects:
 
-Google App Engine SDK is licensed under the Apache Licence, Version 2.0
-(http://www.apache.org/licenses/LICENSE-2.0.html).
-
-Copyright (c) 2010 Google.
-Copyright (c) 2010 tipfy.org.
+- `Google App Engine SDK <http://code.google.com/appengine/>`_
+  Copyright (c) 2007 Google Inc.
+  License: Apache 2.0

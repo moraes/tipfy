@@ -2,8 +2,10 @@
 tipfy.ext.session
 =================
 
-This extension provides session support for tipfy, the almighty little
-framework for Google App Engine.
+This extension provides session support for tipfy using secure cookies,
+memcache or datastore.
+
+Tipfy is a framework designed specifically for Google App Engine.
 
 Links
 -----
@@ -18,7 +20,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.session',
-    version = '0.5.5',
+    version = '0.6',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Session extension for tipfy',

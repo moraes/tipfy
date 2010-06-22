@@ -81,10 +81,8 @@ default_config = {
     'subdomain': None,
     'url_map': None,
     'url_rules': 'urls.get_rules',
-
-    'wsgi_app_id': 'main',
-    'dev': os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
-    'app_id': os.environ.get('APPLICATION_ID', None),
+    'dev':        os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
+    'app_id':     os.environ.get('APPLICATION_ID', None),
     'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
 }
 

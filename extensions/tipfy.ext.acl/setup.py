@@ -2,8 +2,9 @@
 tipfy.ext.acl
 =============
 
-This extension provides an Access Control implementation for tipfy, the
-almighty little framework for Google App Engine.
+This extension provides an Access Control implementation for tipfy.
+
+Tipfy is a framework designed specifically for Google App Engine.
 
 Documentation is available at
 `http://www.tipfy.org/wiki/extensions/acl/ <http://www.tipfy.org/wiki/extensions/acl/>`_.

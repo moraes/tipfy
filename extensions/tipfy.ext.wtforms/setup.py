@@ -26,7 +26,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.wtforms',
-    version = '0.4',
+    version = '0.5',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'WTForms extension for tipfy',
@@ -38,6 +38,7 @@ setup(
     packages = [
         'tipfy',
         'tipfy.ext',
+        'tipfy.ext.wtforms',
     ],
     namespace_packages = [
         'tipfy',

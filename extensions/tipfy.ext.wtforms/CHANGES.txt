@@ -1,3 +1,7 @@
+Version 0.5 - June 22, 2010
+===========================
+- Cleanup.
+
 Version 0.4 - June 18, 2010
 ===========================
 - Added configurable options to set reCAPTCHA widget.

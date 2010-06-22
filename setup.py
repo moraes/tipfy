@@ -35,8 +35,7 @@ setup(
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/tipfy.tar.gz',
-    description = 'The almighty little framework made specifically for Google '
-        'App Engine',
+    description = 'The almighty little framework for Google App Engine',
     long_description = __doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',

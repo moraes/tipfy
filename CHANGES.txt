@@ -1,5 +1,5 @@
-Development version
-===================
+Version 0.5.6 - June 22, 2010
+=============================
 - REMOVED: RegexConverter. Unused and undocumented.
 
 - REMOVED: normalize_callable(). Unused.
@@ -7,8 +7,22 @@ Development version
 - REMOVED: wsgi_app_id config key. Unused.
 
 - Middleware lists can now also have middleware instances. This allows
-  middleware of same classes to be used in different instances with different
-  configuration.
+  different instances of same middleware classes to be used with different
+  configuration:
+
+  my_middleware = MyMiddleware(foo='bar')
+
+  class MyRequestHandler(RequestHandler):
+      middleware = [my_middleware]
+
+      # ...
+
+  my_middleware2 = MyMiddleware(foo='zing')
+
+  class MyRequestHandler2(RequestHandler):
+      middleware = [my_middleware2]
+
+      # ...
 
 - Fixed using tipfy with zipimport. For whatever reason py_zipimport fails to
   load werkzeug modules if werkzeug package is not imported first. This is

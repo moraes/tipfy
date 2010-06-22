@@ -33,7 +33,7 @@ try:
 except ImportError, e:
     pass
 
-__version__ = '0.5.5'
+__version__ = '0.5.6'
 
 # Variable store for a single request.
 local = Local()

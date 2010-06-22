@@ -13,6 +13,8 @@ import logging
 from wsgiref.handlers import CGIHandler
 
 # Werkzeug swiss knife.
+# Need to import werkzeug first otherwise py_zipimport fails.
+import werkzeug
 from werkzeug import (cached_property, escape, import_string, Local, redirect,
     Request as WerkzeugRequest, Response as WerkzeugResponse, url_quote)
 from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,

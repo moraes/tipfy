@@ -11,8 +11,14 @@
 from tipfy import Rule
 
 
-def get_rules():
-    """Returns a list of URL rules for the Hello, World! application."""
+def get_rules(app):
+    """Returns a list of URL rules for the Hello, World! application.
+
+    :param app:
+        The WSGI application instance.
+    :return:
+        A list of class:`tipfy.Rule` instances.
+    """
     rules = [
         Rule('/', endpoint='hello-world', handler='apps.hello_world.handlers.HelloWorldHandler'),
         Rule('/pretty', endpoint='hello-world-pretty', handler='apps.hello_world.handlers.PrettyHelloWorldHandler'),

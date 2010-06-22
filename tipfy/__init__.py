@@ -429,8 +429,12 @@ class Tipfy(object):
         if isinstance(rv, list):
             return rv
 
-        # TODO pass self.
-        return rv()
+        try:
+            return rv(self)
+        except TypeError, e:
+            # Backwards compatibility:
+            # Previously get_rules() didn't receive the wsgi app.
+            return rv()
 
     def match_url(self, request):
         """Matches registered URL rules against the request. This will store

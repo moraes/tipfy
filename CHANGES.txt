@@ -10,6 +10,11 @@ Development version
   middleware of same classes to be used in different instances with different
   configuration.
 
+- Fixed using tipfy with zipimport. For whatever reason py_zipimport fails to
+  load werkzeug modules if werkzeug package is not imported first. This is
+  probably related to how werkzeug lazy-loads modules -- an edge case not
+  covered by py_zimpimport.
+
 
 Version 0.5.5 - June 2nd, 2010
 ==============================

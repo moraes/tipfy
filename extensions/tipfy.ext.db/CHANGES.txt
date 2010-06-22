@@ -1,3 +1,11 @@
+Version 0.5.7 - June 21, 2010
+=============================
+- get_property_dict() was renamed to get_entity_dict() (old name is still
+  valid).
+- get_entity_dict() now accepts a list of entities, not only a single one.
+- added get_entity_properties().
+
+
 Version 0.5.6 - June 6, 2010
 ============================
 - Made pytz optional - it is only required by TimezoneProperty.

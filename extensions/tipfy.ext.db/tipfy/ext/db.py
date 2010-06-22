@@ -186,22 +186,44 @@ def populate_entity(entity, **kwargs):
     :return:
         ``None``
     """
-    properties = entity.properties().keys() + entity.dynamic_properties()
+    properties = get_entity_properties(entity)
     for key, value in kwargs.iteritems():
         if key in properties:
             setattr(entity, key, value)
 
 
-def get_property_dict(entity):
-    """Returns a dictionary with all the properties and values in an entity.
+def get_entity_properties(entity):
+    """Returns a list with all property names in an entity.
 
     :param entity:
         A ``db.Model`` instance.
     :return:
-        A dictionary mapping property names to values.
+        A list with all property names in the entity.
     """
-    properties = entity.properties().keys() + entity.dynamic_properties()
-    return dict((k, getattr(entity, k)) for k in properties)
+    return entity.properties().keys() + entity.dynamic_properties()
+
+
+def get_entity_dict(entities):
+    """Returns a dictionary with all the properties and values in an entity.
+
+    :param entities:
+        One or more ``db.Model`` instances.
+    :return:
+        A dictionary or a list of dictionaries mapping property names to
+        values.
+    """
+    single = False
+    if isinstance(entities, db.Model):
+        entities = [entities]
+        single = True
+
+    res = [dict((k, getattr(e, k)) for k in get_entity_properties(e)) \
+        for e in entities]
+
+    if single:
+        return res[0]
+
+    return res
 
 
 def get_or_insert_with_flag(model, key_name, **kwargs):
@@ -687,3 +709,7 @@ def _slugify(value, max_length=None, default=None):
                 s = s.rsplit('-', 1)[0]
 
     return s
+
+
+# Old name
+get_property_dict = get_entity_dict

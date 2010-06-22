@@ -2,8 +2,9 @@
 tipfy.ext.db
 ============
 
-This extension provides database utilities for tipfy, the almighty little
-framework for Google App Engine.
+This extension provides datastore utilities for tipfy.
+
+Tipfy is a framework designed specifically for Google App Engine.
 
 Links
 -----
@@ -18,7 +19,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.db',
-    version = '0.5.6',
+    version = '0.5.7',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Database extension for tipfy',

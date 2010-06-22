@@ -266,9 +266,9 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
 
     #===========================================================================
-    # ext_db.get_property_dict
+    # ext_db.get_entity_dict
     #===========================================================================
-    def test_get_property_dict(self):
+    def test_get_entity_dict(self):
         class MyModel(db.Model):
             animal = db.StringProperty()
             species = db.IntegerProperty()
@@ -276,7 +276,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
         entity = MyModel(animal='duck', species=12,
             description='A duck is a bird that swims well.')
-        values = ext_db.get_property_dict(entity)
+        values = ext_db.get_entity_dict(entity)
 
         assert values == {
             'animal': 'duck',
@@ -284,7 +284,32 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
             'description': 'A duck is a bird that swims well.',
         }
 
-    def test_get_property_dict_with_expando(self):
+    def test_get_entity_dict_multiple(self):
+        class MyModel(db.Model):
+            animal = db.StringProperty()
+            species = db.IntegerProperty()
+            description = db.TextProperty()
+
+        entity = MyModel(animal='duck', species=12,
+            description='A duck is a bird that swims well.')
+        entity2 = MyModel(animal='bird', species=7,
+            description='A bird is an animal that flies well.')
+        values = ext_db.get_entity_dict([entity, entity2])
+
+        assert values == [
+            {
+                'animal': 'duck',
+                'species': 12,
+                'description': 'A duck is a bird that swims well.',
+            },
+            {
+                'animal': 'bird',
+                'species': 7,
+                'description': 'A bird is an animal that flies well.',
+            }
+        ]
+
+    def test_get_entity_dict_with_expando(self):
         class MyModel(db.Expando):
             animal = db.StringProperty()
             species = db.IntegerProperty()
@@ -293,7 +318,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity = MyModel(animal='duck', species=12,
             description='A duck is a bird that swims well.',
             most_famous='Daffy Duck')
-        values = ext_db.get_property_dict(entity)
+        values = ext_db.get_entity_dict(entity)
 
         assert values == {
             'animal': 'duck',

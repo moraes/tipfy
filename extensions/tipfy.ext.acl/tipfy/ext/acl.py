@@ -144,7 +144,8 @@ class AclRules(db.Model):
 
     @classmethod
     def insert_or_update(cls, area, user, roles=None, rules=None):
-        """Inserts or updates ACL rules and roles for a given user.
+        """Inserts or updates ACL rules and roles for a given user. This will
+        reset roles and rules if the user exists and the values are not passed.
 
         :param area:
             Area string identifier.
@@ -157,24 +158,16 @@ class AclRules(db.Model):
         :return:
             An AclRules entity.
         """
-        key_name = cls.get_key_name(area, user)
+        if roles is None:
+            roles = []
 
-        def txn():
-            user_acl = cls.get_by_key_name(key_name)
-            if user_acl is None:
-                user_acl = cls(key_name=key_name, area=area, user=user,
-                    rules=[])
+        if rules is None:
+            rules = []
 
-            if roles is not None:
-                user_acl.roles = roles
-
-            if rules is not None:
-                user_acl.rules = rules
-
-            user_acl.put()
-            return user_acl
-
-        return db.run_in_transaction(txn)
+        user_acl = cls(key_name=cls.get_key_name(area, user), area=area,
+            user=user, roles=roles, rules=rules)
+        user_acl.put()
+        return user_acl
 
     @classmethod
     def get_roles_and_rules(cls, area, user, roles_map, roles_lock):

@@ -5,7 +5,7 @@
 import unittest
 from nose.tools import raises
 
-from tipfy import (Map, NotFound, Request, Rule, url_for, Tipfy)
+from tipfy import (Map, NotFound, Request, Rule, Tipfy, url_for)
 
 
 def get_url_map():
@@ -57,37 +57,6 @@ class TestUrls(unittest.TestCase):
         assert rule_2.handler == 'test.home:HomeHandler'
         assert rule_2.endpoint == 'home'
         assert rule_2.defaults == {'foo': 'bar'}
-
-    #===========================================================================
-    # RegexConverter
-    #===========================================================================
-    def test_regex_converter(self):
-        app = Tipfy({'tipfy': {
-            'url_map': Map([
-                Rule('/<regex(".*"):path>', endpoint='home',
-                    handler='test.home:HomeHandler'),
-            ]),
-        },})
-        request = get_request(app, base_url='http://foo.com', path='/foo')
-        app.match_url(request)
-        rule, rule_args = request.rule, request.rule_args
-
-        assert 'path' in rule_args
-        assert rule_args['path'] == 'foo'
-
-    def test_regex_converter2(self):
-        app = Tipfy({'tipfy': {
-            'url_map': Map([
-                Rule('/<regex(".*"):path>', endpoint='home',
-                    handler='test.home:HomeHandler'),
-            ]),
-        },})
-        request = get_request(app, base_url='http://foo.com', path='/foo/bar/baz')
-        app.match_url(request)
-        rule, rule_args = request.rule, request.rule_args
-
-        assert rule_args['path'] == 'foo/bar/baz'
-
 
     #===========================================================================
     # URL match

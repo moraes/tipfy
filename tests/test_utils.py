@@ -54,29 +54,6 @@ class TestUtils(unittest.TestCase):
         Tipfy.app = Tipfy.request = None
 
     #===========================================================================
-    # normalize_callable()
-    #===========================================================================
-    def test_normalize_callable_string(self):
-        my_callable = normalize_callable('tipfy.Tipfy')
-        assert my_callable is Tipfy
-
-    def test_normalize_callable_callable(self):
-        my_callable = normalize_callable(Tipfy)
-        assert my_callable is Tipfy
-
-    @raises(ValueError)
-    def test_normalize_callable_not_callable(self):
-        my_callable = normalize_callable('tipfy.default_config')
-
-    @raises(ImportError)
-    def test_normalize_callable_import_error(self):
-        my_callable = normalize_callable('foo.bar.i_dont_exist')
-
-    @raises(AttributeError)
-    def test_normalize_callable_attribute_error(self):
-        my_callable = normalize_callable('tipfy.i_dont_exist')
-
-    #===========================================================================
     # redirect()
     #===========================================================================
     def test_redirect(self):

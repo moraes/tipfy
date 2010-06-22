@@ -73,8 +73,6 @@ app, request = local('app'), local('request')
 #:
 #: - ``version_id``: The current deplyment version id. Default is the value
 #:   of ``os.environ['CURRENT_VERSION_ID']``.
-#:
-#: 'url_rules', 'urls.get_rules'
 default_config = {
     'apps_installed': [],
     'apps_entry_points': {},
@@ -82,10 +80,13 @@ default_config = {
     'server_name': None,
     'subdomain': None,
     'url_map': None,
+    # Undocumented for now.
     'url_rules': 'urls.get_rules',
-    'dev':        os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
-    'app_id':     os.environ.get('APPLICATION_ID', None),
+    'dev': os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
+    'app_id': os.environ.get('APPLICATION_ID', None),
     'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
+    # Undocumented for now.
+    'url_map_kwargs': {},
 }
 
 # Allowed request methods.
@@ -403,38 +404,25 @@ class Tipfy(object):
             A ``werkzeug.routing.Map`` instance.
         """
         rv = self.config.get('tipfy', 'url_map')
-
-        if isinstance(rv, basestring):
-            try:
-                rv = import_string(rv)
-            except (AttributeError, ImportError), e:
-                logging.warning('Missing %s. No URL map was loaded.' % rv)
-                return Map(self.get_url_rules())
-
-        if isinstance(rv, Map):
+        if rv:
             return rv
 
-        return rv(self, self.get_url_rules())
+        kwargs = self.config.get('tipfy').get('url_map_kwargs')
+        return Map(self.get_url_rules(), **kwargs)
 
     def get_url_rules(self):
-        rv = self.config.get('tipfy', 'url_rules')
-
-        if isinstance(rv, basestring):
-            try:
-                rv = import_string(rv)
-            except (AttributeError, ImportError), e:
-                logging.warning('Missing %s. No URL rules were loaded.' % rv)
-                return []
-
-        if isinstance(rv, list):
-            return rv
-
         try:
-            return rv(self)
-        except TypeError, e:
-            # Backwards compatibility:
-            # Previously get_rules() didn't receive the wsgi app.
-            return rv()
+            get_rules = import_string(self.config.get('tipfy', 'url_rules'))
+            try:
+                return get_rules(self)
+            except TypeError, e:
+                # Backwards compatibility:
+                # Previously get_rules() didn't receive the wsgi app.
+                return get_rules()
+        except (AttributeError, ImportError), e:
+            logging.warning('Missing %s. No URL rules were loaded.' %
+                get_rules)
+            return []
 
     def match_url(self, request):
         """Matches registered URL rules against the request. This will store
@@ -450,9 +438,12 @@ class Tipfy(object):
         :return:
             ``None``.
         """
+        # Bind url map to the current request location.
+        server_name = self.config.get('tipfy', 'server_name', None)
+        subdomain = self.config.get('tipfy', 'subdomain', None)
         # Set self.url_adapter for backwards compatibility only.
         request.url_adapter = self.url_map.bind_to_environ(request.environ,
-            server_name=request.server_name, subdomain=request.subdomain)
+            server_name=server_name, subdomain=subdomain)
 
         try:
             # Match the path against registered rules.

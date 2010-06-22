@@ -840,32 +840,44 @@ class MiddlewareFactory(object):
 
         return self.obj_middleware[id]
 
-    def load_middleware(self, classes):
+    def load_middleware(self, specs):
         """Returns a dictionary of middleware instance methods for a list of
-        classes.
+        middleware specifications.
 
-        :param classes:
-            A list of middleware classes.
+        :param specs:
+            A list of middleware classes, classes as strings or instances.
         :return:
             A dictionary with middleware instance methods.
         """
         res = {}
 
-        for cls in classes:
-            if isinstance(cls, basestring):
-                id = cls
+        for spec in specs:
+            # We accept 3 types of middleware definitions: strings, classes
+            # and instances.
+            is_str = isinstance(spec, basestring)
+            is_instance = not is_str and not isinstance(spec, type)
+
+            if is_instance:
+                # Instance.
+                spec_id = id(spec)
+                obj = spec
+            elif is_str:
+                spec_id = spec
             else:
-                id = cls.__module__ + '.' + cls.__name__
+                spec_id = spec.__module__ + '.' + spec.__name__
 
-            if id not in self.methods:
-                if isinstance(cls, basestring):
-                    cls = import_string(cls)
+            if spec_id not in self.methods:
+                if is_str:
+                    spec = import_string(spec)
 
-                obj = cls()
-                self.instances[id] = obj
-                self.methods[id] = [getattr(obj, n, None) for n in self.names]
+                if not is_instance:
+                    obj = spec()
 
-            for name, method in zip(self.names, self.methods[id]):
+                self.instances[spec_id] = obj
+                self.methods[spec_id] = [getattr(obj, n, None) for n in \
+                    self.names]
+
+            for name, method in zip(self.names, self.methods[spec_id]):
                 if method:
                     res.setdefault(name, []).append(method)
 

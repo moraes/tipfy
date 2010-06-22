@@ -2,7 +2,13 @@ Development version
 ===================
 - REMOVED: RegexConverter. Unused and undocumented.
 
+- REMOVED: normalize_callable(). Unused.
+
 - REMOVED: wsgi_app_id config key. Unused.
+
+- Middleware lists can now also have middleware instances. This allows
+  middleware of same classes to be used in different instances with different
+  configuration.
 
 
 Version 0.5.5 - June 2nd, 2010

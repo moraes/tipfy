@@ -139,7 +139,7 @@ tipfy.ext.i18n
 - IMPROVED: All datetime and number format functions in ext.i18n now accept a
   locale argument. If not set, uses the currently loaded locale (as before).
 
-- ADDED: babel.cfg to the buildout directory, with configuration to extract
+- ADDED: babel.cfg to the project directory, with configuration to extract
   translation messages using pybabel. Also added locale directory to the app
   dir.
 

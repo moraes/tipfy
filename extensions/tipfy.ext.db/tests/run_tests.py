@@ -22,5 +22,5 @@ if __name__ == '__main__':
     sys.path[0:0] = [tipfy, app]
 
     argv = [__file__]
-    argv += '-d --with-gae -P --without-sandbox --cover-erase --with-coverage --cover-package=tipfy.ext.db --gae-application=../../../buildout/app'.split()
+    argv += '-d --with-gae -P --without-sandbox --cover-erase --with-coverage --cover-package=tipfy.ext.db --gae-application=../../../project/app'.split()
     nose.run(argv=argv)

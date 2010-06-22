@@ -21,7 +21,7 @@ development server pointing to the /app dir inside the uncompressed archive:
 - Run the dev_appserver tool from the App Engine SDK (or the App Engine
   Launcher) pointing to the /app directory inside the uncompressed archive:
 
-    dev_appserver.py /path/to/buildout/app
+    dev_appserver.py /path/to/project/app
 
 - Open a browser and test the URLs:
 
@@ -37,7 +37,7 @@ Do-it-yourself installation
 If you downloaded the do-it-yourself pack, you need to first install the
 needed libraries before running de development server. Here's how:
 
-- Access the buildout directory and call the bootstrap script using your
+- Access the project directory and call the bootstrap script using your
   Python 2.5 interpreter. We pass the command --distribute because it
   is preferable to the default setuptools. This will prepare buildout to run:
 

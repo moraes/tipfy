@@ -1,8 +1,11 @@
+Development version
+===================
+- REMOVED: normalize_callable(). Unused.
+
+
 Version 0.5.6 - June 22, 2010
 =============================
 - REMOVED: RegexConverter. Unused and undocumented.
-
-- REMOVED: normalize_callable(). Unused.
 
 - REMOVED: wsgi_app_id config key. Unused.
 

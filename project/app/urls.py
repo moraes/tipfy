@@ -28,7 +28,7 @@ def get_rules(app):
         try:
             # Load the urls module from the app and extend our rules.
             app_rules = import_string('%s.urls' % app_module)
-            rules.extend(app_rules.get_rules())
+            rules.extend(app_rules.get_rules(app))
         except ImportError:
             pass
 

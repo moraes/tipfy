@@ -139,11 +139,12 @@ class RequestHandler(object):
         :return:
             A :class:`Response` instance.
         """
-        if len(args) == 1:
-            # For backwards compatibility only.
+        if args:
+            # Explicit action and arguments.
             action = args[0]
             rule_args = kwargs
         else:
+            # Implicit action and arguments, taken from request.
             action = self.request.method.lower()
             rule_args = self.request.rule_args
 
@@ -411,6 +412,12 @@ class Tipfy(object):
         return Map(self.get_url_rules(), **kwargs)
 
     def get_url_rules(self):
+        """Loads and returns the URL rule definitions for the application.
+
+        :return:
+            A list of :class:`tipfy.Rule` with the URL definitions for the
+            application..
+        """
         try:
             get_rules = import_string(self.config.get('tipfy', 'url_rules'))
             try:
@@ -530,9 +537,6 @@ class Tipfy(object):
         :return:
             A :class:`Response` instance.
         """
-        if rv is None:
-            raise ValueError('Handler did not return a response.')
-
         if isinstance(rv, self.response_class):
             return rv
 
@@ -541,6 +545,9 @@ class Tipfy(object):
 
         if isinstance(rv, tuple):
             return self.response_class(*rv)
+
+        if rv is None:
+            raise ValueError('Handler did not return a response.')
 
         return self.response_class.force_type(rv, request.environ)
 
@@ -561,10 +568,10 @@ class Tipfy(object):
             if response is not None:
                 return response
 
-        logging.exception(e)
-
         if self.dev:
             raise
+
+        logging.exception(e)
 
         if isinstance(e, HTTPException):
             return e
@@ -847,12 +854,12 @@ class MiddlewareFactory(object):
         res = {}
 
         for spec in specs:
-            # We accept 3 types of middleware definitions: strings, classes
-            # and instances.
+            # Middleware can be defined in 3 forms: strings, classes and
+            # instances.
             is_str = isinstance(spec, basestring)
-            is_instance = not is_str and not isinstance(spec, type)
+            is_obj = not is_str and not isinstance(spec, type)
 
-            if is_instance:
+            if is_obj:
                 # Instance.
                 spec_id = id(spec)
                 obj = spec
@@ -865,7 +872,7 @@ class MiddlewareFactory(object):
                 if is_str:
                     spec = import_string(spec)
 
-                if not is_instance:
+                if not is_obj:
                     obj = spec()
 
                 self.instances[spec_id] = obj
@@ -1012,38 +1019,19 @@ def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
 
 
 def render_json_response(*args, **kwargs):
-    """Renders a JSON response, automatically encoding `obj` to JSON.
+    """Renders a JSON response.
 
     :param args:
         Arguments to be passed to simplejson.dumps().
     :param kwargs:
         Keyword arguments to be passed to simplejson.dumps().
     :return:
-        A :class:`tipfy.Response` object with `obj` converted to JSON in
-        the body and mimetype set to ``application/json``.
+        A :class:`tipfy.Response` object with a JSON string in the body and
+        mimetype set to ``application/json``.
     """
     from django.utils import simplejson
     return Response(simplejson.dumps(*args, **kwargs),
         mimetype='application/json')
-
-
-def normalize_callable(spec):
-    """Many `Tipfy`_ configurations expect a callable or optionally a string
-    with a callable definition to be lazily imported. This function normalizes
-    those definitions, importing the callable if necessary.
-
-    :param spec:
-        A callable or a string with a callable definition to be imported.
-    :return:
-        A callable.
-    """
-    if isinstance(spec, basestring):
-        spec = import_string(spec)
-
-    if not callable(spec):
-        raise ValueError('%s is not a callable.' % str(spec))
-
-    return spec
 
 
 def make_wsgi_app(config=None, app_id='__main__'):
@@ -1123,7 +1111,6 @@ __all__ = [
     'get_config',
     'import_string',
     'make_wsgi_app',
-    'normalize_callable',
     'redirect',
     'redirect_to',
     'render_json_response',

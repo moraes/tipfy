@@ -8,8 +8,8 @@ from nose.tools import raises
 import werkzeug
 
 try:
-    from tipfy import (Map, normalize_callable, redirect, redirect_to,
-        render_json_response, Request, Response, Rule, Tipfy)
+    from tipfy import (Map, redirect, redirect_to, render_json_response,
+        Request, Response, Rule, Tipfy)
 except ImportError:
     import sys
     res = ''

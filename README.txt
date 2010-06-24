@@ -31,4 +31,5 @@ And if you have any issues, open a ticket at Google Code:
 Installation
 ============
 
-Read the instructions in `project/README.txt`.
+Read the instructions in `project/README.txt` or for a more detailed
+description see `installation instructions <http://www.tipfy.org/wiki/guide/installation/>`_.

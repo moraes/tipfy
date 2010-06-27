@@ -1,0 +1,4 @@
+tipfy.ext.genshi is a port from `Flask-Genshi <http://packages.python.org/Flask-Genshi>`_,
+written by Dag Odenhall <dag.odenhall@gmail.com>.
+
+tipfy.ext.genshi is maintained by Rodrigo Moraes <rodrigo.moraes@gmail.com>.

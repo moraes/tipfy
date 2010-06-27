@@ -18,7 +18,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.jinja2',
-    version = '0.5.8',
+    version = '0.5.9',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Jinja2 extension for tipfy',

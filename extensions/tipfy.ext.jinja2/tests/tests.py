@@ -14,6 +14,9 @@ templates_compiled_target = os.path.join(current_dir, 'resources', 'templates_co
 
 
 class TestJinja2(unittest.TestCase):
+    def setUp(self):
+        Tipfy.request = Tipfy.request_class.from_values()
+
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
 
@@ -51,13 +54,15 @@ class TestJinja2(unittest.TestCase):
     def test_jinja2_mixin(self):
         jinja2._environment = None
         class MyHandler(jinja2.Jinja2Mixin):
-            def __init__(self):
+            def __init__(self, app, request):
+                self.app = app
+                self.request = request
                 self.context = {}
 
         app = Tipfy({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
         message = 'Hello, World!'
 
-        handler = MyHandler()
+        handler = MyHandler(Tipfy.app, Tipfy.request)
         response = handler.render_response('template1.html', message=message)
         assert isinstance(response, Response)
         assert response.mimetype == 'text/html'

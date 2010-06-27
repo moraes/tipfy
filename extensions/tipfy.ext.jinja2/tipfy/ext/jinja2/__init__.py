@@ -3,7 +3,7 @@
     tipfy.ext.jinja2
     ~~~~~~~~~~~~~~~~
 
-    Jinja2 template engine extension.
+    Jinja2 template support for Tipfy.
 
     Learn more about Jinja2 at http://jinja.pocoo.org/2/
 
@@ -12,7 +12,13 @@
 """
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
-from tipfy import Tipfy, get_config, url_for
+from tipfy import Tipfy, url_for
+
+try:
+    from tipfy.ext import i18n
+except (ImportError, AttributeError), e:
+    i18n = None
+
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -30,74 +36,97 @@ default_config = {
     'force_use_compiled': False,
 }
 
-# Jinja2 Environment, cached in the module.
-_environment = None
-
 
 class Jinja2Mixin(object):
-    """:class:`tipfy.RequestHandler` mixing to add a convenient
-    ``render_response`` function to handlers. It expects a ``context``
-    dictionary to be set in the handler, so that the passed values are added to
-    the context. The idea is that other mixins can use this context to set
-    template values.
+    """:class:`tipfy.RequestHandler` mixin that add ``render_template`` and
+    ``render_response`` methods to a :class:`tipfy.RequestHandler`. It will
+    use the request context to render templates.
     """
-    def render_response(self, filename, **values):
-        """Renders a template and returns a response object.
+    def render_template(self, filename, **context):
+        """Renders a template and returns a response object. It will pass
 
         :param filename:
             The template filename, related to the templates directory.
         :param context:
             Keyword arguments used as variables in the rendered template.
+            These will override values set in the request context.
+       :return:
+            A :class:`tipfy.Response` object with the rendered template.
+        """
+        request_context = dict(self.request.context)
+        request_context.update(context)
+        return render_template(filename, **request_context)
+
+    def render_response(self, filename, **context):
+        """Returns a response object with a rendered template. It will pass
+
+        :param filename:
+            The template filename, related to the templates directory.
+        :param context:
+            Keyword arguments used as variables in the rendered template.
+            These will override values set in the request context.
         :return:
             A :class:`tipfy.Response` object with the rendered template.
         """
-        context = dict(self.context)
-        context.update(values)
-        return render_response(filename, **context)
+        request_context = dict(self.request.context)
+        request_context.update(context)
+        return render_response(filename, **request_context)
 
 
-def get_env():
+def _get_jinja2_instance(app):
     """Returns the Jinja2 environment, a singleton.
 
     :return:
         A ``jinja2.Environment`` instance.
     """
-    global _environment
-    if _environment is None:
-        templates_compiled_target = get_config(__name__,
-            'templates_compiled_target')
+    templates_compiled_target = app.get_config(__name__,
+        'templates_compiled_target')
 
-        use_compiled = not get_config('tipfy', 'dev') or get_config(__name__,
-            'force_use_compiled')
+    use_compiled = not app.dev or app.get_config(__name__, 'force_use_compiled')
 
-        if templates_compiled_target is not None and use_compiled:
-            # Use precompiled templates loaded from a module or zip.
-            loader = ModuleLoader(templates_compiled_target)
-        else:
-            # Parse templates for every new environment instances.
-            loader = FileSystemLoader(get_config(__name__, 'templates_dir'))
+    if templates_compiled_target is not None and use_compiled:
+        # Use precompiled templates loaded from a module or zip.
+        loader = ModuleLoader(templates_compiled_target)
+    else:
+        # Parse templates for every new environment instances.
+        loader = FileSystemLoader(app.get_config(__name__, 'templates_dir'))
 
-        # Initialize the environment.
-        _environment = Environment(loader=loader,
-            extensions=['jinja2.ext.i18n'])
+    if i18n:
+        extensions = ['jinja2.ext.i18n']
+    else:
+        extensions = []
 
-        # Add url_for() by default.
-        _environment.globals['url_for'] = url_for
+    # Initialize the environment.
+    env = Environment(loader=loader, extensions=extensions)
 
-        try:
-            from tipfy.ext import i18n
-            # Install i18n, first forcing it to be loaded if not yet.
-            i18n.get_translations()
-            _environment.install_gettext_translations(i18n.translations)
-            _environment.globals.update({
-                'format_date':     i18n.format_date,
-                'format_time':     i18n.format_time,
-                'format_datetime': i18n.format_datetime,
-            })
-        except (ImportError, AttributeError), e:
-            pass
+    # Add url_for() by default.
+    env.globals['url_for'] = url_for
 
-    return _environment
+    if i18n:
+        # Install i18n, first forcing it to be loaded if not yet.
+        i18n.get_translations()
+        env.install_gettext_translations(i18n.translations)
+        env.globals.update({
+            'format_date':     i18n.format_date,
+            'format_time':     i18n.format_time,
+            'format_datetime': i18n.format_datetime,
+        })
+
+    return env
+
+
+def get_jinja2_instance():
+    """Returns an instance of :class:`Jinja2`, registering it in the WSGI app
+    if not yet registered.
+
+    :return:
+        An instance of :class:`Jinja2`.
+    """
+    registry = Tipfy.app.registry
+    if 'jinja2_instance' not in registry:
+        registry['jinja2_instance'] = _get_jinja2_instance(Tipfy.app)
+
+    return registry['jinja2_instance']
 
 
 def render_template(filename, **context):
@@ -110,7 +139,8 @@ def render_template(filename, **context):
     :return:
         A rendered template, in unicode.
     """
-    return get_env().get_template(filename).render(**context)
+    jinja2 = get_jinja2_instance()
+    return jinja2.get_template(filename).render(**context)
 
 
 def render_response(filename, **context):
@@ -148,4 +178,9 @@ def get_template_attribute(filename, attribute):
     :param attribute:
         The name of the variable of macro to acccess.
     """
-    return getattr(get_env().get_template(filename).module, attribute)
+    jinja2 = get_jinja2_instance()
+    return getattr(jinja2.get_template(filename).module, attribute)
+
+
+# Old name.
+get_env = get_jinja2_instance

@@ -1,3 +1,10 @@
+Version 0.5.9 - June 27, 2010
+=============================
+- Now Jinja2 environment is registered in the WSGI app registry.
+- Improved Jinja2Mixin: now it passes request context variables to the template
+  as well.
+
+
 Version 0.5.6 - June 3rd, 2010
 ==============================
 - Put scripts in a separate file. Let's make this a pattern for other scripts.

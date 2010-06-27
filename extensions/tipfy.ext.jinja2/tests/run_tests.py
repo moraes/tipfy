@@ -16,11 +16,11 @@ import sys
 import nose
 
 if __name__ == '__main__':
-    base  = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    base  = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
     app   = os.path.abspath(os.path.join(base, 'buildout', 'app'))
     tipfy = os.path.abspath(os.path.join(base, 'tests'))
     sys.path[0:0] = [tipfy, app]
 
     argv = [__file__]
-    argv += '-d --with-gae -P --without-sandbox --cover-erase --with-coverage --cover-package=tipfy --gae-application=../../project/app'.split()
+    argv += '-d --with-gae -P --without-sandbox --cover-erase --with-coverage --cover-package=tipfy.ext.jinja2 --gae-application=../../../project/app'.split()
     nose.run(argv=argv)

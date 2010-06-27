@@ -5,6 +5,8 @@
 
     Genshi template support for Tipfy.
 
+    Learn more about Jinja2 at http://genshi.edgewall.org/
+
     :copyright: (c) 2010 by Dag Odenhall <dag.odenhall@gmail.com>.
     :copyright: (c) 2010 by tipfy.org.
     :license: BSD, see LICENSE for more details.
@@ -29,11 +31,9 @@ default_config = {
 
 
 class GenshiMixin(object):
-    """:class:`tipfy.RequestHandler` mixing to add a convenient
-    ``render_response`` function to handlers. It expects a ``context``
-    dictionary to be set in the handler, so that the passed values are added to
-    the context. The idea is that other mixins can use this context to set
-    template values.
+    """:class:`tipfy.RequestHandler` mixin that add ``render_template`` and
+    ``render_response`` methods to a :class:`tipfy.RequestHandler`. It will
+    use the request context to render templates.
     """
     def render_template(self, filename, _method=None, **context):
         """Renders a template and returns a response object. It will pass

@@ -32,7 +32,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy',
-    version = '0.5.6',
+    version = '0.5.7',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/tipfy.tar.gz',
@@ -41,7 +41,7 @@ setup(
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
     zip_safe = False,
-    platforms='any',
+    platforms = 'any',
     packages = [
         'tipfy',
         'tipfy.ext',

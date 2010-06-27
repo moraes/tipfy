@@ -26,12 +26,13 @@ from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
 from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
     RequestRedirect, Rule as WerkzeugRule, RuleTemplate, Subdomain, Submount)
 
-try:
-    # We declare the namespace to be used outside of App Engine, so that
-    # we can distribute and install separate extensions.
-    __import__('pkg_resources').declare_namespace(__name__)
-except ImportError, e:
-    pass
+if os.environ.get('SERVER_SOFTWARE', None) is None:
+    try:
+        # We declare the namespace to be used outside of App Engine, so that
+        # we can distribute and install separate extensions.
+        __import__('pkg_resources').declare_namespace(__name__)
+    except ImportError, e:
+        pass
 
 __version__ = '0.5.6'
 
@@ -186,9 +187,11 @@ class RequestHandler(object):
 
 
 class Context(dict):
-    """A simple registry for global values in use by :class::`Tipfy`
-    and :class:`Request`.
-    """
+    """A context for global values used by :class:`Request`."""
+
+
+class Registry(dict):
+    """A registry for :class:`Tipfy`."""
 
 
 class Request(WerkzeugRequest):
@@ -275,8 +278,8 @@ class Tipfy(object):
     """The WSGI application which centralizes URL dispatching, configuration
     and hooks for an App Rngine app.
     """
-    #: Default class for context variables.
-    context_class = Context
+    #: Default class for the app registry.
+    registry_class = Registry
     #: Default class for requests.
     request_class = Request
     #: Default class for responses.
@@ -307,7 +310,9 @@ class Tipfy(object):
         self.config = Config(config, {'tipfy': default_config})
 
         # Set up a context registry for this app.
-        self.context = self.context_class()
+        self.registry = self.registry_class()
+        # Backwards compatibility.
+        self.context = self.registry
 
         # Set a shortcut to the development flag.
         self.dev = self.config.get('tipfy', 'dev', False)

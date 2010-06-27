@@ -5,6 +5,9 @@ tipfy.ext.xmpp
 This extension provides XMPP handlers for tipfy, the almighty little framework
 for Google App Engine.
 
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/xmpp/ <http://www.tipfy.org/wiki/extensions/xmpp/>`_.
+
 Links
 -----
 * `Tipfy <http://www.tipfy.org/>`_
@@ -26,7 +29,7 @@ setup(
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
     zip_safe = False,
-    platforms='any',
+    platforms = 'any',
     packages = [
         'tipfy',
         'tipfy.ext',

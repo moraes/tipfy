@@ -29,6 +29,7 @@ tipfy_ext = [
     'tipfy.ext.acl',
     'tipfy.ext.appstats',
     'tipfy.ext.auth',
+    'tipfy.ext.acl',
     # not released yet.
     # 'tipfy.ext.auth.facebook',
     # 'tipfy.ext.auth.friendfeed',

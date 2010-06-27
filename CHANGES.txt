@@ -1,6 +1,9 @@
-Development version
-===================
+Version 0.5.7 - June 27, 2010
+=============================
 - REMOVED: normalize_callable(). Unused.
+
+- Renamed Tipfy.context to Tipfy.registry, as the purpose is to serve as a
+  registry for instances reused by the app, like Jinja2 or Genshi environments.
 
 
 Version 0.5.6 - June 22, 2010

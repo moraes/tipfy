@@ -1,11 +1,11 @@
-.. _api.tipfy.ext.auth.acl:
+.. _api.tipfy.ext.acl:
 
-tipfy.ext.auth.acl
-==================
+tipfy.ext.acl
+=============
 This module provides a lightweight Access Control List implementation to check
 user permissions to application resources.
 
-.. module:: tipfy.ext.auth.acl
+.. module:: tipfy.ext.acl
 
 
 Overview

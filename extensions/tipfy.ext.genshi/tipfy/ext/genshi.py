@@ -28,6 +28,48 @@ default_config = {
 }
 
 
+class GenshiMixin(object):
+    """:class:`tipfy.RequestHandler` mixing to add a convenient
+    ``render_response`` function to handlers. It expects a ``context``
+    dictionary to be set in the handler, so that the passed values are added to
+    the context. The idea is that other mixins can use this context to set
+    template values.
+    """
+    def render_template(self, filename, _method=None, **context):
+        """Renders a template and returns a response object. It will pass
+
+        :param filename:
+            The template filename, related to the templates directory.
+        :param _method:
+            The render method: 'html', 'xml', 'css', 'js' or 'txt'.
+        :param context:
+            Keyword arguments used as variables in the rendered template.
+            These will override values set in the request context.
+       :return:
+            A :class:`tipfy.Response` object with the rendered template.
+        """
+        request_context = dict(self.request.context)
+        request_context.update(context)
+        return render_template(filename, _method=method, **request_context)
+
+    def render_response(self, filename, _method=None, **context):
+        """Returns a response object with a rendered template. It will pass
+
+        :param filename:
+            The template filename, related to the templates directory.
+        :param _method:
+            The render method: 'html', 'xml', 'css', 'js' or 'txt'.
+        :param context:
+            Keyword arguments used as variables in the rendered template.
+            These will override values set in the request context.
+        :return:
+            A :class:`tipfy.Response` object with the rendered template.
+        """
+        request_context = dict(self.request.context)
+        request_context.update(context)
+        return render_response(filename, _method=method, **request_context)
+
+
 class Genshi(object):
     def __init__(self, app):
         self.app = app
@@ -85,18 +127,26 @@ class Genshi(object):
         """A :class:`genshi.template.TemplateLoader` that loads templates
         from the same place as Flask.
 
+        :return:
+            A ``TemplateLoader`` instance.
         """
         return TemplateLoader(self.app.get_config(__name__, 'templates_dir'),
             auto_reload=self.app.dev)
 
-    def select_method(self, template, method=None):
+    def select_method(self, filename, method=None):
         """Selects a method from :attr:`Genshi.methods`
         based on the file extension of ``template``
         and :attr:`Genshi.extensions`, or based on ``method``.
 
+        :param filename:
+            The template filename, related to the templates directory.
+        :param _method:
+            The render method: 'html', 'xml', 'css', 'js' or 'txt'.
+        :return:
+            A rendering method name.
         """
         if method is None:
-            ext = splitext(template)[1][1:]
+            ext = splitext(filename)[1][1:]
             return self.extensions[ext]
 
         return method

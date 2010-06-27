@@ -12,7 +12,7 @@
 """
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
-from tipfy import get_config, url_for, Response
+from tipfy import Tipfy, get_config, url_for
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -123,7 +123,8 @@ def render_response(filename, **context):
     :return:
         A :class:`tipfy.Response` object with the rendered template.
     """
-    return Response(render_template(filename, **context), mimetype='text/html')
+    return Tipfy.app.response_class(render_template(filename, **context),
+        mimetype='text/html')
 
 
 def get_template_attribute(filename, attribute):

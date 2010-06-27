@@ -26,7 +26,7 @@ setup(
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
     zip_safe = False,
-    platforms='any',
+    platforms = 'any',
     packages = [
         'tipfy',
         'tipfy.ext',

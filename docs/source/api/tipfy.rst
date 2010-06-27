@@ -16,7 +16,7 @@ Default configuration
 
 WSGI application and base request handler
 -----------------------------------------
-.. autoclass:: WSGIApplication
+.. autoclass:: Tipfy
    :members: __init__
 .. autoclass:: RequestHandler
    :members: middleware, dispatch

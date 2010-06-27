@@ -18,7 +18,7 @@ API Reference
    api/tipfy.rst
    api/tipfy.ext.appstats.rst
    api/tipfy.ext.auth.rst
-   api/tipfy.ext.auth.acl.rst
+   api/tipfy.ext.acl.rst
    api/tipfy.ext.blobstore.rst
    api/tipfy.ext.db.rst
    api/tipfy.ext.debugger.rst

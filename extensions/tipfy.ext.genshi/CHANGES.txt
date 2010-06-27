@@ -1,0 +1,8 @@
+Version 0.2 - June 27, 2010
+===========================
+- Added GenshiMixin.
+
+
+Version 0.1 - June 27, 2010
+===========================
+- Initial release.

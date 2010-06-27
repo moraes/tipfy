@@ -13,11 +13,12 @@
 """
 from __future__ import absolute_import
 from os import path
+from cStringIO import StringIO
+
 from mako.lookup import TemplateLookup
 from mako.runtime import Context
-from StringIO import StringIO
 
-from tipfy import get_config, Response
+from tipfy import Tipfy, get_config
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -26,40 +27,57 @@ default_config = {
     'templates_dir': 'templates',
 }
 
-# TemplateLookup cached in the module.
-_lookup = None
-
 
 class MakoMixin(object):
-    """:class:`tipfy.RequestHandler` mixing to add a convenient
-    ``render_response`` function to handlers. It expects a ``context``
-    dictionary to be set in the handler, so that the passed values are added to
-    the context. The idea is that other mixins can use this context to set
-    template values.
+    """:class:`tipfy.RequestHandler` mixin that add ``render_template`` and
+    ``render_response`` methods to a :class:`tipfy.RequestHandler`. It will
+    use the request context to render templates.
     """
-    def render_response(self, filename, **values):
-        """Renders a template and returns a response object.
+    def render_template(self, filename, **context):
+        """Renders a template and returns a response object. It will pass
 
         :param filename:
             The template filename, related to the templates directory.
         :param context:
             Keyword arguments used as variables in the rendered template.
+            These will override values set in the request context.
+       :return:
+            A :class:`tipfy.Response` object with the rendered template.
+        """
+        request_context = dict(self.request.context)
+        request_context.update(context)
+        return render_template(filename, **request_context)
+
+    def render_response(self, filename, **context):
+        """Returns a response object with a rendered template. It will pass
+
+        :param filename:
+            The template filename, related to the templates directory.
+        :param context:
+            Keyword arguments used as variables in the rendered template.
+            These will override values set in the request context.
         :return:
             A :class:`tipfy.Response` object with the rendered template.
         """
-        context = dict(self.context)
-        context.update(values)
-        return render_response(filename, **context)
+        request_context = dict(self.request.context)
+        request_context.update(context)
+        return render_response(filename, **request_context)
 
 
-def get_lookup():
-    global _lookup
-    if _lookup is None:
-        _lookup = TemplateLookup(directories=[path.join(get_config(__name__,
-            'templates_dir'))], output_encoding='utf-8',
-            encoding_errors='replace')
+def get_mako_instance():
+    """Returns an instance of :class:`TemplateLookup`, registering it in the
+    WSGI app if not yet registered.
 
-    return _lookup
+    :return:
+        An instance of :class:`TemplateLookup`.
+    """
+    registry = Tipfy.app.registry
+    if 'mako_instance' not in registry:
+        dirs = [path.join(get_config(__name__, 'templates_dir'))]
+        registry['mako_instance'] = TemplateLookup(directories=dirs,
+            output_encoding='utf-8', encoding_errors='replace')
+
+    return registry['mako_instance']
 
 
 def render_template(filename, **context):
@@ -72,7 +90,7 @@ def render_template(filename, **context):
     :return:
         A rendered template, in unicode.
     """
-    template = get_lookup().get_template(filename)
+    template = get_mako_instance().get_template(filename)
     buf = StringIO()
     template.render_context(Context(buf, **context))
     return buf.getvalue()
@@ -88,4 +106,9 @@ def render_response(filename, **context):
     :return:
         A :class:`tipfy.Response` object with the rendered template.
     """
-    return Response(render_template(filename, **context), mimetype='text/html')
+    return Tipfy.app.response_class(render_template(filename, **context),
+        mimetype='text/html')
+
+
+# Old name.
+get_lookup = get_mako_instance

@@ -1,3 +1,10 @@
+Version 0.5.6 - June 27, 2010
+=============================
+- Now Mako environment is registered in the WSGI app registry.
+- Improved MakoMixin: now it passes request context variables to the template
+  as well.
+
+
 Version 0.5.5 - June 1st, 2010
 ==============================
 - Fixed namespace warnings.

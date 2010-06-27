@@ -2,8 +2,10 @@
 tipfy.ext.mako
 ==============
 
-This extension provides Mako support for tipfy, the almighty little framework
-for Google App Engine.
+This extension provides Mako support for tipfy.
+
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/mako/ <http://www.tipfy.org/wiki/extensions/mako/>`_.
 
 Links
 -----
@@ -18,7 +20,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.mako',
-    version = '0.5.5',
+    version = '0.5.6',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Mako extension for tipfy',

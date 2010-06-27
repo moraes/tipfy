@@ -2,8 +2,10 @@
 tipfy.ext.jinja2
 ================
 
-This extension provides Jinja2 support for tipfy, the almighty little framework
-for Google App Engine.
+This extension provides Jinja2 support for tipfy.
+
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/jinja2/ <http://www.tipfy.org/wiki/extensions/jinja2/>`_.
 
 Links
 -----

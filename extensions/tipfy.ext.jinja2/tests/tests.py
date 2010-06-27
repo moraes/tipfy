@@ -5,7 +5,7 @@
 import os
 import unittest
 
-from tipfy import Response, Tipfy
+from tipfy import RequestHandler, Response, Tipfy
 from tipfy.ext import jinja2
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -53,7 +53,7 @@ class TestJinja2(unittest.TestCase):
 
     def test_jinja2_mixin(self):
         jinja2._environment = None
-        class MyHandler(jinja2.Jinja2Mixin):
+        class MyHandler(RequestHandler, jinja2.Jinja2Mixin):
             def __init__(self, app, request):
                 self.app = app
                 self.request = request

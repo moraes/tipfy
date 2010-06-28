@@ -1,3 +1,9 @@
+Version 0.5.7 - June 28, 2010
+=============================
+- templates dir configuration can now be a single directory or a list of
+  directories, as in ext.jinja2.
+
+
 Version 0.5.6 - June 27, 2010
 =============================
 - Now Mako environment is registered in the WSGI app registry.

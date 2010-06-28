@@ -2,8 +2,6 @@
 """
     Tests for tipfy.ext.mako
 """
-__import__('pkg_resources').declare_namespace('tipfy.ext')
-
 import os
 import unittest
 

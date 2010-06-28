@@ -3,16 +3,14 @@
     tipfy.ext.mako
     ~~~~~~~~~~~~~~
 
-    Mako template engine extension.
+    Mako template support for Tipfy.
 
-    It requires the mako module to be added to the lib dir. Mako can be
-    downloaded at http://www.makotemplates.org/
+    Learn more about Mako at http://www.makotemplates.org/
 
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 from __future__ import absolute_import
-from os import path
 from cStringIO import StringIO
 
 from mako.lookup import TemplateLookup
@@ -65,15 +63,18 @@ class MakoMixin(object):
 
 
 def get_mako_instance():
-    """Returns an instance of :class:`TemplateLookup`, registering it in the
-    WSGI app if not yet registered.
+    """Returns an instance of ``mako.lookup.TemplateLookup``, registering it
+    in the WSGI app if not yet registered.
 
     :return:
-        An instance of :class:`TemplateLookup`.
+        An instance of ``mako.lookup.TemplateLookup``.
     """
     registry = Tipfy.app.registry
     if 'mako_instance' not in registry:
-        dirs = [path.join(get_config(__name__, 'templates_dir'))]
+        dirs = get_config(__name__, 'templates_dir')
+        if isinstance(dirs, basestring):
+            dirs = [dirs]
+
         registry['mako_instance'] = TemplateLookup(directories=dirs,
             output_encoding='utf-8', encoding_errors='replace')
 

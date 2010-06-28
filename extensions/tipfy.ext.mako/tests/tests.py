@@ -41,7 +41,21 @@ class TestMako(unittest.TestCase):
         assert response.mimetype == 'text/html'
         assert response.data == message + '\n'
 
-    def test_mako_mixin(self):
+    def test_mako_mixin_render_template(self):
+        class MyHandler(RequestHandler, mako.MakoMixin):
+            def __init__(self, app, request):
+                self.app = app
+                self.request = request
+                self.context = {}
+
+        app = Tipfy({'tipfy.ext.mako': {'templates_dir': templates_dir}})
+        message = 'Hello, World!'
+
+        handler = MyHandler(Tipfy.app, Tipfy.request)
+        response = handler.render_template('template1.html', message=message)
+        assert response == message + '\n'
+
+    def test_mako_mixin_render_response(self):
         class MyHandler(RequestHandler, mako.MakoMixin):
             def __init__(self, app, request):
                 self.app = app

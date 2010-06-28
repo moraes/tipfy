@@ -116,11 +116,11 @@ def _get_jinja2_instance(app):
 
 
 def get_jinja2_instance():
-    """Returns an instance of :class:`Jinja2`, registering it in the WSGI app
-    if not yet registered.
+    """Returns an instance of ``jinja2.Environment``, registering it in the
+    WSGI app if not yet registered.
 
     :return:
-        An instance of :class:`Jinja2`.
+        An instance of ``jinja2.Environment``.
     """
     registry = Tipfy.app.registry
     if 'jinja2_instance' not in registry:

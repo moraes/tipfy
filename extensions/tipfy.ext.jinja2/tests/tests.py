@@ -51,7 +51,22 @@ class TestJinja2(unittest.TestCase):
         assert response.mimetype == 'text/html'
         assert response.data == message
 
-    def test_jinja2_mixin(self):
+    def test_jinja2_mixin_render_template(self):
+        jinja2._environment = None
+        class MyHandler(RequestHandler, jinja2.Jinja2Mixin):
+            def __init__(self, app, request):
+                self.app = app
+                self.request = request
+                self.context = {}
+
+        app = Tipfy({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
+        message = 'Hello, World!'
+
+        handler = MyHandler(Tipfy.app, Tipfy.request)
+        response = handler.render_template('template1.html', message=message)
+        assert response == message
+
+    def test_jinja2_mixin_render_response(self):
         jinja2._environment = None
         class MyHandler(RequestHandler, jinja2.Jinja2Mixin):
             def __init__(self, app, request):

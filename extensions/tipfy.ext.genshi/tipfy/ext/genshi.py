@@ -5,7 +5,7 @@
 
     Genshi template support for Tipfy.
 
-    Learn more about Jinja2 at http://genshi.edgewall.org/
+    Learn more about Genshi at http://genshi.edgewall.org/
 
     :copyright: (c) 2010 by Dag Odenhall <dag.odenhall@gmail.com>.
     :copyright: (c) 2010 by tipfy.org.
@@ -50,7 +50,7 @@ class GenshiMixin(object):
         """
         request_context = dict(self.request.context)
         request_context.update(context)
-        return render_template(filename, _method=method, **request_context)
+        return render_template(filename, _method=_method, **request_context)
 
     def render_response(self, filename, _method=None, **context):
         """Returns a response object with a rendered template. It will pass
@@ -67,7 +67,7 @@ class GenshiMixin(object):
         """
         request_context = dict(self.request.context)
         request_context.update(context)
-        return render_response(filename, _method=method, **request_context)
+        return render_response(filename, _method=_method, **request_context)
 
 
 class Genshi(object):
@@ -125,7 +125,7 @@ class Genshi(object):
     @cached_property
     def template_loader(self):
         """A :class:`genshi.template.TemplateLoader` that loads templates
-        from the same place as Flask.
+        from a template directory.
 
         :return:
             A ``TemplateLoader`` instance.
@@ -215,7 +215,7 @@ def render_template(filename, _method=None, **context):
 
 
 def render_response(filename, _method=None, **context):
-    """Renders a template and wraps it in a :attr:`~flask.Flask.response_class`
+    """Renders a template and wraps it in a :attr:`~tipfy.Tipfy.response_class`
     with mimetype set according to the rendering method.
 
     :param filename:

@@ -21,7 +21,6 @@ class TestJinja2(unittest.TestCase):
         Tipfy.app = Tipfy.request = None
 
     def test_render_template(self):
-        jinja2._environment = None
         app = Tipfy({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
 
         message = 'Hello, World!'
@@ -29,7 +28,6 @@ class TestJinja2(unittest.TestCase):
         assert res == message
 
     def test_render_response(self):
-        jinja2._environment = None
         app = Tipfy({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
 
         message = 'Hello, World!'
@@ -39,7 +37,6 @@ class TestJinja2(unittest.TestCase):
         assert response.data == message
 
     def test_render_response_force_compiled(self):
-        jinja2._environment = None
         app = Tipfy({'tipfy.ext.jinja2': {
             'templates_compiled_target': templates_compiled_target,
             'force_use_compiled': True,
@@ -52,7 +49,6 @@ class TestJinja2(unittest.TestCase):
         assert response.data == message
 
     def test_jinja2_mixin_render_template(self):
-        jinja2._environment = None
         class MyHandler(RequestHandler, jinja2.Jinja2Mixin):
             def __init__(self, app, request):
                 self.app = app
@@ -67,7 +63,6 @@ class TestJinja2(unittest.TestCase):
         assert response == message
 
     def test_jinja2_mixin_render_response(self):
-        jinja2._environment = None
         class MyHandler(RequestHandler, jinja2.Jinja2Mixin):
             def __init__(self, app, request):
                 self.app = app
@@ -84,7 +79,6 @@ class TestJinja2(unittest.TestCase):
         assert response.data == message
 
     def test_get_template_attribute(self):
-        jinja2._environment = None
         app = Tipfy({'tipfy.ext.jinja2': {'templates_dir': templates_dir}})
 
         hello = jinja2.get_template_attribute('hello.html', 'hello')

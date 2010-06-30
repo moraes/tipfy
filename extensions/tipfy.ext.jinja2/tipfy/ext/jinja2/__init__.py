@@ -104,7 +104,8 @@ def _get_jinja2_instance(app):
 
     if i18n:
         # Install i18n.
-        env.install_gettext_callables(i18n.gettext, i18n.ngettext)
+        env.install_gettext_callables(i18n.gettext, i18n.ngettext,
+            newstyle=True)
         env.globals.update({
             'format_date':     i18n.format_date,
             'format_time':     i18n.format_time,

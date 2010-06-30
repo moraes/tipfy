@@ -1,6 +1,7 @@
-Version 0.6 - June 30, 2010
-===========================
+Version 0.6 / 0.6.1 - June 30, 2010
+===================================
 - Simplified i18n setup.
+- Now uses newstyle translations.
 
 
 Version 0.5.9 - June 27, 2010

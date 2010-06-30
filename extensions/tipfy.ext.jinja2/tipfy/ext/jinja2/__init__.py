@@ -103,9 +103,8 @@ def _get_jinja2_instance(app):
     env.globals['url_for'] = url_for
 
     if i18n:
-        # Install i18n, first forcing it to be loaded if not yet.
-        i18n.get_translations()
-        env.install_gettext_translations(i18n.translations)
+        # Install i18n.
+        env.install_gettext_callables(i18n.gettext, i18n.ngettext)
         env.globals.update({
             'format_date':     i18n.format_date,
             'format_time':     i18n.format_time,
@@ -116,11 +115,11 @@ def _get_jinja2_instance(app):
 
 
 def get_jinja2_instance():
-    """Returns an instance of ``jinja2.Environment``, registering it in the
-    WSGI app if not yet registered.
+    """Returns an instance of :class:`Jinja2`, registering it in the WSGI app
+    if not yet registered.
 
     :return:
-        An instance of ``jinja2.Environment``.
+        An instance of :class:`Jinja2`.
     """
     registry = Tipfy.app.registry
     if 'jinja2_instance' not in registry:

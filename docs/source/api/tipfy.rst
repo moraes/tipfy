@@ -19,7 +19,7 @@ WSGI application and base request handler
 .. autoclass:: Tipfy
    :members: __init__
 .. autoclass:: RequestHandler
-   :members: middleware, dispatch
+   :members: __init__, middleware, dispatch
 
 
 Configuration class

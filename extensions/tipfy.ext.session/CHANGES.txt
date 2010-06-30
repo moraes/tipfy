@@ -1,3 +1,14 @@
+Development version
+===================
+- This is a major refactoring to better support new session backends.
+
+- Added memcache-only backend, so now the built-in backends are datastore,
+  memcache and secure cookie.
+
+-
+
+
+
 Version 0.5.5 - June 1st, 2010
 ==============================
 - Fixed namespace warnings.
@@ -6,5 +17,3 @@ Version 0.5.5 - June 1st, 2010
 Version 0.5.4 - May 31, 2010
 ============================
 - Initial release: moved from tipfy core to a separate extension.
-
-

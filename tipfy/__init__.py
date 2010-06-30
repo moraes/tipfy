@@ -34,7 +34,7 @@ if os.environ.get('SERVER_SOFTWARE', None) is None:
     except ImportError, e:
         pass
 
-__version__ = '0.5.6'
+__version__ = '0.5.7'
 
 # Variable store for a single request.
 local = Local()
@@ -114,7 +114,7 @@ class RequestHandler(object):
     #:   executed. If returns a response, stops the middleware chain and
     #:   uses that response, not calling the requested method.
     #:
-    #: - ``post_dispatch(exception, handler)``: Called after the requested
+    #: - ``post_dispatch(handler, response)``: Called after the requested
     #;   method is executed. Must always return a response. All
     #:   ``post_dispatch`` middleware are always executed.
     #:
@@ -202,6 +202,8 @@ class Request(WerkzeugRequest):
     """
     #: Default class for context variables.
     context_class = Context
+    #: Default class for the request registry.
+    registry_class = Registry
     #: URL adapter bound to a request.
     url_adapter = None
     #: Matched URL rule for a request.
@@ -220,7 +222,11 @@ class Request(WerkzeugRequest):
         hold variables valid for a single request.
         """
         super(WerkzeugRequest, self).__init__(environ)
-        # Set up a context registry for this request.
+
+        # A registry for objects in use during a request.
+        self.registry = self.registry_class()
+
+        # A context for template variables.
         self.context = self.context_class()
 
     def url_for(self, endpoint, _full=False, _method=None, _anchor=None,

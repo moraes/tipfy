@@ -34,7 +34,7 @@ if os.environ.get('SERVER_SOFTWARE', None) is None:
     except ImportError, e:
         pass
 
-__version__ = '0.5.7'
+__version__ = '0.5.8'
 
 # Variable store for a single request.
 local = Local()

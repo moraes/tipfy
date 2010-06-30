@@ -6,7 +6,7 @@ import unittest
 
 from nose.tools import assert_raises, raises
 
-from tipfy import (Config, default_config, get_config, Tipfy)
+from tipfy import Config, Tipfy, default_config, get_config
 
 
 class TestConfig(unittest.TestCase):
@@ -236,12 +236,12 @@ class TestGetConfig(unittest.TestCase):
     @raises(KeyError)
     def test_required_config(self):
         app = Tipfy()
-        assert get_config('tipfy.ext.i18n', 'i_dont_exist') == 'baz'
+        get_config('tipfy.ext.i18n', 'i_dont_exist')
 
     @raises(KeyError)
     def test_required_config2(self):
         app = Tipfy()
-        assert get_config('tipfy.ext.session', 'secret_key') == 'baz'
+        app.get_config('tipfy.ext.session', 'secret_key')
 
     @raises(AttributeError)
     def test_missing_default_config(self):

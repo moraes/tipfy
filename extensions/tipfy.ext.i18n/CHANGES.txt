@@ -1,3 +1,9 @@
+Version 0.6 - June 30, 2010
+===========================
+- Added optional keyword variables to format translations returned by gettext(),
+  ngettext(), lazy_gettext() and lazy_ngettext().
+
+
 Version 0.5.6 - June 27, 2010
 =============================
 - Removed normalize_callable, not used anyway and removed from tipfy 0.5.7.

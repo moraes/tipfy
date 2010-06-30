@@ -191,18 +191,20 @@ def is_default_locale():
     return ctx.get('locale', None) == get_config(__name__, 'locale')
 
 
-def gettext(string):
+def gettext(string, **variables):
     """Translates a given string according to the current locale.
 
     :param string:
         The string to be translated.
+    :param variables:
+        Variables to format the returned string.
     :return:
         The translated string.
     """
-    return unicode(get_translations().gettext(string), 'utf-8')
+    return get_translations().ugettext(string) % variables
 
 
-def ngettext(singular, plural, n):
+def ngettext(singular, plural, n, **variables):
     """Translates a possible pluralized string according to the current locale.
 
     :param singular:
@@ -212,24 +214,28 @@ def ngettext(singular, plural, n):
     :param n:
         An integer indicating if this is a singular or plural. If greater than
         1, it is a plural.
+    :param variables:
+        Variables to format the returned string.
     :return:
         The translated string.
     """
-    return unicode(get_translations().ngettext(singular, plural, n), 'utf-8')
+    return get_translations().ungettext(singular, plural, n) % variables
 
 
-def lazy_gettext(string):
+def lazy_gettext(string, **variables):
     """A lazy version of :func:`gettext`.
 
     :param string:
         The string to be translated.
+    :param variables:
+        Variables to format the returned string.
     :return:
         A ``LazyProxy`` object that when accessed translates the string.
     """
-    return LazyProxy(gettext, string)
+    return LazyProxy(gettext, string, **variables)
 
 
-def lazy_ngettext(singular, plural, n):
+def lazy_ngettext(singular, plural, n, **variables):
     """A lazy version of :func:`ngettext`.
 
     :param singular:
@@ -239,10 +245,12 @@ def lazy_ngettext(singular, plural, n):
     :param n:
         An integer indicating if this is a singular or plural. If greater than
         1, it is a plural.
+    :param variables:
+        Variables to format the returned string.
     :return:
         A ``LazyProxy`` object that when accessed translates the string.
     """
-    return LazyProxy(ngettext, singular, plural, n)
+    return LazyProxy(ngettext, singular, plural, n, **variables)
 
 
 def get_tzinfo(timezone=None):
@@ -644,4 +652,4 @@ parse_decimal = _get_babel_function(numbers.parse_decimal)
 _ = gettext
 
 # Current translations.
-translations = LocalProxy(get_translations)
+translations = LocalProxy(lambda: get_translations())

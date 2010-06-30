@@ -14,10 +14,10 @@ from babel.numbers import NumberFormatError
 from tipfy import Tipfy
 from tipfy.ext.i18n import (_, format_currency, format_date, format_datetime,
     format_decimal, format_number, format_percent, format_scientific,
-    format_time, gettext, get_locale, get_tzinfo, I18nMiddleware,
-    is_default_locale, lazy_gettext, lazy_ngettext, ngettext, parse_number,
-    parse_decimal, pytz, set_translations, set_translations_from_request,
-    to_local_timezone, to_utc)
+    format_time, gettext, get_locale, get_translations, get_tzinfo,
+    I18nMiddleware, is_default_locale, lazy_gettext, lazy_ngettext, ngettext,
+    parse_number, parse_decimal, pytz, set_translations,
+    set_translations_from_request, to_local_timezone, to_utc)
 
 
 class Request(object):
@@ -111,6 +111,21 @@ class TestI18n(unittest.TestCase):
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
 
+    def test_get_translations(self):
+        app = Tipfy()
+        request = Request()
+        app.set_wsgi_app()
+        app.set_request(request)
+
+        ctx = request.context
+
+        assert ctx.get('locale', None) is None
+        assert ctx.get('translations', None) is None
+
+        t = get_translations()
+
+        assert ctx.get('locale', None) is not None
+        assert ctx.get('translations', None) is not None
 
     def test_set_translations(self):
         app = Tipfy()

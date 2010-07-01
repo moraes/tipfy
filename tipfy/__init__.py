@@ -313,7 +313,7 @@ class Tipfy(object):
         self.app_id = app_id
 
         # Load default config and update with values for this instance.
-        self.config = Config(config, {'tipfy': default_config})
+        self.config = Config(config, {'tipfy': default_config}, ['tipfy'])
 
         # Set up a context registry for this app.
         self.registry = self.registry_class()
@@ -682,15 +682,17 @@ class Config(dict):
     #: Loaded module configurations.
     modules = None
 
-    def __init__(self, value=None, default=None):
+    def __init__(self, value=None, default=None, loaded=None):
         """Initializes the configuration object.
 
         :param value:
             A dictionary of configuration dictionaries for modules.
         :param default:
             A dictionary of configuration dictionaries for default values.
+        :param loaded:
+            A list of modules to be marked as loaded.
         """
-        self.modules = []
+        self.modules = loaded or []
         if value is not None:
             assert isinstance(value, dict)
             for module in value.keys():

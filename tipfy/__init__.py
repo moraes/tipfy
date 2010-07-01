@@ -34,7 +34,7 @@ if os.environ.get('SERVER_SOFTWARE', None) is None:
     except ImportError, e:
         pass
 
-__version__ = '0.5.8'
+__version__ = '0.5.9'
 
 # Variable store for a single request.
 local = Local()
@@ -627,30 +627,23 @@ class Tipfy(object):
             A configuration value.
         """
         config = self.config
-        value = config.get(module, key, DEFAULT_VALUE)
+        if module not in config.modules:
+            # Load default configuration and update app config.
+            values = import_string(module + ':default_config', silent=True)
+            if values:
+                config.setdefault(module, values)
+
+            config.modules.append(module)
+
+        value = config.get(module, key, default)
         if value not in (DEFAULT_VALUE, REQUIRED_VALUE):
             return value
 
-        if default is DEFAULT_VALUE:
-            # If no default was provided, the config is required.
-            default = REQUIRED_VALUE
-
-        if value is DEFAULT_VALUE:
-            if module not in config.modules:
-                # Update app config. If import fails or the default_config
-                # attribute doesn't exist, an exception will be raised.
-                config.setdefault(module, import_string(
-                    module + ':default_config'))
-                config.modules.append(module)
-                value = config.get(module, key, default)
-            else:
-                value = default
-
-        if value is REQUIRED_VALUE:
+        if key is None:
+            raise KeyError('Module %s is not configured.' % module)
+        else:
             raise KeyError('Module %s requires the config key "%s" to be '
                 'set.' % (module, key))
-
-        return value
 
     def set_wsgi_app(self):
         """Sets the currently active :class:`Tipfy` instance."""

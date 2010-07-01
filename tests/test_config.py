@@ -243,12 +243,12 @@ class TestGetConfig(unittest.TestCase):
         app = Tipfy()
         app.get_config('tipfy.ext.session', 'secret_key')
 
-    @raises(AttributeError)
+    @raises(KeyError)
     def test_missing_default_config(self):
         app = Tipfy()
         assert get_config('tipfy.ext.db', 'foo') == 'baz'
 
-    @raises(ImportError)
+    @raises(KeyError)
     def test_missing_module(self):
         app = Tipfy()
         assert get_config('i_dont_exist', 'i_dont_exist') == 'baz'

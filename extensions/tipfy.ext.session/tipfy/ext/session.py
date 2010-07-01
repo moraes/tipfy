@@ -420,6 +420,9 @@ class SessionModel(db.Model):
 
 
 class Session(BaseSession):
+    """A container for session data. This is a dictionary that tracks
+    changes.
+    """
     __slots__ = BaseSession.__slots__ + ('backend',)
 
     def __init__(self, data, sid, backend, new=False):
@@ -434,7 +437,8 @@ class Session(BaseSession):
 
 
 class DatastoreSession(Session):
-    """A session dictionary that stores a reference to the session entity.
+    """A container for session data that stores a reference to the session
+    entity.
     """
     __slots__ = Session.__slots__ + ('entity',)
 
@@ -444,6 +448,7 @@ class DatastoreSession(Session):
 
 
 class BaseSessionBackend(object):
+    """Base interface for session backends."""
     session_class = Session
 
     def is_valid_key(self, key):

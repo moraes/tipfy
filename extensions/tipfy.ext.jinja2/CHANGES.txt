@@ -1,3 +1,8 @@
+Version 0.6.2 - June 30, 2010
+=============================
+- A fix for install_gettext_callables, now working with newstyle translations.
+
+
 Version 0.6 / 0.6.1 - June 30, 2010
 ===================================
 - Simplified i18n setup.

@@ -1,3 +1,9 @@
+Development version
+===================
+- Call app.make_response() on RequestHandler, to convert returned result to a
+  proper response if needed.
+
+
 Version 0.5.9 - July 1st, 2010
 ==============================
 - Small improvement in get_config(): previously when you called

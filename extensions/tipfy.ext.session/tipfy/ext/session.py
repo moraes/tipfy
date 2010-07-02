@@ -23,7 +23,7 @@ from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import Session as BaseSession, generate_key
 from werkzeug.security import gen_salt
 
-from tipfy import Tipfy, REQUIRED_VALUE, get_config
+from tipfy import REQUIRED_VALUE, get_config
 from tipfy.ext.db import (PickleProperty, get_protobuf_from_entity,
     get_entity_from_protobuf)
 

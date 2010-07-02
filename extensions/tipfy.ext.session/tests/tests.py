@@ -49,21 +49,12 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase,
         })
 
     def test_get_flash(self):
-        config = self.app.get_config('tipfy.ext.session')
-        self.assertEqual(config, None)
-
-    def whoatest_get_flash(self):
         config = get_config(self.app)
-
-        self.assertEqual(config, None)
-
-        assert config['cookie_name'] == 'tipfy.sesss'
-
-        cookie = SecureCookie({'_flashes': [('foo', 'bar')]},
+        cookie = SecureCookie({'_flash': [('foo', 'bar')]},
             secret_key=config['secret_key'])
 
         request = get_request(self.app, headers={
-            'Cookie':   'tipfy.session=%s' % cookie.serialize(),
+            'Cookie': 'tipfy.session=%s' % cookie.serialize(),
         })
 
         backends = SessionMiddleware.default_backends
@@ -77,3 +68,22 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase,
         # The second time should not work.
         flash = store.get_flash()
         assert flash == []
+
+    def test_set_flash(self):
+        config = get_config(self.app)
+        request = get_request(self.app)
+        backends = SessionMiddleware.default_backends
+        store = SessionStore(request, config, backends, 'securecookie')
+
+        store.set_flash(('foo', 'bar'))
+
+        # The second time should not work.
+        assert 'tipfy.session' in store._data
+        assert '_flash' in store._data['tipfy.session'][0]
+        assert store._data['tipfy.session'][0]['_flash'] == [('foo', 'bar')]
+
+    def test_get_cookie(self):
+        pass
+
+    def test_set_cookie(self):
+        pass

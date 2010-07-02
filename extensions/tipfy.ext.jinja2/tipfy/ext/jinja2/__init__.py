@@ -73,7 +73,7 @@ class Jinja2Mixin(object):
         return render_response(filename, **request_context)
 
 
-def _get_jinja2_instance(app):
+def create_jinja2_instance(app):
     """Returns the Jinja2 environment, a singleton.
 
     :return:
@@ -125,11 +125,11 @@ def get_jinja2_instance():
     :return:
         An instance of :class:`Jinja2`.
     """
-    registry = Tipfy.app.registry
-    if 'jinja2_instance' not in registry:
-        registry['jinja2_instance'] = _get_jinja2_instance(Tipfy.app)
+    reg = Tipfy.app.registry
+    if 'jinja2_instance' not in reg:
+        reg['jinja2_instance'] = create_jinja2_instance(Tipfy.app)
 
-    return registry['jinja2_instance']
+    return reg['jinja2_instance']
 
 
 def render_template(filename, **context):

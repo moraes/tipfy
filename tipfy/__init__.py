@@ -178,6 +178,9 @@ class RequestHandler(object):
                 else:
                     raise
 
+        # Make sure we have a response object.
+        response = self.app.make_response(self.request, response)
+
         # Execute post_dispatch middleware.
         for hook in middleware.get('post_dispatch', []):
             response = hook(self, response)

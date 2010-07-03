@@ -13,7 +13,7 @@ from google.appengine.ext import db
 
 from werkzeug.contrib.securecookie import SecureCookie
 
-from tipfy import Request, Tipfy
+from tipfy import Request, Response, Tipfy
 from tipfy.ext.session import (SessionStore, SessionMiddleware)
 
 
@@ -77,13 +77,131 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase,
 
         store.set_flash(('foo', 'bar'))
 
-        # The second time should not work.
-        assert 'tipfy.session' in store._data
-        assert '_flash' in store._data['tipfy.session'][0]
-        assert store._data['tipfy.session'][0]['_flash'] == [('foo', 'bar')]
+        cookie = SecureCookie({'_flash': [('foo', 'bar')]},
+            secret_key=config['secret_key'])
 
-    def test_get_cookie(self):
-        pass
+        response = Response()
+        store.save_session(response)
+
+        assert response.headers['Set-Cookie'] == 'tipfy.session="%s"; Path=/' % cookie.serialize()
+
+    def test_save_session_empty(self):
+        config = get_config(self.app)
+        request = get_request(self.app)
+        backends = SessionMiddleware.default_backends
+        store = SessionStore(request, config, backends, 'securecookie')
+
+        response = Response()
+        store.save_session(response)
+
+        assert 'Set-Cookie' not in response.headers
+
+    def test_save_session_delete_cookie(self):
+        config = get_config(self.app)
+        request = get_request(self.app)
+        backends = SessionMiddleware.default_backends
+        store = SessionStore(request, config, backends, 'securecookie')
+
+        store.delete_cookie('foo', path='/baz')
+        store.delete_cookie('foo2')
+
+        response = Response()
+        store.save_session(response)
+
+        assert response.headers.getlist('Set-Cookie') == [
+            'foo=; expires=Thu, 01-Jan-1970 00:00:00 GMT; Max-Age=0; Path=/baz',
+            'foo2=; expires=Thu, 01-Jan-1970 00:00:00 GMT; Max-Age=0; Path=/'
+        ]
+
+    def test_save_session_set_cookie(self):
+        config = get_config(self.app)
+        request = get_request(self.app)
+        backends = SessionMiddleware.default_backends
+        store = SessionStore(request, config, backends, 'securecookie')
+
+        store.set_cookie('foo', 'bar', path='/baz')
+        store.set_cookie('foo2', 'bar2')
+
+        response = Response()
+        store.save_session(response)
+
+        assert response.headers.getlist('Set-Cookie') == [
+            'foo=bar; Path=/baz',
+            'foo2=bar2; Path=/'
+        ]
 
     def test_set_cookie(self):
-        pass
+        config = get_config(self.app)
+        request = get_request(self.app)
+        backends = SessionMiddleware.default_backends
+        store = SessionStore(request, config, backends, 'securecookie')
+
+        store.set_cookie('foo', 'bar', path='/baz')
+        store.set_cookie('foo2', 'bar2')
+
+        assert store._data['foo'] == ('bar', {'path': '/baz'})
+        assert store._data['foo2'] == ('bar2', {})
+
+    def test_delete_cookie(self):
+        config = get_config(self.app)
+        request = get_request(self.app)
+        backends = SessionMiddleware.default_backends
+        store = SessionStore(request, config, backends, 'securecookie')
+
+        store.delete_cookie('foo', path='/baz')
+        store.delete_cookie('foo2')
+
+        assert store._data['foo'] == (None, {'path': '/baz'})
+        assert store._data['foo2'] == (None, {})
+
+    def test_create_secure_cookie(self):
+        config = get_config(self.app)
+        request = get_request(self.app)
+        backends = SessionMiddleware.default_backends
+        store = SessionStore(request, config, backends, 'securecookie')
+
+        cookie = store.create_secure_cookie()
+
+        assert isinstance(cookie, SecureCookie)
+        assert cookie.new is True
+        assert len(cookie) == 0
+
+    def test_create_secure_cookie_with_data(self):
+        config = get_config(self.app)
+        request = get_request(self.app)
+        backends = SessionMiddleware.default_backends
+        store = SessionStore(request, config, backends, 'securecookie')
+
+        cookie = store.create_secure_cookie(data={'foo': 'bar'})
+
+        assert isinstance(cookie, SecureCookie)
+        assert cookie.new is True
+        assert len(cookie) == 1
+        assert cookie['foo'] == 'bar'
+
+    @raises(ValueError)
+    def test_create_secure_cookie_with_none_data(self):
+        config = get_config(self.app)
+        request = get_request(self.app)
+        backends = SessionMiddleware.default_backends
+        store = SessionStore(request, config, backends, 'securecookie')
+
+        cookie = store.create_secure_cookie('foo')
+
+    def test_get_secure_cookie_without_load(self):
+        config = get_config(self.app)
+        cookie = SecureCookie([('foo', 'bar')], secret_key=config['secret_key'])
+        request = get_request(self.app, headers={
+            'Cookie': 'my_session=%s' % cookie.serialize(),
+        })
+        backends = SessionMiddleware.default_backends
+        store = SessionStore(request, config, backends, 'securecookie')
+
+        cookie = store.get_secure_cookie('my_session', load=False, max_age=86400)
+
+        assert isinstance(cookie, SecureCookie)
+        assert cookie.new is True
+        assert len(cookie) == 0
+
+        assert 'my_session' in store._data
+        assert store._data['my_session'][1] == {'max_age': 86400}

@@ -273,8 +273,10 @@ class SessionStore(object):
         if not self._data:
             return
 
+        cookie_args = self.config['cookie_args']
+
         for key, (value, kwargs) in self._data.iteritems():
-            kwargs = kwargs or self.cookie_args.copy()
+            kwargs = kwargs or cookie_args.copy()
 
             if not value:
                 # Session is empty, so delete it.

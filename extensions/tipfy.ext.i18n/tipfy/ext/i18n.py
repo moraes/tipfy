@@ -495,6 +495,34 @@ def format_time(time=None, format=None, locale=None, timezone=None,
     return dates.format_time(time, format, locale=locale, **kwargs)
 
 
+def format_timedelta(datetime_or_timedelta, granularity='second',
+    threshold=.85, locale=None):
+    """Format the elapsed time from the given date to now or the given
+    timedelta. This currently requires an unreleased development version
+    of Babel.
+
+    :param datetime_or_timedelta:
+        A timedelta object representing the time difference to format, or a
+        datetime object in UTC.
+    :param granularity:
+        Determines the smallest unit that should be displayed, the value can
+        be one of "year", "month", "week", "day", "hour", "minute" or "second".
+    :param threshold:
+        Factor that determines at which point the presentation switches to
+        the next higher unit.
+    :param locale:
+        A locale code. If not set, uses the currently loaded locale.
+    :return:
+        A string with the elapsed time.
+    """
+    locale = locale or get_locale()
+    if isinstance(datetime_or_timedelta, datetime):
+        datetime_or_timedelta = datetime.utcnow() - datetime_or_timedelta
+
+    return dates.format_timedelta(datetime_or_timedelta, granularity,
+        threshold=threshold, locale=locale)
+
+
 #: Returns the given number formatted for a specific locale.
 #:
 #: >>> format_number(1099, locale='en_US')

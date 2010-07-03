@@ -13,7 +13,7 @@
 """
 from datetime import datetime, timedelta
 import re
-from time import time
+from time import mktime, time
 
 from google.appengine.api import memcache
 from google.appengine.ext import db
@@ -540,8 +540,12 @@ class MemcacheSessionBackend(BaseSessionBackend):
 
     def save(self, session, **kwargs):
         """Saves a session."""
-        # TODO set expiration from kwargs.
-        memcache.set(session.sid, dict(session), namespace=self.namespace)
+        expires = kwargs.get('session_expires', kwargs.get('expires', 0))
+        if isinstance(expires, datetime):
+            expires = mktime(expires.timetuple())
+
+        memcache.set(session.sid, dict(session), time=expires,
+            namespace=self.namespace)
 
     def delete(self, session):
         """Deletes a session."""
@@ -573,6 +577,7 @@ class SessionMiddleware(object):
 
     def post_dispatch(self, handler, response):
         handler.request.registry['session_store'].save_session(response)
+        return response
 
     @cached_property
     def config(self):

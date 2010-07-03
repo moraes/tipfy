@@ -18,8 +18,11 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from babel.support import Translations, LazyProxy
-from babel import dates, numbers
+from datetime import datetime
+import os
+
+from babel import Locale, dates, numbers, support
+
 from pytz.gae import pytz
 
 from werkzeug import LocalProxy
@@ -51,11 +54,30 @@ from tipfy import Tipfy, get_config
 #:   Default is ``[('args', 'lang'), ('cookies', 'tipfy.locale')]``: gets the
 #:   locale from a ``lang`` parameter set in ``GET``, and if not set tries to
 #:   get it from a cookie named ``tipfy.locale``.
+#:
+#: - ``date_formats``: Default date formats for datetime, date and time.
 default_config = {
     'locale':                'en_US',
     'timezone':              'America/Chicago',
     'cookie_name':           'tipfy.locale',
     'locale_request_lookup': [('args', 'lang'), ('cookies', 'tipfy.locale')],
+    'date_formats': {
+        'time':             'medium',
+        'date':             'medium',
+        'datetime':         'medium',
+        'time.short':       None,
+        'time.medium':      None,
+        'time.full':        None,
+        'time.long':        None,
+        'date.short':       None,
+        'date.medium':      None,
+        'date.full':        None,
+        'date.long':        None,
+        'datetime.short':   None,
+        'datetime.medium':  None,
+        'datetime.full':    None,
+        'datetime.long':    None,
+    },
 }
 
 # Cache for loaded translations.
@@ -140,8 +162,9 @@ def set_translations(locale):
         ``None``.
     """
     if locale not in _translations:
-        options = list(set([locale, get_config(__name__, 'locale')]))
-        _translations[locale] = Translations.load('locale', options, 'messages')
+        locales = list(set([locale, get_config(__name__, 'locale')]))
+        _translations[locale] = support.Translations.load('locale', locales,
+            'messages')
 
     ctx = Tipfy.request.context
     ctx['locale'] = locale
@@ -179,6 +202,25 @@ def set_translations_from_request():
         locale = get_config(__name__, 'locale')
 
     set_translations(locale)
+
+
+def list_translations():
+    """Returns a list of all the locales translations exist for.  The
+    list returned will be filled with actual locale objects and not just
+    strings.
+
+    :return:
+        A list of ``babel.Locale`` objects.
+    """
+    if not os.path.isdir('locale'):
+        return []
+
+    result = []
+    for folder in sorted(os.listdir('locale')):
+        if os.path.isdir(os.path.join('locale', folder, 'LC_MESSAGES')):
+            result.append(Locale.parse(folder))
+
+    return result
 
 
 def is_default_locale():
@@ -230,9 +272,10 @@ def lazy_gettext(string, **variables):
     :param variables:
         Variables to format the returned string.
     :return:
-        A ``LazyProxy`` object that when accessed translates the string.
+        A ``babel.support.LazyProxy`` object that when accessed translates
+        the string.
     """
-    return LazyProxy(gettext, string, **variables)
+    return support.LazyProxy(gettext, string, **variables)
 
 
 def lazy_ngettext(singular, plural, n, **variables):
@@ -248,12 +291,13 @@ def lazy_ngettext(singular, plural, n, **variables):
     :param variables:
         Variables to format the returned string.
     :return:
-        A ``LazyProxy`` object that when accessed translates the string.
+        A ``babel.support.LazyProxy`` object that when accessed translates
+        the string.
     """
-    return LazyProxy(ngettext, singular, plural, n, **variables)
+    return support.LazyProxy(ngettext, singular, plural, n, **variables)
 
 
-def get_tzinfo(timezone=None):
+def get_timezone(timezone=None):
     """Returns a ``datetime.tzinfo`` object for the given timezone. This is
     called by :func:`format_datetime` and :func:`format_time` when a tzinfo
     is not provided.
@@ -267,218 +311,188 @@ def get_tzinfo(timezone=None):
     return pytz.timezone(timezone or get_config(__name__, 'timezone'))
 
 
-def to_local_timezone(datetime, timezone=None):
+def to_local_timezone(datetime):
     """Returns a datetime object converted to the local timezone.
 
     This function derives from `Kay`_.
 
     :param datetime:
         A ``datetime`` object.
-    :param timezone:
-        The timezone name from the Olson database, e.g.: 'America/Chicago'.
-        If not set, uses the default returned by :func:`get_tzinfo`.
     :return:
         A ``datetime`` object normalized to a timezone.
     """
-    tzinfo = get_tzinfo(timezone)
+    tzinfo = get_timezone()
     if datetime.tzinfo is None:
         datetime = datetime.replace(tzinfo=pytz.UTC)
 
     return tzinfo.normalize(datetime.astimezone(tzinfo))
 
 
-def to_utc(datetime, timezone=None):
+def to_utc(datetime):
     """Returns a datetime object converted to UTC and without tzinfo.
 
     This function derives from `Kay`_.
 
     :param datetime:
         A ``datetime`` object.
-    :param timezone:
-        The timezone name from the Olson database, e.g.: 'America/Chicago'.
-        If not set, uses the default returned by :func:`get_tzinfo`.
     :return:
         A naive ``datetime`` object (no timezone), converted to UTC.
     """
     if datetime.tzinfo is None:
-        tzinfo = get_tzinfo(timezone)
-        datetime = tzinfo.localize(datetime)
+        datetime = get_timezone().localize(datetime)
 
     return datetime.astimezone(pytz.UTC).replace(tzinfo=None)
 
 
-def _get_babel_function(func, with_tzinfo=False):
-    """Returns a wrapper for a Babel datetime or number formatting function.
-    The wrapped function will be called passing the current locale and/or
-    tzinfo if these parameters are not set.
+def _get_babel_function(func):
+    """Returns a wrapper for a Babel formatting function. The wrapped function
+    will be called passing the current locale if it is not set.
 
     :param func:
         A Babel function to be wrapped.
-    :param with_tzinfo:
-        Add `tzinfo` argument to the called function. Not all support this.
     :return:
         A wrapped Babel function.
     """
     def wrapped_func(*args, **kwargs):
-        kwargs['locale'] = kwargs.pop('locale', None) or get_locale()
-        if with_tzinfo:
-            kwargs['tzinfo'] = get_tzinfo(kwargs.pop('timezone', None))
+        if 'locale' not in kwargs:
+            kwargs['locale'] = get_locale()
 
         return func(*args, **kwargs)
 
     return wrapped_func
 
 
-#: Returns a date formatted according to the given pattern and following
-#: the current locale.
-#:
-#: :param date:
-#:     A ``date`` or ``datetime`` object. If ``None``, the current date in UTC
-#:     is used.
-#: :param format:
-#:     The format to be returned. Valid values are "short", "medium", "long",
-#:     "full" or a custom date/time pattern. Example outputs:
-#:
-#:       - short:  11/10/09
-#:       - medium: Nov 10, 2009
-#:       - long:   November 10, 2009
-#:       - full:   Tuesday, November 10, 2009
-#:
-#: :param locale:
-#:     A locale code. If not set, uses the currently loaded locale.
-#: :return:
-#:     A formatted date in unicode.
-format_date = _get_babel_function(dates.format_date)
+def _get_format(key, format):
+    """A small helper for the datetime formatting functions. Returns a format
+    name or pattern to be used by Babel date format functions.
+
+    This function derives from `flask-babel`_.
+
+    :param key:
+        A format key to be get from config: `date`, `datetime` or `time`.
+    :param format:
+        The format to be returned. Valid values are "short", "medium", "long",
+        "full" or a custom date/time pattern.
+    :return:
+        A format name or pattern to be used by Babel date format functions.
+    """
+    config = get_config(__name__)['date_formats']
+
+    if format is None:
+        format = config[key]
+
+    if format in ('short', 'medium', 'full', 'long'):
+        rv = config['%s.%s' % (key, format)]
+        if rv is not None:
+            format = rv
+
+    return format
 
 
-#: Returns a date and time formatted according to the given pattern and
-#: following the current locale and timezone.
-#:
-#: :param datetime:
-#:     A ``datetime`` object. If ``None``, the current date and time in UTC is
-#:     used.
-#: :param format:
-#:     The format to be returned. Valid values are "short", "medium", "long",
-#:     "full" or a custom date/time pattern. Example outputs:
-#:
-#:       - short:  11/10/09 4:36 PM
-#:       - medium: Nov 10, 2009 4:36:05 PM
-#:       - long:   November 10, 2009 4:36:05 PM +0000
-#:       - full:   Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time
-#:
-#: :param timezone:
-#:     The timezone name from the Olson database, e.g.: 'America/Chicago'.
-#:     If not set, uses the default returned by :func:`get_tzinfo`.
-#: :param locale:
-#:     A locale code. If not set, uses the currently loaded locale.
-#: :return:
-#:     A formatted date and time in unicode.
-format_datetime = _get_babel_function(dates.format_datetime, True)
+def format_date(date=None, format=None, locale=None, rebase=True):
+    """Returns a date formatted according to the given pattern and following
+    the current locale.
+
+    :param date:
+        A ``date`` or ``datetime`` object. If ``None``, the current date in UTC
+        is used.
+    :param format:
+        The format to be returned. Valid values are "short", "medium", "long",
+        "full" or a custom date/time pattern. Example outputs:
+
+          - short:  11/10/09
+          - medium: Nov 10, 2009
+          - long:   November 10, 2009
+          - full:   Tuesday, November 10, 2009
+
+    :param locale:
+        A locale code. If not set, uses the currently loaded locale.
+    :param rebase:
+        If ``True``, converts the date to the currently loaded timezone.
+    :return:
+        A formatted date in unicode.
+    """
+    format = _get_format('date', format)
+    locale = locale or get_locale()
+
+    if rebase and isinstance(date, datetime):
+        date = to_local_timezone(date)
+
+    return dates.format_date(date, format, locale=locale)
 
 
-#: Returns a time formatted according to the given pattern and following
-#: the current locale and timezone.
-#:
-#: :param time:
-#:     A ``time`` or ``datetime`` object. If ``None``, the current time in UTC
-#:     is used.
-#: :param format:
-#:     The format to be returned. Valid values are "short", "medium", "long",
-#:     "full" or a custom date/time pattern. Example outputs:
-#:
-#:       - short:  4:36 PM
-#:       - medium: 4:36:05 PM
-#:       - long:   4:36:05 PM +0000
-#:       - full:   4:36:05 PM World (GMT) Time
-#:
-#: :param timezone:
-#:     The timezone name from the Olson database, e.g.: 'America/Chicago'.
-#:     If not set, uses the default returned by :func:`get_tzinfo`.
-#: :param locale:
-#:     A locale code. If not set, uses the currently loaded locale.
-#: :return:
-#:     A formatted time in unicode.
-format_time = _get_babel_function(dates.format_time, True)
+def format_datetime(datetime=None, format=None, locale=None, timezone=None,
+    rebase=True):
+    """Returns a date and time formatted according to the given pattern and
+    following the current locale and timezone.
+
+    :param datetime:
+        A ``datetime`` object. If ``None``, the current date and time in UTC is
+        used.
+    :param format:
+        The format to be returned. Valid values are "short", "medium", "long",
+        "full" or a custom date/time pattern. Example outputs:
+
+          - short:  11/10/09 4:36 PM
+          - medium: Nov 10, 2009 4:36:05 PM
+          - long:   November 10, 2009 4:36:05 PM +0000
+          - full:   Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time
+
+    :param locale:
+        A locale code. If not set, uses the currently loaded locale.
+    :param timezone:
+        The timezone name from the Olson database, e.g.: 'America/Chicago'.
+        If not set, uses the default returned by :func:`get_timezone`.
+    :param rebase:
+        If ``True``, converts the datetime to the currently loaded timezone.
+    :return:
+        A formatted date and time in unicode.
+    """
+    format = _get_format('datetime', format)
+    locale = locale or get_locale()
+
+    kwargs = {}
+    if rebase:
+        kwargs['tzinfo'] = get_timezone(timezone)
+
+    return dates.format_datetime(datetime, format, locale=locale, **kwargs)
 
 
-#: Returns a representation of the given timezone using "location format".
-#:
-#: The result depends on both the local display name of the country and the
-#: city assocaited with the time zone:
-#:
-#: >>> from pytz import timezone
-#: >>> tz = timezone('America/St_Johns')
-#: >>> get_timezone_location(tz, locale='de_DE')
-#: u"Kanada (St. John's)"
-#: >>> tz = timezone('America/Mexico_City')
-#: >>> get_timezone_location(tz, locale='de_DE')
-#: u'Mexiko (Mexiko-Stadt)'
-#:
-#: If the timezone is associated with a country that uses only a single
-#: timezone, just the localized country name is returned:
-#:
-#: >>> tz = timezone('Europe/Berlin')
-#: >>> get_timezone_name(tz, locale='de_DE')
-#: u'Deutschland'
-#:
-#: :param dt_or_tzinfo:
-#:     The ``datetime`` or ``tzinfo`` object that determines the timezone;
-#:     if `None`, the current date and time in UTC is assumed.
-#: :param locale:
-#:     A locale code. If not set, uses the currently loaded locale.
-#: :return:
-#:     The localized timezone name using location format.
-get_timezone_name = _get_babel_function(dates.get_timezone_name)
+def format_time(time=None, format=None, locale=None, timezone=None,
+    rebase=True):
+    """Returns a time formatted according to the given pattern and following
+    the current locale and timezone.
 
+    :param time:
+        A ``time`` or ``datetime`` object. If ``None``, the current time in UTC
+        is used.
+    :param format:
+        The format to be returned. Valid values are "short", "medium", "long",
+        "full" or a custom date/time pattern. Example outputs:
 
-#: Parse a date from a string.
-#:
-#: This function uses the date format for the locale as a hint to determine
-#: the order in which the date fields appear in the string.
-#:
-#: >>> parse_date('4/1/04', locale='en_US')
-#: datetime.date(2004, 4, 1)
-#: >>> parse_date('01.04.2004', locale='de_DE')
-#: datetime.date(2004, 4, 1)
-#:
-#: :param string:
-#:     The string containing the date.
-#: :param locale:
-#:     A locale code. If not set, uses the currently loaded locale.
-#: :return:
-#:     The parsed date object.
-parse_date = _get_babel_function(dates.parse_date)
+          - short:  4:36 PM
+          - medium: 4:36:05 PM
+          - long:   4:36:05 PM +0000
+          - full:   4:36:05 PM World (GMT) Time
 
+    :param locale:
+        A locale code. If not set, uses the currently loaded locale.
+    :param timezone:
+        The timezone name from the Olson database, e.g.: 'America/Chicago'.
+        If not set, uses the default returned by :func:`get_timezone`.
+    :param rebase:
+        If ``True``, converts the time to the currently loaded timezone.
+    :return:
+        A formatted time in unicode.
+    """
+    format = _get_format('time', format)
+    locale = locale or get_locale()
 
-#: Parse a date and time from a string.
-#:
-#: This function uses the date and time formats for the locale as a hint to
-#: determine the order in which the time fields appear in the string.
-#:
-#: :param string:
-#:     The string containing the date and time.
-#: :param locale:
-#:     A locale code. If not set, uses the currently loaded locale.
-#: :return:
-#:     The parsed datetime object.
-parse_datetime = _get_babel_function(dates.parse_datetime)
+    kwargs = {}
+    if rebase:
+        kwargs['tzinfo'] = get_timezone(timezone)
 
-
-#: Parse a time from a string.
-#:
-#: This function uses the time format for the locale as a hint to determine
-#: the order in which the time fields appear in the string.
-#:
-#: >>> parse_time('15:30:00', locale='en_US')
-#: datetime.time(15, 30)
-#:
-#: :param string:
-#:     The string containing the time.
-#: :param locale:
-#:     A locale code. If not set, uses the currently loaded locale.
-#: :return:
-#:     The parsed time object.
-parse_time = _get_babel_function(dates.parse_time)
+    return dates.format_time(time, format, locale=locale, **kwargs)
 
 
 #: Returns the given number formatted for a specific locale.
@@ -598,6 +612,56 @@ format_percent = _get_babel_function(numbers.format_percent)
 format_scientific = _get_babel_function(numbers.format_scientific)
 
 
+#: Parse a date from a string.
+#:
+#: This function uses the date format for the locale as a hint to determine
+#: the order in which the date fields appear in the string.
+#:
+#: >>> parse_date('4/1/04', locale='en_US')
+#: datetime.date(2004, 4, 1)
+#: >>> parse_date('01.04.2004', locale='de_DE')
+#: datetime.date(2004, 4, 1)
+#:
+#: :param string:
+#:     The string containing the date.
+#: :param locale:
+#:     A locale code. If not set, uses the currently loaded locale.
+#: :return:
+#:     The parsed date object.
+parse_date = _get_babel_function(dates.parse_date)
+
+
+#: Parse a date and time from a string.
+#:
+#: This function uses the date and time formats for the locale as a hint to
+#: determine the order in which the time fields appear in the string.
+#:
+#: :param string:
+#:     The string containing the date and time.
+#: :param locale:
+#:     A locale code. If not set, uses the currently loaded locale.
+#: :return:
+#:     The parsed datetime object.
+parse_datetime = _get_babel_function(dates.parse_datetime)
+
+
+#: Parse a time from a string.
+#:
+#: This function uses the time format for the locale as a hint to determine
+#: the order in which the time fields appear in the string.
+#:
+#: >>> parse_time('15:30:00', locale='en_US')
+#: datetime.time(15, 30)
+#:
+#: :param string:
+#:     The string containing the time.
+#: :param locale:
+#:     A locale code. If not set, uses the currently loaded locale.
+#: :return:
+#:     The parsed time object.
+parse_time = _get_babel_function(dates.parse_time)
+
+
 #: Parse localized number string into a long integer.
 #:
 #: >>> parse_number('1,099', locale='en_US')
@@ -648,8 +712,41 @@ parse_number = _get_babel_function(numbers.parse_number)
 parse_decimal = _get_babel_function(numbers.parse_decimal)
 
 
+#: Returns a representation of the given timezone using "location format".
+#:
+#: The result depends on both the local display name of the country and the
+#: city assocaited with the time zone:
+#:
+#: >>> from pytz import timezone
+#: >>> tz = timezone('America/St_Johns')
+#: >>> get_timezone_location(tz, locale='de_DE')
+#: u"Kanada (St. John's)"
+#: >>> tz = timezone('America/Mexico_City')
+#: >>> get_timezone_location(tz, locale='de_DE')
+#: u'Mexiko (Mexiko-Stadt)'
+#:
+#: If the timezone is associated with a country that uses only a single
+#: timezone, just the localized country name is returned:
+#:
+#: >>> tz = timezone('Europe/Berlin')
+#: >>> get_timezone_name(tz, locale='de_DE')
+#: u'Deutschland'
+#:
+#: :param dt_or_tzinfo:
+#:     The ``datetime`` or ``tzinfo`` object that determines the timezone;
+#:     if `None`, the current date and time in UTC is assumed.
+#: :param locale:
+#:     A locale code. If not set, uses the currently loaded locale.
+#: :return:
+#:     The localized timezone name using location format.
+get_timezone_name = _get_babel_function(dates.get_timezone_name)
+
+
 # Common alias to gettext.
 _ = gettext
 
 # Current translations.
 translations = LocalProxy(lambda: get_translations())
+
+# Old names.
+get_tzinfo = get_timezone

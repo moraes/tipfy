@@ -1,3 +1,14 @@
+Version 0.7 - July 3rd, 2010
+============================
+Added several features borrowed from flask-babel:
+
+- Added configuration for date/time formats.
+- Added 'rebase' keyword argument to format_date(), format_datetime() and
+  format_time(), to only convert the date/time to the currently loaded
+  timezone if it is True (default to True).
+- Added list_translations().
+
+
 Version 0.6 - June 30, 2010
 ===========================
 - Added optional keyword variables to format translations returned by gettext(),

@@ -4,6 +4,7 @@
 """
 import datetime
 import gettext as gettext_stdlib
+import os
 import unittest
 
 import nose
@@ -15,9 +16,9 @@ from tipfy import Tipfy
 from tipfy.ext.i18n import (_, format_currency, format_date, format_datetime,
     format_decimal, format_number, format_percent, format_scientific,
     format_time, gettext, get_locale, get_translations, get_tzinfo,
-    I18nMiddleware, is_default_locale, lazy_gettext, lazy_ngettext, ngettext,
-    parse_number, parse_decimal, pytz, set_translations,
-    set_translations_from_request, to_local_timezone, to_utc)
+    I18nMiddleware, is_default_locale, lazy_gettext, lazy_ngettext,
+    list_translations, ngettext, parse_number, parse_decimal, pytz,
+    set_translations, set_translations_from_request, to_local_timezone, to_utc)
 
 
 class Request(object):
@@ -107,9 +108,31 @@ class TestI18nMiddleware(unittest.TestCase):
 #============================================================================
 # Translations
 #============================================================================
-class TestI18n(unittest.TestCase):
+class TestTranslations(unittest.TestCase):
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
+
+    def test_list_translations(self):
+        cwd = os.getcwd()
+        os.chdir(os.path.abspath(os.path.dirname(__file__)))
+
+        translations = list_translations()
+
+        assert len(translations) == 2
+        assert translations[0].language == 'en'
+        assert translations[0].territory == 'US'
+        assert translations[1].language == 'pt'
+        assert translations[1].territory == 'BR'
+
+        os.chdir(cwd)
+
+    def test_list_translations_no_locale_dir(self):
+        cwd = os.getcwd()
+        os.chdir(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'locale'))
+
+        assert list_translations() == []
+
+        os.chdir(cwd)
 
     def test_get_translations(self):
         app = Tipfy()
@@ -308,7 +331,7 @@ class TestGettext(unittest.TestCase):
 #============================================================================
 # Date formatting
 #============================================================================
-class TestTimezones(unittest.TestCase):
+class TestDates(unittest.TestCase):
     def setUp(self):
         app = Tipfy({'tipfy.ext.i18n': {'timezone': 'UTC'}})
         request = Request()
@@ -326,6 +349,37 @@ class TestTimezones(unittest.TestCase):
         assert format_date(value, format='medium') == u'Nov 10, 2009'
         assert format_date(value, format='long') == u'November 10, 2009'
         assert format_date(value, format='full') == u'Tuesday, November 10, 2009'
+
+    def test_format_date_no_format(self):
+        set_translations('en_US')
+        value = datetime.datetime(2009, 11, 10, 16, 36, 05)
+        assert format_date(value) == u'Nov 10, 2009'
+
+    def test_format_date_no_format_but_configured(self):
+        app = Tipfy({'tipfy.ext.i18n': {'timezone': 'UTC', 'date_formats': {
+            'time':             'medium',
+            'date':             'medium',
+            'datetime':         'medium',
+            'time.short':       None,
+            'time.medium':      None,
+            'time.full':        None,
+            'time.long':        None,
+            'date.short':       None,
+            'date.medium':      'full',
+            'date.full':        None,
+            'date.long':        None,
+            'datetime.short':   None,
+            'datetime.medium':  None,
+            'datetime.full':    None,
+            'datetime.long':    None,
+        }}})
+        request = Request()
+        app.set_wsgi_app()
+        app.set_request(request)
+
+        set_translations('en_US')
+        value = datetime.datetime(2009, 11, 10, 16, 36, 05)
+        assert format_date(value) == u'Tuesday, November 10, 2009'
 
     def test_format_date_pt_BR(self):
         set_translations('pt_BR')
@@ -345,6 +399,11 @@ class TestTimezones(unittest.TestCase):
         assert format_datetime(value, format='long') == u'November 10, 2009 4:36:05 PM +0000'
         assert format_datetime(value, format='full') == u'Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time'
 
+    def test_format_datetime_no_format(self):
+        set_translations('en_US')
+        value = datetime.datetime(2009, 11, 10, 16, 36, 05)
+        assert format_datetime(value) == u'Nov 10, 2009 4:36:05 PM'
+
     def test_format_datetime_pt_BR(self):
         set_translations('pt_BR')
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -362,6 +421,11 @@ class TestTimezones(unittest.TestCase):
         assert format_time(value, format='medium') == u'4:36:05 PM'
         assert format_time(value, format='long') == u'4:36:05 PM +0000'
         assert format_time(value, format='full') == u'4:36:05 PM World (GMT) Time'
+
+    def test_format_time_no_format(self):
+        set_translations('en_US')
+        value = datetime.datetime(2009, 11, 10, 16, 36, 05)
+        assert format_time(value) == u'4:36:05 PM'
 
     def test_format_time_pt_BR(self):
         set_translations('pt_BR')

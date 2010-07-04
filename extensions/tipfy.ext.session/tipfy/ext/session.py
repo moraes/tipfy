@@ -3,8 +3,8 @@
     tipfy.ext.session
     ~~~~~~~~~~~~~~~~~
 
-    This extension provides sessions using datastore, memcache or secure
-    cookies. It also provides an interface to get and set flash messages,
+    This extension implements sessions using datastore, memcache or secure
+    cookies. It also provides an interface to get and set flash messages
     and to set and delete secure cookies or ordinary cookies, and several
     convenient mixins for the RequestHandler.
 
@@ -37,8 +37,8 @@ from tipfy.ext.db import (PickleProperty, get_protobuf_from_entity,
 #:   something random and unguessable. Default is
 #:   :data:`tipfy.REQUIRED_VALUE` (an exception is raised if it is not set).
 #:
-#: - ``cookie_name``: Name of the cookie to save a session. Default
-#:   is `tipfy.session`.
+#: - ``cookie_name``: Name of the cookie to save a session or session id.
+#:   Default is `tipfy.session`.
 #:
 #: - ``cookie_session_expires``: Session expiration time in seconds. Limits the
 #:   duration of the contents of a cookie, even if a session cookie exists.
@@ -479,6 +479,12 @@ class DatastoreSession(BaseSession):
 
         return cls(entity.data, sid, new=False, entity=entity)
 
+    @classmethod
+    def delete_by_sid(cls, sid):
+        entity = cls.model_class.get_by_sid(sid)
+        if entity:
+            entity.delete()
+
     def save_session(self, store, response, key, **kwargs):
         """Saves a session."""
         if not self.modified:
@@ -512,6 +518,10 @@ class MemcacheSession(BaseSession):
 
         return cls(data, sid, new=False)
 
+    @classmethod
+    def delete_by_sid(cls, sid):
+        memcache.delete(sid, namespace=cls.get_namespace())
+
     def save_session(self, store, response, key, **kwargs):
         """Saves a session."""
         if not self.modified:
@@ -527,7 +537,7 @@ class MemcacheSession(BaseSession):
     def delete_session(self, store, response, key, **kwargs):
         """Deletes a session."""
         if self.sid:
-            memcache.delete(self.sid, namespace=self.__class__.get_namespace())
+            self.__class__.delete_by_sid(self.sid)
 
 
 class SecureCookieSession(SecureCookie):
@@ -647,7 +657,7 @@ class MessagesMixin(BaseSessionMixin):
             Message contents.
         :param title:
             Optional message title.
-        :life:
+        :param life:
             Message life time in seconds. User interface can implement
             a mechanism to make the message disappear after the elapsed time.
             If not set, the message is permanent.

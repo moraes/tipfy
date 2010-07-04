@@ -2,8 +2,15 @@
 tipfy.ext.session
 =================
 
-This extension provides session support for tipfy, the almighty little
-framework for Google App Engine.
+This extension implements sessions using datastore, memcache or secure cookies
+for Tipfy, a framework made for Google App Engine.
+
+It also provides an interface to get and set flash messages and to set and
+delete secure cookies or ordinary cookies, and several convenient
+session-related mixins for the RequestHandler.
+
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/session/ <http://www.tipfy.org/wiki/extensions/session/>`_.
 
 Links
 -----
@@ -22,7 +29,7 @@ setup(
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Session extension for tipfy',
-    long_description=__doc__,
+    long_description = __doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
     zip_safe = False,
@@ -35,12 +42,12 @@ setup(
         'tipfy',
         'tipfy.ext',
     ],
-    include_package_data=True,
+    include_package_data = True,
     install_requires = [
         'tipfy',
         'tipfy.ext.db',
     ],
-    classifiers=[
+    classifiers = [
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',

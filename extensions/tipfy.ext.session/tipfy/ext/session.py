@@ -20,7 +20,7 @@ from google.appengine.ext import db
 
 from werkzeug import cached_property
 from werkzeug.contrib.securecookie import SecureCookie
-from werkzeug.contrib.sessions import Session as BaseSession, generate_key
+from werkzeug.contrib.sessions import ModificationTrackingDict, generate_key
 from werkzeug.security import gen_salt
 
 from tipfy import REQUIRED_VALUE, get_config
@@ -81,6 +81,11 @@ default_config = {
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
 
 
+def is_valid_key(key):
+    """Check if a session key has the correct format."""
+    return _sha1_re.match(key) is not None
+
+
 class SessionStore(object):
     """A session store that works with multiple backends. This is responsible
     for providing and persisting sessions, flash messages, secure cookies and
@@ -91,8 +96,10 @@ class SessionStore(object):
         self.request = request
         # Configuration for the sessions.
         self.config = config
-        # Session and cookie data to be saved at the end of request.
-        self._data = {}
+        # Secure cookies to be saved at the end of request.
+        self._cookies = {}
+        # Tracked sessions.
+        self._sessions = {}
         # A dictionary of support backend classes.
         self.backends = backends
         # The default backend to use when none is provided.
@@ -123,12 +130,12 @@ class SessionStore(object):
         """
         key = key or self.config['cookie_name']
 
-        if key not in self._data or self._data[key][0] is None:
+        if key not in self._sessions:
             backend = backend or self.default_backend
-            session = self.backends[backend].get_session(self, key, **kwargs)
-            self._data[key] = (session, kwargs)
+            self._sessions[key] = self.backends[backend].get_session(self,
+                key, **kwargs)
 
-        return self._data[key][0]
+        return self._sessions[key]
 
     def get_flash(self, key=None, backend=None, **kwargs):
         """Returns a flash message. Flash messages are deleted when first read.
@@ -187,15 +194,15 @@ class SessionStore(object):
         :return:
             A ``werkzeug.contrib.SecureCookie`` instance.
         """
-        if override is True or key not in self._data:
+        if override is True or key not in self._cookies:
             if load:
                 cookie = self.load_secure_cookie(key)
             else:
                 cookie = self.create_secure_cookie()
 
-            self._data[key] = (cookie, kwargs)
+            self._cookies[key] = (cookie, kwargs)
 
-        return self._data[key][0]
+        return self._cookies[key][0]
 
     def load_secure_cookie(self, key):
         """Loads and returns a secure cookie from request. If it is not set, a
@@ -245,7 +252,7 @@ class SessionStore(object):
         :return:
             ``None``.
         """
-        self._data[key] = (value, kwargs)
+        self._cookies[key] = (value, kwargs)
 
     def delete_cookie(self, key, **kwargs):
         """Registers a cookie or secure cookie to be deleted.
@@ -260,7 +267,7 @@ class SessionStore(object):
         :return:
             ``None``.
         """
-        self._data[key] = (None, kwargs)
+        self._cookies[key] = (None, kwargs)
 
     def save_session(self, response):
         """Saves all sessions to a response object.
@@ -270,16 +277,17 @@ class SessionStore(object):
         :return:
             ``None``.
         """
-        if not self._data:
+        if not self._cookies and not self._sessions:
             return
 
         cookie_args = self.config['cookie_args']
 
-        for key, (value, kwargs) in self._data.iteritems():
+        # Save all cookies.
+        for key, (value, kwargs) in self._cookies.iteritems():
             kwargs = kwargs or cookie_args.copy()
 
             if not value:
-                # Session is empty, so delete it.
+                # Cookie is empty or marked for deletion, so delete it.
                 response.delete_cookie(key, path=kwargs.get('path', '/'),
                     domain=kwargs.get('domain', None))
                 if hasattr(value, 'delete_session'):
@@ -289,22 +297,34 @@ class SessionStore(object):
                 kwargs.pop('force', None)
                 kwargs.pop('session_expires', None)
                 response.set_cookie(key, value=value, **kwargs)
-            elif hasattr(value, 'save_cookie'):
-                # Save a session cookie, if modified or forced.
-                max_age = kwargs.pop('max_age', None)
-                session_expires = kwargs.pop('session_expires', None)
-
-                if max_age and 'expires' not in kwargs:
-                    kwargs['expires'] = time() + max_age
-
-                if session_expires:
-                    kwargs['session_expires'] = datetime.fromtimestamp(
-                        time() + session_expires)
-
+            elif isinstance(value, SecureCookie):
+                # Save a secure cookie if modified or forced.
+                kwargs = self._prepare_kwargs(kwargs)
                 value.save_cookie(response, key=key, **kwargs)
 
-        # Remove all values.
-        self._data.clear()
+        # Save all sessions.
+        for key, value in self._sessions.iteritems():
+            cookie_data = self._cookies.get(key)
+            if cookie_data:
+                kwargs = cookie_data[1]
+            else:
+                kwargs = cookie_args.copy()
+
+            kwargs = self._prepare_kwargs(kwargs)
+            value.save_session(self, response, key, **kwargs)
+
+    def _prepare_kwargs(self, kwargs):
+        max_age = kwargs.pop('max_age', None)
+        session_expires = kwargs.pop('session_expires', None)
+
+        if max_age and 'expires' not in kwargs:
+            kwargs['expires'] = time() + max_age
+
+        if session_expires:
+            kwargs['session_expires'] = datetime.fromtimestamp(
+                time() + session_expires)
+
+        return kwargs
 
 
 class SessionModel(db.Model):
@@ -345,15 +365,6 @@ class SessionModel(db.Model):
             return True
 
         return self.created + timedelta(seconds=seconds) < datetime.now()
-
-    @property
-    def namespace(self):
-        """Returns the namespace to be used in memcache.
-
-        :return:
-            A namespace string.
-        """
-        return SessionModel.get_namespace()
 
     @classmethod
     def get_namespace(cls):
@@ -404,11 +415,11 @@ class SessionModel(db.Model):
     def set_cache(self):
         """Saves a new cache for this entity."""
         memcache.set(self.sid, get_protobuf_from_entity(self),
-            namespace=self.namespace)
+            namespace=self.__class__.get_namespace())
 
     def delete_cache(self):
         """Saves a new cache for this entity."""
-        memcache.delete(self.sid, namespace=self.namespace)
+        memcache.delete(self.sid, namespace=self.__class__.get_namespace())
 
     def put(self):
         """Saves the session and updates the memcache entry."""
@@ -421,69 +432,23 @@ class SessionModel(db.Model):
         db.delete(self)
 
 
-class Session(BaseSession):
+class BaseSession(ModificationTrackingDict):
     """A container for session data. This is a dictionary that tracks
     changes.
     """
-    __slots__ = BaseSession.__slots__ + ('backend',)
+    __slots__ = ModificationTrackingDict.__slots__ + ('sid', 'new')
 
-    def __init__(self, data, sid, backend, new=False):
-        BaseSession.__init__(self, data, sid, new)
-        self.backend = backend
+    def __init__(self, data, sid, new=False):
+        ModificationTrackingDict.__init__(self, data)
+        self.sid = sid
+        self.new = new
 
-    def save_cookie(self, response, **kwargs):
-        self.backend.save_if_modified(self, **kwargs)
-
-    def delete_session(self):
-        self.backend.delete(self)
-
-
-class DatastoreSession(Session):
-    """A container for session data that stores a reference to the session
-    entity.
-    """
-    __slots__ = Session.__slots__ + ('entity',)
-
-    def __init__(self, data, sid, backend, new=False, entity=None):
-        Session.__init__(self, data, sid, backend, new)
-        self.entity = entity
-
-
-class BaseSessionBackend(object):
-    """Base interface for session backends."""
-    session_class = Session
-
-    def is_valid_key(self, key):
-        """Check if a session key has the correct format."""
-        return _sha1_re.match(key) is not None
-
-    def generate_key(self, salt=None):
-        """Returns a new session key."""
-        return generate_key(salt or gen_salt(10))
-
-    def new(self):
-        """Generates a new session."""
-        return self.session_class({}, self.generate_key(), self, True)
-
-    def save_if_modified(self, session, **kwargs):
-        """Save if a session class wants an update."""
-        if session.should_save:
-            self.save(session, **kwargs)
-
-    def get(self, sid=None):
-        """Returns a session given a session id."""
-
-    def save(self, session, **kwargs):
-        """Saves a session."""
-
-    def delete(self, session):
-        """Deletes a session."""
-
-    def get_session(self, store, key, **kwargs):
+    @classmethod
+    def get_session(cls, store, key, **kwargs):
         """Returns a session that is tracked by the session store."""
         cookie = store.get_secure_cookie(key, **kwargs)
         sid = cookie.get('_sid', None)
-        session = self.get(sid=sid)
+        session = cls.get_by_sid(sid)
 
         if sid != session.sid:
             cookie['_sid'] = session.sid
@@ -491,79 +456,102 @@ class BaseSessionBackend(object):
         return session
 
 
-class DatastoreSessionBackend(BaseSessionBackend):
+class DatastoreSession(BaseSession):
+    """A session container for datastore sessions."""
+    __slots__ = BaseSession.__slots__ + ('entity',)
+
     model_class = SessionModel
-    session_class = DatastoreSession
 
-    def get(self, sid=None):
+    def __init__(self, data, sid, new=False, entity=None):
+        BaseSession.__init__(self, data, sid, new=new)
+        self.entity = entity
+
+    @classmethod
+    def get_by_sid(cls, sid):
         """Returns a session given a session id."""
-        if not sid or not self.is_valid_key(sid):
-            return self.new()
+        data = None
 
-        entity = self.model_class.get_by_sid(sid)
-        if not entity:
-            return self.new()
+        if sid and is_valid_key(sid):
+            data = cls.model_class.get_by_sid(sid)
 
-        return self.session_class(entity.data, sid, self, False, entity)
-
-    def save(self, session, **kwargs):
-        """Saves a session."""
-        session.entity = self.model_class.create(session.sid, dict(session))
-        session.entity.put()
-
-    def delete(self, session):
-        """Deletes a session."""
-        if session.entity and session.entity.is_saved():
-            session.entity.delete()
-
-
-class MemcacheSessionBackend(BaseSessionBackend):
-    @cached_property
-    def namespace(self):
-        """Returns the namespace to be used in memcache.
-
-        :return:
-            A namespace string.
-        """
-        return self.__class__.__module__ + '.' + self.__class__.__name__
-
-    def get(self, sid=None):
-        """Returns a session given a session id."""
-        if not sid or not self.is_valid_key(sid):
-            return self.new()
-
-        data = memcache.get(sid, namespace=self.namespace)
         if not data:
-            return self.new()
+            return cls({}, generate_key(gen_salt(10)), new=True)
 
-        return self.session_class(data, sid, False)
+        return cls(data, sid, new=False, entity=data)
 
-    def save(self, session, **kwargs):
+    def save_session(self, store, response, key, **kwargs):
         """Saves a session."""
+        if not self.modified:
+            return
+
+        self.entity = self.model_class.create(self.sid, dict(self))
+        self.entity.put()
+
+    def delete_session(self, store, response, key, **kwargs):
+        """Deletes a session."""
+        if self.entity and self.entity.is_saved():
+            self.entity.delete()
+
+
+class MemcacheSession(BaseSession):
+    """A session container for memcache sessions."""
+    @classmethod
+    def get_namespace(cls):
+        return cls.__module__ + '.' + cls.__name__
+
+    @classmethod
+    def get_by_sid(cls, sid):
+        """Returns a session given a session id."""
+        data = None
+
+        if sid and is_valid_key(sid):
+            data = memcache.get(sid, namespace=cls.get_namespace())
+
+        if not data:
+            return cls({}, generate_key(gen_salt(10)), new=True)
+
+        return cls(data, sid, new=False)
+
+    def save_session(self, store, response, key, **kwargs):
+        """Saves a session."""
+        if not self.modified:
+            return
+
         expires = kwargs.get('session_expires', kwargs.get('expires', 0))
         if isinstance(expires, datetime):
             expires = mktime(expires.timetuple())
 
-        memcache.set(session.sid, dict(session), time=expires,
-            namespace=self.namespace)
+        memcache.set(self.sid, dict(self), time=expires,
+            namespace=self.__class__.get_namespace())
 
-    def delete(self, session):
+    def delete_session(self, store, response, key, **kwargs):
         """Deletes a session."""
-        memcache.delete(session.sid, namespace=self.namespace)
+        if self.sid:
+            memcache.delete(self.sid, namespace=self.__class__.get_namespace())
 
 
-class SecureCookieSessionBackend(object):
-    def get_session(self, store, key, **kwargs):
-        """Returns a session that is tracked by the session store."""
-        return store.get_secure_cookie(key, **kwargs)
+class SecureCookieSession(SecureCookie):
+    """A session container for SecureCookie sessions."""
+    @classmethod
+    def get_session(cls, store, key, **kwargs):
+        return cls.load_cookie(store.request, key=key,
+            secret_key=store.config['secret_key'])
+
+    def save_session(self, store, response, key, **kwargs):
+        """Saves a session."""
+        self.save_cookie(response, key=key, **kwargs)
+
+    def delete_session(self, store, response, key, **kwargs):
+        """Deletes a session."""
+        response.delete_cookie(key, **kwargs)
 
 
 class SessionMiddleware(object):
     #: A dictionary with the default supported backends.
     default_backends = {
-        'datastore':    DatastoreSessionBackend(),
-        'memcache':     MemcacheSessionBackend(),
-        'securecookie': SecureCookieSessionBackend(),
+        'datastore':    DatastoreSession,
+        'memcache':     MemcacheSession,
+        'securecookie': SecureCookieSession,
     }
 
     def __init__(self, backends=None, default_backend=None):

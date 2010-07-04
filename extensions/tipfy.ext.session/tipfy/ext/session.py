@@ -469,15 +469,15 @@ class DatastoreSession(BaseSession):
     @classmethod
     def get_by_sid(cls, sid):
         """Returns a session given a session id."""
-        data = None
+        entity = None
 
         if sid and is_valid_key(sid):
-            data = cls.model_class.get_by_sid(sid)
+            entity = cls.model_class.get_by_sid(sid)
 
-        if not data:
+        if not entity:
             return cls({}, generate_key(gen_salt(10)), new=True)
 
-        return cls(data, sid, new=False, entity=data)
+        return cls(entity.data, sid, new=False, entity=entity)
 
     def save_session(self, store, response, key, **kwargs):
         """Saves a session."""

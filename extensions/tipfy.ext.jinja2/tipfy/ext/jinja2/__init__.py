@@ -79,17 +79,17 @@ def create_jinja2_instance(app):
     :return:
         A ``jinja2.Environment`` instance.
     """
-    templates_compiled_target = app.get_config(__name__,
-        'templates_compiled_target')
+    cfg = app.get_config(__name__)
+    templates_compiled_target = cfg.get('templates_compiled_target')
 
-    use_compiled = not app.dev or app.get_config(__name__, 'force_use_compiled')
+    use_compiled = not app.dev or cfg.get( 'force_use_compiled')
 
     if templates_compiled_target is not None and use_compiled:
         # Use precompiled templates loaded from a module or zip.
         loader = ModuleLoader(templates_compiled_target)
     else:
         # Parse templates for every new environment instances.
-        loader = FileSystemLoader(app.get_config(__name__, 'templates_dir'))
+        loader = FileSystemLoader(cfg.get( 'templates_dir'))
 
     if i18n:
         extensions = ['jinja2.ext.i18n']

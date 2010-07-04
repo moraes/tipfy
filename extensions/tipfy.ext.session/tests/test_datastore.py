@@ -12,8 +12,7 @@ from google.appengine.api import memcache
 from google.appengine.ext import db
 
 from tipfy import Tipfy
-from tipfy.ext.session import (DatastoreSession, DatastoreSessionBackend,
-    SessionModel)
+from tipfy.ext.session import SessionModel, DatastoreSession
 
 
 class TestSessionModel(DataStoreTestCase, MemcacheTestCase,
@@ -24,34 +23,30 @@ class TestSessionModel(DataStoreTestCase, MemcacheTestCase,
         self.app = Tipfy()
 
     def test_get_by_sid_without_cache(self):
-        session_store = DatastoreSessionBackend()
-        session = session_store.get()
-        session['foo'] = 'bar'
-        session['baz'] = 'ding'
-        session_store.save(session)
+        sid = 'test'
+        entity = SessionModel.create(sid, {'foo': 'bar', 'baz': 'ding'})
+        entity.put()
 
-        cached_data = SessionModel.get_cache(session.sid)
+        cached_data = SessionModel.get_cache(sid)
         assert cached_data is not None
 
-        session.entity.delete_cache()
-        cached_data = SessionModel.get_cache(session.sid)
+        entity.delete_cache()
+        cached_data = SessionModel.get_cache(sid)
         assert cached_data is None
 
-        entity = SessionModel.get_by_sid(session.sid)
+        entity = SessionModel.get_by_sid(sid)
         assert entity is not None
         assert 'foo' in entity.data
         assert 'baz' in entity.data
         assert entity.data['foo'] == 'bar'
         assert entity.data['baz'] == 'ding'
 
-    def test_get_by_sid_invalid(self):
-        session_store = DatastoreSessionBackend()
-        session = session_store.get()
-        session['foo'] = 'bar'
-        session['baz'] = 'ding'
-        session_store.save(session)
+    def test_delete_by_sid_invalid(self):
+        sid = 'test'
+        entity = SessionModel.create(sid, {'foo': 'bar', 'baz': 'ding'})
+        entity.put()
 
-        entity = SessionModel.get_by_sid(session.sid)
+        entity = SessionModel.get_by_sid(sid)
         assert entity is not None
         assert 'foo' in entity.data
         assert 'baz' in entity.data
@@ -79,64 +74,19 @@ class TestSessionModel(DataStoreTestCase, MemcacheTestCase,
         SessionModel.get_by_key_name = get_by_key_name_wrapper(
             SessionModel.get_by_key_name)
 
-        entity = SessionModel.get_by_sid(session.sid)
+        entity = SessionModel.get_by_sid(sid)
         self.assertEqual(entity, None)
         assert entity is None
 
+    def test_delete_by_sid(self):
+        sid = 'test'
+        entity = SessionModel.create(sid, {'foo': 'bar', 'baz': 'ding'})
+        entity.put()
 
-class TestDatastoreSessionBackend(DataStoreTestCase, MemcacheTestCase,
-    unittest.TestCase):
-    def setUp(self):
-        DataStoreTestCase.setUp(self)
-        MemcacheTestCase.setUp(self)
-        self.app = Tipfy()
+        cached_data = SessionModel.get_cache(sid)
+        assert cached_data is not None
 
-    def test_get_without_sid(self):
-        session_store = DatastoreSessionBackend()
-        session = session_store.get()
-        assert isinstance(session, DatastoreSession)
-        assert session == {}
+        DatastoreSession.delete_by_sid('test')
 
-    def test_get_with_invalid_sid(self):
-        session_store = DatastoreSessionBackend()
-        session = session_store.get('a')
-        assert isinstance(session, DatastoreSession)
-        assert session == {}
-
-    def test_get_with_non_existent_sid(self):
-        session_store = DatastoreSessionBackend()
-        session = session_store.get('a' * 40)
-        assert isinstance(session, DatastoreSession)
-        assert session == {}
-
-    def test_save(self):
-        session_store = DatastoreSessionBackend()
-        session = session_store.get()
-        session['foo'] = 'bar'
-        session['baz'] = 'ding'
-        session_store.save(session)
-
-        new_session = session_store.get(session.sid)
-        assert 'foo' in session
-        assert 'baz' in session
-        assert session['foo'] == 'bar'
-        assert session['baz'] == 'ding'
-
-    def test_delete(self):
-        session_store = DatastoreSessionBackend()
-        session = session_store.get()
-        session['foo'] = 'bar'
-        session['baz'] = 'ding'
-        session_store.save(session)
-
-        new_session = session_store.get(session.sid)
-        assert 'foo' in session
-        assert 'baz' in session
-        assert session['foo'] == 'bar'
-        assert session['baz'] == 'ding'
-
-        session_store.delete(session)
-        new_session = session_store.get(session.sid)
-        assert 'foo' not in new_session
-        assert 'baz' not in new_session
-        assert new_session == {}
+        cached_data = SessionModel.get_cache(sid)
+        assert cached_data is None

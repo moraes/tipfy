@@ -284,14 +284,16 @@ class SessionStore(object):
 
         # Save all cookies.
         for key, (value, kwargs) in self._cookies.iteritems():
-            kwargs = kwargs or cookie_args.copy()
+            kwargs = kwargs.copy() or cookie_args.copy()
 
             if not value:
                 # Cookie is empty or marked for deletion, so delete it.
                 response.delete_cookie(key, path=kwargs.get('path', '/'),
                     domain=kwargs.get('domain', None))
-                if hasattr(value, 'delete_session'):
-                    value.delete_session()
+                # Remove session from list, if it exists.
+                session = self._sessions.pop(key, None)
+                if session:
+                    session.delete_session(self, response, key, **kwargs)
             elif isinstance(value, basestring):
                 # Save a normal cookie. Remove securecookie specific args.
                 kwargs.pop('force', None)
@@ -306,7 +308,7 @@ class SessionStore(object):
         for key, value in self._sessions.iteritems():
             cookie_data = self._cookies.get(key)
             if cookie_data:
-                kwargs = cookie_data[1]
+                kwargs = cookie_data[1].copy()
             else:
                 kwargs = cookie_args.copy()
 
@@ -321,8 +323,8 @@ class SessionStore(object):
             kwargs['expires'] = time() + max_age
 
         if session_expires:
-            kwargs['session_expires'] = datetime.fromtimestamp(
-                time() + session_expires)
+            kwargs['session_expires'] = datetime.fromtimestamp(time() +
+                session_expires)
 
         return kwargs
 
@@ -553,7 +555,8 @@ class SecureCookieSession(SecureCookie):
 
     def delete_session(self, store, response, key, **kwargs):
         """Deletes a session."""
-        response.delete_cookie(key, **kwargs)
+        response.delete_cookie(key, path=kwargs.get('path', '/'),
+                    domain=kwargs.get('domain', None))
 
 
 class SessionMiddleware(object):

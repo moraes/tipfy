@@ -224,7 +224,7 @@ class Request(WerkzeugRequest):
         """Initializes the request. This also sets a context attribute to
         hold variables valid for a single request.
         """
-        super(WerkzeugRequest, self).__init__(environ)
+        super(Request, self).__init__(environ)
 
         # A registry for objects in use during a request.
         self.registry = self.registry_class()

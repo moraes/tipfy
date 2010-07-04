@@ -290,7 +290,7 @@ class SessionStore(object):
                 # Cookie is empty or marked for deletion, so delete it.
                 response.delete_cookie(key, path=kwargs.get('path', '/'),
                     domain=kwargs.get('domain', None))
-                # Remove session from list, if it exists.
+                # Delete session, if it exists.
                 session = self._sessions.pop(key, None)
                 if session:
                     session.delete_session(self, response, key, **kwargs)

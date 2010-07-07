@@ -85,19 +85,26 @@ class Counter(object):
         hits.increment(incr=-1)       # Decrement
         hits.increment(10)
     """
+    #: Number of shards to use.
+    shards = None
+
     def __init__(self, name):
         self.name = name
         self.memcached = MemcachedCount('counter:' + name)
         self.delayed_incr = MemcachedCount('delayed:' + name)
 
+    @property
+    def number_of_shards(self):
+        return self.shards or get_config(__name__, 'shards')
+
     def delete(self):
         q = db.Query(CounterShard).filter('name =', self.name)
-        shards = q.fetch(limit=get_config(__name__, 'shards'))
+        shards = q.fetch(limit=self.number_of_shards)
         db.delete(shards)
 
     def get_count_and_cache(self):
         q = db.Query(CounterShard).filter('name =', self.name)
-        shards = q.fetch(limit=get_config(__name__, 'shards'))
+        shards = q.fetch(limit=self.number_of_shards)
         datastore_count = 0
         for shard in shards:
             datastore_count += shard.count
@@ -132,7 +139,7 @@ class CounterShard(db.Model):
 
     @classmethod
     def increment(cls, counter, incr=1):
-        index = random.randint(1, get_config(__name__, 'shards'))
+        index = random.randint(1, counter.number_of_shards)
         counter_name = counter.name
         delayed_incr = counter.delayed_incr.count
         shard_key_name = 'Shard' + counter_name + str(index)

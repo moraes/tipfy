@@ -21,10 +21,10 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.sharded_counter',
-    version = '0.1',
+    version = '0.2',
     license = 'Apache',
     url = 'http://www.tipfy.org/',
-    description = 'A general purpose sharded counter implementation for the App Engine',
+    description = 'A general purpose sharded counter implementation for App Engine',
     long_description = __doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',

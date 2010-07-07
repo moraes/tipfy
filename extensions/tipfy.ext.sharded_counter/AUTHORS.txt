@@ -1,0 +1,4 @@
+tipfy.ext.sharded_counter is maintained by Rodrigo Moraes <rodrigo.moraes@gmail.com>.
+
+The original code is from the sharded_counter project by William T. Katz:
+http://github.com/DocSavage/sharded_counter

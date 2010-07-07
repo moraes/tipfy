@@ -109,6 +109,7 @@ class Counter(object):
         datastore_count = 0
         for shard in shards:
             datastore_count += shard.count
+
         count = datastore_count + self.delayed_incr.count
         self.memcached.count = count
         return count
@@ -150,6 +151,7 @@ class CounterShard(db.Model):
                 shard = CounterShard(key_name=shard_key_name, name=counter_name)
             shard.count += incr + delayed_incr
             key = shard.put()
+
         try:
             db.run_in_transaction(get_or_create_shard)
         except (db.Error, apiproxy_errors.Error), e:
@@ -157,6 +159,8 @@ class CounterShard(db.Model):
             logging.error("CounterShard (%s) delayed increment %d: %s",
                           counter_name, incr, e)
             return False
+
         if delayed_incr:
             counter.delayed_incr.count = 0
+
         return True

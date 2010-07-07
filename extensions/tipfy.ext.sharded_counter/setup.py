@@ -6,7 +6,7 @@ tipfy.ext.sharded_counter
 A general purpose sharded counter implementation for App Engine.
 
 Documentation is available at
-`http://www.tipfy.org/wiki/extensions/sharded_counter/ <http://www.tipfy.org/wiki/extensions/sharded_counter/>`_.
+`http://www.tipfy.org/wiki/extensions/shardedcounter/ <http://www.tipfy.org/wiki/extensions/shardedcounter/>`_.
 
 Links
 -----

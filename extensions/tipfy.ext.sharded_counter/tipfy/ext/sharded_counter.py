@@ -17,22 +17,36 @@ from google.appengine.api import memcache
 from google.appengine.ext import db
 from google.appengine.runtime import apiproxy_errors
 
+from tipfy import get_config
+
+#: Default configuration values for this module. Keys are:
+#:
+#: - ``shards``: The amount of shards to use.
+default_config = {
+    'shards': 10,
+}
+
 
 class MemcachedCount(object):
-    DELTA_ZERO = 500000   # Allows negative numbers in unsigned memcache
+    # Allows negative numbers in unsigned memcache
+    DELTA_ZERO = 500000
+
+    def namespace(self):
+        return __name__ + '.' + self.__class__.__name__
 
     def __init__(self, name):
         self.key = 'MemcachedCount' + name
 
     def get_count(self):
-        value = memcache.get(self.key)
+        value = memcache.get(self.key, namespace=self.namespace)
         if value is None:
             return 0
         else:
             return string.atoi(value) - MemcachedCount.DELTA_ZERO
 
     def set_count(self, value):
-        memcache.set(self.key, str(MemcachedCount.DELTA_ZERO + value))
+        memcache.set(self.key, str(MemcachedCount.DELTA_ZERO + value),
+            namespace=self.namespace)
 
     def delete_count(self):
         memcache.delete(self.key)
@@ -40,13 +54,13 @@ class MemcachedCount(object):
     count = property(get_count, set_count, delete_count)
 
     def increment(self, incr=1):
-        value = memcache.get(self.key)
+        value = memcache.get(self.key, namespace=self.namespace)
         if value is None:
             self.count = incr
         elif incr > 0:
-            memcache.incr(self.key, incr)
+            memcache.incr(self.key, incr, namespace=self.namespace)
         elif incr < 0:
-            memcache.decr(self.key, -incr)
+            memcache.decr(self.key, -incr, namespace=self.namespace)
 
 
 class Counter(object):
@@ -71,21 +85,19 @@ class Counter(object):
         hits.increment(incr=-1)       # Decrement
         hits.increment(10)
     """
-    NUM_SHARDS = 20
-
     def __init__(self, name):
         self.name = name
-        self.memcached = MemcachedCount('Counter' + name)
-        self.delayed_incr = MemcachedCount('DelayedIncr' + name)
+        self.memcached = MemcachedCount('counter:' + name)
+        self.delayed_incr = MemcachedCount('delayed:' + name)
 
     def delete(self):
         q = db.Query(CounterShard).filter('name =', self.name)
-        shards = q.fetch(limit=Counter.NUM_SHARDS)
+        shards = q.fetch(limit=get_config(__name__, 'shards'))
         db.delete(shards)
 
     def get_count_and_cache(self):
         q = db.Query(CounterShard).filter('name =', self.name)
-        shards = q.fetch(limit=Counter.NUM_SHARDS)
+        shards = q.fetch(limit=get_config(__name__, 'shards'))
         datastore_count = 0
         for shard in shards:
             datastore_count += shard.count
@@ -120,7 +132,7 @@ class CounterShard(db.Model):
 
     @classmethod
     def increment(cls, counter, incr=1):
-        index = random.randint(1, Counter.NUM_SHARDS)
+        index = random.randint(1, get_config(__name__, 'shards'))
         counter_name = counter.name
         delayed_incr = counter.delayed_incr.count
         shard_key_name = 'Shard' + counter_name + str(index)

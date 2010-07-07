@@ -21,7 +21,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.sharded_counter',
-    version = '0.2',
+    version = '0.3',
     license = 'Apache',
     url = 'http://www.tipfy.org/',
     description = 'A general purpose sharded counter implementation for App Engine',

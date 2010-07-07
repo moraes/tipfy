@@ -31,6 +31,7 @@ class MemcachedCount(object):
     # Allows negative numbers in unsigned memcache
     DELTA_ZERO = 500000
 
+    @property
     def namespace(self):
         return __name__ + '.' + self.__class__.__name__
 

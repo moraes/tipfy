@@ -11,8 +11,11 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+import functools
 import urlparse
 import urllib
+
+from django.utils import simplejson
 
 from tipfy import redirect, REQUIRED_VALUE
 
@@ -118,7 +121,7 @@ class FacebookMixin(object):
         'session_key' and 'facebook_uid' in addition to the standard
         user attributes like 'name'.
         """
-        session = escape.json_decode(self.get_argument('session'))
+        session = simplejson.loads(self.get_argument('session'))
         self.facebook_request(
             method='facebook.users.getInfo',
             callback=functools.partial(
@@ -195,7 +198,7 @@ class FacebookMixin(object):
             callback(None)
             return
         try:
-            json = escape.json_decode(response.content)
+            json = simplejson.loads(response.content)
         except:
             logging.warning('Invalid JSON from Facebook: %r', response.content)
             callback(None)

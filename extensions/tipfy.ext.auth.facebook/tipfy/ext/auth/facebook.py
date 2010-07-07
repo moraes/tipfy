@@ -11,7 +11,10 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
-from tipfy import REQUIRED_VALUE
+import urlparse
+import urllib
+
+from tipfy import redirect, REQUIRED_VALUE
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -41,6 +44,7 @@ class FacebookMixin(object):
             if self.get_argument('session', None):
                 self.get_authenticated_user(self._on_auth)
                 return
+
             self.authenticate_redirect()
 
         def _on_auth(self, user):
@@ -67,22 +71,24 @@ class FacebookMixin(object):
         """Authenticates/installs this app for the current user."""
         callback_uri = callback_uri or self.request.path
         args = {
-            'api_key': self._facebook_api_key,
-            'v': '1.0',
-            'fbconnect': 'true',
-            'display': 'page',
-            'next': urlparse.urljoin(self.request.url, callback_uri),
+            'api_key':        self._facebook_api_key,
+            'v':              '1.0',
+            'fbconnect':      'true',
+            'display':        'page',
+            'next':           urlparse.urljoin(self.request.url, callback_uri),
             'return_session': 'true',
         }
         if cancel_uri:
-            args['cancel_url'] = urlparse.urljoin(
-                self.request.url, cancel_uri)
+            args['cancel_url'] = urlparse.urljoin(self.request.url, cancel_uri)
+
         if extended_permissions:
             if isinstance(extended_permissions, basestring):
                 extended_permissions = [extended_permissions]
+
             args['req_perms'] = ','.join(extended_permissions)
-        self.redirect('http://www.facebook.com/login.php?' +
-                      urllib.urlencode(args))
+
+        return redirect('http://www.facebook.com/login.php?' +
+                        urllib.urlencode(args))
 
     def authorize_redirect(self, extended_permissions, callback_uri=None,
                            cancel_uri=None):
@@ -102,8 +108,8 @@ class FacebookMixin(object):
         get_authenticated_user() just as you would with
         authenticate_redirect().
         """
-        self.authenticate_redirect(callback_uri, cancel_uri,
-                                   extended_permissions)
+        return self.authenticate_redirect(callback_uri, cancel_uri,
+                                          extended_permissions)
 
     def get_authenticated_user(self, callback):
         """Fetches the authenticated Facebook user.
@@ -168,16 +174,18 @@ class FacebookMixin(object):
         if users is None:
             callback(None)
             return
+
+        user = users[0]
         callback({
-            'name': users[0]['name'],
-            'first_name': users[0]['first_name'],
-            'last_name': users[0]['last_name'],
-            'uid': users[0]['uid'],
-            'locale': users[0]['locale'],
-            'pic_square': users[0]['pic_square'],
-            'profile_url': users[0]['profile_url'],
-            'username': users[0].get('username'),
-            'session_key': session['session_key'],
+            'name':            user['name'],
+            'first_name':      user['first_name'],
+            'last_name':       user['last_name'],
+            'uid':             user['uid'],
+            'locale':          user['locale'],
+            'pic_square':      user['pic_square'],
+            'profile_url':     user['profile_url'],
+            'username':        user.get('username'),
+            'session_key':     session['session_key'],
             'session_expires': session.get('expires'),
         })
 

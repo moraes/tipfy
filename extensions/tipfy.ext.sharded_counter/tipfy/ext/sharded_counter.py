@@ -69,22 +69,32 @@ class Counter(object):
 
     Should be used for counters that handle a lot of concurrent use.
     Follows pattern described in Google I/O talk:
+
         http://sites.google.com/site/io/building-scalable-web-applications-with-google-app-engine
 
-    Memcache is used for caching counts and if a cached count is available, it is
-    the most correct. If there are datastore put issues, we store the un-put values
-    into a delayed_incr memcache that will be applied as soon as the next shard put
-    is successful. Changes will only be lost if we lose memcache before a successful
-    datastore shard put or there's a failure/error in memcache.
+    Memcache is used for caching counts and if a cached count is available,
+    it is the most correct. If there are datastore put issues, we store the
+    un-put values into a delayed_incr memcache that will be applied as soon
+    as the next shard put is successful. Changes will only be lost if we lose
+    memcache before a successful datastore shard put or there's a
+    failure/error in memcache.
 
-    Usage:
+    Example usage:
+
+        # Build a new counter that uses the unique key name 'hits'.
         hits = Counter('hits')
+        # Increment by 1.
         hits.increment()
-        my_hits = hits.count
-        hits.get_count(nocache=True)  # Forces non-cached count of all shards
-        hits.count = 6                # Set the counter to arbitrary value
-        hits.increment(incr=-1)       # Decrement
+        # Increment by 10.
         hits.increment(10)
+        # Decrement by 3.
+        hits.increment(-3)
+        # This is the current count.
+        my_hits = hits.count
+        # Forces fetching a non-cached count of all shards.
+        hits.get_count(nocache=True)
+        # Set the counter to an arbitrary value.
+        hits.count = 6
     """
     #: Number of shards to use.
     shards = None

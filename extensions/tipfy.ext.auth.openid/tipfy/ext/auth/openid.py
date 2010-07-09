@@ -11,6 +11,7 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+from __future__ import absolute_import
 import logging
 import urllib
 import urlparse
@@ -81,11 +82,7 @@ class OpenIdMixin(object):
 
         try:
             response = urlfetch.fetch(url, deadline=10)
-            if response.status_code < 200 or response.status_code >= 300:
-                logging.warning('Invalid OpenID response: %s',
-                    response.content)
-            else:
-                return self._on_authentication_verified(callback, response)
+            return self._on_authentication_verified(callback, response)
         except urlfetch.DownloadError, e:
             logging.exception(e)
 
@@ -173,13 +170,18 @@ class OpenIdMixin(object):
             The result from the callback function.
         """
         if not response:
+            logging.warning('Missing OpenID response.')
+            return callback(None)
+        elif response.status_code < 200 or response.status_code >= 300:
+            logging.warning('Invalid OpenID response (%d): %s',
+                response.status_code, response.content)
             return callback(None)
 
         # Make sure we got back at least an email from Attribute Exchange.
         ax_ns = None
         for name, values in self.request.args.iterlists():
             if name.startswith('openid.ns.') and \
-               values[-1] == u'http://openid.net/srv/ax/1.0':
+                values[-1] == u'http://openid.net/srv/ax/1.0':
                 ax_ns = name[10:]
                 break
 

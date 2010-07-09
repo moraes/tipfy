@@ -1,3 +1,8 @@
+Version 0.2 - June 6, 2010
+==========================
+- Now using absolute_import, to avoid clashing with tipfy.ext.auth.google.
+
+
 Version 0.1 - June 6, 2010
 ==========================
 - Initial release.

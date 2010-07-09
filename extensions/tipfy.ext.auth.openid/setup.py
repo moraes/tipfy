@@ -23,7 +23,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.auth.openid',
-    version = '0.1',
+    version = '0.2',
     license = 'Apache Software License',
     url = 'http://www.tipfy.org/',
     description = 'OpenId authentication extension for tipfy',

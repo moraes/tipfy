@@ -5,6 +5,9 @@ tipfy.ext.auth.facebook
 This extension provides a Facebook authentication provider tipfy, the almighty
 little framework for Google App Engine.
 
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/auth/facebook/ <http://www.tipfy.org/wiki/extensions/auth/facebook/>`_.
+
 Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
 
 Links

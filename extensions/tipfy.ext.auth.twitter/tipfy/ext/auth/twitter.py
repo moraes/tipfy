@@ -11,6 +11,11 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+from __future__ import absolute_import
+import logging
+
+from google.appengine.api import urlfetch
+
 from tipfy import REQUIRED_VALUE
 from tipfy.ext.auth.oauth import OAuthMixin
 
@@ -30,25 +35,38 @@ class TwitterMixin(OAuthMixin):
 
     To authenticate with Twitter, register your application with
     Twitter at http://twitter.com/apps. Then copy your Consumer Key and
-    Consumer Secret to the application settings 'twitter_consumer_key' and
-    'twitter_consumer_secret'. Use this Mixin on the handler for the URL
-    you registered as your application's Callback URL.
+    Consumer Secret to the config:
 
-    When your application is set up, you can use this Mixin like this
-    to authenticate the user with Twitter and get access to their stream:
+    <<code python>>
+    config['tipfy.ext.auth.twitter'] = {
+        'twitter_consumer_key':    'XXXXXXXXXXXXXXX',
+        'twitter_consumer_secret': 'XXXXXXXXXXXXXXX',
+    }
+    <</code>>
 
-    class TwitterHandler(tipfy.RequestHandler,
-                         tipfy.ext.auth.TwitterMixin):
+    When your application is set up, you can use the TwitterMixin to
+    authenticate the user with Twitter and get access to their stream.
+    You must use the mixin on the handler for the URL you registered as your
+    application's Callback URL. For example:
+
+    <<code python>>
+    from tipfy import RequestHandler, abort
+    from tipfy.ext.auth.twitter import TwitterMixin
+
+    class TwitterHandler(RequestHandler, TwitterMixin):
         def get(self):
-            if self.get_argument('oauth_token', None):
-                self.get_authenticated_user(self._on_auth)
-                return
-            self.authorize_redirect()
+            if self.request.args.get('oauth_token', None):
+                return self.get_authenticated_user(self._on_auth)
+
+            return self.authorize_redirect()
 
         def _on_auth(self, user):
             if not user:
-                raise tornado.web.HTTPError(500, 'Twitter auth failed')
-            # Save the user using, e.g., set_secure_cookie()
+                abort(403)
+
+            # Set the user in the session.
+            # ...
+    <</code>>
 
     The user object returned by get_authenticated_user() includes the
     attributes 'username', 'name', and all of the custom Twitter user
@@ -72,11 +90,11 @@ class TwitterMixin(OAuthMixin):
 
     @property
     def _twitter_consumer_key(self):
-        self.app.get_config(__name__, 'twitter_consumer_key')
+        return self.app.get_config(__name__, 'twitter_consumer_key')
 
     @property
     def _twitter_consumer_secret(self):
-        self.app.get_config(__name__, 'twitter_consumer_secret')
+        return self.app.get_config(__name__, 'twitter_consumer_secret')
 
     def authenticate_redirect(self):
         """Just like authorize_redirect(), but auto-redirects if authorized.
@@ -107,21 +125,23 @@ class TwitterMixin(OAuthMixin):
         attribute that can be used to make authenticated requests via
         this method. Example usage:
 
-        class MainHandler(tipfy.RequestHandler,
-                          tipfy.ext.auth.TwitterMixin):
+        from tipfy import RequestHandler
+        from tipfy.ext.auth.twitter import TwitterMixin
+
+        class MainHandler(RequestHandler, TwitterMixin):
             def get(self):
-                self.twitter_request(
+                return self.twitter_request(
                     '/statuses/update',
-                    post_args={'status': 'Testing Tornado Web Server'},
+                    post_args={'status': 'Testing Twitter Mixin'},
                     access_token=user['access_token'],
                     callback=self._on_post)
 
             def _on_post(self, new_entry):
                 if not new_entry:
                     # Call failed; perhaps missing permission?
-                    self.authorize_redirect()
-                    return
-                self.finish('Posted a message!')
+                    return self.authorize_redirect()
+
+                return Response('Posted a message!')
 
         """
         # Add the OAuth resource request signature if we have credentials

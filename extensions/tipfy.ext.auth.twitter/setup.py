@@ -5,6 +5,9 @@ tipfy.ext.auth.twitter
 This extension provides a Twitter authentication provider tipfy, the almighty
 little framework for Google App Engine.
 
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/auth/twitter/ <http://www.tipfy.org/wiki/extensions/auth/twitter/>`_.
+
 Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
 
 Links

@@ -23,7 +23,7 @@ from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import ModificationTrackingDict, generate_key
 from werkzeug.security import gen_salt
 
-from tipfy import REQUIRED_VALUE, get_config
+from tipfy import Tipfy, REQUIRED_VALUE, get_config
 from tipfy.ext.db import (PickleProperty, get_protobuf_from_entity,
     get_entity_from_protobuf)
 
@@ -40,41 +40,46 @@ from tipfy.ext.db import (PickleProperty, get_protobuf_from_entity,
 #: - ``cookie_name``: Name of the cookie to save a session or session id.
 #:   Default is `tipfy.session`.
 #:
-#: - ``cookie_session_expires``: Session expiration time in seconds. Limits the
-#:   duration of the contents of a cookie, even if a session cookie exists.
-#:   If ``None``, the contents lasts as long as the cookie is valid. Default is
-#:   ``None``.
+#: - ``cookie_args``: default keyword arguments to set a cookie or
+#:   securecookie. Keys are:
 #:
-#: - ``cookie_max_age``: Cookie max age in seconds. Limits the duration of a
-#:   session cookie. If ``None``, the cookie lasts until the client is closed.
-#:   Default is ``None``.
+#:   - ``cookie_session_expires``: Session expiration time in seconds. Limits
+#:     the duration of the contents of a cookie, even if a session cookie
+#:     exists. If ``None``, the contents lasts as long as the cookie is valid.
+#:     Default is ``None``.
 #:
-#: - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
-#:   domain must be set to the main domain with a preceding dot, e.g., cookies
-#:   set for `.mydomain.org` will work in `foo.mydomain.org` and
-#:   `bar.mydomain.org`. Default is ``None``, which means that cookies will
-#:   only work for the current subdomain.
+#:   - ``cookie_max_age``: Cookie max age in seconds. Limits the duration
+#:     of a session cookie. If ``None``, the cookie lasts until the client
+#:     is closed. Default is ``None``.
 #:
-#: - ``cookie_path``: Path in which the authentication cookie is valid.
-#:   Default is `/`.
+#:   - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
+#:     domain must be set to the main domain with a preceding dot, e.g.,
+#:     cookies set for `.mydomain.org` will work in `foo.mydomain.org` and
+#:     `bar.mydomain.org`. Default is ``None``, which means that cookies will
+#:     only work for the current subdomain.
 #:
-#: - ``cookie_secure``: Make the cookie only available via HTTPS.
+#:   - ``cookie_path``: Path in which the authentication cookie is valid.
+#:     Default is `/`.
 #:
-#: - ``cookie_httponly``: Disallow JavaScript to access the cookie.
+#:   - ``cookie_secure``: Make the cookie only available via HTTPS.
 #:
-#: - ``cookie_force``: If ``True``, force cookie to be saved on each request,
-#:   even if the session data isn't changed. Default to ``False``.
+#:   - ``cookie_httponly``: Disallow JavaScript to access the cookie.
+#:
+#:   - ``cookie_force``: If ``True``, force cookie to be saved on each request,
+#:     even if the session data isn't changed. Default to ``False``.
 default_config = {
     'default_backend':        'securecookie',
     'secret_key':             REQUIRED_VALUE,
     'cookie_name':            'tipfy.session',
-    'cookie_session_expires': None,
-    'cookie_max_age':         None,
-    'cookie_domain':          None,
-    'cookie_path':            '/',
-    'cookie_secure':          None,
-    'cookie_httponly':        False,
-    'cookie_force':           False,
+    'cookie_args': {
+        'session_expires': None,
+        'max_age':         None,
+        'domain':          None,
+        'path':            '/',
+        'secure':          None,
+        'httponly':        False,
+        'force':           False,
+    }
 }
 
 # Validate session keys.
@@ -131,9 +136,12 @@ class SessionStore(object):
         key = key or self.config['cookie_name']
 
         if key not in self._sessions:
+            _kwargs = self.config['cookie_args'].copy()
+            _kwargs.update(kwargs)
+
             backend = backend or self.default_backend
             self._sessions[key] = self.backends[backend].get_session(self,
-                key, **kwargs)
+                key, **_kwargs)
 
         return self._sessions[key]
 
@@ -355,19 +363,6 @@ class SessionModel(db.Model):
         """
         return self.key().name()
 
-    @property
-    def valid(self):
-        """Returns ``True`` if the session has not expired.
-
-        :return:
-            ``True`` if the session has not expired, ``False`` otherwise.
-        """
-        seconds = get_config(__name__, 'cookie_session_expires')
-        if not seconds:
-            return True
-
-        return self.created + timedelta(seconds=seconds) < datetime.now()
-
     @classmethod
     def get_namespace(cls):
         """Returns the namespace to be used in memcache.
@@ -393,9 +388,6 @@ class SessionModel(db.Model):
             session = SessionModel.get_by_key_name(sid)
             if session:
                 session.set_cache()
-
-        if session and not session.valid:
-            return None
 
         return session
 
@@ -487,6 +479,26 @@ class DatastoreSession(BaseSession):
         if entity:
             entity.delete()
 
+    @classmethod
+    def get_session(cls, store, key, **kwargs):
+        """Returns a session that is tracked by the session store."""
+        cookie = store.get_secure_cookie(key, **kwargs)
+        sid = cookie.get('_sid', None)
+        session = cls.get_by_sid(sid)
+
+        if sid != session.sid:
+            cookie['_sid'] = session.sid
+
+        if session.entity:
+            seconds = kwargs.get('session_expires')
+            if seconds and (session.entity.created + \
+                timedelta(seconds=seconds) < datetime.utcnow()):
+                # Entity is too old.
+                session.clear()
+                session.entity = None
+
+        return session
+
     def save_session(self, store, response, key, **kwargs):
         """Saves a session."""
         if not self.modified:
@@ -574,25 +586,21 @@ class SessionMiddleware(object):
 
     def pre_dispatch(self, handler):
         handler.request.registry['session_store'] = SessionStore(
-            handler.request, self.config, self.backends, self.default_backend)
+            handler.request, get_config(__name__), self.backends,
+            self.default_backend)
 
     def post_dispatch(self, handler, response):
         handler.request.registry['session_store'].save_session(response)
         return response
 
-    @cached_property
-    def config(self):
-        config = get_config(__name__).copy()
-        config['cookie_args'] = {
-            'session_expires': config.pop('cookie_session_expires'),
-            'max_age':         config.pop('cookie_max_age'),
-            'domain':          config.pop('cookie_domain'),
-            'path':            config.pop('cookie_path'),
-            'secure':          config.pop('cookie_secure'),
-            'httponly':        config.pop('cookie_httponly'),
-            'force':           config.pop('cookie_force'),
-        }
-        return config
+    def pre_dispatch_handler(self):
+        Tipfy.request.registry['session_store'] = SessionStore(
+            handler.request, get_config(__name__), self.backends,
+            self.default_backend)
+
+    def post_dispatch_handler(self, response):
+        Tipfy.request.registry['session_store'].save_session(response)
+        return response
 
 
 class BaseSessionMixin(object):

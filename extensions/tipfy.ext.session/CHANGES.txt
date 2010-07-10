@@ -1,5 +1,5 @@
-Version 0.6 - Under development
-===============================
+Version 0.6 - July 10, 2010
+===========================
 - This is a major refactoring to better support new session backends:
   - New backends can be easly registered with the session store.
   - Multiple backends can now be used *at the same time*.

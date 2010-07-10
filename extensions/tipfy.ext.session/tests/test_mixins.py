@@ -14,7 +14,7 @@ from google.appengine.ext import db
 from werkzeug.contrib.securecookie import SecureCookie
 
 from tipfy import Request, RequestHandler, Response, Tipfy
-from tipfy.ext.session import (AllSessionMixins, SessionStore,
+from tipfy.ext.session import (AllSessionMixins, SessionModel, SessionStore,
     SessionMiddleware)
 
 
@@ -26,15 +26,6 @@ def get_request(app, *args, **kwargs):
 
 def get_config(app):
     config = app.get_config('tipfy.ext.session').copy()
-    config['cookie_args'] = {
-        'session_expires': config.get('cookie_session_expires'),
-        'max_age':         config.get('cookie_max_age'),
-        'domain':          config.get('cookie_domain'),
-        'path':            config.get('cookie_path'),
-        'secure':          config.get('cookie_secure'),
-        'httponly':        config.get('cookie_httponly'),
-        'force':           config.get('cookie_force'),
-    }
     return config
 
 
@@ -186,6 +177,50 @@ class TestAllSessionMixins(DataStoreTestCase, MemcacheTestCase,
         }))
         response = handler.dispatch('get', **{})
         assert response.data == 'a session value'
+
+    def test_get_datastore_session_expired(self):
+        class MyHandler(BaseHandler):
+            def get(self):
+                session = self.get_session(backend='datastore', session_expires=300)
+                res = session.get('test')
+                if not res:
+                    res = 'undefined'
+                    session['test'] = 'a session value'
+
+                return Response(res)
+
+        def get_by_sid_wrapper(old_get_by_sid):
+            @classmethod
+            def get_by_sid(cls, key_name):
+                res = old_get_by_sid(key_name)
+                if res:
+                    res.created = datetime.utcnow() - timedelta(seconds=86400)
+                else:
+                    assert 1 == 0
+
+                return res
+
+            return get_by_sid
+
+        handler = MyHandler(self.app, get_request(self.app))
+        response = handler.dispatch('get', **{})
+
+        assert response.data == 'undefined'
+
+        old_get_by_sid = SessionModel.get_by_sid
+        SessionModel.get_by_sid = get_by_sid_wrapper(
+            SessionModel.get_by_sid)
+
+        handler = MyHandler(self.app, get_request(self.app, headers={
+            'Cookie': response.headers.getlist('Set-Cookie'),
+        }))
+        response = handler.dispatch('get', **{})
+
+        self.assertEqual(response.data, 'undefined')
+
+        assert response.data == 'undefined'
+
+        SessionModel.get_by_sid = old_get_by_sid
 
     def test_delete_cookie_session(self):
         class MyHandler(BaseHandler):

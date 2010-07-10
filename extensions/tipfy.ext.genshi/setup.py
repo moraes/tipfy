@@ -21,7 +21,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.genshi',
-    version = '0.3',
+    version = '0.4',
     license = 'Apache',
     url = 'http://www.tipfy.org/',
     description = 'Genshi template support for tipfy',

@@ -3,7 +3,10 @@
     Tests for tipfy.ext.genshi
 """
 import os
+import sys
 import unittest
+
+from genshi.template import TemplateLoader
 
 from tipfy import RequestHandler, Response, Tipfy
 from tipfy.ext import genshi
@@ -95,3 +98,32 @@ class TestGenshi(unittest.TestCase):
         assert isinstance(response, Response)
         assert response.mimetype == 'text/plain'
         assert response.data == message + '\n'
+
+    def test_engine_factory(self):
+        def get_genshi_env():
+            return genshi.Genshi()
+
+
+        app = Tipfy({'tipfy.ext.genshi': {
+            'templates_dir': templates_dir,
+            'engine_factory': get_genshi_env,
+        }})
+
+        message = 'Hello, World!'
+        res = genshi.render_template('template1.html', _method='text', message=message)
+        assert res == message + '\n'
+
+    def test_engine_factory2(self):
+        old_sys_path = sys.path[:]
+        sys.path.insert(0, current_dir)
+
+        app = Tipfy({'tipfy.ext.genshi': {
+            'templates_dir': templates_dir,
+            'engine_factory': 'resources.get_genshi_env',
+        }})
+
+        message = 'Hello, World!'
+        res = genshi.render_template('template1.html', _method='text', message=message)
+        assert res == message + '\n'
+
+        sys.path = old_sys_path

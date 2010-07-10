@@ -20,13 +20,17 @@ from genshi.template import NewTextTemplate, TemplateLoader
 
 from werkzeug import cached_property
 
-from tipfy import Tipfy
+from tipfy import Tipfy, import_string
 
 #: Default configuration values for this module. Keys are:
 #:
 #: - ``templates_dir``: Directory for templates. Default is `templates`.
+#:
+#: - ``engine_factory``: A function to be called when the template engine is
+#:   instantiated, as a string. If ``None``, uses ``Genshi``.
 default_config = {
     'templates_dir': 'templates',
+    'engine_factory': None,
 }
 
 
@@ -71,8 +75,8 @@ class GenshiMixin(object):
 
 
 class Genshi(object):
-    def __init__(self, app):
-        self.app = app
+    def __init__(self):
+        self.app = Tipfy.app
 
         #: What method is used for an extension.
         self.extensions = {
@@ -159,9 +163,19 @@ def get_genshi_instance():
     :return:
         An instance of :class:`Genshi`.
     """
-    registry = Tipfy.app.registry
+    app = Tipfy.app
+    registry = app.registry
     if 'genshi_instance' not in registry:
-        registry['genshi_instance'] = Genshi(Tipfy.app)
+        factory_spec = app.get_config(__name__, 'engine_factory')
+        if factory_spec:
+            if isinstance(factory_spec, basestring):
+                factory = import_string(factory_spec)
+            else:
+                factory = factory_spec
+        else:
+            factory = Genshi
+
+        registry['genshi_instance'] = factory()
 
     return registry['genshi_instance']
 

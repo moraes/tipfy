@@ -58,8 +58,11 @@ class FriendFeedMixin(OAuthMixin):
     <<code python>>
     from tipfy import RequestHandler, abort
     from tipfy.ext.auth.friendfeed import FriendFeedMixin
+    from tipfy.ext.session import CookieMixin, SessionMiddleware
 
-    class FriendFeedHandler(RequestHandler, FriendFeedMixin):
+    class FriendFeedHandler(RequestHandler, CookieMixin, FriendFeedMixin):
+        middleware = [SessionMiddleware]
+
         def get(self):
             if self.request.args.get('oauth_token', None):
                 return self.get_authenticated_user(self._on_auth)
@@ -93,7 +96,12 @@ class FriendFeedMixin(OAuthMixin):
     def _friendfeed_consumer_secret(self):
         return self.app.get_config(__name__, 'consumer_secret')
 
-    def friendfeed_request(self, path, callback, access_token=None,
+    def _oauth_consumer_token(self):
+        return dict(
+            key=self._friendfeed_consumer_key,
+            secret=self._friendfeed_consumer_secret)
+
+    def friendfeed_request(self, path, callback=None, access_token=None,
                            post_args=None, **args):
         """Fetches the given relative API path, e.g., '/bret/friends'
 
@@ -109,10 +117,14 @@ class FriendFeedMixin(OAuthMixin):
         attribute that can be used to make authenticated requests via
         this method. Example usage:
 
+        <<code python>>
         from tipfy import RequestHandler, Response
         from tipfy.ext.auth.friendfeed import FriendFeedMixin
+        from tipfy.ext.session import CookieMixin, SessionMiddleware
 
         class MainHandler(RequestHandler, FriendFeedMixin):
+            middleware = [SessionMiddleware]
+
             def get(self):
                 return self.friendfeed_request('/entry',
                     post_args={'body': 'Testing Tornado Web Server'},
@@ -125,7 +137,7 @@ class FriendFeedMixin(OAuthMixin):
                     return self.authorize_redirect()
 
                 return Response('Posted a message!')
-
+        <</code>>
         """
         # Add the OAuth resource request signature if we have credentials
         url = 'http://friendfeed-api.com/v2' + path
@@ -152,6 +164,10 @@ class FriendFeedMixin(OAuthMixin):
             logging.exception(e)
             response = None
 
+        if not callback:
+            # Don't preprocess the response, just return a bare one.
+            return response
+
         return self._on_friendfeed_request(callback, response)
 
     def _on_friendfeed_request(self, callback, response):
@@ -164,11 +180,6 @@ class FriendFeedMixin(OAuthMixin):
             return callback(None)
 
         return callback(simplejson.loads(response.content))
-
-    def _oauth_consumer_token(self):
-        return dict(
-            key=self._friendfeed_consumer_key,
-            secret=self._friendfeed_consumer_secret)
 
     def _oauth_get_user(self, access_token, callback):
         callback = functools.partial(self._parse_user_response, callback)

@@ -149,7 +149,7 @@ class FacebookMixin(object):
             fields='uid,first_name,last_name,name,locale,pic_square,' \
                    'profile_url,username')
 
-    def facebook_request(self, method, callback, **kwargs):
+    def facebook_request(self, method, callback=None, **kwargs):
         """Makes a Facebook API REST request.
 
         We automatically include the Facebook API key and signature, but
@@ -161,6 +161,7 @@ class FacebookMixin(object):
 
         Here is an example for the stream.get() method:
 
+        <<code python>>
         from tipfy import RequestHandler, redirect
         from tipfy.ext.auth.facebook import FacebookMixin
         from tipfy.ext.jinja2 import Jinja2Mixin
@@ -178,7 +179,7 @@ class FacebookMixin(object):
                    return redirect(self.authorize_redirect('read_stream'))
 
                 return self.render_response('stream.html', stream=stream)
-
+        <</code>>
         """
         if not method.startswith('facebook.'):
             method = 'facebook.' + method
@@ -197,11 +198,15 @@ class FacebookMixin(object):
 
         try:
             response = urlfetch.fetch(url, deadline=10)
-            return self._parse_response(callback, response)
         except urlfetch.DownloadError, e:
             logging.exception(e)
+            response = None
 
-        return self._parse_response(callback, None)
+        if not callback:
+            # Don't preprocess the response, just return a bare one.
+            return response
+
+        return self._parse_response(callback, response)
 
     def _on_get_user_info(self, callback, session, users):
         if users is None:

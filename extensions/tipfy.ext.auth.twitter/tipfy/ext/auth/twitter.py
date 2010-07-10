@@ -41,7 +41,7 @@ class TwitterMixin(OAuthMixin):
 
     To authenticate with Twitter, register your application with
     Twitter at http://twitter.com/apps. Then copy your Consumer Key and
-    Consumer Secret to the config:
+    Consumer Secret to {{{config.py}}}:
 
     <<code python>>
     config['tipfy.ext.auth.twitter'] = {
@@ -118,7 +118,7 @@ class TwitterMixin(OAuthMixin):
         return self._on_request_token(self._OAUTH_AUTHENTICATE_URL, None,
             response)
 
-    def twitter_request(self, path, callback, access_token=None,
+    def twitter_request(self, path, callback=None, access_token=None,
                            post_args=None, **args):
         """Fetches the given API path, e.g., '/statuses/user_timeline/btaylor'
 
@@ -137,10 +137,14 @@ class TwitterMixin(OAuthMixin):
         attribute that can be used to make authenticated requests via
         this method. Example usage:
 
-        from tipfy import RequestHandler
+        <<code python>>
+        from tipfy import RequestHandler, Response
         from tipfy.ext.auth.twitter import TwitterMixin
+        from tipfy.ext.session import CookieMixin, SessionMiddleware
 
-        class MainHandler(RequestHandler, TwitterMixin):
+        class TwitterHandler(RequestHandler, CookieMixin, TwitterMixin):
+            middleware = [SessionMiddleware]
+
             def get(self):
                 return self.twitter_request(
                     '/statuses/update',
@@ -154,7 +158,7 @@ class TwitterMixin(OAuthMixin):
                     return self.authorize_redirect()
 
                 return Response('Posted a message!')
-
+        <</code>>
         """
         # Add the OAuth resource request signature if we have credentials
         url = 'http://api.twitter.com/1' + path + '.json'
@@ -179,6 +183,10 @@ class TwitterMixin(OAuthMixin):
         except urlfetch.DownloadError, e:
             logging.exception(e)
             response = None
+
+        if not callback:
+            # Don't preprocess the response, just return a bare one.
+            return response
 
         return self._on_twitter_request(callback, response)
 

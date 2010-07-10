@@ -11,6 +11,9 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+from __future__ import absolute_import
+import logging
+
 from tipfy import REQUIRED_VALUE
 from tipfy.ext.auth.oauth import OAuthMixin
 
@@ -38,18 +41,21 @@ class FriendFeedMixin(OAuthMixin):
     When your application is set up, you can use this Mixin like this
     to authenticate the user with FriendFeed and get access to their feed:
 
-    class FriendFeedHandler(tipfy.RequestHandler,
-                            tipfy.ext.auth.FriendFeedMixin):
+    from tipfy import RequestHandler, abort
+    from tipfy.ext.auth.friendfeed import FriendFeedMixin
+
+    class FriendFeedHandler(RequestHandler, FriendFeedMixin):
         def get(self):
-            if self.get_argument('oauth_token', None):
-                self.get_authenticated_user(self._on_auth)
-                return
-            self.authorize_redirect()
+            if self.request.args.get('oauth_token', None):
+                return self.get_authenticated_user(self._on_auth)
+
+            return self.authorize_redirect()
 
         def _on_auth(self, user):
             if not user:
-                raise tornado.web.HTTPError(500, 'FriendFeed auth failed')
-            # Save the user using, e.g., set_secure_cookie()
+                abort(403)
+
+            # Set the user in the session.
 
     The user object returned by get_authenticated_user() includes the
     attributes 'username', 'name', and 'description' in addition to
@@ -86,11 +92,12 @@ class FriendFeedMixin(OAuthMixin):
         attribute that can be used to make authenticated requests via
         this method. Example usage:
 
-        class MainHandler(tipfy.RequestHandler,
-                          tipfy.ext.auth.FriendFeedMixin):
+        from tipfy import RequestHandler, Response
+        from tipfy.ext.auth.friendfeed import FriendFeedMixin
+
+        class MainHandler(RequestHandler, FriendFeedMixin):
             def get(self):
-                self.friendfeed_request(
-                    '/entry',
+                return self.friendfeed_request('/entry',
                     post_args={'body': 'Testing Tornado Web Server'},
                     access_token=self.current_user['access_token'],
                     callback=self._on_post)
@@ -98,9 +105,9 @@ class FriendFeedMixin(OAuthMixin):
             def _on_post(self, new_entry):
                 if not new_entry:
                     # Call failed; perhaps missing permission?
-                    self.authorize_redirect()
-                    return
-                self.finish('Posted a message!')
+                    return self.authorize_redirect()
+
+                return Response('Posted a message!')
 
         """
         # Add the OAuth resource request signature if we have credentials

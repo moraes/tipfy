@@ -11,7 +11,12 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
-from tipfy import REQUIRED_VALUE
+import logging
+import urllib
+
+from google.appengine.api import urlfetch
+
+from tipfy import redirect, REQUIRED_VALUE
 from tipfy.ext.auth.oauth import OAuthMixin
 from tipfy.ext.auth.openid import OpenIdMixin
 
@@ -36,18 +41,21 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
     values for the user, including 'email', 'name', and 'locale'.
     Example usage:
 
-    class GoogleHandler(tipfy.RequestHandler,
-                        tipfy.ext.auth.GoogleMixin):
+    from tipfy import RequestHandler, abort
+    from tipfy.ext.auth.google import GoogleMixin
+
+    class GoogleHandler(RequestHandler, GoogleMixin):
        def get(self):
-           if self.get_argument('openid.mode', None):
-               self.get_authenticated_user(self._on_auth)
-               return
-        self.authenticate_redirect()
+           if self.request.args.get('openid.mode', None):
+               return self.get_authenticated_user(self._on_auth)
+
+           return self.authenticate_redirect()
 
         def _on_auth(self, user):
             if not user:
-                raise tornado.web.HTTPError(500, 'Google auth failed')
-            # Save the user with, e.g., set_secure_cookie()
+                abort(403)
+
+            # Set the user in the session.
 
     """
     _OPENID_ENDPOINT = 'https://www.google.com/accounts/o8/ud'
@@ -55,11 +63,16 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
 
     @property
     def _google_consumer_key(self):
-        self.app.get_config(__name__, 'google_consumer_key')
+        return self.app.get_config(__name__, 'google_consumer_key')
 
     @property
     def _google_consumer_secret(self):
-        self.app.get_config(__name__, 'google_consumer_secret')
+        return self.app.get_config(__name__, 'google_consumer_secret')
+
+    def _oauth_consumer_token(self):
+        return dict(
+            key=self._google_consumer_key,
+            secret=self._google_consumer_secret)
 
     def authorize_redirect(self, oauth_scope, callback_uri=None, ax_attrs=None):
         """Authenticates and authorizes for the given Google resource.
@@ -77,30 +90,32 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
         ax_attrs = ax_attrs or ['name','email','language','username']
         args = self._openid_args(callback_uri, ax_attrs=ax_attrs,
                                  oauth_scope=oauth_scope)
-        self.redirect(self._OPENID_ENDPOINT + '?' + urllib.urlencode(args))
+        return redirect(self._OPENID_ENDPOINT + '?' + urllib.urlencode(args))
 
     def get_authenticated_user(self, callback):
         """Fetches the authenticated user data upon redirect."""
         # Look to see if we are doing combined OpenID/OAuth
         oauth_ns = ''
-        for name, values in self.request.arguments.iteritems():
+        for name, values in self.request.args.iterlists():
             if name.startswith('openid.ns.') and \
-               values[-1] == u'http://specs.openid.net/extensions/oauth/1.0':
+                values[-1] == u'http://specs.openid.net/extensions/oauth/1.0':
                 oauth_ns = name[10:]
                 break
-        token = self.get_argument('openid.' + oauth_ns + '.request_token', '')
-        if token:
-            http = httpclient.AsyncHTTPClient()
-            token = dict(key=token, secret='')
-            http.fetch(self._oauth_access_token_url(token),
-                       functools.partial(self._on_access_token, callback))
-        else:
-            OpenIdMixin.get_authenticated_user(self, callback)
 
-    def _oauth_consumer_token(self):
-        return dict(
-            key=self._google_consumer_key,
-            secret=self._google_consumer_secret)
+        token = self.request.args.get('openid.' + oauth_ns + '.request_token',
+            '')
+        if token:
+            try:
+                token = dict(key=token, secret='')
+                url = self._oauth_access_token_url(token)
+                response = urlfetch.fetch(url, deadline=10)
+                return self._on_access_token(callback, response)
+            except urlfetch.DownloadError, e:
+                logging.exception(e)
+
+            return self._on_access_token(callback, None)
+        else:
+            return OpenIdMixin.get_authenticated_user(self, callback)
 
     def _oauth_get_user(self, access_token, callback):
-        OpenIdMixin.get_authenticated_user(self, callback)
+        return OpenIdMixin.get_authenticated_user(self, callback)

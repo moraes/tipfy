@@ -25,11 +25,13 @@ from tipfy.ext.auth.oauth import OAuthMixin
 
 #: Default configuration values for this module. Keys are:
 #:
-#: - ``twitter_consumer_key``:
-#: - ``google_consumer_secret``:
+#: - ``consumer_key``: Key provided when you register an application with
+#:   Twitter.
+#: - ``consumer_secret``: Secret provided when you register an application
+#:   with Twitter.
 default_config = {
-    'twitter_consumer_key':    REQUIRED_VALUE,
-    'twitter_consumer_secret': REQUIRED_VALUE,
+    'consumer_key':    REQUIRED_VALUE,
+    'consumer_secret': REQUIRED_VALUE,
 }
 
 
@@ -43,8 +45,8 @@ class TwitterMixin(OAuthMixin):
 
     <<code python>>
     config['tipfy.ext.auth.twitter'] = {
-        'twitter_consumer_key':    'XXXXXXXXXXXXXXX',
-        'twitter_consumer_secret': 'XXXXXXXXXXXXXXX',
+        'consumer_key':    'XXXXXXXXXXXXXXX',
+        'consumer_secret': 'XXXXXXXXXXXXXXX',
     }
     <</code>>
 
@@ -90,10 +92,10 @@ class TwitterMixin(OAuthMixin):
     _OAUTH_NO_CALLBACKS = True
 
     def _twitter_consumer_key(self):
-        return self.app.get_config(__name__, 'twitter_consumer_key')
+        return self.app.get_config(__name__, 'consumer_key')
 
     def _twitter_consumer_secret(self):
-        return self.app.get_config(__name__, 'twitter_consumer_secret')
+        return self.app.get_config(__name__, 'consumer_secret')
 
     def _oauth_consumer_token(self):
         return dict(

@@ -11,6 +11,7 @@ BUILDDIR      = build
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
+ALLCREOLEOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source_creole
 
 .PHONY: help clean html dirhtml pickle json htmlhelp qthelp latex changes linkcheck doctest
 
@@ -43,10 +44,10 @@ text:
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/text."
 
 creole:
-	$(SPHINXBUILD) -b creole $(ALLSPHINXOPTS) $(BUILDDIR)/creole
+	$(SPHINXBUILD) -b creole $(ALLCREOLEOPTS) $(BUILDDIR)/creole
 	@echo
 	@echo "Build finished. The creole files are in $(BUILDDIR)/creole."
-	
+
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
 	@echo

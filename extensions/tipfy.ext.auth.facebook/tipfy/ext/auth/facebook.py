@@ -27,11 +27,13 @@ from tipfy import redirect, REQUIRED_VALUE
 
 #: Default configuration values for this module. Keys are:
 #:
-#: - ``facebook_api_key``:
-#: - ``facebook_secret``:
+#: - ``api_key``: Key provided when you register an application with
+#:   Facebook.
+#: - ``app_secret``: Secret provided when you register an application
+#:   with Facebook.
 default_config = {
-    'facebook_api_key': REQUIRED_VALUE,
-    'facebook_secret':  REQUIRED_VALUE,
+    'api_key':    REQUIRED_VALUE,
+    'app_secret': REQUIRED_VALUE,
 }
 
 
@@ -41,12 +43,19 @@ class FacebookMixin(object):
 
     To authenticate with Facebook, register your application with
     Facebook at http://www.facebook.com/developers/apps.php. Then
-    copy your API Key and Application Secret to the application settings
-    'facebook_api_key' and 'facebook_secret'.
+    copy your API Key and Application Secret to config.py:
+
+    <<code python>>
+    config['tipfy.ext.auth.twitter'] = {
+        'api_key':    'XXXXXXXXXXXXXXX',
+        'app_secret': 'XXXXXXXXXXXXXXX',
+    }
+    <</code>>
 
     When your application is set up, you can use the FacebookMixin like this
     to authenticate the user with Facebook:
 
+    <<code python>>
     from tipfy import RequestHandler, abort
     from tipfy.ext.auth.facebook import FacebookMixin
 
@@ -62,6 +71,7 @@ class FacebookMixin(object):
                 abort(403)
 
             # Set the user in the session.
+    <</code>>
 
     The user object returned by get_authenticated_user() includes the
     attributes 'facebook_uid' and 'name' in addition to session attributes
@@ -71,11 +81,11 @@ class FacebookMixin(object):
     """
     @property
     def _facebook_api_key(self):
-        return self.app.get_config(__name__, 'facebook_api_key')
+        return self.app.get_config(__name__, 'api_key')
 
     @property
     def _facebook_secret(self):
-        return self.app.get_config(__name__, 'facebook_secret')
+        return self.app.get_config(__name__, 'app_secret')
 
     def authenticate_redirect(self, callback_uri=None, cancel_uri=None,
                               extended_permissions=None):

@@ -23,7 +23,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.auth.facebook',
-    version = '0.1',
+    version = '0.2',
     license = 'Apache Software License',
     url = 'http://www.tipfy.org/',
     description = 'Facebook authentication extension for tipfy',

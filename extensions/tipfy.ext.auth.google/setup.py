@@ -2,8 +2,7 @@
 tipfy.ext.auth.google
 =====================
 
-This extension provides an OpenId authentication provider tipfy, the almighty
-little framework for Google App Engine.
+This extension provides an OpenId/Oauth authentication provider for Google.
 
 Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
 

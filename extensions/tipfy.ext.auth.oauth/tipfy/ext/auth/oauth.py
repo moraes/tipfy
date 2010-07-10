@@ -11,15 +11,21 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+from __future__ import absolute_import
 import binascii
+import cgi
 import functools
+import hashlib
+import hmac
 import logging
+import time
 import urllib
 import urlparse
+import uuid
 
 from google.appengine.api import urlfetch
 
-from tipfy import redirect
+from tipfy import abort, redirect
 
 
 class OAuthMixin(object):
@@ -56,10 +62,6 @@ class OAuthMixin(object):
         url = self._oauth_request_token_url()
         try:
             response = urlfetch.fetch(url, deadline=10)
-            if response.status_code < 200 or response.status_code >= 300:
-                logging.warning('Invalid OAuth response: %s',
-                    response.content)
-                response = None
         except urlfetch.DownloadError, e:
             logging.exception(e)
             response = None
@@ -131,8 +133,13 @@ class OAuthMixin(object):
         :param response:
         :return:
         """
-        if response.error:
-            raise Exception('Could not get request token')
+        if not response:
+            logging.warning('Could not get OAuth request token.')
+            abort(500)
+        elif response.status_code < 200 or response.status_code >= 300:
+            logging.warning('Invalid OAuth response (%d): %s',
+                response.status_code, response.content)
+            abort(500)
 
         request_token = _oauth_parse_response(response.content)
         data = '|'.join([request_token['key'], request_token['secret']])
@@ -170,10 +177,13 @@ class OAuthMixin(object):
         :param response:
         :return:
         """
-        if response.error:
-            logging.warning('Could not fetch access token')
-            callback(None)
-            return
+        if not response:
+            logging.warning('Missing OAuth access token response.')
+            return callback(None)
+        elif response.status_code < 200 or response.status_code >= 300:
+            logging.warning('Invalid OAuth access token response (%d): %s',
+                response.status_code, response.content)
+            return callback(None)
 
         access_token = _oauth_parse_response(response.content)
         return self._oauth_get_user(access_token, functools.partial(
@@ -279,7 +289,7 @@ def _oauth_parse_response(body):
     :param body:
     :return:
     """
-    p = urlparse.parse_qs(body, keep_blank_values=False)
+    p = cgi.parse_qs(body, keep_blank_values=False)
     token = dict(key=p['oauth_token'][0], secret=p['oauth_token_secret'][0])
 
     # Add the extra parameters the Provider included to the token

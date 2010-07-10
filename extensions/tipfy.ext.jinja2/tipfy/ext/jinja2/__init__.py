@@ -129,8 +129,8 @@ def get_jinja2_instance():
         An instance of :class:`Jinja2`.
     """
     app = Tipfy.app
-    reg = app.registry
-    if 'jinja2_instance' not in reg:
+    registry = app.registry
+    if 'jinja2_instance' not in registry:
         factory_spec = app.get_config(__name__, 'engine_factory')
         if factory_spec:
             if isinstance(factory_spec, basestring):
@@ -140,9 +140,9 @@ def get_jinja2_instance():
         else:
             factory = create_jinja2_instance
 
-        reg['jinja2_instance'] = factory()
+        registry['jinja2_instance'] = factory()
 
-    return reg['jinja2_instance']
+    return registry['jinja2_instance']
 
 
 def render_template(filename, **context):

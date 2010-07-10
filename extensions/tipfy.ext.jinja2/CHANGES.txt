@@ -1,3 +1,9 @@
+Version 0.7 - July 10, 2010
+===========================
+- Added config key 'engine_factory', to define a factory for the template
+  environment.
+
+
 Version 0.6.2 - June 30, 2010
 =============================
 - A fix for install_gettext_callables, now working with newstyle translations.

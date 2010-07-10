@@ -3,7 +3,10 @@
     Tests for tipfy.ext.jinja2
 """
 import os
+import sys
 import unittest
+
+from jinja2 import FileSystemLoader, Environment
 
 from tipfy import RequestHandler, Response, Tipfy
 from tipfy.ext import jinja2
@@ -83,3 +86,37 @@ class TestJinja2(unittest.TestCase):
 
         hello = jinja2.get_template_attribute('hello.html', 'hello')
         assert hello('World') == 'Hello, World!'
+
+    def test_engine_factory(self):
+        def get_jinja2_env():
+            app = Tipfy.app
+            cfg = app.get_config('tipfy.ext.jinja2')
+
+            loader = FileSystemLoader(cfg.get( 'templates_dir'))
+
+            return Environment(loader=loader)
+
+
+        app = Tipfy({'tipfy.ext.jinja2': {
+            'templates_dir': templates_dir,
+            'engine_factory': get_jinja2_env,
+        }})
+
+        message = 'Hello, World!'
+        res = jinja2.render_template('template1.html', message=message)
+        assert res == message
+
+    def test_engine_factory2(self):
+        old_sys_path = sys.path[:]
+        sys.path.insert(0, current_dir)
+
+        app = Tipfy({'tipfy.ext.jinja2': {
+            'templates_dir': templates_dir,
+            'engine_factory': 'resources.get_jinja2_env',
+        }})
+
+        message = 'Hello, World!'
+        res = jinja2.render_template('template1.html', message=message)
+        assert res == message
+
+        sys.path = old_sys_path

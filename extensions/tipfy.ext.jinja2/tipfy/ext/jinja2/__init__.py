@@ -12,28 +12,31 @@
 """
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
-from tipfy import Tipfy, url_for
+from tipfy import Tipfy, import_string, url_for
 
 try:
     from tipfy.ext import i18n
 except (ImportError, AttributeError), e:
     i18n = None
 
-
 #: Default configuration values for this module. Keys are:
 #:
 #: - ``templates_dir``: Directory for templates. Default is `templates`.
 #:
-#:   - ``templates_compiled_target``: Target for compiled templates. If set,
-#:     uses the loader for compiled templates when deployed. If it ends with a
-#:     '.zip' it will be treated as a zip file. Default is ``None``.
+#: - ``templates_compiled_target``: Target for compiled templates. If set,
+#:   uses the loader for compiled templates when deployed. If it ends with a
+#:   '.zip' it will be treated as a zip file. Default is ``None``.
 #:
 #: - ``force_use_compiled``: Forces the use of compiled templates even in the
-#:   development server
+#:   development server.
+#:
+#: - ``engine_factory``: A function to be called when the template engine is
+#:   instantiated, as a string. If ``None``, uses ``create_jinja2_instance()``.
 default_config = {
     'templates_dir': 'templates',
     'templates_compiled_target': None,
     'force_use_compiled': False,
+    'engine_factory': None,
 }
 
 
@@ -53,7 +56,7 @@ class Jinja2Mixin(object):
        :return:
             A :class:`tipfy.Response` object with the rendered template.
         """
-        request_context = dict(self.request.context)
+        request_context = self.request.context.copy()
         request_context.update(context)
         return render_template(filename, **request_context)
 
@@ -68,20 +71,20 @@ class Jinja2Mixin(object):
         :return:
             A :class:`tipfy.Response` object with the rendered template.
         """
-        request_context = dict(self.request.context)
+        request_context = self.request.context.copy()
         request_context.update(context)
         return render_response(filename, **request_context)
 
 
-def create_jinja2_instance(app):
-    """Returns the Jinja2 environment, a singleton.
+def create_jinja2_instance():
+    """Returns the Jinja2 environment.
 
     :return:
         A ``jinja2.Environment`` instance.
     """
+    app = Tipfy.app
     cfg = app.get_config(__name__)
     templates_compiled_target = cfg.get('templates_compiled_target')
-
     use_compiled = not app.dev or cfg.get( 'force_use_compiled')
 
     if templates_compiled_target is not None and use_compiled:
@@ -125,9 +128,19 @@ def get_jinja2_instance():
     :return:
         An instance of :class:`Jinja2`.
     """
-    reg = Tipfy.app.registry
+    app = Tipfy.app
+    reg = app.registry
     if 'jinja2_instance' not in reg:
-        reg['jinja2_instance'] = create_jinja2_instance(Tipfy.app)
+        factory_spec = app.get_config(__name__, 'engine_factory')
+        if factory_spec:
+            if isinstance(factory_spec, basestring):
+                factory = import_string(factory_spec)
+            else:
+                factory = factory_spec
+        else:
+            factory = create_jinja2_instance
+
+        reg['jinja2_instance'] = factory()
 
     return reg['jinja2_instance']
 

@@ -20,7 +20,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.jinja2',
-    version = '0.6.2',
+    version = '0.7',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Jinja2 extension for tipfy',

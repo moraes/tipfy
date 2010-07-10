@@ -12,9 +12,13 @@
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
 from __future__ import absolute_import
+import functools
 import logging
+import urllib
 
 from google.appengine.api import urlfetch
+
+from django.utils import simplejson
 
 from tipfy import REQUIRED_VALUE
 from tipfy.ext.auth.oauth import OAuthMixin
@@ -52,8 +56,11 @@ class TwitterMixin(OAuthMixin):
     <<code python>>
     from tipfy import RequestHandler, abort
     from tipfy.ext.auth.twitter import TwitterMixin
+    from tipfy.ext.session import CookieMixin, SessionMiddleware
 
-    class TwitterHandler(RequestHandler, TwitterMixin):
+    class TwitterHandler(RequestHandler, CookieMixin, TwitterMixin):
+        middleware = [SessionMiddleware]
+
         def get(self):
             if self.request.args.get('oauth_token', None):
                 return self.get_authenticated_user(self._on_auth)
@@ -82,19 +89,16 @@ class TwitterMixin(OAuthMixin):
     _OAUTH_AUTHENTICATE_URL = 'http://api.twitter.com/oauth/authenticate'
     _OAUTH_NO_CALLBACKS = True
 
-    @property
-    def _oauth_consumer_token(self):
-        return dict(
-            key=self._twitter_consumer_key,
-            secret=self._twitter_consumer_secret)
-
-    @property
     def _twitter_consumer_key(self):
         return self.app.get_config(__name__, 'twitter_consumer_key')
 
-    @property
     def _twitter_consumer_secret(self):
         return self.app.get_config(__name__, 'twitter_consumer_secret')
+
+    def _oauth_consumer_token(self):
+        return dict(
+            key=self._twitter_consumer_key(),
+            secret=self._twitter_consumer_secret())
 
     def authenticate_redirect(self):
         """Just like authorize_redirect(), but auto-redirects if authorized.
@@ -102,9 +106,15 @@ class TwitterMixin(OAuthMixin):
         This is generally the right interface to use if you are using
         Twitter for single-sign on.
         """
-        http = httpclient.AsyncHTTPClient()
-        http.fetch(self._oauth_request_token_url(), functools.partial(
-            self._on_request_token, self._OAUTH_AUTHENTICATE_URL, None))
+        url = self._oauth_request_token_url()
+        try:
+            response = urlfetch.fetch(url, deadline=10)
+        except urlfetch.DownloadError, e:
+            logging.exception(e)
+            response = None
+
+        return self._on_request_token(self._OAUTH_AUTHENTICATE_URL, None,
+            response)
 
     def twitter_request(self, path, callback, access_token=None,
                            post_args=None, **args):
@@ -154,30 +164,41 @@ class TwitterMixin(OAuthMixin):
             oauth = self._oauth_request_parameters(
                 url, access_token, all_args, method=method)
             args.update(oauth)
-        if args: url += '?' + urllib.urlencode(args)
-        callback = functools.partial(self._on_twitter_request, callback)
-        http = httpclient.AsyncHTTPClient()
-        if post_args is not None:
-            http.fetch(url, method='POST', payload=urllib.urlencode(post_args),
-                       callback=callback)
-        else:
-            http.fetch(url, callback=callback)
+
+        if args:
+            url += '?' + urllib.urlencode(args)
+
+        try:
+            if post_args is not None:
+                response = urlfetch.fetch(url, method='POST',
+                    payload=urllib.urlencode(post_args), deadline=10)
+            else:
+                response = urlfetch.fetch(url, deadline=10)
+        except urlfetch.DownloadError, e:
+            logging.exception(e)
+            response = None
+
+        return self._on_twitter_request(callback, response)
 
     def _on_twitter_request(self, callback, response):
-        if response.error:
-            logging.warning('Error response %s fetching %s', response.error,
-                            response.request.url)
-            callback(None)
-            return
-        callback(escape.json_decode(response.content))
+        if not response:
+            logging.warning('Could not get Twitter request token.')
+            return callback(None)
+        elif response.status_code < 200 or response.status_code >= 300:
+            logging.warning('Invalid Twitter response (%d): %s',
+                response.status_code, response.content)
+            return callback(None)
+
+        return callback(simplejson.loads(response.content))
 
     def _oauth_get_user(self, access_token, callback):
         callback = functools.partial(self._parse_user_response, callback)
-        self.twitter_request(
+        return self.twitter_request(
             '/users/show/' + access_token['screen_name'],
             access_token=access_token, callback=callback)
 
     def _parse_user_response(self, callback, user):
         if user:
             user['username'] = user['screen_name']
-        callback(user)
+
+        return callback(user)

@@ -16,13 +16,17 @@ from cStringIO import StringIO
 from mako.lookup import TemplateLookup
 from mako.runtime import Context
 
-from tipfy import Tipfy, get_config
+from tipfy import Tipfy, get_config, import_string
 
 #: Default configuration values for this module. Keys are:
 #:
 #: - ``templates_dir``: Directory for templates. Default is `templates`.
+#:
+#: - ``engine_factory``: A function to be called when the template engine is
+#:   instantiated, as a string. If ``None``, uses ``create_mako_instance()``.
 default_config = {
     'templates_dir': 'templates',
+    'engine_factory': None,
 }
 
 
@@ -62,6 +66,20 @@ class MakoMixin(object):
         return render_response(filename, **request_context)
 
 
+def create_mako_instance():
+    """Returns the Mako environment.
+
+    :return:
+        A ``mako.lookup.TemplateLookup`` instance.
+    """
+    dirs = get_config(__name__, 'templates_dir')
+    if isinstance(dirs, basestring):
+        dirs = [dirs]
+
+    return TemplateLookup(directories=dirs, output_encoding='utf-8',
+        encoding_errors='replace')
+
+
 def get_mako_instance():
     """Returns an instance of ``mako.lookup.TemplateLookup``, registering it
     in the WSGI app if not yet registered.
@@ -69,14 +87,19 @@ def get_mako_instance():
     :return:
         An instance of ``mako.lookup.TemplateLookup``.
     """
-    registry = Tipfy.app.registry
+    app = Tipfy.app
+    registry = app.registry
     if 'mako_instance' not in registry:
-        dirs = get_config(__name__, 'templates_dir')
-        if isinstance(dirs, basestring):
-            dirs = [dirs]
+        factory_spec = app.get_config(__name__, 'engine_factory')
+        if factory_spec:
+            if isinstance(factory_spec, basestring):
+                factory = import_string(factory_spec)
+            else:
+                factory = factory_spec
+        else:
+            factory = create_mako_instance
 
-        registry['mako_instance'] = TemplateLookup(directories=dirs,
-            output_encoding='utf-8', encoding_errors='replace')
+        registry['mako_instance'] = factory()
 
     return registry['mako_instance']
 

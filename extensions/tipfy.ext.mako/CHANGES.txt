@@ -1,3 +1,9 @@
+Version 0.6 - July 10, 2010
+===========================
+- Added config key 'engine_factory', to define a factory for the template
+  environment.
+
+
 Version 0.5.7 - June 28, 2010
 =============================
 - templates dir configuration can now be a single directory or a list of

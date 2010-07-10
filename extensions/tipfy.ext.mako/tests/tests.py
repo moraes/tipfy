@@ -3,7 +3,10 @@
     Tests for tipfy.ext.mako
 """
 import os
+import sys
 import unittest
+
+from mako.lookup import TemplateLookup
 
 from tipfy import RequestHandler, Response, Tipfy
 from tipfy.ext import mako
@@ -68,3 +71,38 @@ class TestMako(unittest.TestCase):
         assert isinstance(response, Response)
         assert response.mimetype == 'text/html'
         assert response.data == message + '\n'
+
+    def test_engine_factory(self):
+        def get_mako_env():
+            app = Tipfy.app
+            dirs = app.get_config('tipfy.ext.mako', 'templates_dir')
+            if isinstance(dirs, basestring):
+                dirs = [dirs]
+
+            return TemplateLookup(directories=dirs, output_encoding='utf-8',
+                encoding_errors='replace')
+
+
+        app = Tipfy({'tipfy.ext.mako': {
+            'templates_dir': templates_dir,
+            'engine_factory': get_mako_env,
+        }})
+
+        message = 'Hello, World!'
+        res = mako.render_template('template1.html', message=message)
+        assert res == message + '\n'
+
+    def test_engine_factory2(self):
+        old_sys_path = sys.path[:]
+        sys.path.insert(0, current_dir)
+
+        app = Tipfy({'tipfy.ext.mako': {
+            'templates_dir': templates_dir,
+            'engine_factory': 'resources.get_mako_env',
+        }})
+
+        message = 'Hello, World!'
+        res = mako.render_template('template1.html', message=message)
+        assert res == message + '\n'
+
+        sys.path = old_sys_path

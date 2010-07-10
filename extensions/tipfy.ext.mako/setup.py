@@ -20,7 +20,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.mako',
-    version = '0.5.7',
+    version = '0.6',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Mako extension for tipfy',

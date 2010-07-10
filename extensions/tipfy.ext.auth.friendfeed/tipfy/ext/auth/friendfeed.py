@@ -16,6 +16,8 @@ import functools
 import logging
 import urllib
 
+from google.appengine.api import urlfetch
+
 from django.utils import simplejson
 
 from tipfy import REQUIRED_VALUE
@@ -23,8 +25,10 @@ from tipfy.ext.auth.oauth import OAuthMixin
 
 #: Default configuration values for this module. Keys are:
 #:
-#: - ``consumer_key``:
-#: - ``consumer_secret``:
+#: - ``consumer_key``: Key provided when you register an application with
+#:   FriendFeed.
+#: - ``consumer_secret``: Secret provided when you register an application
+#:   with FriendFeed.
 default_config = {
     'consumer_key':    REQUIRED_VALUE,
     'consumer_secret': REQUIRED_VALUE,
@@ -138,13 +142,17 @@ class FriendFeedMixin(OAuthMixin):
         if args:
             url += '?' + urllib.urlencode(args)
 
-        callback = functools.partial(self._on_friendfeed_request, callback)
-        http = httpclient.AsyncHTTPClient()
-        if post_args is not None:
-            http.fetch(url, method='POST', payload=urllib.urlencode(post_args),
-                       callback=callback)
-        else:
-            http.fetch(url, callback=callback)
+        try:
+            if post_args is not None:
+                response = urlfetch.fetch(url, method='POST',
+                    payload=urllib.urlencode(post_args), deadline=10)
+            else:
+                response = urlfetch.fetch(url, deadline=10)
+        except urlfetch.DownloadError, e:
+            logging.exception(e)
+            response = None
+
+        return self._on_friendfeed_request(callback, response)
 
     def _on_friendfeed_request(self, callback, response):
         if not response:

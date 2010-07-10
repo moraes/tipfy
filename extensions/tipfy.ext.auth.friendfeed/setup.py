@@ -5,6 +5,9 @@ tipfy.ext.auth.friendfeed
 This extension provides a FriendFeed authentication provider tipfy, the almighty
 little framework for Google App Engine.
 
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/auth/friendfeed/ <http://www.tipfy.org/wiki/extensions/auth/friendfeed/>`_.
+
 Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
 
 Links

@@ -12,18 +12,22 @@
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
 from __future__ import absolute_import
+import functools
 import logging
+import urllib
+
+from django.utils import simplejson
 
 from tipfy import REQUIRED_VALUE
 from tipfy.ext.auth.oauth import OAuthMixin
 
 #: Default configuration values for this module. Keys are:
 #:
-#: - ``friendfeed_consumer_key``:
-#: - ``friendfeed_consumer_secret``:
+#: - ``consumer_key``:
+#: - ``consumer_secret``:
 default_config = {
-    'friendfeed_consumer_key':    REQUIRED_VALUE,
-    'friendfeed_consumer_secret': REQUIRED_VALUE,
+    'consumer_key':    REQUIRED_VALUE,
+    'consumer_secret': REQUIRED_VALUE,
 }
 
 
@@ -33,14 +37,21 @@ class FriendFeedMixin(OAuthMixin):
 
     To authenticate with FriendFeed, register your application with
     FriendFeed at http://friendfeed.com/api/applications. Then
-    copy your Consumer Key and Consumer Secret to the application settings
-    'friendfeed_consumer_key' and 'friendfeed_consumer_secret'. Use
-    this Mixin on the handler for the URL you registered as your
-    application's Callback URL.
+    copy your Consumer Key and Consumer Secret to config.py:
 
-    When your application is set up, you can use this Mixin like this
-    to authenticate the user with FriendFeed and get access to their feed:
+    <<code python>>
+    config['tipfy.ext.auth.friendfeed'] = {
+        'consumer_key':    'XXXXXXXXXXXXXXX',
+        'consumer_secret': 'XXXXXXXXXXXXXXX',
+    }
+    <</code>>
 
+    When your application is set up, you can use the FriendFeedMixin to
+    authenticate the user with FriendFeed and get access to their stream.
+    You must use the mixin on the handler for the URL you registered as your
+    application's Callback URL. For example:
+
+    <<code python>>
     from tipfy import RequestHandler, abort
     from tipfy.ext.auth.friendfeed import FriendFeedMixin
 
@@ -56,6 +67,8 @@ class FriendFeedMixin(OAuthMixin):
                 abort(403)
 
             # Set the user in the session.
+            # ...
+    <</code>>
 
     The user object returned by get_authenticated_user() includes the
     attributes 'username', 'name', and 'description' in addition to
@@ -70,11 +83,11 @@ class FriendFeedMixin(OAuthMixin):
 
     @property
     def _friendfeed_consumer_key(self):
-        self.app.get_config(__name__, 'friendfeed_consumer_key')
+        return self.app.get_config(__name__, 'consumer_key')
 
     @property
     def _friendfeed_consumer_secret(self):
-        self.app.get_config(__name__, 'friendfeed_consumer_secret')
+        return self.app.get_config(__name__, 'consumer_secret')
 
     def friendfeed_request(self, path, callback, access_token=None,
                            post_args=None, **args):
@@ -121,7 +134,10 @@ class FriendFeedMixin(OAuthMixin):
             oauth = self._oauth_request_parameters(
                 url, access_token, all_args, method=method)
             args.update(oauth)
-        if args: url += '?' + urllib.urlencode(args)
+
+        if args:
+            url += '?' + urllib.urlencode(args)
+
         callback = functools.partial(self._on_friendfeed_request, callback)
         http = httpclient.AsyncHTTPClient()
         if post_args is not None:
@@ -131,12 +147,15 @@ class FriendFeedMixin(OAuthMixin):
             http.fetch(url, callback=callback)
 
     def _on_friendfeed_request(self, callback, response):
-        if response.error:
-            logging.warning('Error response %s fetching %s', response.error,
-                            response.request.url)
-            callback(None)
-            return
-        callback(escape.json_decode(response.content))
+        if not response:
+            logging.warning('Could not get a FriendFeed response.')
+            return callback(None)
+        elif response.status_code < 200 or response.status_code >= 300:
+            logging.warning('Invalid FriendFeed response (%d): %s',
+                response.status_code, response.content)
+            return callback(None)
+
+        return callback(simplejson.loads(response.content))
 
     def _oauth_consumer_token(self):
         return dict(
@@ -145,7 +164,7 @@ class FriendFeedMixin(OAuthMixin):
 
     def _oauth_get_user(self, access_token, callback):
         callback = functools.partial(self._parse_user_response, callback)
-        self.friendfeed_request(
+        return self.friendfeed_request(
             '/feedinfo/' + access_token['username'],
             include='id,name,description', access_token=access_token,
             callback=callback)
@@ -153,4 +172,5 @@ class FriendFeedMixin(OAuthMixin):
     def _parse_user_response(self, callback, user):
         if user:
             user['username'] = user['id']
-        callback(user)
+
+        return callback(user)

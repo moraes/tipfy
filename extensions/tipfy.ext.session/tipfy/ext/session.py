@@ -208,7 +208,7 @@ class SessionStore(object):
             else:
                 cookie = self.create_secure_cookie()
 
-            self._cookies[key] = (cookie, kwargs)
+            self.set_cookie(key, cookie, **kwargs)
 
         return self._cookies[key][0]
 
@@ -260,7 +260,9 @@ class SessionStore(object):
         :return:
             ``None``.
         """
-        self._cookies[key] = (value, kwargs)
+        _kwargs = self.config['cookie_args'].copy()
+        _kwargs.update(kwargs)
+        self._cookies[key] = (value, _kwargs)
 
     def delete_cookie(self, key, **kwargs):
         """Registers a cookie or secure cookie to be deleted.
@@ -437,18 +439,6 @@ class BaseSession(ModificationTrackingDict):
         self.sid = sid
         self.new = new
 
-    @classmethod
-    def get_session(cls, store, key, **kwargs):
-        """Returns a session that is tracked by the session store."""
-        cookie = store.get_secure_cookie(key, **kwargs)
-        sid = cookie.get('_sid', None)
-        session = cls.get_by_sid(sid)
-
-        if sid != session.sid:
-            cookie['_sid'] = session.sid
-
-        return session
-
 
 class DatastoreSession(BaseSession):
     """A session container for datastore sessions."""
@@ -535,6 +525,18 @@ class MemcacheSession(BaseSession):
     @classmethod
     def delete_by_sid(cls, sid):
         memcache.delete(sid, namespace=cls.get_namespace())
+
+    @classmethod
+    def get_session(cls, store, key, **kwargs):
+        """Returns a session that is tracked by the session store."""
+        cookie = store.get_secure_cookie(key, **kwargs)
+        sid = cookie.get('_sid', None)
+        session = cls.get_by_sid(sid)
+
+        if sid != session.sid:
+            cookie['_sid'] = session.sid
+
+        return session
 
     def save_session(self, store, response, key, **kwargs):
         """Saves a session."""

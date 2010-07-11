@@ -66,8 +66,57 @@ class UnsupportedRangeFormatError(RangeFormatError):
   """Raised when Range format is correct, but not supported."""
 
 
+def _check_ranges(start, end, use_range_set, use_range, range_header):
+    """Set the range header.
+
+    Args:
+        start: As passed in from send_blob.
+        end: As passed in from send_blob.
+        use_range_set: Use range was explcilty set during call to send_blob.
+        use_range: As passed in from send blob.
+        range_header: Range header as received in HTTP request.
+
+    Returns:
+        Range header appropriate for placing in blobstore.BLOB_RANGE_HEADER.
+
+    Raises:
+        ValueError if parameters are incorrect.  This happens:
+          - start > end.
+          - start < 0 and end is also provided.
+          - end < 0
+          - If index provided AND using the HTTP header, they don't match.
+            This is a safeguard.
+    """
+    if end is not None and start is None:
+        raise ValueError('May not specify end value without start.')
+
+    use_indexes = start is not None
+    if use_indexes:
+        if end is not None:
+            if start > end:
+                raise ValueError('start must be < end.')
+
+        range_indexes = byterange.Range.serialize_bytes(_BYTES_UNIT, [(start,
+            end)])
+
+    if use_range_set and use_range and use_indexes:
+        if range_header != range_indexes:
+            raise ValueError('May not provide non-equivalent range indexes '
+                       'and range headers: (header) %s != (indexes) %s'
+                       % (range_header, range_indexes))
+
+    if use_range and range_header is not None:
+        return range_header
+    elif use_indexes:
+        return range_indexes
+    else:
+        return None
+
+
 class BlobstoreDownloadMixin(object):
     """Mixin for handlers that may send blobs to users."""
+    __use_range_unset = object()
+
     def send_blob(self, blob_key_or_info, content_type=None, save_as=None,
         **kwargs):
         """Sends a blob-response based on a blob_key.
@@ -89,6 +138,9 @@ class BlobstoreDownloadMixin(object):
         :raise:
             ``ValueError`` on invalid save_as parameter.
         """
+        # Response headers.
+        headers = {}
+
         if set(kwargs) - _SEND_BLOB_PARAMETERS:
             invalid_keywords = []
             for keyword in kwargs:
@@ -102,6 +154,21 @@ class BlobstoreDownloadMixin(object):
                 raise TypeError('send_blob got unexpected keyword arguments: '
                     '%s.' % sorted(invalid_keywords))
 
+        use_range = kwargs.get('use_range', self.__use_range_unset)
+        use_range_set = use_range is not self.__use_range_unset
+
+        if use_range:
+            self.get_range()
+
+        range_header = _check_ranges(start,
+                                     end,
+                                     use_range_set,
+                                     use_range,
+                                     self.request.headers.get('range', None))
+
+        if range_header is not None:
+            headers[blobstore.BLOB_RANGE_HEADER] = range_header
+
         if isinstance(blob_key_or_info, blobstore.BlobInfo):
             blob_key = blob_key_or_info.key()
             blob_info = blob_key_or_info
@@ -109,7 +176,7 @@ class BlobstoreDownloadMixin(object):
             blob_key = blob_key_or_info
             blob_info = None
 
-        headers = {blobstore.BLOB_KEY_HEADER: str(blob_key)}
+        headers[blobstore.BLOB_KEY_HEADER] = str(blob_key)
 
         if content_type:
             if isinstance(content_type, unicode):

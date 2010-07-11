@@ -21,7 +21,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.blobstore',
-    version = '0.5.6',
+    version = '0.6',
     license = 'Apache Software License',
     url = 'http://www.tipfy.org/',
     description = 'Blobstore extension for tipfy',

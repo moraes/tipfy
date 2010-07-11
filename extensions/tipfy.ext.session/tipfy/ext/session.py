@@ -18,12 +18,11 @@ from time import mktime, time
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
-from werkzeug import cached_property
 from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.sessions import ModificationTrackingDict, generate_key
 from werkzeug.security import gen_salt
 
-from tipfy import Tipfy, REQUIRED_VALUE, get_config
+from tipfy import Tipfy, REQUIRED_VALUE, cached_property, get_config
 from tipfy.ext.db import (PickleProperty, get_protobuf_from_entity,
     get_entity_from_protobuf)
 
@@ -43,34 +42,34 @@ from tipfy.ext.db import (PickleProperty, get_protobuf_from_entity,
 #: - ``cookie_args``: default keyword arguments to set a cookie or
 #:   securecookie. Keys are:
 #:
-#:   - ``cookie_session_expires``: Session expiration time in seconds. Limits
+#:   - ``session_expires``: Session expiration time in seconds. Limits
 #:     the duration of the contents of a cookie, even if a session cookie
 #:     exists. If ``None``, the contents lasts as long as the cookie is valid.
 #:     Default is ``None``.
 #:
-#:   - ``cookie_max_age``: Cookie max age in seconds. Limits the duration
+#:   - ``max_age``: Cookie max age in seconds. Limits the duration
 #:     of a session cookie. If ``None``, the cookie lasts until the client
 #:     is closed. Default is ``None``.
 #:
-#:   - ``cookie_domain``: Domain of the cookie. To work accross subdomains the
+#:   - ``domain``: Domain of the cookie. To work accross subdomains the
 #:     domain must be set to the main domain with a preceding dot, e.g.,
 #:     cookies set for `.mydomain.org` will work in `foo.mydomain.org` and
 #:     `bar.mydomain.org`. Default is ``None``, which means that cookies will
 #:     only work for the current subdomain.
 #:
-#:   - ``cookie_path``: Path in which the authentication cookie is valid.
+#:   - ``path``: Path in which the authentication cookie is valid.
 #:     Default is `/`.
 #:
-#:   - ``cookie_secure``: Make the cookie only available via HTTPS.
+#:   - ``secure``: Make the cookie only available via HTTPS.
 #:
-#:   - ``cookie_httponly``: Disallow JavaScript to access the cookie.
+#:   - ``httponly``: Disallow JavaScript to access the cookie.
 #:
-#:   - ``cookie_force``: If ``True``, force cookie to be saved on each request,
+#:   - ``force``: If ``True``, force cookie to be saved on each request,
 #:     even if the session data isn't changed. Default to ``False``.
 default_config = {
-    'default_backend':        'securecookie',
-    'secret_key':             REQUIRED_VALUE,
-    'cookie_name':            'tipfy.session',
+    'default_backend': 'securecookie',
+    'secret_key':      REQUIRED_VALUE,
+    'cookie_name':     'tipfy.session',
     'cookie_args': {
         'session_expires': None,
         'max_age':         None,
@@ -660,7 +659,7 @@ class MessagesMixin(BaseSessionMixin):
 
         return self.__messages
 
-    def set_message(self, level, body, title=None, life=5, flash=False):
+    def set_message(self, level, body, title=None, life=None, flash=False):
         """Adds a status message.
 
         :param level:

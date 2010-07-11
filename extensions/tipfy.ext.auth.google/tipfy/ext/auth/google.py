@@ -11,6 +11,7 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+from __future__ import absolute_import
 import logging
 import urllib
 
@@ -41,22 +42,23 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
     values for the user, including 'email', 'name', and 'locale'.
     Example usage:
 
+    <<code python>>
     from tipfy import RequestHandler, abort
     from tipfy.ext.auth.google import GoogleMixin
 
     class GoogleHandler(RequestHandler, GoogleMixin):
-       def get(self):
-           if self.request.args.get('openid.mode', None):
-               return self.get_authenticated_user(self._on_auth)
+        def get(self):
+            if self.request.args.get('openid.mode', None):
+                return self.get_authenticated_user(self._on_auth)
 
-           return self.authenticate_redirect()
+            return self.authenticate_redirect()
 
         def _on_auth(self, user):
             if not user:
                 abort(403)
 
             # Set the user in the session.
-
+    <</code>>
     """
     _OPENID_ENDPOINT = 'https://www.google.com/accounts/o8/ud'
     _OAUTH_ACCESS_TOKEN_URL = 'https://www.google.com/accounts/OAuthGetAccessToken'
@@ -109,11 +111,11 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
                 token = dict(key=token, secret='')
                 url = self._oauth_access_token_url(token)
                 response = urlfetch.fetch(url, deadline=10)
-                return self._on_access_token(callback, response)
             except urlfetch.DownloadError, e:
                 logging.exception(e)
+                response = None
 
-            return self._on_access_token(callback, None)
+            return self._on_access_token(callback, response)
         else:
             return OpenIdMixin.get_authenticated_user(self, callback)
 

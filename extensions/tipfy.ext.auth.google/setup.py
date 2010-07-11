@@ -4,6 +4,9 @@ tipfy.ext.auth.google
 
 This extension provides an OpenId/Oauth authentication provider for Google.
 
+Documentation is available at
+`http://www.tipfy.org/wiki/extensions/auth/google/ <http://www.tipfy.org/wiki/extensions/auth/google/>`_.
+
 Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
 
 Links

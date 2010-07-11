@@ -594,9 +594,9 @@ class SessionMiddleware(object):
         return response
 
     def pre_dispatch_handler(self):
-        Tipfy.request.registry['session_store'] = SessionStore(
-            handler.request, get_config(__name__), self.backends,
-            self.default_backend)
+        request = Tipfy.request
+        request.registry['session_store'] = SessionStore(request,
+            get_config(__name__), self.backends, self.default_backend)
 
     def post_dispatch_handler(self, response):
         Tipfy.request.registry['session_store'].save_session(response)

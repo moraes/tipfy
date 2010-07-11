@@ -25,7 +25,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy.ext.session',
-    version = '0.6',
+    version = '0.6.1',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     description = 'Session extension for tipfy',

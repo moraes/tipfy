@@ -1,3 +1,9 @@
+Version 0.6.1 - July 10, 2010
+=============================
+- Bug fix release. Session middleware was broken for app-wide sessions. Irony
+  is that this was the only piece of code not tested...
+
+
 Version 0.6 - July 10, 2010
 ===========================
 - This is a major refactoring to better support new session backends:

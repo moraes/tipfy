@@ -7,8 +7,7 @@ that provides better integration with tipfy's request object. For example,
 input files are read from the form object, which is not supported by WTForms
 because it is framework dependent.
 
-The extension also provides builtin ReCaptcha support and will provide
-CSRF protection in the future.
+The extension also provides builtin ReCaptcha and CSRF protection.
 
 Documentation is available at
 `http://www.tipfy.org/wiki/extensions/wtforms/ <http://www.tipfy.org/wiki/extensions/wtforms/>`_.

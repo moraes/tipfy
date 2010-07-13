@@ -23,6 +23,7 @@ class CsrfTokenField(HiddenField):
     def __init__(self, *args, **kwargs):
         super(CsrfTokenField, self).__init__(*args, **kwargs)
         self.csrf_token = None
+        self.type = 'HiddenField'
 
     def process_formdata(self, valuelist):
         """

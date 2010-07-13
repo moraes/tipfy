@@ -57,7 +57,7 @@ class Form(BaseForm):
             formdata = request.form
             filedata = request.files
 
-            if self.csrf_protection_enabled:
+            if self.csrf_protection_enabled and not request.is_xhr:
                 kwargs['csrf_token'] = self._get_csrf_token(request)
         else:
             if self.csrf_protection_enabled:

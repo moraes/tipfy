@@ -37,14 +37,15 @@ class CsrfToken(object):
         self.message = message
 
     def __call__(self, form, field):
-        if field.csrf_token and field.csrf_token not in self.values:
-            if self.message is None:
-                #self.message = field.gettext(u'The form expired.')
-                self.message = 'The form expired.'
+        if field.csrf_token:
+            if field.csrf_token not in self.values:
+                if self.message is None:
+                    #self.message = field.gettext(u'The form expired.')
+                    self.message = 'The form expired.'
 
-            raise ValueError(self.message)
-        else:
-            self.values.remove(field.csrf_token)
+                raise ValueError(self.message)
+            else:
+                self.values.remove(field.csrf_token)
 
 
 class Recaptcha(object):

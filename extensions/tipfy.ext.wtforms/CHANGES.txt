@@ -1,6 +1,14 @@
+Development version
+===================
+- Added built-in (optional) CSRF protection. When enebled, a hidden field is
+  added to the form with a token stored in the session that is validated when
+  the form is submitted. Sessions are required to use this feature.
+
+
 Version 0.5 - June 22, 2010
 ===========================
 - Cleanup.
+
 
 Version 0.4 - June 18, 2010
 ===========================

@@ -23,6 +23,30 @@ from tipfy import Tipfy, get_config
 RECAPTCHA_VERIFY_SERVER = 'http://api-verify.recaptcha.net/verify'
 
 
+class CsrfToken(object):
+    """
+    Compares the incoming data to a sequence of valid inputs.
+
+    :param values:
+        A sequence of valid inputs.
+    :param message:
+        Error message to raise in case of a validation error.
+    """
+    def __init__(self, values, message=None):
+        self.values = values
+        self.message = message
+
+    def __call__(self, form, field):
+        if field.csrf_token and field.csrf_token not in self.values:
+            if self.message is None:
+                #self.message = field.gettext(u'The form expired.')
+                self.message = 'The form expired.'
+
+            raise ValueError(self.message)
+        else:
+            self.values.remove(field.csrf_token)
+
+
 class Recaptcha(object):
     """Validates a ReCaptcha."""
     _error_codes = {
@@ -67,11 +91,6 @@ class Recaptcha(object):
             return False
 
         rv = [l.strip() for l in result.content.splitlines()]
-
-        import logging
-        logging.info('-' * 100)
-        logging.info(rv)
-        logging.info('-' * 100)
 
         if rv and rv[0] == 'true':
             return True

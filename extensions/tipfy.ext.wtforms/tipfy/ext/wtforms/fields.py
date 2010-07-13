@@ -19,6 +19,24 @@ from tipfy.ext.wtforms import widgets
 from tipfy.ext.wtforms import validators
 
 
+class CsrfTokenField(HiddenField):
+    def __init__(self, *args, **kwargs):
+        super(CsrfTokenField, self).__init__(*args, **kwargs)
+        self.csrf_token = None
+
+    def process_formdata(self, valuelist):
+        """
+        Process data received over the wire from a form.
+
+        This will be called during form construction with data supplied
+        through the `formdata` argument.
+
+        :param valuelist: A list of strings to process.
+        """
+        if valuelist:
+            self.csrf_token = valuelist[0]
+
+
 class FileField(TextField):
     widget = widgets.FileInput()
 

@@ -3,3 +3,5 @@
 \.coverage
 \.egg-info
 dist
+docs/build
+docs/project

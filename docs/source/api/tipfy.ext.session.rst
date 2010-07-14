@@ -25,16 +25,28 @@ Middleware
 Mixins
 ------
 .. autoclass:: SessionMixin
-   :members: session, get_flash, set_flash
+   :members: session, get_session
+
+.. autoclass:: FlashMixin
+   :members: get_flash, set_flash
 
 .. autoclass:: MessagesMixin
    :members: messages, set_message
+
+.. autoclass:: CookieMixin
+    :members: set_cookie, delete_cookie
+
+.. autoclass:: SecureCookieMixin
+    :members: get_secure_cookie
+
+.. autoclass:: AllSessionMixins
 
 
 Session Store
 -------------
 .. autoclass:: SessionStore
-   :members: get_session, delete_session, get_secure_cookie,
-             load_secure_cookie, create_secure_cookie, get_flash, set_flash,
-             set_cookie
+   :members: get_session,
+             get_secure_cookie, load_secure_cookie, create_secure_cookie,
+             get_flash, set_flash,
+             set_cookie, delete_cookie
 

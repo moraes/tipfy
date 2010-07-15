@@ -5,7 +5,7 @@ and patches:
 
 - Bryan McLemore (kaelten)
 - Danil Semelenov (sgtpep)
-- Stephen Gornick
+- Stephen Gornick (sgornick)
 - Thomas Johansson (prencher)
 
 tipfy also includes open source libraries or adapted code from the following

@@ -269,7 +269,7 @@ def get_or_insert_with_flag(model, key_name, **kwargs):
     return db.run_in_transaction(txn)
 
 
-def get_or_404(model, key):
+def get_or_404(key):
     """Returns a model instance fetched by key or raises a 404 Not Found error.
 
     Example usage:
@@ -288,16 +288,17 @@ def get_or_404(model, key):
 
     This function derives from `Kay`_.
 
-    :param model:
-        A ``db.Model`` class to load an entity.
     :param key:
         An encoded ``db.Key`` (a string).
     :return:
         A ``db.Model`` instance.
     """
-    obj = model.get(key)
-    if obj:
-        return obj
+    try:
+        obj = db.get(key)
+        if obj:
+            return obj
+    except db.BadKeyError, e:
+        pass # falling through to raise the NotFound
 
     raise NotFound()
 

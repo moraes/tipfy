@@ -1,2 +1,0 @@
-tipfy.ext.mako is developed and maintained by
-Rodrigo Moraes <rodrigo.moraes@gmail.com>.

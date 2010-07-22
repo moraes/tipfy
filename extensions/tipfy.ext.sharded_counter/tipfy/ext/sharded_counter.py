@@ -1,13 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.sharded_counter
-    ~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    A general purpose sharded counter implementation for the datastore.
-
-    :copyright: 2008 William T Katz.
-    :copyright: 2010 Rodrigo Moraes.
-    :license: Apache, see LICENSE.txt for more details.
+= tipfy.ext.sharded_counter
+//A general purpose sharded counter implementation for the datastore.//
 """
 import string
 import random
@@ -19,9 +13,9 @@ from google.appengine.runtime import apiproxy_errors
 
 from tipfy import get_config
 
-#: Default configuration values for this module. Keys are:
-#:
-#: - ``shards``: The amount of shards to use.
+"""Default configuration values for this module. Keys are:
+* ** shards** - The amount of shards to use.
+"""
 default_config = {
     'shards': 10,
 }
@@ -68,11 +62,9 @@ class Counter(object):
     """A counter using sharded writes to prevent contentions.
 
     Should be used for counters that handle a lot of concurrent use.
-    Follows pattern described in Google I/O talk:
+    Follows pattern described in Google I/O talk: [[http://sites.google.com/site/io/building-scalable-web-applications-with-google-app-engine|link]]
 
-        http://sites.google.com/site/io/building-scalable-web-applications-with-google-app-engine
-
-    Memcache is used for caching counts and if a cached count is available,
+    [[Memcache]] is used for caching counts and if a cached count is available,
     it is the most correct. If there are datastore put issues, we store the
     un-put values into a delayed_incr memcache that will be applied as soon
     as the next shard put is successful. Changes will only be lost if we lose
@@ -80,7 +72,7 @@ class Counter(object):
     failure/error in memcache.
 
     Example usage:
-
+       <<code python>>
         # Build a new counter that uses the unique key name 'hits'.
         hits = Counter('hits')
         # Increment by 1.
@@ -95,6 +87,7 @@ class Counter(object):
         hits.get_count(nocache=True)
         # Set the counter to an arbitrary value.
         hits.count = 6
+        <</code>>
     """
     #: Number of shards to use.
     shards = None

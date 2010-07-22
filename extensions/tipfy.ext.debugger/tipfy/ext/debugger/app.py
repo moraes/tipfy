@@ -1,17 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.utils.debugger.debugger
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+= tipfy.utils.debugger.debugger
+//Debugger extension, to be used in development only.//
 
-    Debugger extension, to be used in development only.
-
-    Applies monkeypatch for Werkzeug's interactive debugger to work with the
-    development server.
-
-    See http://dev.pocoo.org/projects/jinja/ticket/349
-
-    :copyright: Copyright 2008 by Armin Ronacher.
-    :license: BSD.
+Applies monkeypatch for [[Werkzeug]]'s interactive debugger to work with the development server. [[See http://dev.pocoo.org/projects/jinja/ticket/349]]
 """
 import os
 import sys

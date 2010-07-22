@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.taskqueue
-    ~~~~~~~~~~~~~~~~~~~
-
-    Task queue utilities extension.
-
-    :copyright: 2010 by tipfy.org.
-    :license: BSD, see LICENSE.txt for more details.
+= tipfy.ext.taskqueue
+//Task queue utilities extension.//
+This class derives from [[http://code.google.com/appengine/articles/deferred.html|deffered article]]
 """
 import logging
 from google.appengine.ext import db
@@ -23,20 +19,18 @@ class DeferredHandler(RequestHandler):
     deferred package running on the same WSGI application as other handlers.
     Tipfy utilities will then be available to be used in the deferred function.
 
-    The setup for app.yaml is:
+    The setup for [[app.yaml]] is:
 
-    .. code-block:: yaml
-
+    <<code yaml>>
        - url: /_ah/queue/deferred
          script: main.py
          login: admin
-
+    <</code>>
     The URL rule for urls.py is:
-
-    .. code-block:: python
-
+    <<code python>>
        Rule('/_ah/queue/deferred', endpoint='tasks/deferred',
-           handler='tipfy.ext.taskqueue:DeferredHandler')
+            handler='tipfy.ext.taskqueue:DeferredHandler')
+    <</code>>
     """
     def post(self):
         headers = ['%s:%s' % (k, v) for k, v in self.request.headers.items()
@@ -57,8 +51,7 @@ class Mapper(object):
     task is added to process the next batch.
 
     For example, to delete all 'MyModel' records:
-
-    .. code-block:: python
+    <<code python>>
 
        from tipfy.ext.taskqueue import Mapper
        from mymodels import myModel
@@ -72,25 +65,20 @@ class Mapper(object):
 
        mapper = MyModelMapper()
        deferred.defer(mapper.run)
-
+    <</code>>
 
     The setup for app.yaml is:
-
-    .. code-block:: yaml
-
+    <<code yaml>>
        - url: /_ah/queue/deferred
          script: main.py
          login: admin
-
+    <</code>>
     The URL rule for urls.py is:
-
-    .. code-block:: python
-
+    <<code python>>
        Rule('/_ah/queue/deferred', endpoint='tasks/deferred',
            handler='tipfy.ext.tasks:DeferredHandler')
+    <</code>>
 
-    This class derives from
-    http://code.google.com/appengine/articles/deferred.html
     """
     # Subclasses should replace this with a model class (eg, model.Person).
     model = None

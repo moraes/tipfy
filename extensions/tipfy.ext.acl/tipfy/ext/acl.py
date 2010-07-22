@@ -4,17 +4,17 @@
 //Simple Access Control List//
 
 This module provides utilities to manage permissions for anything that
-requires some level of restriction, like datastore models or handlers.
+requires some level of restriction, such as datastore models or handlers.
 
-Access permissions can be grouped in roles for convenience, so that a new
-user can be assigned to a role directly instead of having all his
+Access permissions can be grouped into roles for convenience, so that a new
+user can be assigned to a role directly instead of having all 
 permissions defined manually. Individual access permissions can then
 override or extend the role permissions.
 
 **Note**
-Roles are optional, so this module doesn't define a roles model, to keep
-things simple and fast. Role definitions are set directly in the Acl
-class. The strategy to load roles is open to the implementation: for
+Roles are optional, so this module doesn't define a roles model (to keep
+things simple and fast). Role definitions are set directly in the **Acl**
+class. The strategy to load roles is open to the implementation; for
 best performance, define them statically in a module.
 
 ===Usage example:===
@@ -68,7 +68,7 @@ class AclMixin(object):
     """A mixin that adds an **acl** property to a
     [[tipfy.RequestHandler]].
 
-    The handler must have the properties **area** and **current_user** set for
+    The handler MUST have the properties **area** and **current_user** set for
     it to work.
     """
     roles_map = None
@@ -77,7 +77,7 @@ class AclMixin(object):
     @cached_property
     def acl(self):
         """Loads and returns the access permission for the currently logged in
-        user. This requires the handler to have an **area** and
+        user. This requires the handler to have the **area** and
         **current_user** attributes. Casted to a string they must return the
         object identifiers.
         """
@@ -119,7 +119,7 @@ class AclRules(db.Model):
         ** **area** -  Area string identifier.
         ** **user** - User string identifier.
         * Returns:
-        ** A key name.
+        ** The key name.
         """
         return '%s:%s' % (str(area), str(user))
 
@@ -129,7 +129,7 @@ class AclRules(db.Model):
 
         * Params:
         ** **area** - Area string identifier.
-        ** **user** -  User string identifier.
+        ** **user** - User string identifier.
         * Returns:
         ** An AclRules entity.
         """

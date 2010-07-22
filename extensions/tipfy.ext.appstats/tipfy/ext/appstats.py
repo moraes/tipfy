@@ -13,7 +13,8 @@ class AppstatsMiddleware(object):
         """Wraps the application by App Engine's appstats.
         * params: 
         ** **app**: The WSGI application instance.
-        * returns: The application, wrapped or not.
+        * returns: 
+        ** The application, wrapped or not.
         """
         # Wrap the callable, so we keep a reference to the app...
         app.wsgi_app = appstats_wsgi_middleware(app.wsgi_app)

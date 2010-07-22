@@ -3,11 +3,11 @@
 = tipfy.ext.xmpp
 //XMPP webapp handler classes.//
 
-This module provides handler classes for XMPP bots, including both basic
+This module provides handler classes for [[XMPP]] bots, including both basic
 messaging functionality and a command handler for commands such as:
 "/foo bar".
 
-//Ported from the original App Engine library.//
+//Ported from the original [[http://code.google.com/appengine/docs/python/xmpp/ App Engine library]].//
 """
 import logging
 

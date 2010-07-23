@@ -2,6 +2,11 @@ Development version
 ===================
 - Call app.make_response() on RequestHandler, to convert returned result to a
   proper response if needed.
+- REMOVED tipfy.local, tipfy.request and tipfy.app. Replacements for these are:
+  * tipfy.local: request.context and request.registry, dictionaries set for a
+    request.
+  * tipfy.request: Tipfy.request, a class attribute in the WSGI app.
+  * tipfy.app: Tipfy.app, a class attribute in the WSGI app.
 
 
 Version 0.5.9 - July 1st, 2010

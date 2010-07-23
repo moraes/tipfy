@@ -37,11 +37,6 @@ if os.environ.get('SERVER_SOFTWARE', None) is None:
 __version__ = '0.6'
 __version_info__ = tuple(int(n) for n in __version__.split('.'))
 
-# Variable store for a single request.
-local = Local()
-
-# Proxies to `WSGIApplication` and `Request` objects.
-app, request = local('app'), local('request')
 """
 * **apps_installed**: A list of active app modules as a string.
     Default is an empty list.
@@ -379,9 +374,9 @@ class Tipfy(object):
             response = self.handle_exception(request, e)
             response = self.make_response(request, response)
         finally:
-            # Do not clean local if we are in development mode and an
+            # Do not clean request if we are in development mode and an
             # exception happened. This allows the debugger to still access
-            # request and other variables from local in the interactive shell.
+            # request and other variables in the interactive shell.
             if cleanup:
                 self.cleanup()
 
@@ -640,7 +635,7 @@ class Tipfy(object):
 
     def set_wsgi_app(self):
         """Sets the currently active :class:`Tipfy` instance."""
-        Tipfy.app = local.app = self
+        Tipfy.app = self
 
     def set_request(self, request):
         """Sets the currently active :class:`Request` instance.
@@ -648,12 +643,11 @@ class Tipfy(object):
         * Parameters:
         ** request: The currently active :class:`Request` instance.
         """
-        Tipfy.request = local.request = request
+        Tipfy.request = request
 
     def cleanup(self):
         """Cleans :class:`Tipfy` variables at the end of a request."""
         Tipfy.app = Tipfy.request = None
-        local.__release_local__()
 
     def get_test_client(self):
         """Creates a test client for this application.

@@ -42,7 +42,7 @@ local = Local()
 # Proxies to `WSGIApplication` and `Request` objects.
 app, request = local('app'), local('request')
 """
-* **apps_installed**: A list of active app modules as a string. 
+* **apps_installed**: A list of active app modules as a string.
     Default is an empty list.
 * **apps_entry_points**: URL entry points for the installed apps, in case
     their URLs are mounted using base paths.
@@ -116,10 +116,9 @@ class RequestHandler(object):
     def __init__(self, app, request):
         """Initializes the handler.
 
-        :param app:
-            A :class:`Tipfy` instance.
-        :param request:
-            A :class:`Request` instance.
+        * Parameters:
+        ** app: A :class:`Tipfy` instance.
+        ** request: A :class:`Request` instance.
         """
         self.app = app
         self.request = request
@@ -128,8 +127,8 @@ class RequestHandler(object):
         """Executes a handler method. This method is called by :class:`Tipfy`
         and must return a :class:`Response` object.
 
-        :return:
-            A :class:`Response` instance.
+        * Return:
+        ** A :class:`Response` instance.
         """
         if args:
             # Explicit action and arguments.
@@ -245,20 +244,17 @@ class Request(WerkzeugRequest):
             >>> url = url_for('wiki/start', _full=True, _anchor='my-heading')
             >>> 'http://localhost:8080/wiki#my-heading'
 
-        :param endpoint:
-            The rule endpoint.
-        :param _full:
-            If True, returns an absolute URL. Otherwise, returns a relative
-            one.
-        :param _method:
-            The rule request method, in case there are different rules
-            for different request methods.
-        :param _anchor:
-            An anchor to add to the end of the URL.
-        :param kwargs:
-            Keyword arguments to build the URL.
-        :return:
-            An absolute or relative URL.
+        * Parameters:
+        ** endpoint: The rule endpoint.
+        ** _full: If True, returns an absolute URL. Otherwise, returns a
+           relative one.
+        ** _method: The rule request method, in case there are different rules
+           for different request methods.
+        ** _anchor: An anchor to add to the end of the URL.
+        ** kwargs: Keyword arguments to build the URL.
+
+        * Return:
+        ** An absolute or relative URL.
         """
         url = self.url_adapter.build(endpoint, force_external=_full,
             method=_method, values=kwargs)
@@ -292,13 +288,12 @@ class Tipfy(object):
     def __init__(self, config=None, app_id='__main__'):
         """Initializes the application.
 
-        :param config:
-            Dictionary with configuration for the application modules.
-        :param app_id:
-            An identifier for this instance, in case multiple instances are
-            being used by the same app. This can be used to identify instance
-            specific data such as cache and whatever needs to be tied to this
-            instance.
+        * Parameters:
+        ** config: Dictionary with configuration for the application modules.
+        ** app_id: An identifier for this instance, in case multiple instances
+           are being used by the same app. This can be used to identify
+           instance specific data such as cache and whatever needs to be tied
+           to this instance.
         """
         # Set the currently active wsgi app instance.
         self.set_wsgi_app()
@@ -345,11 +340,10 @@ class Tipfy(object):
         Then you still have the original application object around and
         can continue to call methods on it.
 
-        :param environ:
-            A WSGI environment.
-        :param start_response:
-            A callable accepting a status code, a list of headers and
-            an optional exception context to start the response.
+        * Parameters:
+        ** environ: A WSGI environment.
+        ** start_response: A callable accepting a status code, a list of
+           headers and an optional exception context to start the response.
         """
         cleanup = True
         try:
@@ -397,8 +391,8 @@ class Tipfy(object):
     def url_map(self):
         """Returns the map of URL rules for this app.
 
-        :return:
-            A :class:`werkzeug.Map` instance.
+        * Return:
+        ** A :class:`werkzeug.Map` instance.
         """
         return self.get_url_map()
 
@@ -406,8 +400,8 @@ class Tipfy(object):
         """Returns ``werkzeug.routing.Map`` with the URL rules defined for the
         application.
 
-        :return:
-            A ``werkzeug.routing.Map`` instance.
+        * Return:
+        ** A ``werkzeug.routing.Map`` instance.
         """
         rv = self.config.get('tipfy', 'url_map')
         if rv:
@@ -419,9 +413,9 @@ class Tipfy(object):
     def get_url_rules(self):
         """Loads and returns the URL rule definitions for the application.
 
-        :return:
-            A list of :class:`tipfy.Rule` with the URL definitions for the
-            application..
+        * Return:
+        ** A list of :class:`tipfy.Rule` with the URL definitions for the
+           application..
         """
         try:
             get_rules = import_string(self.config.get('tipfy', 'url_rules'))
@@ -445,10 +439,11 @@ class Tipfy(object):
         :class:`MethodNotAllowed` or :class:`RequestRedirect`. If they are
         raised, they are stored in the request for later use.
 
-        :param request:
-            A :class:`Request` instance.
-        :return:
-            ``None``.
+        * Parameters:
+        ** request: A :class:`Request` instance.
+
+        * Return:
+        ** ``None``.
         """
         # Bind url map to the current request location.
         server_name = self.config.get('tipfy', 'server_name', None)
@@ -468,10 +463,11 @@ class Tipfy(object):
         """Executes pre_dispatch_handler middleware. If a middleware returns
         anything, the chain is stopped and that value is retirned.
 
-        :param request:
-            A :class:`Request` instance.
-        :return:
-            The returned value from a middleware or `None`.
+        * Parameters:
+        ** request: A :class:`Request` instance.
+
+        * Return:
+        ** The returned value from a middleware or `None`.
         """
         for hook in self.middleware.get('pre_dispatch_handler', []):
             rv = hook()
@@ -482,10 +478,11 @@ class Tipfy(object):
         """Matches the current URL against registered rules and returns the
         resut from the :class:`RequestHandler`.
 
-        :param request:
-            A :class:`Request` instance.
-        :return:
-            The returned value from a middleware or `None`.
+        * Parameters:
+        ** request: A :class:`Request` instance.
+
+        * Return:
+        ** The returned value from a middleware or `None`.
         """
         if request.routing_exception is not None:
             raise request.routing_exception
@@ -502,13 +499,13 @@ class Tipfy(object):
         """Executes post_dispatch_handler middleware. All middleware are
         executed and must return a response object.
 
-        :param request:
-            A :class:`Request` instance.
-        :param response:
-            The :class:`Response` returned from :meth:`pre_dispatch` or
-            :meth:`dispatch` and converted by :meth:`make_response`.
-        :return:
-            A :class:`Response` instance.
+        * Parameters:
+        ** request: A :class:`Request` instance.
+        ** response: The :class:`Response` returned from :meth:`pre_dispatch`
+           or :meth:`dispatch` and converted by :meth:`make_response`.
+
+        * Return:
+        ** A :class:`Response` instance.
         """
         for hook in self.middleware.get('post_dispatch_handler', []):
             response = hook(response)
@@ -535,12 +532,12 @@ class Tipfy(object):
 
         This method comes from `Flask`_.
 
-        :param request:
-            A :class:`Request` instance.
-        :param rv:
-            The return value from the handler.
-        :return:
-            A :class:`Response` instance.
+        * Parameters:
+        ** request: A :class:`Request` instance.
+        ** rv: The return value from the handler.
+
+        * Return:
+        ** A :class:`Response` instance.
         """
         if isinstance(rv, self.response_class):
             return rv
@@ -560,12 +557,12 @@ class Tipfy(object):
         """Handles HTTPException or uncaught exceptions raised by the WSGI
         application, optionally applying exception middleware.
 
-        :param request:
-            A :class:`Request` instance.
-        :param e:
-            The catched exception.
-        :return:
-            A :class:`Response` instance, if the exception is not raised.
+        * Parameters:
+        ** request: A :class:`Request` instance.
+        ** e: The catched exception.
+
+        * Return:
+        ** A :class:`Response` instance, if the exception is not raised.
         """
         # Execute handle_exception middleware.
         for hook in self.middleware.get('handle_exception', []):
@@ -587,13 +584,14 @@ class Tipfy(object):
         """Returns a dictionary of all middleware instance methods for a given
         object.
 
-        :param obj:
-            The object to search for related middleware (the
-            ``Tipfy`` or ``RequestHandler``).
-        :param classes:
-            A list of middleware classes.
-        :return:
-            A dictionary with middleware instance methods.
+        * Parameters:
+        ** obj: The object to search for related middleware (the
+           ``Tipfy`` or ``RequestHandler``).
+        ** classes:
+           A list of middleware classes.
+
+        * Return:
+        ** A dictionary with middleware instance methods.
         """
         if not classes:
             return {}
@@ -613,12 +611,12 @@ class Tipfy(object):
         cached and used in case the requested configuration was not defined
         by the user.
 
-        :param module:
-            The configured module.
-        :param key:
-            The config key.
-        :return:
-            A configuration value.
+        * Parameters:
+        ** module: The configured module.
+        ** key: The config key.
+
+        * Return:
+        ** A configuration value.
         """
         config = self.config
         if module not in config.modules:
@@ -646,8 +644,8 @@ class Tipfy(object):
     def set_request(self, request):
         """Sets the currently active :class:`Request` instance.
 
-        :param request:
-            The currently active :class:`Request` instance.
+        * Parameters:
+        ** request: The currently active :class:`Request` instance.
         """
         Tipfy.request = local.request = request
 
@@ -659,9 +657,9 @@ class Tipfy(object):
     def get_test_client(self):
         """Creates a test client for this application.
 
-        :return:
-            A `werkzeug.Client`, which is a :class:`Tipfy` wrapped
-            for tests.
+        * Return:
+        ** A `werkzeug.Client`, which is a :class:`Tipfy` wrapped
+           for tests.
         """
         from werkzeug import Client
         return Client(self, self.response_class, use_cookies=True)
@@ -679,12 +677,11 @@ class Config(dict):
     def __init__(self, value=None, default=None, loaded=None):
         """Initializes the configuration object.
 
-        :param value:
-            A dictionary of configuration dictionaries for modules.
-        :param default:
-            A dictionary of configuration dictionaries for default values.
-        :param loaded:
-            A list of modules to be marked as loaded.
+        * Parameters:
+        ** value: A dictionary of configuration dictionaries for modules.
+        ** default: A dictionary of configuration dictionaries for default
+           values.
+        ** loaded: A list of modules to be marked as loaded.
         """
         self.modules = loaded or []
         if value is not None:
@@ -700,10 +697,9 @@ class Config(dict):
     def __setitem__(self, module, value):
         """Sets a configuration for a module, requiring it to be a dictionary.
 
-        :param module:
-            A module name for the configuration, e.g.: 'tipfy.ext.i18n'.
-        :param value:
-            A dictionary of configurations for the module.
+        * Parameters:
+        ** module: A module name for the configuration, e.g.: 'tipfy.ext.i18n'.
+        ** value: A dictionary of configurations for the module.
         """
         assert isinstance(value, dict)
         super(Config, self).__setitem__(module, value)
@@ -722,12 +718,13 @@ class Config(dict):
         >>> cfg.get('tipfy.ext.i18n', 'foo')
         bar
 
-        :param module:
-            The module to update the configuration, e.g.: 'tipfy.ext.i18n'.
-        :param value:
-            A dictionary of configurations for the module.
-        :return:
-            None.
+        * Parameters:
+        ** module: The module to update the configuration, e.g.:
+           'tipfy.ext.i18n'.
+        ** value: A dictionary of configurations for the module.
+
+        * Return:
+        ** None.
         """
         assert isinstance(value, dict)
         if module not in self:
@@ -749,12 +746,13 @@ class Config(dict):
         >>> cfg.get('tipfy.ext.i18n', 'foo')
         bar
 
-        :param module:
-            The module to set default configuration, e.g.: 'tipfy.ext.i18n'.
-        :param value:
-            A dictionary of configurations for the module.
-        :return:
-            None.
+        * Parameters:
+        ** module: The module to set default configuration, e.g.:
+           'tipfy.ext.i18n'.
+        ** value: A dictionary of configurations for the module.
+
+        * Return:
+        ** None.
         """
         assert isinstance(value, dict)
         if module not in self:
@@ -776,15 +774,15 @@ class Config(dict):
         >>> cfg.get('tipfy.ext.i18n', 'invalid-key', 'default-value')
         default-value
 
-        :param module:
-            The module to get a configuration from, e.g.: 'tipfy.ext.i18n'.
-        :param key:
-            The key from the module configuration.
-        :param default:
-            A default value to return in case the configuration for the
-            module/key is not set.
-        :return:
-            The configuration value.
+        * Parameters:
+        ** module: The module to get a configuration from, e.g.:
+           'tipfy.ext.i18n'.
+        ** key: The key from the module configuration.
+        ** default: A default value to return in case the configuration for
+           the module/key is not set.
+
+        * Return:
+        ** The configuration value.
         """
         if module not in self:
             return default
@@ -827,13 +825,13 @@ class MiddlewareFactory(object):
         """Returns a dictionary of all middleware instance methods for a given
         object.
 
-        :param obj:
-            The object to search for related middleware (the
-            ``Tipfy`` or ``RequestHandler``).
-        :param classes:
-            A list of middleware classes.
-        :return:
-            A dictionary with middleware instance methods.
+        * Parameters:
+        ** obj: The object to search for related middleware (the ``Tipfy`` or
+           ``RequestHandler``).
+        ** classes: A list of middleware classes.
+
+        * Return:
+        ** A dictionary with middleware instance methods.
         """
         id = obj.__module__ + '.' + obj.__class__.__name__
 
@@ -846,10 +844,11 @@ class MiddlewareFactory(object):
         """Returns a dictionary of middleware instance methods for a list of
         middleware specifications.
 
-        :param specs:
-            A list of middleware classes, classes as strings or instances.
-        :return:
-            A dictionary with middleware instance methods.
+        * Parameters:
+        ** specs: A list of middleware classes, classes as strings or instances.
+
+        * Return:
+        ** A dictionary with middleware instance methods.
         """
         res = {}
 
@@ -895,17 +894,16 @@ class Rule(WerkzeugRule):
     Handler is a :class:`RequestHandler` module and class specification, and
     endpoint is a friendly name used to build URL's. For example:
 
-    .. code-block:: python
-
-       Rule('/users', endpoint='user-list', handler='my_app:UsersHandler')
+    <<code python>>
+    Rule('/users', endpoint='user-list', handler='my_app:UsersHandler')
+    <</code>>
 
     Access to the URL ``/users`` loads ``UsersHandler`` class from ``my_app``
     module. To generate a URL to that page, use :func:`url_for`:
 
-    .. code-block:: python
-
-       url = url_for('user-list')
-
+    <<code python>>
+    url = url_for('user-list')
+    <</code>>
     """
     def __init__(self, *args, **kwargs):
         self.handler = kwargs.pop('handler', kwargs.get('endpoint', None))
@@ -936,12 +934,12 @@ def get_config(module, key=None, default=DEFAULT_VALUE):
     cached and used in case the requested configuration was not defined
     by the user.
 
-    :param module:
-        The configured module.
-    :param key:
-        The config key.
-    :return:
-        A configuration value.
+    * Parameters:
+    ** module: The configured module.
+    ** key: The config key.
+
+    * Return:
+    ** A configuration value.
     """
     return Tipfy.app.get_config(module, key, default)
 
@@ -967,20 +965,17 @@ def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
         >>> url = url_for('wiki/start', _full=True, _anchor='my-heading')
         >>> 'http://localhost:8080/wiki#my-heading'
 
-    :param endpoint:
-        The rule endpoint.
-    :param _full:
-        If True, returns an absolute URL. Otherwise, returns a relative
-        one.
-    :param _method:
-        The rule request method, in case there are different rules
-        for different request methods.
-    :param _anchor:
-        An anchor to add to the end of the URL.
-    :param kwargs:
-        Keyword arguments to build the URL.
-    :return:
-        An absolute or relative URL.
+    * Parameters:
+    ** endpoint: The rule endpoint.
+    ** _full: If True, returns an absolute URL. Otherwise, returns a relative
+       one.
+    ** _method: The rule request method, in case there are different rules
+       for different request methods.
+    ** _anchor: An anchor to add to the end of the URL.
+    ** kwargs: Keyword arguments to build the URL.
+
+    * Return:
+    ** An absolute or relative URL.
     """
     # For backwards compatibility, check old keywords.
     full = kwargs.pop('full', _full)
@@ -995,19 +990,16 @@ def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
     :func:`url_for`: redirects the client to a URL built using a named
     :class:`Rule`.
 
-    :param endpoint:
-        The rule endpoint.
-    :param _method:
-        The rule request method, in case there are different rules
+    * Parameters:
+    ** endpoint: The rule endpoint.
+    ** _method: The rule request method, in case there are different rules
         for different request methods.
-    :param _anchor:
-        An anchor to add to the end of the URL.
-    :param _code:
-        The redirect status code.
-    :param kwargs:
-        Keyword arguments to build the URL.
-    :return:
-        A :class:`tipfy.Response` object with headers set for redirection.
+    ** _anchor: An anchor to add to the end of the URL.
+    ** _code: The redirect status code.
+    ** kwargs: Keyword arguments to build the URL.
+
+    * Return:
+    ** A :class:`tipfy.Response` object with headers set for redirection.
     """
     # For backwards compatibility, check old keywords.
     method = kwargs.pop('method', _method)
@@ -1021,13 +1013,13 @@ def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
 def render_json_response(*args, **kwargs):
     """Renders a JSON response.
 
-    :param args:
-        Arguments to be passed to simplejson.dumps().
-    :param kwargs:
-        Keyword arguments to be passed to simplejson.dumps().
-    :return:
-        A :class:`tipfy.Response` object with a JSON string in the body and
-        mimetype set to ``application/json``.
+    * Parameters:
+    ** args: Arguments to be passed to simplejson.dumps().
+    ** kwargs: Keyword arguments to be passed to simplejson.dumps().
+
+    * Return:
+    ** A :class:`tipfy.Response` object with a JSON string in the body and
+       mimetype set to ``application/json``.
     """
     from django.utils import simplejson
     return Response(simplejson.dumps(*args, **kwargs),
@@ -1037,10 +1029,11 @@ def render_json_response(*args, **kwargs):
 def make_wsgi_app(config=None, app_id='__main__'):
     """Returns a instance of :class:`Tipfy`.
 
-    :param config:
-        A dictionary of configuration values.
-    :return:
-        A :class:`Tipfy` instance.
+    * Parameters:
+    ** config: A dictionary of configuration values.
+
+    * Return:
+    ** A :class:`Tipfy` instance.
     """
     app = Tipfy(config, app_id)
 
@@ -1057,10 +1050,11 @@ def make_wsgi_app(config=None, app_id='__main__'):
 def run_wsgi_app(app):
     """Executes the application, optionally wrapping it by middleware.
 
-    :param app:
-        A :class:`Tipfy` instance.
-    :return:
-        ``None``.
+    * Parameters:
+    ** app: A :class:`Tipfy` instance.
+
+    * Return:
+    ** ``None``.
     """
     # Fix issue #772.
     if app.dev:

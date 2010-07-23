@@ -1107,8 +1107,3 @@ __all__ = [
     'url_for',
     'url_quote',
 ]
-
-
-# Old names.
-WSGIApplication = Tipfy
-REQUIRED_CONFIG = REQUIRED_VALUE

@@ -12,6 +12,7 @@ Development version
 - REMOVED old aliases: WSGIApplication (Tipfy) and REQUIRED_CONFIG
   (REQUIRED_VALUE)
 
+
 Version 0.5.9 - July 1st, 2010
 ==============================
 - Small improvement in get_config(): previously when you called

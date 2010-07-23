@@ -37,30 +37,30 @@ if os.environ.get('SERVER_SOFTWARE', None) is None:
 __version__ = '0.6'
 __version_info__ = tuple(int(n) for n in __version__.split('.'))
 
-"""
-* **apps_installed**: A list of active app modules as a string.
-    Default is an empty list.
-* **apps_entry_points**: URL entry points for the installed apps, in case
-    their URLs are mounted using base paths.
-* **middleware**: A list of middleware classes for the WSGIApplication. The
-  classes can be defined as strings. They define hooks that plug into the
-  application to initialize stuff when the app is built, at the start or end
-  of a request or to handle exceptions. See [[Middleware]] in the
-  documentation for a complete explanation. Default is an empty list.
-* **server_name**: A server name hint, used to calculate current subdomain.
-  If you plan to use dynamic subdomains, you must define the main domain
-  here so that the subdomain can be extracted and applied to URL rules.
-* **subdomain**: Force this subdomain to be used instead of extracting
-  the subdomain from the current url.
-* **url_map**: A [[werkzeug.routing.Map]] with the URL rules defined for
-  the application. If not set, build one with rules defined in [[urls.py]].
-* **dev**: True is this is the development server, False otherwise.
-  Default is the value of {{{os.environ['SERVER_SOFTWARE']}}}.
-* **app_id**: The application id. Default is the value of
-  {{{os.environ['APPLICATION_ID']}}}.
-* **version_id**: The current deplyment version id. Default is the value
-  of {{{os.environ['CURRENT_VERSION_ID']}}}
-"""
+#: Default configuration values for this module. Keys are:
+#:
+#: * apps_installed: A list of active app modules as a string.
+#:   Default is an empty list.
+#: * apps_entry_points: URL entry points for the installed apps, in case
+#:   their URLs are mounted using base paths.
+#: * middleware: A list of middleware classes for the WSGIApplication. The
+#:   classes can be defined as strings. They define hooks that plug into the
+#:   application to initialize stuff when the app is built, at the start or end
+#:   of a request or to handle exceptions. See [[Middleware]] in the
+#:   documentation for a complete explanation. Default is an empty list.
+#: * server_name: A server name hint, used to calculate current subdomain.
+#:   If you plan to use dynamic subdomains, you must define the main domain
+#:   here so that the subdomain can be extracted and applied to URL rules.
+#: * subdomain: Force this subdomain to be used instead of extracting
+#:   the subdomain from the current url.
+#: * url_map: A [[werkzeug.routing.Map]] with the URL rules defined for
+#:   the application. If not set, build one with rules defined in [[urls.py]].
+#: * dev: True is this is the development server, False otherwise.
+#:   Default is the value of {{{os.environ['SERVER_SOFTWARE']}}}.
+#: * app_id: The application id. Default is the value of
+#:   {{{os.environ['APPLICATION_ID']}}}.
+#: * version_id: The current deplyment version id. Default is the value
+#:   of {{{os.environ['CURRENT_VERSION_ID']}}}
 default_config = {
     'apps_installed': [],
     'apps_entry_points': {},

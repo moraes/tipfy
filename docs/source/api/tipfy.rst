@@ -2,9 +2,9 @@
 
 tipfy
 =====
-This is the main module for the WSGI application and base utilities. It provides
-the base :class:`RequestHandler`, a system to hook middlewares and load
-module configurations, and several other utilities.
+This is the main Tipfy module. It provides a WSGI application, the base
+:class:`RequestHandler` class, configuration and hook systems and several
+other utilities.
 
 .. module:: tipfy
 
@@ -14,10 +14,14 @@ Default configuration
 .. autodata:: default_config
 
 
-WSGI application and base request handler
------------------------------------------
+WSGI application
+----------------
 .. autoclass:: Tipfy
    :members: __init__
+
+
+RequestHandler
+--------------
 .. autoclass:: RequestHandler
    :members: __init__, middleware, dispatch
 
@@ -42,6 +46,3 @@ Functions
 .. autofunction:: render_json_response
 .. autofunction:: make_wsgi_app
 .. autofunction:: run_wsgi_app
-
-
-.. _Tipfy: http://code.google.com/p/tipfy/

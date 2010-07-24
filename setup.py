@@ -22,7 +22,7 @@ Links
 -----
 * `Tipfy's website <http://www.tipfy.org/>`_
 * `Installation instructions <http://www.tipfy.org/wiki/guide/installation/>`_
-* `API Documentation <http://www.tipfy.org/docs/>`_
+* `Extensions <http://www.tipfy.org/wiki/extensions/>`_
 * `Wiki <http://www.tipfy.org/wiki/>`_
 * `Discussion Group <http://groups.google.com/group/tipfy>`_
 * `Issue Tracker <http://code.google.com/p/tipfy/issues/list>`_
@@ -32,7 +32,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy',
-    version = '0.5.9',
+    version = '0.6',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/tipfy.tar.gz',

@@ -1,9 +1,0 @@
-tipfy.ext.mail is developed and maintained by
-Rodrigo Moraes <rodrigo.moraes@gmail.com>.
-
-tipfy.ext.blobstore also includes open source libraries or adapted code from
-the following projects:
-
-- `Google App Engine SDK <http://code.google.com/appengine/>`_
-  Copyright (c) 2007 Google Inc.
-  License: Apache 2.0

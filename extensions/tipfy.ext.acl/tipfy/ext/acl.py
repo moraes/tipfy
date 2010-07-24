@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 """
 =tipfy.ext.auth.acl
-//Simple Access Control List//
+**Simple Access Control List**
 
 This module provides utilities to manage permissions for anything that
 requires some level of restriction, such as datastore models or handlers.
 
 Access permissions can be grouped into roles for convenience, so that a new
-user can be assigned to a role directly instead of having all 
+user can be assigned to a role directly instead of having all
 permissions defined manually. Individual access permissions can then
 override or extend the role permissions.
 
-**Note**
+<<note>>
 Roles are optional, so this module doesn't define a roles model (to keep
-things simple and fast). Role definitions are set directly in the **Acl**
+things simple and fast). Role definitions are set directly in the [[Acl]]
 class. The strategy to load roles is open to the implementation; for
 best performance, define them statically in a module.
-
+<</note>>
 ===Usage example:===
 <<code python>>
 # Set a dict of roles with an 'admin' role that has full access and
@@ -48,7 +48,7 @@ assert acl.has_access(topic='UserAdmin', name='save') is False
 assert acl.has_access(topic='AnythingElse', name='put') is True
 <</code>>
 
-The Acl object should be created once after a user is loaded, so that
+The [[Acl]] object should be created once after a user is loaded, so that
 it becomes available for the app to do all necessary permissions checkings.
 
 Based on concept from Solar's Access and Role classes: [[http://solarphp.com]].
@@ -65,11 +65,10 @@ _rules_map = {}
 
 
 class AclMixin(object):
-    """A mixin that adds an **acl** property to a
-    [[tipfy.RequestHandler]].
+    """A [[mixin]] that adds an {{{acl}}} property to a
+    [[api:tipfy.RequestHandler]].
 
-    The handler MUST have the properties **area** and **current_user** set for
-    it to work.
+    The handler MUST have the properties {{{area}}} and {{{current_user}}} set for it to work.
     """
     roles_map = None
     roles_lock = None
@@ -78,7 +77,7 @@ class AclMixin(object):
     def acl(self):
         """Loads and returns the access permission for the currently logged in
         user. This requires the handler to have the **area** and
-        **current_user** attributes. Casted to a string they must return the
+        {{{current_user}}} attributes. Casted to a string they must return the
         object identifiers.
         """
         return Acl(str(self.area.key()), str(self.current_user.key()),
@@ -115,10 +114,10 @@ class AclRules(db.Model):
     def get_key_name(cls, area, user):
         """Returns this entity's key name, also used as memcache key.
 
-        * Params:
+        * Parameters:
         ** **area** -  Area string identifier.
         ** **user** - User string identifier.
-        * Returns:
+        * Return:
         ** The key name.
         """
         return '%s:%s' % (str(area), str(user))
@@ -127,11 +126,11 @@ class AclRules(db.Model):
     def get_by_area_and_user(cls, area, user):
         """Returns an AclRules entity for a given user in a given area.
 
-        * Params:
+        * Parameters:
         ** **area** - Area string identifier.
         ** **user** - User string identifier.
-        * Returns:
-        ** An AclRules entity.
+        * Return:
+        ** An [[AclRules]] entity.
         """
         return cls.get_by_key_name(cls.get_key_name(area, user))
 
@@ -140,13 +139,13 @@ class AclRules(db.Model):
         """Inserts or updates ACL rules and roles for a given user. This will
         reset roles and rules if the user exists and the values are not passed.
 
-        * Params:
+        * Parameters:
         ** **area** -  Area string identifier.
         ** **user** - User string identifier.
         ** **roles** - List of the roles for the user.
         :** **rules** - List of the rules for the user.
-        * Returns:
-        ** An AclRules entity.
+        * Return:
+        ** An [[AclRules]] entity.
         """
         if roles is None:
             roles = []
@@ -163,13 +162,13 @@ class AclRules(db.Model):
     def get_roles_and_rules(cls, area, user, roles_map, roles_lock):
         """Returns a tuple (roles, rules) for a given user in a given area.
 
-        * Params:
+        * Parameters:
         ** **area** -  Area string identifier.
         ** **user** - User string identifier.
         ** **roles_map** - Dictionary of available role names mapping to list of rules.
         ** **roles_lock** - Lock for the roles map: a unique identifier to track changes.
-        * Returns:
-        ** A tuple of (roles, rules) for the given user in the given area.
+        * Return:
+        ** A tuple of {{{(roles, rules)}}} for the given user in the given area.
         """
         res = None
         cache_key = cls.get_key_name(area, user)
@@ -207,8 +206,7 @@ class AclRules(db.Model):
     @classmethod
     def set_cache(cls, cache_key, spec):
         """Sets a memcache value.
-
-        * Params:
+        * Parameters:
         ** **cache_key** - The Cache key.
         ** **spec** - Value to be saved.
         """
@@ -218,8 +216,7 @@ class AclRules(db.Model):
     @classmethod
     def delete_cache(cls, cache_key):
         """Deletes a memcache value.
-
-        * Params:
+        * Parameters:
         ** **cache_key** - The Cache key.
         """
         if cache_key in _rules_map:
@@ -239,13 +236,12 @@ class AclRules(db.Model):
 
     def is_rule_set(self, topic, name, flag):
         """Checks if a given rule is set.
-
-        * Params:
+        * Parameters:
         ** **topic** -  A rule topic, as a string.
         ** **roles** - A rule name, as a string.
         ** **flag** -  A rule flag, a boolean.
-        * Returns:
-        ** {{{True}}} if the rule already exists, {{{False}}} otherwise.
+        * Return:
+        ** {{{True}}} if the rule already exists, otherwise {{{False}}}.
         """
         for rule_topic, rule_name, rule_flag in self.rules:
             if rule_topic == topic and rule_name == name and rule_flag == flag:
@@ -280,12 +276,11 @@ class Acl(object):
 
     def __init__(self, area, user, roles_map=None, roles_lock=None):
         """Loads access privileges and roles for a given user in a given area.
-
-        * Params:
+        * Parameters:
         ** **area** - An area identifier, as a string.
         ** **user** - A user identifier, as a string.
         ** **roles_map** - A dictionary of roles mapping to a list of rule tuples.
-        ** **roles_lock** - Roles lock string to validate cache. If not set, uses 
+        ** **roles_lock** - Roles lock string to validate cache. If not set, uses
             the application version id.
         """
         if roles_map is not None:
@@ -311,21 +306,20 @@ class Acl(object):
 
     def is_one(self, role):
         """Check to see if a user is in a role group.
-
-        * Params:
+        * Parameters:
         ** **role** - A role name, as a string.
-        * Returns:
-        ** {{{True}}} if the user is in this role group, {{{False}}} otherwise.
+        * Return:
+        ** {{{True}}} if the user is in this role group, otherwise {{{False}}}.
         """
         return role in self._roles
 
     def is_any(self, roles):
         """Check to see if a user is in any of the listed role groups.
 
-        * Params:
+        * Parameters:
         ** **roles** - An iterable of role names.
-        * Returns:
-        ** {{{True}}} if the user is in any of the role groups, {{{False}}} otherwise.
+        * Return:
+        ** {{{True}}} if the user is in any of the role groups,  otherwise {{{False}}}.
         """
         for role in roles:
             if role in self._roles:
@@ -335,11 +329,10 @@ class Acl(object):
 
     def is_all(self, roles):
         """Check to see if a user is in all of the listed role groups.
-
-        * Params:
+        * Parameters:
         ** **roles** - An iterable of role names.
-        * Returns:
-        ** {{{True}}} if the user is in all of the role groups, {{{False}}} otherwise.
+        * Return:
+        ** {{{True}}} if the user is in all of the role groups, otherwise {{{False}}}.
         """
         for role in roles:
             if role not in self._roles:
@@ -349,9 +342,8 @@ class Acl(object):
 
     def has_any_access(self):
         """Checks if the user has any access or roles.
-
-        * Returns:
-        ** {{{True}}} if the user has any access rule or role set, {{{False}}} otherwise.
+        * Return:
+        ** {{{True}}} if the user has any access rule or role set, otherwise {{{False}}}.
         """
         if self._rules or self._roles:
             return True
@@ -360,12 +352,11 @@ class Acl(object):
 
     def has_access(self, topic, name):
         """Checks if the user has access to a topic/name combination.
-
-        * Params:
+        * Parameters:
         ** **topic** - A rule topic, as a string.
         ** **roles** - A rule name, as a string.
-        * Returns:
-        ** {{{True}}} if the user has access to this rule, {{{False}}} otherwise.
+        * Return:
+        ** {{{True}}} if the user has access to this rule, otherwise {{{False}}}.
         """
         if topic == '*' or name == '*':
             raise ValueError("has_access() can't be called passing '*'")

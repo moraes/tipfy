@@ -12,6 +12,8 @@ Development version
 - REMOVED old aliases: WSGIApplication (Tipfy) and REQUIRED_CONFIG
   (REQUIRED_VALUE)
 
+- Tipfy development status is now Production/Stable.
+
 
 Version 0.5.9 - July 1st, 2010
 ==============================

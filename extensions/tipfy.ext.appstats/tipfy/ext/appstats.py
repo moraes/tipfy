@@ -10,10 +10,10 @@ from google.appengine.ext.appstats.recording import appstats_wsgi_middleware
 
 class AppstatsMiddleware(object):
     def post_make_app(self, app):
-        """Wraps the application by App Engine's appstats.
-        * Params: 
-        ** **app**: The WSGI application instance.
-        * Returns: 
+        """Wraps the application by [[App Engine]]'s appstats.
+        * Parameters:
+        ** **app**: The [[WSGI]] application instance.
+        * Returns:
         ** The application, wrapped or not.
         """
         # Wrap the callable, so we keep a reference to the app...

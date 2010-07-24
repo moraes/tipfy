@@ -1,8 +1,0 @@
-Version 0.5.6 - June 22, 2010
-=============================
-- Improved insert_or_update() to override all values if the record exists.
-
-
-Version 0.5.5 - June 7, 2010
-============================
-- Initial version, moved from tipfy.ext.auth.

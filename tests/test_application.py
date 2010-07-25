@@ -192,11 +192,10 @@ class TestRequestHandler(unittest.TestCase):
         Handler.middleware = [MiddlewareThatSetsAttribute]
 
         request = Request.from_values()
-        request.rule_args = {'some_arg': 'some_value'}
         handler = Handler(app, request)
 
         assert getattr(handler, 'foo', None) is None
-        handler.dispatch()
+        handler.dispatch('get', **{'some_arg': 'some_value'})
         assert handler.foo == 'bar'
 
     #===========================================================================

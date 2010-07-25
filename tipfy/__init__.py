@@ -127,29 +127,26 @@ class RequestHandler(object):
         self.app = app
         self.request = request
 
-    def dispatch(self, *args, **kwargs):
-        """Executes a handler method. This method is called by :class:`Tipfy`
-        and must return a :class:`Response` object.
+    def dispatch(self, method, **kwargs):
+        """Executes a handler method. This is called by :class:`Tipfy` and
+        must return a :class:`Response` object.
 
+        :param method:
+            The method to be dispatched, normally the request method in
+            lower case, e.g., 'get', 'post', 'head' or 'put'.
+        :param kwargs:
+            Keyword arguments to be passed to the method, normally coming
+            from the matched :class:`Rule`.
         :return:
             A :class:`Response` instance.
         """
-        if args:
-            # Explicit action and arguments.
-            action = args[0]
-            rule_args = kwargs
-        else:
-            # Implicit action and arguments, taken from request.
-            action = self.request.method.lower()
-            rule_args = self.request.rule_args
-
-        method = getattr(self, action, None)
+        method = getattr(self, method, None)
         if method is None:
             raise MethodNotAllowed()
 
         if not self.middleware:
             # No middleware is set: just execute the method.
-            return method(**rule_args)
+            return method(**kwargs)
 
         # Get all middleware for this handler.
         middleware = self.app.get_middleware(self, self.middleware)
@@ -162,7 +159,7 @@ class RequestHandler(object):
         else:
             try:
                 # Execute the requested method.
-                response = method(**rule_args)
+                response = method(**kwargs)
             except Exception, e:
                 # Execute handle_exception middleware.
                 for hook in middleware.get('handle_exception', []):
@@ -505,7 +502,8 @@ class Tipfy(object):
             handler = self.handlers[handler]
 
         # Instantiate handler and dispatch requested method.
-        return handler(self, request).dispatch()
+        return handler(self, request).dispatch(request.method.lower(),
+            **request.rule_args)
 
     def post_dispatch(self, request, response):
         """Executes post_dispatch_handler middleware. All middleware are

@@ -7,20 +7,9 @@ from nose.tools import raises
 
 import werkzeug
 
-try:
-    from tipfy import (Map, redirect, redirect_to, render_json_response,
-        Request, Response, Rule, Tipfy)
-except ImportError:
-    import sys
-    res = ''
-    if 'tipfy' in sys.modules:
-        res = '=' * 100
-        res += '\n'
-        res += sys.modules['tipfy'].__file__
-        res += '\n'
-        res += '=' * 100
+from tipfy import (Map, Request, Response, Rule, Tipfy, redirect,
+    redirect_to, render_json_response)
 
-    sys.exit(res)
 
 def get_url_map():
     # Fake get_rules() for testing.

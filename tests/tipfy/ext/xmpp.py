@@ -1,1 +1,0 @@
-../../../extensions/tipfy.ext.xmpp/tipfy/ext/xmpp.py

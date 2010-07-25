@@ -9,9 +9,8 @@ from nose.tools import assert_raises, raises
 from werkzeug import BaseResponse
 from werkzeug.test import create_environ, Client
 
-from tipfy import (local, make_wsgi_app, Map, MethodNotAllowed,
-    MiddlewareFactory, Request, RequestHandler, Response, Rule, run_wsgi_app,
-    Tipfy)
+from tipfy import (Map, MethodNotAllowed, MiddlewareFactory, Request,
+    RequestHandler, Response, Rule, Tipfy, make_wsgi_app, run_wsgi_app)
 
 
 def get_url_map():
@@ -137,7 +136,6 @@ class Middleware_5(object):
 class TestRequestHandler(unittest.TestCase):
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
-        local.__release_local__()
         Handler.middleware = []
 
     def test_dispatch_without_middleware(self):
@@ -300,7 +298,6 @@ class TestRequestHandler(unittest.TestCase):
 class TestMiddlewareFactory(unittest.TestCase):
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
-        local.__release_local__()
 
     def test_get_middleware(self):
         factory = MiddlewareFactory()
@@ -508,7 +505,6 @@ class TestMiddlewareFactory(unittest.TestCase):
 class TestTipfy(unittest.TestCase):
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
-        local.__release_local__()
 
     def test_hello_world(self):
         app = get_app()
@@ -589,13 +585,13 @@ class TestTipfy(unittest.TestCase):
     @raises(ValueError)
     def test_make_response_none(self):
         app = Tipfy()
-        local.request = Request.from_values()
-        response = app.make_response(local.request, None)
+        request = Request.from_values()
+        response = app.make_response(request, None)
 
     def test_make_response_basestring(self):
         app = Tipfy()
-        local.request = Request.from_values()
-        response = app.make_response(local.request, 'My Response')
+        request = Request.from_values()
+        response = app.make_response(request, 'My Response')
 
         assert isinstance(response, Response)
         assert response.status_code == 200
@@ -604,8 +600,8 @@ class TestTipfy(unittest.TestCase):
 
     def test_make_response_tuple(self):
         app = Tipfy()
-        local.request = Request.from_values()
-        response = app.make_response(local.request, ('Ooops!', 404))
+        request = Request.from_values()
+        response = app.make_response(request, ('Ooops!', 404))
 
         assert isinstance(response, Response)
         assert response.status_code == 404
@@ -632,7 +628,6 @@ class TestTipfy(unittest.TestCase):
 class TestMiscelaneous(unittest.TestCase):
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
-        local.__release_local__()
 
         from os import environ
         for key in ['SERVER_NAME', 'SERVER_PORT', 'REQUEST_METHOD']:

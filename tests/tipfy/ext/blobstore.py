@@ -1,1 +1,0 @@
-../../../extensions/tipfy.ext.blobstore/tipfy/ext/blobstore.py

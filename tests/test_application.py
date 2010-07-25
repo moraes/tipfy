@@ -176,10 +176,12 @@ class TestRequestHandler(unittest.TestCase):
 
         request = Request.from_values()
         handler = Handler(app, request)
-        assert handler.dispatch('get', some_arg='foo') == message
+        response = handler.dispatch('get', some_arg='foo')
+        assert response.data == message
 
         handler = Handler(app, request)
-        assert handler.dispatch('post', some_arg='bar') == message
+        response = handler.dispatch('post', some_arg='bar')
+        assert response.data == message
 
     def test_pre_dispatch_set_attribute(self):
         app = Tipfy()
@@ -255,7 +257,8 @@ class TestRequestHandler(unittest.TestCase):
 
         request = Request.from_values()
         handler = HandlerThatRaises(app, request)
-        assert handler.dispatch('get', some_arg='foo') == message
+        response = handler.dispatch('get', some_arg='foo')
+        assert response.data == message
 
     #===========================================================================
     # post_dispatch()

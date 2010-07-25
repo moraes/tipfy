@@ -15,7 +15,7 @@ from wsgiref.handlers import CGIHandler
 # Werkzeug swiss knife.
 # Need to import werkzeug first otherwise py_zipimport fails.
 import werkzeug
-from werkzeug import (cached_property, escape, import_string, Local, redirect,
+from werkzeug import (cached_property, escape, import_string, redirect,
     Request as WerkzeugRequest, Response as WerkzeugResponse, url_quote)
 from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
     Gone, HTTPException, InternalServerError, LengthRequired,
@@ -938,24 +938,9 @@ class Rule(WerkzeugRule):
 
 
 def get_config(module, key=None, default=DEFAULT_VALUE):
-    """Returns a configuration value for a module. If it is not already
-    set, loads a :data:`default_config` variable from the given module,
-    updates the app configuration with those default values and returns
-    the value for the given key. If the key is still not available,
-    returns the provided default value or raises an exception if no
-    default was provided.
+    """Returns a configuration value for a module.
 
-    Every Tipfy module that allows some kind of configuration sets a
-    :data:`default_config` global variable that is loaded by this function,
-    cached and used in case the requested configuration was not defined
-    by the user.
-
-    :param module:
-        The configured module.
-    :param key:
-        The config key.
-    :return:
-        A configuration value.
+    This is a shortcut to :meth:`Tipfy.get_config`.
     """
     return Tipfy.app.get_config(module, key, default)
 
@@ -963,41 +948,7 @@ def get_config(module, key=None, default=DEFAULT_VALUE):
 def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
     """Builds and returns a URL for a named :class:`Rule`.
 
-    For example, if you have these rules registered in the application:
-
-    .. code-block:: python
-       :linenos:
-
-       Rule('/', endoint='home/main' handler='handlers.MyHomeHandler')
-       Rule('/wiki', endoint='wiki/start' handler='handlers.WikiHandler')
-
-    Here are some examples of how to generate URLs for them:
-
-    >>> url = url_for('home/main')
-    >>> '/'
-    >>> url = url_for('home/main', _full=True)
-    >>> 'http://localhost:8080/'
-    >>> url = url_for('wiki/start')
-    >>> '/wiki'
-    >>> url = url_for('wiki/start', _full=True)
-    >>> 'http://localhost:8080/wiki'
-    >>> url = url_for('wiki/start', _full=True, _anchor='my-heading')
-    >>> 'http://localhost:8080/wiki#my-heading'
-
-    :param endpoint:
-        The rule endpoint.
-    :param _full:
-        If True, returns an absolute URL. Otherwise, returns a relative
-        one.
-    :param _method:
-        The rule request method, in case there are different rules
-        for different request methods.
-    :param _anchor:
-        An anchor to add to the end of the URL.
-    :param kwargs:
-        Keyword arguments to build the URL.
-    :return:
-        An absolute or relative URL.
+    This is a shortcut to :meth:`Request.url_for`.
     """
     # For backwards compatibility, check old keywords.
     full = kwargs.pop('full', _full)
@@ -1009,7 +960,7 @@ def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
 
 def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
     """Convenience function mixing ``werkzeug.redirect`` and
-    :func:`url_for`: redirects the client to a URL built using a named
+    :meth:`Request.url_for`: redirects the client to a URL built using a named
     :class:`Rule`.
 
     :param endpoint:

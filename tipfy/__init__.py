@@ -61,9 +61,9 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #:     Force this subdomain to be used instead of extracting
 #:     the subdomain from the current url.
 #:
-#: url_map
-#:     A ``werkzeug.routing.Map`` with the URL rules defined for
-#:     the application. If not set, build one with rules defined in `urls.py`.
+#: url_rules
+#:     A list of :class:`Rule` definitions, or a string specification to a
+#:     callable that returns the rules. Default is ``urls.get_rules``.
 #:
 #: dev
 #:     True is this is the development server, False otherwise.
@@ -82,14 +82,10 @@ default_config = {
     'middleware': [],
     'server_name': None,
     'subdomain': None,
-    'url_map': None,
-    # Undocumented for now.
     'url_rules': 'urls.get_rules',
     'dev': os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
     'app_id': os.environ.get('APPLICATION_ID', None),
     'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
-    # Undocumented for now.
-    'url_map_kwargs': {},
 }
 
 # Allowed request methods.
@@ -303,7 +299,7 @@ class Tipfy(object):
     #: The active :class:`Request` instance.
     request = None
 
-    def __init__(self, config=None, app_id='__main__'):
+    def __init__(self, config=None, app_id='__main__', url_rules=None):
         """Initializes the application.
 
         :param config:
@@ -313,6 +309,8 @@ class Tipfy(object):
             are being used by the same app. This can be used to identify
             instance specific data such as cache and whatever needs to be tied
             to this instance.
+        :param url_rules:
+            A list of :class:`Rule` definitions for the application.
         """
         # Set the currently active wsgi app instance.
         self.set_wsgi_app()
@@ -338,6 +336,9 @@ class Tipfy(object):
         # Store the app middleware dict.
         self.middleware = self.get_middleware(self, self.config.get('tipfy',
             'middleware'))
+
+        # Initialize the URL map.
+        self.url_map = self.get_url_map(url_rules)
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""
@@ -405,53 +406,53 @@ class Tipfy(object):
         # Call the response object as a WSGI application.
         return response(environ, start_response)
 
-    @cached_property
-    def url_map(self):
-        """Returns the map of URL rules for this app.
+    def get_url_map(self, rules=None):
+        """Returns a ``werkzeug.routing.Map`` instance with initial
+        :class:`Rule` definitions.
 
+        :param rules:
+            Initial list of :class:`Rule`.
         :return:
             A ``werkzeug.routing.Map`` instance.
         """
-        return self.get_url_map()
+        rules = rules or self.config.get('tipfy', 'url_rules')
 
-    def get_url_map(self):
-        """Returns ``werkzeug.routing.Map`` with the URL rules defined for
-        the application.
-
-        :return:
-            A ``werkzeug.routing.Map`` instance.
-        """
-        rv = self.config.get('tipfy', 'url_map')
-        if rv:
-            return rv
-
-        kwargs = self.config.get('tipfy').get('url_map_kwargs')
-        return Map(self.get_url_rules(), **kwargs)
-
-    def get_url_rules(self):
-        """Loads and returns the URL rule definitions for the application.
-
-        :return:
-            A list of :class:`Rule` with the URL definitions for the
-            application..
-        """
-        try:
-            get_rules = import_string(self.config.get('tipfy', 'url_rules'))
+        if isinstance(rules, basestring):
             try:
-                return get_rules(self)
+                rules = import_string(rules)
+            except (AttributeError, ImportError), e:
+                logging.warning('Missing %s. No URL rules were loaded.' %
+                    rules)
+                rules = None
+
+        if callable(rules):
+            try:
+                rules = rules(self)
             except TypeError, e:
                 # Backwards compatibility:
                 # Previously get_rules() didn't receive the wsgi app.
-                return get_rules()
-        except (AttributeError, ImportError), e:
-            logging.warning('Missing %s. No URL rules were loaded.' %
-                get_rules)
-            return []
+                rules = rules()
+
+        return Map(rules)
+
+    def add_url_rule(self, path, endpoint, handler, **kwargs):
+        """Adds a rule to the URL map.
+
+        :param path:
+            The URL path.
+        :param endpoint:
+            The rule endpoint: an identifier for the rule.
+        :param handler:
+            A :class:`RequestHandler` class, or a module and class
+            specification as a string.
+        """
+        rule = Rule(path, endpoint=endpoint, handler=handler, **kwargs)
+        self.url_map.add(rule)
 
     def match_url(self, request):
-        """Matches registered URL rules against the request. This will store
-        the URL adapter, matched rule and rule arguments in the request
-        instance.
+        """Matches registered :class:`Rule` definitions against the request.
+        This will store the URL adapter, matched rule and rule arguments in
+        the :class: `Request` instance.
 
         Three exceptions can occur when matching the rules: ``NotFound``,
         ``MethodNotAllowed`` or ``RequestRedirect``. If they are
@@ -1005,15 +1006,17 @@ def render_json_response(*args, **kwargs):
         mimetype='application/json')
 
 
-def make_wsgi_app(config=None, app_id='__main__'):
+def make_wsgi_app(config=None, **kwargs):
     """Returns a instance of :class:`Tipfy`.
 
     :param config:
         A dictionary of configuration values.
+    :param kwargs:
+        Additional keyword arguments to instantiate :class:`Tipfy`.
     :return:
         A :class:`Tipfy` instance.
     """
-    app = Tipfy(config, app_id)
+    app = Tipfy(config, **kwargs)
 
     if app.dev:
         logging.getLogger().setLevel(logging.DEBUG)

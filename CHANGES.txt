@@ -1,5 +1,17 @@
 Development version
 ===================
+- Handler definitions in URL rules can now also be a class, instead of a string.
+
+- Tipfy can now be instantiated passing a list of URL rules. This allows
+  standalone, single-file apps that don't need a urls.py file, much like
+  webapp and Tornado. It also makes it easier to test the WSGI app.
+
+- Added get_url_map() and add_url_rule() methods to the WSGI app.
+
+- Removed 'url_map' and 'url_map_kwargs' config keys, mostly undocumented
+  and now redundant with the possibility to override get_url_map() or
+  instantiate the WSGI app passing URL rules.
+
 - Call app.make_response() on RequestHandler, to convert returned result to a
   proper response if needed.
 

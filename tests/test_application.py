@@ -13,7 +13,7 @@ from tipfy import (Map, MethodNotAllowed, MiddlewareFactory, Request,
     RequestHandler, Response, Rule, Tipfy, make_wsgi_app, run_wsgi_app)
 
 
-def get_url_map():
+def get_url_rules():
     # Fake get_rules() for testing.
     rules = [
         Rule('/', endpoint='home', handler='resources.handlers.HomeHandler'),
@@ -22,16 +22,15 @@ def get_url_map():
         Rule('/test-exception', endpoint='test-exception', handler='resources.handlers.HandlerWithException'),
     ]
 
-    return Map(rules)
+    return rules
 
 
 def get_app():
     return Tipfy({
         'tipfy': {
-            'url_map': get_url_map(),
             'dev': True,
         },
-    })
+    }, url_rules=get_url_rules())
 
 
 class Handler(RequestHandler):
@@ -533,11 +532,10 @@ class TestTipfy(unittest.TestCase):
     def test_handle_exception(self):
         app = Tipfy({
             'tipfy': {
-                'url_map': get_url_map(),
                 'dev': True,
                 'middleware': [ExceptionHandler],
             },
-        })
+        }, url_rules=get_url_rules())
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/test-exception')
@@ -547,11 +545,10 @@ class TestTipfy(unittest.TestCase):
     def test_pre_dispatch_handler(self):
         app = Tipfy({
             'tipfy': {
-                'url_map': get_url_map(),
                 'dev': True,
                 'middleware': [PreDispatchHandler],
             },
-        })
+        }, url_rules=get_url_rules())
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/')
@@ -561,11 +558,10 @@ class TestTipfy(unittest.TestCase):
     def test_post_dispatch_handler(self):
         app = Tipfy({
             'tipfy': {
-                'url_map': get_url_map(),
                 'dev': True,
                 'middleware': [PostDispatchHandler],
             },
-        })
+        }, url_rules=get_url_rules())
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/')
@@ -576,10 +572,9 @@ class TestTipfy(unittest.TestCase):
     def test_handler_raises_exception(self):
         app = Tipfy({
             'tipfy': {
-                'url_map': get_url_map(),
                 'dev': True,
             },
-        })
+        }, url_rules=get_url_rules())
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/test-exception')
@@ -614,10 +609,9 @@ class TestTipfy(unittest.TestCase):
     def test_handler_internal_server_error(self):
         app = Tipfy({
             'tipfy': {
-                'url_map': get_url_map(),
                 'dev': False,
             },
-        })
+        }, url_rules=get_url_rules())
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/test-exception')
@@ -668,8 +662,7 @@ class TestMiscelaneous(unittest.TestCase):
 
         app = make_wsgi_app({'tipfy': {
             'dev': True,
-            'url_map': get_url_map(),
-        }})
+        }}, url_rules=get_url_rules())
         run_wsgi_app(app)
 
     def test_run_wsgi_app_with_middleware(self):
@@ -680,9 +673,8 @@ class TestMiscelaneous(unittest.TestCase):
         environ['REQUEST_METHOD'] = 'GET'
 
         app = make_wsgi_app({'tipfy': {
-            'url_map': get_url_map(),
             'middleware': [AppMiddleware_2]
-        }})
+        }}, url_rules=get_url_rules())
 
         run_wsgi_app(app)
 

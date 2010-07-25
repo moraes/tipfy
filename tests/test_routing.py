@@ -8,7 +8,7 @@ from nose.tools import raises
 from tipfy import (Map, NotFound, Request, Rule, Tipfy, url_for)
 
 
-def get_url_map():
+def get_url_rules():
     # Fake get_rules() for testing.
     rules = [
         Rule('/', endpoint='home', handler='test.home:HomeHandler'),
@@ -16,15 +16,14 @@ def get_url_map():
             handler='test.profile:ProfileHandler'),
     ]
 
-    return Map(rules)
+    return rules
 
 
 def get_app():
     app = Tipfy({
         'tipfy': {
-            'url_map': get_url_map(),
         },
-    })
+    }, url_rules=get_url_rules())
     app.set_wsgi_app()
     return app
 

@@ -214,10 +214,6 @@ class Request(WerkzeugRequest):
     rule_args = None
     #: Exception raised when matching URL rules, if any.
     routing_exception = None
-    #: Current server_name.
-    server_name = None
-    #: Current subdomain.
-    subdomain = None
 
     def __init__(self, environ):
         """Initializes the request. This also sets a context attribute to
@@ -464,8 +460,9 @@ class Tipfy(object):
             None.
         """
         # Bind url map to the current request location.
-        server_name = self.config.get('tipfy', 'server_name', None)
-        subdomain = self.config.get('tipfy', 'subdomain', None)
+        server_name = self.config.get('tipfy', 'server_name')
+        subdomain = self.config.get('tipfy', 'subdomain')
+
         # Set self.url_adapter for backwards compatibility only.
         request.url_adapter = self.url_map.bind_to_environ(request.environ,
             server_name=server_name, subdomain=subdomain)
@@ -669,7 +666,8 @@ class Tipfy(object):
     def set_request(self, request):
         """Sets the currently active :class:`Request` instance.
 
-        :param request: The currently active :class:`Request` instance.
+        :param request:
+            The currently active :class:`Request` instance.
         """
         Tipfy.request = request
 

@@ -502,13 +502,16 @@ class Tipfy(object):
         if request.routing_exception is not None:
             raise request.routing_exception
 
-        name = request.rule.handler
-        if name not in self.handlers:
-            # Import handler set in matched rule.
-            self.handlers[name] = import_string(name)
+        handler = request.rule.handler
+        if isinstance(handler, basestring):
+            if handler not in self.handlers:
+                # Import handler set in matched rule.
+                self.handlers[handler] = import_string(handler)
+
+            handler = self.handlers[handler]
 
         # Instantiate handler and dispatch requested method.
-        return self.handlers[name](self, request).dispatch()
+        return handler(self, request).dispatch()
 
     def post_dispatch(self, request, response):
         """Executes post_dispatch_handler middleware. All middleware are

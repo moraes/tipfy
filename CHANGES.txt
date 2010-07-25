@@ -1,5 +1,5 @@
-Development version
-===================
+Version 0.6 - July 25, 2010
+===========================
 - Handler definitions in URL rules can now also be a RequestHandler class,
   instead of a string.
 
@@ -65,8 +65,8 @@ Development version
   proper response if needed.
 
 
-Backward compatibility warnings
--------------------------------
+Backwards compatibility warnings
+--------------------------------
 - Removed 'url_rules', 'url_map' and 'url_map_kwargs' config keys, now
   redundant with the possibility to override get_url_map() or instantiate
   the WSGI app passing URL rules.

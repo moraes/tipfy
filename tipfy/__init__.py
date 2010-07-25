@@ -458,12 +458,10 @@ class Tipfy(object):
             None.
         """
         # Bind url map to the current request location.
-        server_name = self.config.get('tipfy', 'server_name')
-        subdomain = self.config.get('tipfy', 'subdomain')
-
-        # Set self.url_adapter for backwards compatibility only.
+        config = self.config.get('tipfy')
         request.url_adapter = self.url_map.bind_to_environ(request.environ,
-            server_name=server_name, subdomain=subdomain)
+            server_name=config.get('server_name'),
+            subdomain=config.get('subdomain'))
 
         try:
             # Match the path against registered rules.

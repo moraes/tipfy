@@ -1,30 +1,84 @@
 Development version
 ===================
-- Handler definitions in URL rules can now also be a class, instead of a string.
+- Handler definitions in URL rules can now also be a RequestHandler class,
+  instead of a string.
 
-- Tipfy can now be instantiated passing a list of URL rules. This allows
-  standalone, single-file apps that don't need a urls.py file, much like
-  webapp and Tornado. It also makes it easier to test the WSGI app.
+- Added support for single-file apps, much like we see in webapp. Tipfy can
+  now be instantiated passing a list of URL rules, so apps can be entirely
+  defined in a single file mapped in app.yaml, without the need for a separate
+  urls.py::
+
+      import sys
+      sys.path.insert(0, 'distlib')
+
+      from tipfy import RequestHandler, Rule, make_wsgi_app, run_wsgi_app
+
+      class HelloWorldHandler(RequestHandler):
+          def get(self, **kwargs):
+              return 'Hello, World!'
+
+      class ByeWorldHandler(RequestHandler):
+          def get(self, **kwargs):
+              return 'Bye, World!'
+
+      app = make_wsgi_app(rules=[
+          Rule('/', endpoint='hello', handler=HelloWorldHandler),
+          Rule('/bye', endpoint='bye', handler=ByeWorldHandler),
+      ])
+
+      def main():
+          run_wsgi_app(app)
+
+      if __name__ == '__main__':
+          main()
+
+  This also helps to test handlers defined in a test file::
+
+      import unittest
+
+      from tipfy import RequestHandler, Rule, Tipfy, redirect
+
+      class TestHandler(unittest.TestCase):
+          def test_redirect(self):
+              class Handler1(RequestHandler):
+                  def get(self, **kwargs):
+                      return redirect(self.request.url_for('test2'))
+
+              class Handler2(RequestHandler):
+                  def get(self, **kwargs):
+                      return 'Hello, World!'
+
+              rules = [
+                  Rule('/1', endpoint='test1', handler=Handler1),
+                  Rule('/2', endpoint='test2', handler=Handler2),
+              ]
+
+              app = Tipfy(rules=rules)
+              client = app.get_test_client()
+              response = client.get('/1', follow_redirects=True)
+
+              assert response.data == 'Hello, World!'
 
 - Added get_url_map() and add_url_rule() methods to the WSGI app.
-
-- Removed 'url_map' and 'url_map_kwargs' config keys, mostly undocumented
-  and now redundant with the possibility to override get_url_map() or
-  instantiate the WSGI app passing URL rules.
 
 - Call app.make_response() on RequestHandler, to convert returned result to a
   proper response if needed.
 
-- REMOVED tipfy.local, tipfy.request and tipfy.app. Replacements for these are:
-  * tipfy.local: request.context and request.registry, dictionaries set for a
+
+Backward compatibility warnings
+-------------------------------
+- Removed 'url_rules', 'url_map' and 'url_map_kwargs' config keys, now
+  redundant with the possibility to override get_url_map() or instantiate
+  the WSGI app passing URL rules.
+
+- REMOVED local, request and app. Replacements for these are:
+  * request, local.request: Tipfy.request, a class attribute in the WSGI app.
+  * app, local.app: Tipfy.app, a class attribute in the WSGI app.
+  * local: request.context and request.registry, dictionaries set for a
     request.
-  * tipfy.request: Tipfy.request, a class attribute in the WSGI app.
-  * tipfy.app: Tipfy.app, a class attribute in the WSGI app.
 
 - REMOVED old aliases: WSGIApplication (Tipfy) and REQUIRED_CONFIG
   (REQUIRED_VALUE)
-
-- Tipfy development status is now Production/Stable.
 
 
 Version 0.5.9 - July 1st, 2010

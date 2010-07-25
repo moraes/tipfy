@@ -61,10 +61,6 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #:     Force this subdomain to be used instead of extracting
 #:     the subdomain from the current url.
 #:
-#: url_rules
-#:     A list of :class:`Rule` definitions, or a string specification to a
-#:     callable that returns the rules. Default is ``urls.get_rules``.
-#:
 #: dev
 #:     True is this is the development server, False otherwise.
 #:     Default is the value of ``os.environ['SERVER_SOFTWARE']``.
@@ -82,7 +78,6 @@ default_config = {
     'middleware': [],
     'server_name': None,
     'subdomain': None,
-    'url_rules': 'urls.get_rules',
     'dev': os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
     'app_id': os.environ.get('APPLICATION_ID', None),
     'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
@@ -295,18 +290,22 @@ class Tipfy(object):
     #: The active :class:`Request` instance.
     request = None
 
-    def __init__(self, config=None, app_id='__main__', url_rules=None):
+    def __init__(self, config=None, rules='urls.get_rules', app_id='__main__'):
         """Initializes the application.
 
         :param config:
             Dictionary with configuration for the application modules.
+        :param rules:
+            URL rules definitions for the application. It can be a list of
+            :class:`Rule`, a callable or a string defining a callable that
+            returns the rules list. The callable is called passing the WSGI
+            application as parameter. Default is ``urls.get_rules``: import
+            ``get_rules()`` from *urls.py* and calls it passing the app.
         :param app_id:
             An identifier for this instance, in case multiple instances
             are being used by the same app. This can be used to identify
             instance specific data such as cache and whatever needs to be tied
             to this instance.
-        :param url_rules:
-            A list of :class:`Rule` definitions for the application.
         """
         # Set the currently active wsgi app instance.
         self.set_wsgi_app()
@@ -334,7 +333,7 @@ class Tipfy(object):
             'middleware'))
 
         # Initialize the URL map.
-        self.url_map = self.get_url_map(url_rules)
+        self.url_map = self.get_url_map(rules)
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""
@@ -407,12 +406,11 @@ class Tipfy(object):
         :class:`Rule` definitions.
 
         :param rules:
-            Initial list of :class:`Rule`.
+            Initial list of :class:`Rule`, a callable or a string defining
+            a callable that returns the list of rules.
         :return:
             A ``werkzeug.routing.Map`` instance.
         """
-        rules = rules or self.config.get('tipfy', 'url_rules')
-
         if isinstance(rules, basestring):
             try:
                 rules = import_string(rules)
@@ -426,7 +424,7 @@ class Tipfy(object):
                 rules = rules(self)
             except TypeError, e:
                 # Backwards compatibility:
-                # Previously get_rules() didn't receive the wsgi app.
+                # Previously get_rules() didn't receive the WSGI app.
                 rules = rules()
 
         return Map(rules)
@@ -641,13 +639,13 @@ class Tipfy(object):
             A configuration value.
         """
         config = self.config
-        if module not in config.modules:
+        if module not in config.loaded:
             # Load default configuration and update app config.
             values = import_string(module + ':default_config', silent=True)
             if values:
                 config.setdefault(module, values)
 
-            config.modules.append(module)
+            config.loaded.append(module)
 
         value = config.get(module, key, default)
         if value not in (DEFAULT_VALUE, REQUIRED_VALUE):
@@ -693,7 +691,7 @@ class Config(dict):
     the first level one.
     """
     #: Loaded module configurations.
-    modules = None
+    loaded = None
 
     def __init__(self, value=None, default=None, loaded=None):
         """Initializes the configuration object.
@@ -705,7 +703,7 @@ class Config(dict):
         :param loaded:
             A list of modules to be marked as loaded.
         """
-        self.modules = loaded or []
+        self.loaded = loaded or []
         if value is not None:
             assert isinstance(value, dict)
             for module in value.keys():

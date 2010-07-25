@@ -30,7 +30,7 @@ def get_app():
         'tipfy': {
             'dev': True,
         },
-    }, url_rules=get_url_rules())
+    }, rules=get_url_rules())
 
 
 class Handler(RequestHandler):
@@ -535,7 +535,7 @@ class TestTipfy(unittest.TestCase):
                 'dev': True,
                 'middleware': [ExceptionHandler],
             },
-        }, url_rules=get_url_rules())
+        }, rules=get_url_rules())
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/test-exception')
@@ -548,7 +548,7 @@ class TestTipfy(unittest.TestCase):
                 'dev': True,
                 'middleware': [PreDispatchHandler],
             },
-        }, url_rules=get_url_rules())
+        }, rules=get_url_rules())
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/')
@@ -561,7 +561,7 @@ class TestTipfy(unittest.TestCase):
                 'dev': True,
                 'middleware': [PostDispatchHandler],
             },
-        }, url_rules=get_url_rules())
+        }, rules=get_url_rules())
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/')
@@ -574,7 +574,7 @@ class TestTipfy(unittest.TestCase):
             'tipfy': {
                 'dev': True,
             },
-        }, url_rules=get_url_rules())
+        }, rules=get_url_rules())
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/test-exception')
@@ -611,7 +611,7 @@ class TestTipfy(unittest.TestCase):
             'tipfy': {
                 'dev': False,
             },
-        }, url_rules=get_url_rules())
+        }, rules=get_url_rules())
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/test-exception')
@@ -662,7 +662,7 @@ class TestMiscelaneous(unittest.TestCase):
 
         app = make_wsgi_app({'tipfy': {
             'dev': True,
-        }}, url_rules=get_url_rules())
+        }}, rules=get_url_rules())
         run_wsgi_app(app)
 
     def test_run_wsgi_app_with_middleware(self):
@@ -674,7 +674,7 @@ class TestMiscelaneous(unittest.TestCase):
 
         app = make_wsgi_app({'tipfy': {
             'middleware': [AppMiddleware_2]
-        }}, url_rules=get_url_rules())
+        }}, rules=get_url_rules())
 
         run_wsgi_app(app)
 

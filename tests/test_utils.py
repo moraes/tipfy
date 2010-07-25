@@ -26,7 +26,7 @@ def get_app():
     app = Tipfy({
         'tipfy': {
         },
-    }, url_rules=get_url_rules())
+    }, rules=get_url_rules())
     app.set_wsgi_app()
     return app
 

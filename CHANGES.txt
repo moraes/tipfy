@@ -3,6 +3,9 @@ Development version
 - Added Tipfy.get_url_adapter(), that returns a bound URL map, to make it
   easier to override the bound server_name or subdomain.
 
+- Exceptions caused when loading a badly configured middleware class are now
+  caught and a warning is emitted.
+
 
 Version 0.6 - July 25, 2010
 ===========================

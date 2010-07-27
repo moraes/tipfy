@@ -409,12 +409,10 @@ class Tipfy(object):
             A ``werkzeug.routing.Map`` instance.
         """
         if isinstance(rules, basestring):
-            try:
-                rules = import_string(rules)
-            except (AttributeError, ImportError), e:
+            rules = import_string(rules, silent=True)
+            if not rules:
                 logging.warning('Missing %s. No URL rules were loaded.' %
                     rules)
-                rules = None
 
         if callable(rules):
             try:
@@ -490,13 +488,12 @@ class Tipfy(object):
                 return rv
 
     def dispatch(self, request):
-        """Matches the current URL against registered rules and returns the
-        resut from the :class:`RequestHandler`.
+        """Dispatches a :class:`RequestHandler` and returns the result.
 
         :param request:
             A :class:`Request` instance.
         :returns:
-            The returned value from a middleware or None.
+            The returned value from the :class:`RequestHandler`.
         """
         if request.routing_exception is not None:
             raise request.routing_exception
@@ -504,7 +501,9 @@ class Tipfy(object):
         handler = request.rule.handler
         if isinstance(handler, basestring):
             if handler not in self.handlers:
-                # Import handler set in matched rule.
+                # Import handler set in matched rule. This can raise an
+                # ImportError or AttributeError if the handler is badly set.
+                # The exception will be caught in wsgi_app().
                 self.handlers[handler] = import_string(handler)
 
             handler = self.handlers[handler]
@@ -882,7 +881,11 @@ class MiddlewareFactory(object):
 
             if spec_id not in self.methods:
                 if is_str:
-                    spec = import_string(spec)
+                    spec = import_string(spec, silent=True)
+                    if not spec:
+                        logging.warning('Missing %s. Middleware was not '
+                            'loaded.' % spec)
+                        continue
 
                 if not is_obj:
                     obj = spec()

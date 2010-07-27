@@ -5,6 +5,8 @@ tipfy.ext.blobstore
 This module provides request handler mixins to handle upload and serving files
 from App Engine's blobstore.
 
+See the `extension wiki page <http://www.tipfy.org/wiki/extensions/blobstore/>`_.
+
 Here's a simple example to upload and serve files, based on the example from
 App Engine docs:
 

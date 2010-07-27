@@ -2,8 +2,10 @@
 
 tipfy.ext.session
 =================
-This module provides sessions using secure cookies or the datastore. It also
-offers signed flash messages and signed cookies in general.
+This module provides sessions using secure cookies, memcache or datastore.
+It also offers signed flash messages and signed cookies.
+
+See the `extension wiki page <http://www.tipfy.org/wiki/extensions/session/>`_.
 
 See in `Sessions Tutorial <http://www.tipfy.org/wiki/tutorials/sessions/>`_
 a overview of session usage.

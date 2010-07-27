@@ -137,7 +137,7 @@ class RequestHandler(object):
         :param kwargs:
             Keyword arguments to be passed to the method, normally coming
             from the matched :class:`Rule`.
-        :return:
+        :returns:
             A :class:`Response` instance.
         """
         method = getattr(self, method, None)
@@ -255,7 +255,7 @@ class Request(WerkzeugRequest):
             An anchor to add to the end of the URL.
         :param kwargs:
             Keyword arguments to build the URL.
-        :return:
+        :returns:
             An absolute or relative URL.
         """
         url = self.url_adapter.build(endpoint, force_external=_full,
@@ -405,7 +405,7 @@ class Tipfy(object):
         :param rules:
             Initial list of :class:`Rule`, a callable or a string defining
             a callable that returns the list of rules.
-        :return:
+        :returns:
             A ``werkzeug.routing.Map`` instance.
         """
         if isinstance(rules, basestring):
@@ -451,7 +451,7 @@ class Tipfy(object):
 
         :param request:
             A :class:`Request` instance.
-        :return:
+        :returns:
             None.
         """
         # Bind url map to the current request location.
@@ -473,7 +473,7 @@ class Tipfy(object):
 
         :param request:
             A :class:`Request` instance.
-        :return:
+        :returns:
             The returned value from a middleware or None.
         """
         for hook in self.middleware.get('pre_dispatch_handler', []):
@@ -487,7 +487,7 @@ class Tipfy(object):
 
         :param request:
             A :class:`Request` instance.
-        :return:
+        :returns:
             The returned value from a middleware or None.
         """
         if request.routing_exception is not None:
@@ -515,7 +515,7 @@ class Tipfy(object):
             The :class:`Response` returned from :meth:`Tipfy.pre_dispatch`
             or :meth:`Tipfy.dispatch` and converted by
             :meth:`Tipfy.make_response`.
-        :return:
+        :returns:
             A :class:`Response` instance.
         """
         for hook in self.middleware.get('post_dispatch_handler', []):
@@ -553,7 +553,7 @@ class Tipfy(object):
             A :class:`Request` instance.
         :param rv:
             The return value from the handler.
-        :return:
+        :returns:
             A :class:`Response` instance.
         """
         if isinstance(rv, self.response_class):
@@ -578,7 +578,7 @@ class Tipfy(object):
             A :class:`Request` instance.
         :param e:
             The catched exception.
-        :return:
+        :returns:
             A :class:`Response` instance, if the exception is not raised.
         """
         # Execute handle_exception middleware.
@@ -606,7 +606,7 @@ class Tipfy(object):
             :class:`RequestHandler` instance).
         :param classes:
             A list of middleware classes.
-        :return:
+        :returns:
             A dictionary with middleware instance methods.
         """
         if not classes:
@@ -631,7 +631,7 @@ class Tipfy(object):
             The configured module.
         :param key:
             The config key.
-        :return:
+        :returns:
             A configuration value.
         """
         config = self.config
@@ -672,7 +672,7 @@ class Tipfy(object):
     def get_test_client(self):
         """Creates a test client for this application.
 
-        :return:
+        :returns:
             A ``werkzeug.Client``, which is a :class:`Tipfy` wrapped
             for tests.
         """
@@ -739,7 +739,7 @@ class Config(dict):
             The module to update the configuration, e.g.: 'tipfy.ext.i18n'.
         :param value:
             A dictionary of configurations for the module.
-        :return:
+        :returns:
             None.
         """
         assert isinstance(value, dict)
@@ -766,7 +766,7 @@ class Config(dict):
             The module to set default configuration, e.g.: 'tipfy.ext.i18n'.
         :param value:
             A dictionary of configurations for the module.
-        :return:
+        :returns:
             None.
         """
         assert isinstance(value, dict)
@@ -796,7 +796,7 @@ class Config(dict):
         :param default:
             A default value to return in case the configuration for
             the module/key is not set.
-        :return:
+        :returns:
             The configuration value.
         """
         if module not in self:
@@ -845,7 +845,7 @@ class MiddlewareFactory(object):
             :class:`RequestHandler`).
         :param classes:
             A list of middleware classes.
-        :return:
+        :returns:
             A dictionary with middleware instance methods.
         """
         id = obj.__module__ + '.' + obj.__class__.__name__
@@ -861,7 +861,7 @@ class MiddlewareFactory(object):
 
         :param specs:
             A list of middleware classes, classes as strings or instances.
-        :return:
+        :returns:
             A dictionary with middleware instance methods.
         """
         res = {}
@@ -970,7 +970,7 @@ def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
         The redirect status code.
     :param kwargs:
         Keyword arguments to build the URL.
-    :return:
+    :returns:
         A :class:`Response` object with headers set for redirection.
     """
     # For backwards compatibility, check old keywords.
@@ -989,7 +989,7 @@ def render_json_response(*args, **kwargs):
         Arguments to be passed to simplejson.dumps().
     :param kwargs:
         Keyword arguments to be passed to simplejson.dumps().
-    :return:
+    :returns:
         A :class:`Response` object with a JSON string in the body and
         mimetype set to ``application/json``.
     """
@@ -1005,7 +1005,7 @@ def make_wsgi_app(config=None, **kwargs):
         A dictionary of configuration values.
     :param kwargs:
         Additional keyword arguments to instantiate :class:`Tipfy`.
-    :return:
+    :returns:
         A :class:`Tipfy` instance.
     """
     app = Tipfy(config, **kwargs)
@@ -1025,7 +1025,7 @@ def run_wsgi_app(app):
 
     :param app:
         A :class:`Tipfy` instance.
-    :return:
+    :returns:
         None.
     """
     # Fix issue #772.

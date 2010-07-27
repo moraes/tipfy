@@ -5,6 +5,8 @@ tipfy.ext.jinja2
 This module provides functions to render templates using the `Jinja2`_ template
 engine.
 
+See the `extension wiki page <http://www.tipfy.org/wiki/extensions/jinja2/>`_.
+
 .. module:: tipfy.ext.jinja2
 
 

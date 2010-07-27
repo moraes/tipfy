@@ -9,6 +9,8 @@ dates according to timezones or translate and localize strings and dates.
 Tipfy uses `Babel`_ to manage translations of strings and localization of dates
 and times, and `gae-pytz`_ to handle timezones.
 
+See the `extension wiki page <http://www.tipfy.org/wiki/extensions/i18n/>`_.
+
 .. module:: tipfy.ext.i18n
 
 

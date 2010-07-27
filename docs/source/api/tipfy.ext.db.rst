@@ -6,6 +6,8 @@ This module provides several utilities to work with ``google.appengine.ext.db``,
 including serialization functions, decorators and useful extra ``db.Property``
 classes.
 
+See the `extension wiki page <http://www.tipfy.org/wiki/extensions/db/>`_.
+
 .. module:: tipfy.ext.db
 
 

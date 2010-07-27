@@ -18,12 +18,12 @@ Auth Mixins
 .. autoclass:: AppEngineAuthMixin
    :members: auth_session, auth_current_user, auth_is_admin, auth_user_model,
              auth_login_url, auth_logout_url, auth_signup_url, auth_create_user,
-             auth_get_user_entity|
+             auth_get_user_entity
 
 .. autoclass:: MultiAuthMixin
    :members: auth_session, auth_current_user, auth_is_admin, auth_user_model,
              auth_login_url, auth_logout_url, auth_signup_url, auth_create_user,
-             auth_get_user_entity|, auth_login_with_form, auth_login_with_third_party,
+             auth_get_user_entity, auth_login_with_form, auth_login_with_third_party,
              auth_set_session, auth_logout
 
 Decorators

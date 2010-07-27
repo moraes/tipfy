@@ -426,6 +426,41 @@ class Tipfy(object):
 
         return Map(rules)
 
+    def get_url_adapter(self, request):
+        """Binds the URL map to the current request and returns a URL adapter.
+
+        :param request:
+            A :class:`Request` instance.
+        :returns:
+            A ``werkzeug.routing.MapAdapter``.
+        """
+        config = self.config.get('tipfy')
+        return self.url_map.bind_to_environ(request.environ,
+            server_name=config.get('server_name'),
+            subdomain=config.get('subdomain'))
+
+    def match_url(self, request):
+        """Matches registered :class:`Rule` definitions against the URL
+        adapter. This will store the URL adapter, matched rule and rule
+        arguments in the :class:`Request` instance.
+
+        Three exceptions can occur when matching the rules: ``NotFound``,
+        ``MethodNotAllowed`` or ``RequestRedirect``. If they are
+        raised, they are stored in the request for later use.
+
+        :param request:
+            A :class:`Request` instance.
+        :returns:
+            None.
+        """
+        request.url_adapter = self.get_url_adapter(request)
+        try:
+            # Match the path against registered rules.
+            request.rule, request.rule_args = request.url_adapter.match(
+                return_rule=True)
+        except HTTPException, e:
+            request.routing_exception = e
+
     def add_url_rule(self, path, endpoint, handler, **kwargs):
         """Adds a rule to the URL map.
 
@@ -439,33 +474,6 @@ class Tipfy(object):
         """
         rule = Rule(path, endpoint=endpoint, handler=handler, **kwargs)
         self.url_map.add(rule)
-
-    def match_url(self, request):
-        """Matches registered :class:`Rule` definitions against the request.
-        This will store the URL adapter, matched rule and rule arguments in
-        the :class: `Request` instance.
-
-        Three exceptions can occur when matching the rules: ``NotFound``,
-        ``MethodNotAllowed`` or ``RequestRedirect``. If they are
-        raised, they are stored in the request for later use.
-
-        :param request:
-            A :class:`Request` instance.
-        :returns:
-            None.
-        """
-        # Bind url map to the current request location.
-        config = self.config.get('tipfy')
-        request.url_adapter = self.url_map.bind_to_environ(request.environ,
-            server_name=config.get('server_name'),
-            subdomain=config.get('subdomain'))
-
-        try:
-            # Match the path against registered rules.
-            request.rule, request.rule_args = request.url_adapter.match(
-                return_rule=True)
-        except HTTPException, e:
-            request.routing_exception = e
 
     def pre_dispatch(self, request):
         """Executes pre_dispatch_handler middleware. If a middleware returns
@@ -529,23 +537,14 @@ class Tipfy(object):
 
         The following types are allowd for ``rv``:
 
-        response_class
-            The object is returned unchanged.
-
-        str
-            A response object is created with the string as body.
-
-        unicode
-            A response object is created with the string encoded to
-            utf-8 as body.
-
-        tuple
-            The response object is created with the contents of the
-            tuple as arguments.
-
-        WSGI function
-            The function is called as WSGI application and
-            buffered as response object.
+        - response_class: The object is returned unchanged.
+        - str: A response object is created with the string as body.
+        - unicode: A response object is created with the string encoded to
+          utf-8 as body.
+        - tuple: The response object is created with the contents of the
+          tuple as arguments.
+        - WSGI function: The function is called as WSGI application and
+          buffered as response object.
 
         This method comes from `Flask <http://flask.pocoo.org/>`_.
 

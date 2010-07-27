@@ -5,31 +5,28 @@
 import unittest
 from nose.tools import raises
 
-from tipfy import (Map, NotFound, Request, Rule, Tipfy, url_for)
+from tipfy import Request, RequestHandler, Rule, Tipfy, url_for
 
 
-def get_url_rules():
-    # Fake get_rules() for testing.
-    rules = [
-        Rule('/', endpoint='home', handler='test.home:HomeHandler'),
-        Rule('/people/<string:username>', endpoint='profile',
-            handler='test.profile:ProfileHandler'),
-    ]
+class HomeHandler(RequestHandler):
+    def get(self, **kwargs):
+        return 'Hello, World!'
 
-    return rules
+
+class ProfileHandler(RequestHandler):
+    def get(self, **kwargs):
+        return 'Username: %s' % kwargs.get('username')
 
 
 def get_app():
-    app = Tipfy({
-        'tipfy': {
-        },
-    }, rules=get_url_rules())
-    app.set_wsgi_app()
-    return app
+    return Tipfy(rules=[
+        Rule('/', endpoint='home', handler=HomeHandler),
+        Rule('/people/<string:username>', endpoint='profile', handler=ProfileHandler),
+    ])
 
 
-def get_request(app, *args, **kwargs):
-    request = Request.from_values(*args, **kwargs)
+def get_request(app, **kwargs):
+    request = Request.from_values(**kwargs)
     app.set_request(request)
     return request
 
@@ -62,26 +59,26 @@ class TestUrls(unittest.TestCase):
     #===========================================================================
     def test_url_match(self):
         app = get_app()
-        request = get_request(app, base_url='http://foo.com')
-        app.match_url(request)
+        client = app.get_test_client()
 
-        assert request.rule.handler == 'test.home:HomeHandler'
-        assert request.rule_args == {}
+        response = client.get('/')
+        assert response.status_code == 200
+        assert response.data == 'Hello, World!'
 
     def test_url_match2(self):
         app = get_app()
-        request = get_request(app, base_url='http://foo.com', path='/people/calvin')
-        app.match_url(request)
+        client = app.get_test_client()
 
-        assert request.rule.handler == 'test.profile:ProfileHandler'
-        assert request.rule_args == {'username': 'calvin'}
+        response = client.get('/people/calvin')
+        assert response.status_code == 200
+        assert response.data == 'Username: calvin'
 
     def test_not_found(self):
         app = get_app()
-        request = get_request(app, base_url='http://foo.com', path='/this-path-is-not-mapped')
-        app.match_url(request)
+        client = app.get_test_client()
 
-        assert isinstance(request.routing_exception, NotFound)
+        response = client.get('/this-path-is-not-mapped')
+        assert response.status_code == 404
 
     #===========================================================================
     # url_for()
@@ -112,6 +109,7 @@ class TestUrls(unittest.TestCase):
     def test_url_for_full2(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
+        request.url_adapter = app.get_url_adapter(request)
         app.match_url(request)
 
         assert url_for('profile', username='calvin', full=True) == \

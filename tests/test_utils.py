@@ -7,34 +7,53 @@ from nose.tools import raises
 
 import werkzeug
 
-from tipfy import (Map, Request, Response, Rule, Tipfy, redirect,
+from tipfy import (RequestHandler, Response, Rule, Tipfy, redirect,
     redirect_to, render_json_response)
 
 
-def get_url_rules():
-    # Fake get_rules() for testing.
-    rules = [
-        Rule('/', endpoint='home', handler='test.home:HomeHandler'),
-        Rule('/people/<string:username>', endpoint='profile',
-            handler='test.profile:ProfileHandler'),
-    ]
+class HomeHandler(RequestHandler):
+    def get(self, **kwargs):
+        return 'Hello, World!'
 
-    return rules
+
+class ProfileHandler(RequestHandler):
+    def get(self, **kwargs):
+        return 'Username: %s' % kwargs.get('username')
+
+
+class RedirectToHandler(RequestHandler):
+    def get(self, **kwargs):
+        username = kwargs.get('username', None)
+        if username:
+            return redirect_to('profile', username=username)
+        else:
+            return redirect_to('home')
+
+
+class RedirectTo301Handler(RequestHandler):
+    def get(self, **kwargs):
+        username = kwargs.get('username', None)
+        if username:
+            return redirect_to('profile', username=username, _code=301)
+        else:
+            return redirect_to('home', _code=301)
+
+
+class RedirectToInvalidCodeHandler(RequestHandler):
+    def get(self, **kwargs):
+        return redirect_to('home', _code=405)
 
 
 def get_app():
-    app = Tipfy({
-        'tipfy': {
-        },
-    }, rules=get_url_rules())
-    app.set_wsgi_app()
-    return app
-
-
-def get_request(app, *args, **kwargs):
-    request = Request.from_values(*args, **kwargs)
-    app.set_request(request)
-    return request
+    return Tipfy(rules=[
+        Rule('/', endpoint='home', handler=HomeHandler),
+        Rule('/people/<string:username>', endpoint='profile', handler=ProfileHandler),
+        Rule('/redirect_to/', endpoint='redirect_to', handler=RedirectToHandler),
+        Rule('/redirect_to/<string:username>', endpoint='redirect_to', handler=RedirectToHandler),
+        Rule('/redirect_to_301/', endpoint='redirect_to', handler=RedirectTo301Handler),
+        Rule('/redirect_to_301/<string:username>', endpoint='redirect_to', handler=RedirectTo301Handler),
+        Rule('/redirect_to_invalid', endpoint='redirect_to_invalid', handler=RedirectToInvalidCodeHandler),
+    ])
 
 
 class TestUtils(unittest.TestCase):
@@ -79,46 +98,51 @@ class TestUtils(unittest.TestCase):
     #===========================================================================
     def test_redirect_to(self):
         app = get_app()
-        request = get_request(app, base_url='http://foo.com')
-        app.match_url(request)
+        client = app.get_test_client()
 
-        response = redirect_to('home')
+        response = client.get('/redirect_to/', base_url='http://foo.com')
         assert response.headers['location'] == 'http://foo.com/'
         assert response.status_code == 302
 
+
     def test_redirect_to2(self):
         app = get_app()
-        request = get_request(app, base_url='http://foo.com')
-        app.match_url(request)
+        client = app.get_test_client()
 
-        response = redirect_to('profile', username='calvin')
+        response = client.get('/redirect_to/calvin', base_url='http://foo.com')
         assert response.headers['location'] == 'http://foo.com/people/calvin'
         assert response.status_code == 302
 
-        response = redirect_to('profile', username='hobbes')
+        response = client.get('/redirect_to/hobbes', base_url='http://foo.com')
         assert response.headers['location'] == 'http://foo.com/people/hobbes'
         assert response.status_code == 302
 
-        response = redirect_to('profile', username='moe')
+        response = client.get('/redirect_to/moe', base_url='http://foo.com')
         assert response.headers['location'] == 'http://foo.com/people/moe'
         assert response.status_code == 302
 
     def test_redirect_to_301(self):
         app = get_app()
-        request = get_request(app, base_url='http://foo.com')
-        app.match_url(request)
+        client = app.get_test_client()
 
-        response = redirect_to('home', code=301)
-        assert response.headers['location'] == 'http://foo.com/'
+        response = client.get('/redirect_to_301/calvin', base_url='http://foo.com')
+        assert response.headers['location'] == 'http://foo.com/people/calvin'
         assert response.status_code == 301
 
-    @raises(AssertionError)
+        response = client.get('/redirect_to_301/hobbes', base_url='http://foo.com')
+        assert response.headers['location'] == 'http://foo.com/people/hobbes'
+        assert response.status_code == 301
+
+        response = client.get('/redirect_to_301/moe', base_url='http://foo.com')
+        assert response.headers['location'] == 'http://foo.com/people/moe'
+        assert response.status_code == 301
+
     def test_redirect_to_invalid_code(self):
         app = get_app()
-        request = get_request(app, base_url='http://foo.com')
-        app.match_url(request)
+        client = app.get_test_client()
 
-        redirect_to('home', code=405)
+        response = client.get('/redirect_to_invalid', base_url='http://foo.com')
+        assert response.status_code == 500
 
     #===========================================================================
     # render_json_response()

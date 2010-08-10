@@ -1,0 +1,47 @@
+TODO
+====
+
+Ideas to consider from webapp2
+------------------------------
+Just a bunch of ideas that could be ported to tipfy, but not necessarily will:
+
+- Add RequestHandler.__call__(), deprecate RequestHandler.dispatch().
+
+- Exception handling:
+  - Tipfy.error_handlers: dictionay mapping status codes to RequestHandler
+    classes.
+  - RequestHandler.handle_exception(): re-raises the exception by default, but
+    can be used in extended classes to handle an exception raised during
+    RequestHandler.__call__().
+  - Deprecate handle_exception middleware.
+  - Add RequestHandler.abort() and RequestHandler.error().
+
+- Tipfy.run(): runs the app using google.appengine.ext.webapp.util.run_wsgi_app
+  or run_bare_wsgi_app.
+
+- Move get_config() logic to Config.get_and_load(). Keep get_config() in app
+  and handler as a convenience.
+
+- Full list of new methods for RequestHandler:
+  - __call__()
+  - abort()
+  - error()
+  - get_config()
+  - handle_exception()
+  - redirect()
+  - redirect_to()
+  - url_for()
+
+- Add a router object to the WSGI app for the match/dispatch logic.
+
+
+tipfy.ext.auth
+--------------
+- Sylvain_ on IRC: if you want to add Oauth2 (Facebook) authentication, you
+  can use this file : http://github.com/joerussbowman/tornado/blob/master/tornado/auth.py
+
+
+tipfy.ext.ui?
+-------------
+- Consider the idea of a general purpose extension for UI components.
+  See http://github.com/facebook/tornado/blob/master/tornado/web.py#L1388

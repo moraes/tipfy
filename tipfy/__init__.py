@@ -127,11 +127,11 @@ class RequestHandler(object):
         self.app = app
         self.request = request
 
-    def dispatch(self, method, **kwargs):
+    def __call__(self, _method, **kwargs):
         """Executes a handler method. This is called by :class:`Tipfy` and
         must return a :class:`Response` object.
 
-        :param method:
+        :param _method:
             The method to be dispatched, normally the request method in
             lower case, e.g., 'get', 'post', 'head' or 'put'.
         :param kwargs:
@@ -140,7 +140,7 @@ class RequestHandler(object):
         :returns:
             A :class:`Response` instance.
         """
-        method = getattr(self, method, None)
+        method = getattr(self, _method, None)
         if method is None:
             # 405 Method Not Allowed.
             # The response MUST include an Allow header containing a
@@ -182,6 +182,10 @@ class RequestHandler(object):
 
         # Done!
         return response
+
+    def dispatch(self, _method, **kwargs):
+        """Deprecated method, a wrapper for :meth:`__call__`."""
+        return self(_method, **kwargs)
 
     def abort(self, code, *args, **kwargs):
         """Raises a ``werkzeug.exceptions.HTTPException``. This stops code
@@ -534,7 +538,7 @@ class Tipfy(object):
             handler = self.handlers[handler]
 
         # Instantiate handler and dispatch requested method.
-        return handler(self, request).dispatch(request.method.lower(),
+        return handler(self, request)(request.method.lower(),
             **request.rule_args)
 
     def post_dispatch(self, request, response):

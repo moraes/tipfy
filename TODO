@@ -5,8 +5,6 @@ Ideas to consider from webapp2
 ------------------------------
 Just a bunch of ideas that could be ported to tipfy, but not necessarily will:
 
-- Add RequestHandler.__call__(), deprecate RequestHandler.dispatch().
-
 - Exception handling:
   - Tipfy.error_handlers: dictionay mapping status codes to RequestHandler
     classes.
@@ -19,9 +17,6 @@ Just a bunch of ideas that could be ported to tipfy, but not necessarily will:
 - Tipfy.run(): runs the app using google.appengine.ext.webapp.util.run_wsgi_app
   or run_bare_wsgi_app.
 
-- Move get_config() logic to Config.get_and_load(). Keep get_config() in app
-  and handler as a convenience.
-
 - Full list of new methods for RequestHandler:
   - __call__()
   - abort()
@@ -33,6 +28,17 @@ Just a bunch of ideas that could be ported to tipfy, but not necessarily will:
   - url_for()
 
 - Add a router object to the WSGI app for the match/dispatch logic.
+
+webapp2 ideas already implemented
+---------------------------------
+- Added RequestHandler.__call__(), deprecate RequestHandler.dispatch().
+
+- Moved get_config() logic to Config.get_and_load(). Keep get_config() in app
+  as a convenience.
+
+- Added RequestHandler.get_config().
+
+- Added RequestHandler.abort().
 
 
 tipfy.ext.auth

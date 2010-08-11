@@ -30,8 +30,7 @@ if os.environ.get('SERVER_SOFTWARE', None) is None:
     try:
         # We declare the namespace to be used outside of App Engine, so that
         # we can distribute and install separate extensions.
-        #__import__('pkg_resources').declare_namespace(__name__)
-        pass
+        __import__('pkg_resources').declare_namespace(__name__)
     except ImportError, e:
         pass
 

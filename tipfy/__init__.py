@@ -30,7 +30,8 @@ if os.environ.get('SERVER_SOFTWARE', None) is None:
     try:
         # We declare the namespace to be used outside of App Engine, so that
         # we can distribute and install separate extensions.
-        __import__('pkg_resources').declare_namespace(__name__)
+        #__import__('pkg_resources').declare_namespace(__name__)
+        pass
     except ImportError, e:
         pass
 
@@ -204,9 +205,9 @@ class RequestHandler(object):
     def get_config(self, module, key=None, default=REQUIRED_VALUE):
         """Returns a configuration value for a module.
 
-        .. seealso:: :meth:`Config.load_and_get`.
+        .. seealso:: :meth:`Config.get_or_load`.
         """
-        return self.app.config.load_and_get(module, key=key, default=default)
+        return self.app.config.get_or_load(module, key=key, default=default)
 
 
 class Context(dict):
@@ -644,9 +645,9 @@ class Tipfy(object):
     def get_config(self, module, key=None, default=REQUIRED_VALUE):
         """Returns a configuration value for a module.
 
-        .. seealso:: :meth:`Config.load_and_get`.
+        .. seealso:: :meth:`Config.get_or_load`.
         """
-        return self.config.load_and_get(module, key=key, default=default)
+        return self.config.get_or_load(module, key=key, default=default)
 
     def set_wsgi_app(self):
         """Sets the currently active :class:`Tipfy` instance."""
@@ -827,7 +828,7 @@ class Config(dict):
 
         return self[module][key]
 
-    def load_and_get(self, module, key=None, default=REQUIRED_VALUE):
+    def get_or_load(self, module, key=None, default=REQUIRED_VALUE):
         """Returns a configuration value for a module. If it is not already
         set, loads a ``default_config`` variable from the given module,
         updates the app configuration with those default values and returns
@@ -999,9 +1000,9 @@ class Rule(WerkzeugRule):
 def get_config(module, key=None, default=REQUIRED_VALUE):
     """Returns a configuration value for a module.
 
-    .. seealso:: :meth:`Config.load_and_get`.
+    .. seealso:: :meth:`Config.get_or_load`.
     """
-    return Tipfy.app.config.load_and_get(module, key=key, default=default)
+    return Tipfy.app.config.get_or_load(module, key=key, default=default)
 
 
 def get_valid_methods(handler):

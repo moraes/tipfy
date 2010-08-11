@@ -33,7 +33,7 @@ webapp2 ideas already implemented
 ---------------------------------
 - Added RequestHandler.__call__(), deprecate RequestHandler.dispatch().
 
-- Moved get_config() logic to Config.get_and_load(). Keep get_config() in app
+- Moved get_config() logic to Config.get_or_load(). Keep get_config() in app
   as a convenience.
 
 - Added RequestHandler.get_config().

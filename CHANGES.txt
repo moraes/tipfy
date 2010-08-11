@@ -3,9 +3,9 @@ Development version
 - Added RequestHandler.abort(), a wrapper for abort().
 
 - Moved the logic from Tipfy.get_config() to the new method
-  Config.load_and_get().
+  Config.get_or_load().
 
-- Added RequestHandler.get_config(), a wrapper for Config.load_and_get().
+- Added RequestHandler.get_config(), a wrapper for Config.get_or_load().
 
 - Added get_valid_methods(), to return the HTTP methods a handler can handle.
   This is used when raising MethodNotAllowed, which now correctly lists the

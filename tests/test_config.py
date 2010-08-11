@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy config
+Tests for tipfy config
 """
 import unittest
 
 from nose.tools import assert_raises, raises
 
-from tipfy import Config, Tipfy, default_config, get_config
+from tipfy import Config, Tipfy, RequestHandler, REQUIRED_VALUE
 
 
 class TestConfig(unittest.TestCase):
-    def tearDown(self):
-        Tipfy.app = Tipfy.request = None
-
     def test_get_existing_keys(self):
         config = Config({'foo': {
             'bar': 'baz',
@@ -153,102 +150,121 @@ class TestConfig(unittest.TestCase):
 
 
 class TestGetConfig(unittest.TestCase):
-    def tearDown(self):
-        Tipfy.app = Tipfy.request = None
-
     def test_default_config(self):
-        app = Tipfy()
+        config = Config()
 
-        from tipfy.ext.jinja2 import default_config as jinja2_config
-        from tipfy.ext.i18n import default_config as i18n_config
+        from resources.template import default_config as template_config
+        from resources.i18n import default_config as i18n_config
 
-        assert get_config('tipfy', 'dev') == default_config['dev']
-        assert get_config('tipfy.ext.jinja2', 'templates_dir') == jinja2_config['templates_dir']
-        assert get_config('tipfy.ext.i18n', 'locale') == i18n_config['locale']
-        assert get_config('tipfy.ext.i18n', 'timezone') == i18n_config['timezone']
+        assert config.load_and_get('resources.template', 'templates_dir') == template_config['templates_dir']
+        assert config.load_and_get('resources.i18n', 'locale') == i18n_config['locale']
+        assert config.load_and_get('resources.i18n', 'timezone') == i18n_config['timezone']
 
     def test_default_config_with_non_existing_key(self):
-        app = Tipfy()
+        config = Config()
 
-        from tipfy.ext.i18n import default_config as i18n_config
+        from resources.i18n import default_config as i18n_config
 
         # In the first time the module config will be loaded normally.
-        assert get_config('tipfy.ext.i18n', 'locale') == i18n_config['locale']
+        assert config.load_and_get('resources.i18n', 'locale') == i18n_config['locale']
 
         # In the second time it won't be loaded, but won't find the value and then use the default.
-        assert get_config('tipfy.ext.i18n', 'i_dont_exist', 'foo') == 'foo'
+        assert config.load_and_get('resources.i18n', 'i_dont_exist', 'foo') == 'foo'
 
     def test_override_config(self):
-        app = Tipfy({
-            'tipfy': {
-                'dev': True,
-            },
-            'tipfy.ext.jinja2': {
+        config = Config({
+            'resources.template': {
                 'templates_dir': 'apps/templates'
             },
-            'tipfy.ext.i18n': {
+            'resources.i18n': {
                 'locale': 'pt_BR',
                 'timezone': 'America/Sao_Paulo',
             },
         })
 
-        assert get_config('tipfy', 'dev') is True
-        assert get_config('tipfy.ext.jinja2', 'templates_dir') == 'apps/templates'
-        assert get_config('tipfy.ext.i18n', 'locale') == 'pt_BR'
-        assert get_config('tipfy.ext.i18n', 'timezone') == 'America/Sao_Paulo'
+        assert config.load_and_get('resources.template', 'templates_dir') == 'apps/templates'
+        assert config.load_and_get('resources.i18n', 'locale') == 'pt_BR'
+        assert config.load_and_get('resources.i18n', 'timezone') == 'America/Sao_Paulo'
 
     def test_override_config2(self):
-        app = Tipfy({
-            'tipfy.ext.i18n': {
+        config = Config({
+            'resources.i18n': {
                 'timezone': 'America/Sao_Paulo',
             },
         })
 
-        assert get_config('tipfy.ext.i18n', 'locale') == 'en_US'
-        assert get_config('tipfy.ext.i18n', 'timezone') == 'America/Sao_Paulo'
+        assert config.load_and_get('resources.i18n', 'locale') == 'en_US'
+        assert config.load_and_get('resources.i18n', 'timezone') == 'America/Sao_Paulo'
 
     def test_get(self):
-        app = Tipfy({'foo': {
+        config = Config({'foo': {
             'bar': 'baz',
         }})
 
-        assert get_config('foo', 'bar') == 'baz'
+        assert config.load_and_get('foo', 'bar') == 'baz'
 
     def test_get_with_default(self):
-        app = Tipfy()
+        config = Config()
 
-        assert get_config('tipfy.ext.i18n', 'bar', 'baz') == 'baz'
+        assert config.load_and_get('resources.i18n', 'bar', 'baz') == 'baz'
 
     def test_get_with_default_and_none(self):
-        app = Tipfy({'foo': {
+        config = Config({'foo': {
             'bar': None,
         }})
 
-        assert get_config('foo', 'bar', 'ooops') is None
+        assert config.load_and_get('foo', 'bar', 'ooops') is None
 
     def test_get_with_default_and_module_load(self):
-        app = Tipfy()
-        assert get_config('tipfy.ext.i18n', 'locale') == 'en_US'
-
-        app = Tipfy()
-        assert get_config('tipfy.ext.i18n', 'locale', 'foo') == 'en_US'
+        config = Config()
+        assert config.load_and_get('resources.i18n', 'locale') == 'en_US'
+        assert config.load_and_get('resources.i18n', 'locale', 'foo') == 'en_US'
 
     @raises(KeyError)
     def test_required_config(self):
-        app = Tipfy()
-        get_config('tipfy.ext.i18n', 'i_dont_exist')
-
-    @raises(KeyError)
-    def test_required_config2(self):
-        app = Tipfy()
-        app.get_config('tipfy.ext.session', 'secret_key')
-
-    @raises(KeyError)
-    def test_missing_default_config(self):
-        app = Tipfy()
-        assert get_config('tipfy.ext.db', 'foo') == 'baz'
+        config = Config()
+        config.load_and_get('resources.i18n', 'required')
 
     @raises(KeyError)
     def test_missing_module(self):
+        config = Config()
+        assert config.load_and_get('i_dont_exist', 'i_dont_exist') == 'baz'
+
+    @raises(KeyError)
+    def test_missing_module2(self):
+        config = Config()
+        assert config.load_and_get('i_dont_exist') == 'baz'
+
+    @raises(KeyError)
+    def test_missing_key(self):
+        config = Config()
+        config.load_and_get('resources.i18n', 'i_dont_exist')
+
+    @raises(KeyError)
+    def test_missing_default_config(self):
+        config = Config()
+        assert config.load_and_get('webapp2', 'foo') == 'baz'
+
+    def test_app_get_config(self):
         app = Tipfy()
-        assert get_config('i_dont_exist', 'i_dont_exist') == 'baz'
+
+        assert app.get_config('resources.i18n', 'locale') == 'en_US'
+        assert app.get_config('resources.i18n', 'locale', 'foo') == 'en_US'
+        assert app.get_config('resources.i18n') == {
+            'locale': 'en_US',
+            'timezone': 'America/Chicago',
+            'required': REQUIRED_VALUE,
+        }
+
+    def test_request_handler_get_config(self):
+        app = Tipfy()
+
+        handler = RequestHandler(app, None)
+
+        assert handler.get_config('resources.i18n', 'locale') == 'en_US'
+        assert handler.get_config('resources.i18n', 'locale', 'foo') == 'en_US'
+        assert handler.get_config('resources.i18n') == {
+            'locale': 'en_US',
+            'timezone': 'America/Chicago',
+            'required': REQUIRED_VALUE,
+        }

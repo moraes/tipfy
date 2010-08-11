@@ -197,6 +197,13 @@ class RequestHandler(object):
         """
         abort(code, *args, **kwargs)
 
+    def get_config(self, module, key=None, default=REQUIRED_VALUE):
+        """Returns a configuration value for a module.
+
+        .. seealso:: :meth:`Config.load_and_get`.
+        """
+        return self.app.config.load_and_get(module, key=key, default=default)
+
 
 class Context(dict):
     """A context for global values used by :class:`Request`."""
@@ -630,44 +637,12 @@ class Tipfy(object):
 
         return self.middleware_factory.get_middleware(obj, classes)
 
-    def get_config(self, module, key=None, default=DEFAULT_VALUE):
-        """Returns a configuration value for a module. If it is not already
-        set, loads a :data:`default_config` variable from the given module,
-        updates the app configuration with those default values and returns
-        the value for the given key. If the key is still not available,
-        returns the provided default value or raises an exception if no
-        default was provided.
+    def get_config(self, module, key=None, default=REQUIRED_VALUE):
+        """Returns a configuration value for a module.
 
-        Every Tipfy module that allows some kind of configuration sets a
-        :data:`default_config` global variable that is loaded by this function,
-        cached and used in case the requested configuration was not defined
-        by the user.
-
-        :param module:
-            The configured module.
-        :param key:
-            The config key.
-        :returns:
-            A configuration value.
+        .. seealso:: :meth:`Config.load_and_get`.
         """
-        config = self.config
-        if module not in config.loaded:
-            # Load default configuration and update app config.
-            values = import_string(module + ':default_config', silent=True)
-            if values:
-                config.setdefault(module, values)
-
-            config.loaded.append(module)
-
-        value = config.get(module, key, default)
-        if value not in (DEFAULT_VALUE, REQUIRED_VALUE):
-            return value
-
-        if key is None:
-            raise KeyError('Module %s is not configured.' % module)
-        else:
-            raise KeyError('Module %s requires the config key "%s" to be '
-                'set.' % (module, key))
+        return self.config.load_and_get(module, key=key, default=default)
 
     def set_wsgi_app(self):
         """Sets the currently active :class:`Tipfy` instance."""
@@ -699,8 +674,28 @@ class Tipfy(object):
 class Config(dict):
     """A simple configuration dictionary keyed by module name. This is a
     dictionary of dictionaries. It requires all values to be dictionaries
-    and applies updates and default values to the inner dictionaries instead of
-    the first level one.
+    and applies updates and default values to the inner dictionaries instead
+    of the first level one.
+
+    The configuration object is available as a ``config`` attribute of the
+    :class:`Tipfy`. If is instantiated and populated when the app is
+    built::
+
+        config = {}
+
+        config['my.module'] = {
+            'foo': 'bar',
+        }
+
+        app = Tipfy(config=config)
+
+    Then to read configuration values, use :meth:`RequestHandler.get_config`::
+
+        class MyHandler(RequestHandler):
+            def get(self):
+                foo = self.get_config('my.module', 'foo')
+
+                # ...
     """
     #: Loaded module configurations.
     loaded = None
@@ -752,7 +747,8 @@ class Config(dict):
         bar
 
         :param module:
-            The module to update the configuration, e.g.: 'tipfy.ext.i18n'.
+            The module to update the configuration, e.g.:
+            'tipfy.ext.i18n'.
         :param value:
             A dictionary of configurations for the module.
         :returns:
@@ -779,7 +775,8 @@ class Config(dict):
         bar
 
         :param module:
-            The module to set default configuration, e.g.: 'tipfy.ext.i18n'.
+            The module to set default configuration, e.g.:
+            'tipfy.ext.i18n'.
         :param value:
             A dictionary of configurations for the module.
         :returns:
@@ -806,7 +803,8 @@ class Config(dict):
         default-value
 
         :param module:
-            The module to get a configuration from, e.g.: 'tipfy.ext.i18n'.
+            The module to get a configuration from, e.g.:
+            'tipfy.ext.i18n'.
         :param key:
             The key from the module configuration.
         :param default:
@@ -824,6 +822,47 @@ class Config(dict):
             return default
 
         return self[module][key]
+
+    def load_and_get(self, module, key=None, default=REQUIRED_VALUE):
+        """Returns a configuration value for a module. If it is not already
+        set, loads a ``default_config`` variable from the given module,
+        updates the app configuration with those default values and returns
+        the value for the given key. If the key is still not available,
+        returns the provided default value or raises an exception if no
+        default was provided.
+
+        Every module that allows some kind of configuration sets a
+        ``default_config`` global variable that is loaded by this function,
+        cached and used in case the requested configuration was not defined
+        by the user.
+
+        :param module:
+            The configured module.
+        :param key:
+            The config key.
+        :param default:
+            A default value to return in case the configuration for
+            the module/key is not set.
+        :returns:
+            A configuration value.
+        """
+        if module not in self.loaded:
+            # Load default configuration and update config.
+            values = import_string(module + '.default_config', silent=True)
+            if values:
+                self.setdefault(module, values)
+
+            self.loaded.append(module)
+
+        value = self.get(module, key, default)
+        if value is not REQUIRED_VALUE:
+            return value
+
+        if key is None:
+            raise KeyError('Module %s is not configured.' % module)
+        else:
+            raise KeyError('Module %s requires the config key "%s" to be '
+                'set.' % (module, key))
 
 
 class MiddlewareFactory(object):
@@ -953,12 +992,12 @@ class Rule(WerkzeugRule):
                     self.redirect_to, handler=self.handler)
 
 
-def get_config(module, key=None, default=DEFAULT_VALUE):
+def get_config(module, key=None, default=REQUIRED_VALUE):
     """Returns a configuration value for a module.
 
-    This is a shortcut to :meth:`Tipfy.get_config`.
+    .. seealso:: :meth:`Config.load_and_get`.
     """
-    return Tipfy.app.get_config(module, key, default)
+    return Tipfy.app.config.load_and_get(module, key=key, default=default)
 
 
 def get_valid_methods(handler):

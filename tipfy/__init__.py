@@ -83,12 +83,12 @@ default_config = {
     'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
 }
 
-# Allowed request methods.
-ALLOWED_METHODS = frozenset(['get', 'post', 'head', 'options', 'put', 'delete',
-    'trace'])
-# Value used for required values.
+#: Allowed request methods.
+ALLOWED_METHODS = frozenset(['GET', 'POST', 'HEAD', 'OPTIONS', 'PUT',
+    'DELETE', 'TRACE'])
+#: Value used for required values.
 REQUIRED_VALUE = object()
-# Value used for missing default values.
+#: Value used for missing default values.
 DEFAULT_VALUE = object()
 
 
@@ -142,7 +142,11 @@ class RequestHandler(object):
         """
         method = getattr(self, method, None)
         if method is None:
-            raise MethodNotAllowed()
+            # 405 Method Not Allowed.
+            # The response MUST include an Allow header containing a
+            # list of valid methods for the requested resource.
+            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.6
+            self.abort(405, valid_methods=get_valid_methods(self))
 
         if not self.middleware:
             # No middleware is set: just execute the method.
@@ -178,6 +182,20 @@ class RequestHandler(object):
 
         # Done!
         return response
+
+    def abort(self, code, *args, **kwargs):
+        """Raises a ``werkzeug.exceptions.HTTPException``. This stops code
+        execution, leaving the HTTP exception to be handled by an exception
+        handler.
+
+        :param code:
+            HTTP status error code (e.g., 404).
+        :param args:
+            Positional arguments to be passed to the exception class.
+        :param kwargs:
+            Keyword arguments to be passed to the exception class.
+        """
+        abort(code, *args, **kwargs)
 
 
 class Context(dict):
@@ -364,7 +382,7 @@ class Tipfy(object):
             self.set_request(request)
 
             # Make sure that the requested method is allowed in App Engine.
-            if request.method.lower() not in ALLOWED_METHODS:
+            if request.method not in ALLOWED_METHODS:
                 raise MethodNotAllowed()
 
             # Match current URL and store routing exceptions if any.
@@ -941,6 +959,17 @@ def get_config(module, key=None, default=DEFAULT_VALUE):
     This is a shortcut to :meth:`Tipfy.get_config`.
     """
     return Tipfy.app.get_config(module, key, default)
+
+
+def get_valid_methods(handler):
+    """Returns a list of HTTP methods supported by a handler.
+
+    :param handler:
+        A :class:`RequestHandler` instance.
+    :returns:
+        A list of HTTP methods supported by the handler.
+    """
+    return [m for m in ALLOWED_METHODS if getattr(handler, m.lower(), None)]
 
 
 def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):

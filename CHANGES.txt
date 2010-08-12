@@ -1,18 +1,20 @@
 Development version
 ===================
-- Added RequestHandler.abort(), a wrapper for abort().
+- New RequestHandler methods:
+  - abort(), a wrapper for abort().
+  - get_config(), a wrapper for Config.get_or_load().
+  - redirect().
+  - redirect_to().
+
+- RequestHandler instances are now callable. __call__() replaces dispatch(),
+  which is now deprecated and just calls the instance.
 
 - Moved the logic from Tipfy.get_config() to the new method
   Config.get_or_load().
 
-- Added RequestHandler.get_config(), a wrapper for Config.get_or_load().
-
 - Added get_valid_methods(), to return the HTTP methods a handler can handle.
   This is used when raising MethodNotAllowed, which now correctly lists the
   allowed methods as required by HTTP 1.1 spec.
-
-- RequestHandler instances are now callable. __call__() replaces dispatch(),
-  which is now deprecated and just calls the instance.
 
 - Added Tipfy.get_url_adapter(), that returns a bound URL map, to make it
   easier to override the bound server_name or subdomain.

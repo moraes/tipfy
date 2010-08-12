@@ -208,6 +208,22 @@ class RequestHandler(object):
         """
         return self.app.config.get_or_load(module, key=key, default=default)
 
+    def redirect(self, location, code=302):
+        """Return a response object (a WSGI application) that, if called,
+        redirects the client to the target location.
+
+        :param location:
+            The location the response should redirect to.
+        :param code:
+            The redirect status code.
+        """
+        return redirect(location, code)
+
+    def redirect_to(self, endpoint, _method=None, _anchor=None, _code=302,
+        **kwargs):
+        """.. seealso:: :func:`redirect_to`."""
+        return redirect_to(endpoint, _method, _anchor, _code, **kwargs)
+
 
 class Context(dict):
     """A context for global values used by :class:`Request`."""

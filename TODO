@@ -36,9 +36,12 @@ webapp2 ideas already implemented
 - Moved get_config() logic to Config.get_or_load(). Keep get_config() in app
   as a convenience.
 
-- Added RequestHandler.get_config().
-
-- Added RequestHandler.abort().
+- Added RequestHandler methods:
+  - __call__()
+  - abort()
+  - get_config()
+  - redirect().
+  - redirect_to().
 
 
 tipfy.ext.auth

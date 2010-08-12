@@ -23,8 +23,8 @@ from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
     PreconditionFailed, RequestEntityTooLarge, RequestTimeout,
     RequestURITooLarge, ServiceUnavailable, Unauthorized,
     UnsupportedMediaType)
-from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
-    RequestRedirect, Rule as WerkzeugRule, RuleTemplate, Subdomain, Submount)
+from werkzeug.routing import (EndpointPrefix, Map, RequestRedirect,
+    Rule as WerkzeugRule, RuleFactory, RuleTemplate, Subdomain, Submount)
 
 if os.environ.get('SERVER_SOFTWARE', None) is None:
     try:
@@ -1010,6 +1010,36 @@ class Rule(WerkzeugRule):
         return Rule(self.rule, defaults, self.subdomain, self.methods,
                     self.build_only, self.endpoint, self.strict_slashes,
                     self.redirect_to, handler=self.handler)
+
+
+class HandlerPrefix(RuleFactory):
+    """Prefixes all handler values (which must be strings for this factory) of
+    nested rules with another string. For example, take these rules::
+
+        rules = [
+            HandlerPrefix('my_app.handlers.', [
+                Rule('/', endpoint='index', handler='IndexHandler'),
+                Rule('/entry/<entry_slug>', endpoint='show', handler='ShowHandler'),
+            ]),
+        ]
+
+    These are the same as::
+
+        rules = [
+            Rule('/', endpoint='index', handler='my_app.handlers.IndexHandler'),
+            Rule('/entry/<entry_slug>', endpoint='show', handler='my_app.handlers.ShowHandler'),
+        ]
+    """
+    def __init__(self, prefix, rules):
+        self.prefix = prefix
+        self.rules = rules
+
+    def get_rules(self, map):
+        for rulefactory in self.rules:
+            for rule in rulefactory.get_rules(map):
+                rule = rule.empty()
+                rule.handler = self.prefix + rule.handler
+                yield rule
 
 
 def get_config(module, key=None, default=REQUIRED_VALUE):

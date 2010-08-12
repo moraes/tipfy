@@ -9,6 +9,23 @@ Development version
 - RequestHandler instances are now callable. __call__() replaces dispatch(),
   which is now deprecated and just calls the instance.
 
+- Added HandlerPrefix, a rule factory to prefix handler definition in rules.
+  For example, take these rules::
+
+      rules = [
+          HandlerPrefix('my_app.handlers.', [
+              Rule('/', endpoint='index', handler='IndexHandler'),
+              Rule('/entry/<entry_slug>', endpoint='show', handler='ShowHandler'),
+          ]),
+      ]
+
+  These are the same as::
+
+      rules = [
+          Rule('/', endpoint='index', handler='my_app.handlers.IndexHandler'),
+          Rule('/entry/<entry_slug>', endpoint='show', handler='my_app.handlers.ShowHandler'),
+      ]
+
 - Moved the logic from Tipfy.get_config() to the new method
   Config.get_or_load().
 

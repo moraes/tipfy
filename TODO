@@ -1,5 +1,10 @@
 TODO
 ====
+Testing Docs
+------------
+- Add a page to the wiki about testing
+- Uggedal's recipe: http://www.tipfy.org/paste/view/753812
+
 
 Ideas to consider from webapp2
 ------------------------------
@@ -28,6 +33,7 @@ Just a bunch of ideas that could be ported to tipfy, but not necessarily will:
   - url_for()
 
 - Add a router object to the WSGI app for the match/dispatch logic.
+
 
 webapp2 ideas already implemented
 ---------------------------------

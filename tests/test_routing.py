@@ -5,17 +5,17 @@
 import unittest
 from nose.tools import raises
 
-from tipfy import Request, RequestHandler, Rule, Tipfy, url_for
+from tipfy import Request, RequestHandler, Response, Rule, Tipfy, url_for
 
 
 class HomeHandler(RequestHandler):
     def get(self, **kwargs):
-        return 'Hello, World!'
+        return Response('Hello, World!')
 
 
 class ProfileHandler(RequestHandler):
     def get(self, **kwargs):
-        return 'Username: %s' % kwargs.get('username')
+        return Response('Username: %s' % kwargs.get('username'))
 
 
 def get_app():
@@ -86,14 +86,14 @@ class TestUrls(unittest.TestCase):
     def test_url_for(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
-        app.match_url(request)
+        app.router.match(request)
 
         assert url_for('home') == '/'
 
     def test_url_for2(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
-        app.match_url(request)
+        app.router.match(request)
 
         assert url_for('profile', username='calvin') == '/people/calvin'
         assert url_for('profile', username='hobbes') == '/people/hobbes'
@@ -102,15 +102,14 @@ class TestUrls(unittest.TestCase):
     def test_url_for_full(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
-        app.match_url(request)
+        app.router.match(request)
 
         assert url_for('home', full=True) == 'http://foo.com/'
 
     def test_url_for_full2(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
-        request.url_adapter = app.get_url_adapter(request)
-        app.match_url(request)
+        app.router.match(request)
 
         assert url_for('profile', username='calvin', full=True) == \
             'http://foo.com/people/calvin'
@@ -122,7 +121,7 @@ class TestUrls(unittest.TestCase):
     def test_url_for_with_anchor(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
-        app.match_url(request)
+        app.router.match(request)
 
         assert url_for('home', _anchor='my-little-anchor') == '/#my-little-anchor'
         assert url_for('home', _full=True, _anchor='my-little-anchor') == 'http://foo.com/#my-little-anchor'

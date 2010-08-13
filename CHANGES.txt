@@ -41,6 +41,12 @@ Development version
 
 - Minor change: ALLOWED_METHODS are now listed in upper case.
 
+- Removed app_id argument from Tipfy.__init__(). Not really needed or used.
+
+- Removed Tipfy.make_response(). It is a bit of not-really-needed magic here,
+  and we should stick to explicitness. Always returning a Response object is
+  not hard.
+
 
 Version 0.6 - July 25, 2010
 ===========================

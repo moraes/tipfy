@@ -30,7 +30,8 @@ if os.environ.get('SERVER_SOFTWARE', None) is None:
     try:
         # We declare the namespace to be used outside of App Engine, so that
         # we can distribute and install separate extensions.
-        __import__('pkg_resources').declare_namespace(__name__)
+        #__import__('pkg_resources').declare_namespace(__name__)
+        pass
     except ImportError, e:
         pass
 
@@ -78,7 +79,6 @@ default_config = {
     'middleware': [],
     'server_name': None,
     'subdomain': None,
-    'dev': os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
     'app_id': os.environ.get('APPLICATION_ID', None),
     'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
 }
@@ -172,9 +172,6 @@ class RequestHandler(object):
                         break
                 else:
                     raise
-
-        # Make sure we have a response object.
-        response = self.app.make_response(self.request, response)
 
         # Execute post_dispatch middleware.
         for hook in middleware.get('post_dispatch', []):
@@ -317,57 +314,154 @@ class Response(WerkzeugResponse):
     default_mimetype = 'text/html'
 
 
+class Router(object):
+    def __init__(self, app, rules=None):
+        self.app = app
+        self.url_map = self.get_url_map(rules)
+        # Cache for loaded handler classes.
+        self.handlers = {}
+
+    def add(self, rule):
+        """Adds a rule to the URL map.
+
+        :param path:
+            The URL path.
+        :param endpoint:
+            The rule endpoint: an identifier for the rule.
+        :param handler:
+            A :class:`RequestHandler` class, or a module and class
+            specification as a string.
+        """
+        self.url_map.add(rule)
+
+    def match(self, request):
+        """Matches registered :class:`Rule` definitions against the URL
+        adapter. This will store the URL adapter, matched rule and rule
+        arguments in the :class:`Request` instance.
+
+        Three exceptions can occur when matching the rules: ``NotFound``,
+        ``MethodNotAllowed`` or ``RequestRedirect``. If they are
+        raised, they are stored in the request for later use.
+
+        :param request:
+            A :class:`Request` instance.
+        :returns:
+            None.
+        """
+        # Bind the URL map to the current request
+        request.url_adapter = self.url_map.bind_to_environ(request.environ,
+            server_name=self.app.config.get('tipfy', 'server_name'),
+            subdomain=self.app.config.get('tipfy', 'subdomain'))
+
+        try:
+            # Match the path against registered rules.
+            match = request.url_adapter.match(return_rule=True)
+            request.rule, request.rule_args = match
+            return match
+        except HTTPException:
+            raise
+
+    def dispatch(self, app, request, match):
+        # Executes pre_dispatch_handler middleware. If a middleware returns
+        # a response, the chain is stopped.
+        for hook in app.middleware.get('pre_dispatch_handler', []):
+            response = hook()
+            if response is not None:
+                break
+        else:
+            rule, rule_args = match
+            handler_class = rule.handler
+            if isinstance(handler_class, basestring):
+                if handler_class not in self.handlers:
+                    # Import handler set in matched rule. This can raise an
+                    # ImportError or AttributeError if the handler is badly set.
+                    # The exception will be caught in wsgi_app().
+                    self.handlers[handler_class] = import_string(handler_class)
+
+                handler_class = self.handlers[handler_class]
+
+            # Instantiate handler and dispatch requested method.
+            handler = handler_class(app, request)
+            response = handler(request.method.lower(), **rule_args)
+
+        # Executes post_dispatch_handler middleware. All middleware are
+        # executed and must return a response object.
+        for hook in app.middleware.get('post_dispatch_handler', []):
+            response = hook(response)
+
+        return response
+
+    def get_url_map(self, rules=None):
+        """Returns a ``werkzeug.routing.Map`` instance with initial
+        :class:`Rule` definitions.
+
+        :param rules:
+            Initial list of :class:`Rule`, a callable or a string defining
+            a callable that returns the list of rules.
+        :returns:
+            A ``werkzeug.routing.Map`` instance.
+        """
+        if rules is None:
+            # Load rules from urls.py
+            rules = 'urls.get_rules'
+
+        if isinstance(rules, basestring):
+            rules = import_string(rules, silent=True)
+            if not rules:
+                logging.warning('Missing %s. No URL rules were loaded.' %
+                    rules)
+
+        if callable(rules):
+            rules = rules(self.app)
+
+        return Map(rules)
+
+
 class Tipfy(object):
     """The WSGI application which centralizes URL dispatching, configuration
     and hooks for an App Rngine app.
     """
-    #: Default class for the app registry.
-    registry_class = Registry
     #: Default class for requests.
     request_class = Request
     #: Default class for responses.
     response_class = Response
+    #: Default class for the URL router.
+    router_class = Router
+    #: Default class for the app registry.
+    registry_class = Registry
     #: The active :class:`Tipfy` instance.
     app = None
     #: The active :class:`Request` instance.
     request = None
 
-    def __init__(self, config=None, rules='urls.get_rules'):
+    def __init__(self, rules=None, config=None, debug=False):
         """Initializes the application.
 
-        :param config:
-            Dictionary with configuration for the application modules.
         :param rules:
             URL rules definitions for the application. It can be a list of
             :class:`Rule`, a callable or a string defining a callable that
             returns the rules list. The callable is called passing the WSGI
             application as parameter. Default is ``urls.get_rules``: import
             ``get_rules()`` from *urls.py* and calls it passing the app.
+        :param config:
+            Dictionary with configuration for the application modules.
         """
         # Set the currently active wsgi app instance.
         self.set_wsgi_app()
 
+        # Set a shortcut to the development flag.
+        self.debug = self.dev = debug
         # Load default config and update with values for this instance.
         self.config = Config(config, {'tipfy': default_config}, ['tipfy'])
-
+        # Initialize the URL map.
+        self.router = self.router_class(self, rules)
         # Set up a context registry for this app.
         self.registry = self.registry_class()
-
-        # Set a shortcut to the development flag.
-        self.dev = self.config.get('tipfy', 'dev', False)
-
-        # Cache for loaded handler classes.
-        self.handlers = {}
-
         # Middleware factory and registry.
         self.middleware_factory = MiddlewareFactory()
-
         # Store the app middleware dict.
         self.middleware = self.get_middleware(self, self.config.get('tipfy',
             'middleware'))
-
-        # Initialize the URL map.
-        self.url_map = self.get_url_map(rules)
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""
@@ -402,29 +496,20 @@ class Tipfy(object):
 
             # Make sure that the requested method is allowed in App Engine.
             if request.method not in ALLOWED_METHODS:
-                raise MethodNotAllowed()
+                abort(501)
 
-            # Match current URL and store routing exceptions if any.
-            self.match_url(request)
-
-            # Run pre_dispatch_handler middleware.
-            rv = self.pre_dispatch(request)
-            if rv is None:
-                # Dispatch the requested handler.
-                rv = self.dispatch(request)
-
-            # Run post_dispatch_handler middleware.
-            response = self.make_response(request, rv)
-            response = self.post_dispatch(request, response)
+            # Match current URL.
+            match = self.router.match(request)
+            # Dispatch matched handler.
+            response = self.router.dispatch(self, request, match)
         except RequestRedirect, e:
             # Execute redirects raised by the routing system or the
             # application.
             response = e
         except Exception, e:
             # Handle HTTP and uncaught exceptions.
-            cleanup = not self.dev
+            cleanup = not self.debug
             response = self.handle_exception(request, e)
-            response = self.make_response(request, response)
         finally:
             # Do not clean request if we are in development mode and an
             # exception happened. This allows the debugger to still access
@@ -434,176 +519,6 @@ class Tipfy(object):
 
         # Call the response object as a WSGI application.
         return response(environ, start_response)
-
-    def get_url_map(self, rules=None):
-        """Returns a ``werkzeug.routing.Map`` instance with initial
-        :class:`Rule` definitions.
-
-        :param rules:
-            Initial list of :class:`Rule`, a callable or a string defining
-            a callable that returns the list of rules.
-        :returns:
-            A ``werkzeug.routing.Map`` instance.
-        """
-        if isinstance(rules, basestring):
-            rules = import_string(rules, silent=True)
-            if not rules:
-                logging.warning('Missing %s. No URL rules were loaded.' %
-                    rules)
-
-        if callable(rules):
-            try:
-                rules = rules(self)
-            except TypeError, e:
-                # Backwards compatibility:
-                # Previously get_rules() didn't receive the WSGI app.
-                rules = rules()
-
-        return Map(rules)
-
-    def get_url_adapter(self, request):
-        """Binds the URL map to the current request and returns a URL adapter.
-
-        :param request:
-            A :class:`Request` instance.
-        :returns:
-            A ``werkzeug.routing.MapAdapter``.
-        """
-        config = self.config.get('tipfy')
-        return self.url_map.bind_to_environ(request.environ,
-            server_name=config.get('server_name'),
-            subdomain=config.get('subdomain'))
-
-    def match_url(self, request):
-        """Matches registered :class:`Rule` definitions against the URL
-        adapter. This will store the URL adapter, matched rule and rule
-        arguments in the :class:`Request` instance.
-
-        Three exceptions can occur when matching the rules: ``NotFound``,
-        ``MethodNotAllowed`` or ``RequestRedirect``. If they are
-        raised, they are stored in the request for later use.
-
-        :param request:
-            A :class:`Request` instance.
-        :returns:
-            None.
-        """
-        request.url_adapter = self.get_url_adapter(request)
-        try:
-            # Match the path against registered rules.
-            request.rule, request.rule_args = request.url_adapter.match(
-                return_rule=True)
-        except HTTPException, e:
-            request.routing_exception = e
-
-    def add_url_rule(self, path, endpoint, handler, **kwargs):
-        """Adds a rule to the URL map.
-
-        :param path:
-            The URL path.
-        :param endpoint:
-            The rule endpoint: an identifier for the rule.
-        :param handler:
-            A :class:`RequestHandler` class, or a module and class
-            specification as a string.
-        """
-        rule = Rule(path, endpoint=endpoint, handler=handler, **kwargs)
-        self.url_map.add(rule)
-
-    def pre_dispatch(self, request):
-        """Executes pre_dispatch_handler middleware. If a middleware returns
-        anything, the chain is stopped and that value is retirned.
-
-        :param request:
-            A :class:`Request` instance.
-        :returns:
-            The returned value from a middleware or None.
-        """
-        for hook in self.middleware.get('pre_dispatch_handler', []):
-            rv = hook()
-            if rv is not None:
-                return rv
-
-    def dispatch(self, request):
-        """Dispatches a :class:`RequestHandler` and returns the result.
-
-        :param request:
-            A :class:`Request` instance.
-        :returns:
-            The returned value from the :class:`RequestHandler`.
-        """
-        if request.routing_exception is not None:
-            raise request.routing_exception
-
-        handler = request.rule.handler
-        if isinstance(handler, basestring):
-            if handler not in self.handlers:
-                # Import handler set in matched rule. This can raise an
-                # ImportError or AttributeError if the handler is badly set.
-                # The exception will be caught in wsgi_app().
-                self.handlers[handler] = import_string(handler)
-
-            handler = self.handlers[handler]
-
-        # Instantiate handler and dispatch requested method.
-        return handler(self, request)(request.method.lower(),
-            **request.rule_args)
-
-    def post_dispatch(self, request, response):
-        """Executes post_dispatch_handler middleware. All middleware are
-        executed and must return a response object.
-
-        :param request:
-            A :class:`Request` instance.
-        :param response:
-            The :class:`Response` returned from :meth:`Tipfy.pre_dispatch`
-            or :meth:`Tipfy.dispatch` and converted by
-            :meth:`Tipfy.make_response`.
-        :returns:
-            A :class:`Response` instance.
-        """
-        for hook in self.middleware.get('post_dispatch_handler', []):
-            response = hook(response)
-
-        return response
-
-    def make_response(self, request, rv):
-        """Converts the return value from a handler to a real response
-        object that is an instance of :class:`Response`.
-
-        The following types are allowd for ``rv``:
-
-        - response_class: The object is returned unchanged.
-        - str: A response object is created with the string as body.
-        - unicode: A response object is created with the string encoded to
-          utf-8 as body.
-        - tuple: The response object is created with the contents of the
-          tuple as arguments.
-        - WSGI function: The function is called as WSGI application and
-          buffered as response object.
-
-        This method comes from `Flask <http://flask.pocoo.org/>`_.
-
-        :param request:
-            A :class:`Request` instance.
-        :param rv:
-            The return value from the handler.
-        :returns:
-            A :class:`Response` instance.
-        """
-        if isinstance(rv, self.response_class):
-            return rv
-
-        if isinstance(rv, basestring):
-            return self.response_class(rv)
-
-        if isinstance(rv, tuple):
-            return self.response_class(*rv)
-
-        if rv is None:
-            raise ValueError('Handler did not return a response.')
-
-        return self.response_class.force_type(rv, request.environ)
 
     def handle_exception(self, request, e):
         """Handles HTTPException or uncaught exceptions raised by the WSGI
@@ -622,7 +537,7 @@ class Tipfy(object):
             if response is not None:
                 return response
 
-        if self.dev:
+        if self.debug:
             raise
 
         logging.exception(e)
@@ -699,7 +614,7 @@ class Config(dict):
             'foo': 'bar',
         }
 
-        app = Tipfy(config=config)
+    app = Tipfy([Rule('/', endpoint='home', handler=MyHandler)], config=config)
 
     Then to read configuration values, use :meth:`RequestHandler.get_config`::
 
@@ -1110,7 +1025,7 @@ def render_json_response(*args, **kwargs):
         mimetype='application/json')
 
 
-def make_wsgi_app(config=None, **kwargs):
+def make_wsgi_app(*args, **kwargs):
     """Returns a instance of :class:`Tipfy`.
 
     :param config:
@@ -1120,9 +1035,9 @@ def make_wsgi_app(config=None, **kwargs):
     :returns:
         A :class:`Tipfy` instance.
     """
-    app = Tipfy(config, **kwargs)
+    app = Tipfy(*args, **kwargs)
 
-    if app.dev:
+    if app.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
     # Execute post_make_app middleware.
@@ -1141,7 +1056,7 @@ def run_wsgi_app(app):
         None.
     """
     # Fix issue #772.
-    if app.dev:
+    if app.debug:
         fix_sys_path()
 
     # Run it.

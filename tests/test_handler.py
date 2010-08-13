@@ -1,6 +1,6 @@
 import unittest
 
-from tipfy import RequestHandler, Rule, Tipfy, redirect
+from tipfy import RequestHandler, Response, Rule, Tipfy, redirect
 
 
 class TestHandler(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestHandler(unittest.TestCase):
 
         class Handler2(RequestHandler):
             def get(self, **kwargs):
-                return 'Hello, World!'
+                return Response('Hello, World!')
 
         rules = [
             Rule('/1', endpoint='test1', handler=Handler1),

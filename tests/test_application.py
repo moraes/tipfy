@@ -26,19 +26,15 @@ def get_url_rules():
 
 
 def get_app():
-    return Tipfy({
-        'tipfy': {
-            'dev': True,
-        },
-    }, rules=get_url_rules())
+    return Tipfy(rules=get_url_rules(), debug=True)
 
 
 class Handler(RequestHandler):
     def get(self, **kwargs):
-        return 'handler-get-' + kwargs['some_arg']
+        return Response('handler-get-' + kwargs['some_arg'])
 
     def post(self, **kwargs):
-        return 'handler-post-' + kwargs['some_arg']
+        return Response('handler-post-' + kwargs['some_arg'])
 
 
 class SomeObject(object):
@@ -141,24 +137,24 @@ class TestRequestHandler(unittest.TestCase):
         app = Tipfy()
         request = Request.from_values()
         handler = Handler(app, request)
-        assert handler.dispatch('get', some_arg='foo') == 'handler-get-foo'
+        assert handler('get', some_arg='foo').data == 'handler-get-foo'
 
         handler = Handler(app, request)
-        assert handler.dispatch('post', some_arg='bar') == 'handler-post-bar'
+        assert handler('post', some_arg='bar').data == 'handler-post-bar'
 
     @raises(MethodNotAllowed)
     def test_dispatch_not_allowed(self):
         app = Tipfy()
         request = Request.from_values()
         handler = Handler(app, request)
-        handler.dispatch('put', some_arg='test')
+        handler('put', some_arg='test')
 
     @raises(MethodNotAllowed)
     def test_method_not_allowed(self):
         app = Tipfy()
         request = Request.from_values()
         handler = Handler(app, request)
-        handler.dispatch('foo', some_arg='test')
+        handler('foo', some_arg='test')
 
     #===========================================================================
     # pre_dispatch()
@@ -169,17 +165,17 @@ class TestRequestHandler(unittest.TestCase):
 
         class MiddlewareThatReturns(object):
             def pre_dispatch(self, handler):
-                return message
+                return Response(message)
 
         Handler.middleware = [MiddlewareThatReturns]
 
         request = Request.from_values()
         handler = Handler(app, request)
-        response = handler.dispatch('get', some_arg='foo')
+        response = handler('get', some_arg='foo')
         assert response.data == message
 
         handler = Handler(app, request)
-        response = handler.dispatch('post', some_arg='bar')
+        response = handler('post', some_arg='bar')
         assert response.data == message
 
     def test_pre_dispatch_set_attribute(self):
@@ -195,7 +191,7 @@ class TestRequestHandler(unittest.TestCase):
         handler = Handler(app, request)
 
         assert getattr(handler, 'foo', None) is None
-        handler.dispatch('get', **{'some_arg': 'some_value'})
+        handler('get', **{'some_arg': 'some_value'})
         assert handler.foo == 'bar'
 
     #===========================================================================
@@ -218,7 +214,7 @@ class TestRequestHandler(unittest.TestCase):
 
         request = Request.from_values()
         handler = HandlerThatRaises(app, request)
-        assert handler.dispatch('get', some_arg='foo') == message
+        assert handler('get', some_arg='foo') == message
 
     @raises(NotImplementedError)
     def test_handle_exception_and_raises(self):
@@ -237,7 +233,7 @@ class TestRequestHandler(unittest.TestCase):
 
         request = Request.from_values()
         handler = HandlerThatRaises(app, request)
-        assert handler.dispatch('get', some_arg='foo') == message
+        assert handler('get', some_arg='foo') == message
 
     def test_handle_exception_return_response(self):
         app = Tipfy()
@@ -249,13 +245,13 @@ class TestRequestHandler(unittest.TestCase):
 
         class MiddlewareThatReturns(object):
             def handle_exception(self, e, handler=None):
-                return message
+                return Response(message)
 
         HandlerThatRaises.middleware = [MiddlewareThatReturns]
 
         request = Request.from_values()
         handler = HandlerThatRaises(app, request)
-        response = handler.dispatch('get', some_arg='foo')
+        response = handler('get', some_arg='foo')
         assert response.data == message
 
     #===========================================================================
@@ -273,10 +269,10 @@ class TestRequestHandler(unittest.TestCase):
 
         request = Request.from_values()
         handler = Handler(app, request)
-        assert handler.dispatch('get', some_arg='foo') == message
+        assert handler('get', some_arg='foo') == message
 
         handler = Handler(app, request)
-        assert handler.dispatch('post', some_arg='bar') == message
+        assert handler('post', some_arg='bar') == message
 
     def test_post_dispatch_set_attribute(self):
         app = Tipfy()
@@ -292,7 +288,7 @@ class TestRequestHandler(unittest.TestCase):
         handler = Handler(app, request)
 
         assert getattr(handler, 'foo', None) is None
-        handler.dispatch('get', some_arg='foo')
+        handler('get', some_arg='foo')
         assert handler.foo == 'bar'
 
 
@@ -519,7 +515,7 @@ class TestTipfy(unittest.TestCase):
         client = Client(app, response_wrapper=BaseResponse)
 
         response = client.open(method='i_am_not_valid')
-        assert response.status_code == 405
+        assert response.status_code == 501
 
     def test_request_redirect(self):
         app = get_app()
@@ -529,12 +525,11 @@ class TestTipfy(unittest.TestCase):
         self.assertEqual(response.status_code, 301)
 
     def test_handle_exception(self):
-        app = Tipfy({
+        app = Tipfy(rules=get_url_rules(), config={
             'tipfy': {
-                'dev': True,
                 'middleware': [ExceptionHandler],
             },
-        }, rules=get_url_rules())
+        }, debug=True)
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/test-exception')
@@ -542,12 +537,11 @@ class TestTipfy(unittest.TestCase):
         self.assertEqual(response.data, 'Exception was handled!')
 
     def test_pre_dispatch_handler(self):
-        app = Tipfy({
+        app = Tipfy(rules=get_url_rules(), config={
             'tipfy': {
-                'dev': True,
                 'middleware': [PreDispatchHandler],
             },
-        }, rules=get_url_rules())
+        }, debug=True)
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/')
@@ -555,12 +549,11 @@ class TestTipfy(unittest.TestCase):
         self.assertEqual(response.data, 'Handler dispatch was aborted!')
 
     def test_post_dispatch_handler(self):
-        app = Tipfy({
+        app = Tipfy(rules=get_url_rules(), config={
             'tipfy': {
-                'dev': True,
                 'middleware': [PostDispatchHandler],
             },
-        }, rules=get_url_rules())
+        }, debug=True)
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/')
@@ -569,48 +562,14 @@ class TestTipfy(unittest.TestCase):
 
     @raises(ValueError)
     def test_handler_raises_exception(self):
-        app = Tipfy({
-            'tipfy': {
-                'dev': True,
-            },
-        }, rules=get_url_rules())
+        app = Tipfy(rules=get_url_rules(), debug=True)
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/test-exception')
         self.assertEqual(response.status_code, 200)
 
-    @raises(ValueError)
-    def test_make_response_none(self):
-        app = Tipfy()
-        request = Request.from_values()
-        response = app.make_response(request, None)
-
-    def test_make_response_basestring(self):
-        app = Tipfy()
-        request = Request.from_values()
-        response = app.make_response(request, 'My Response')
-
-        assert isinstance(response, Response)
-        assert response.status_code == 200
-        assert response.mimetype == 'text/html'
-        assert response.data == 'My Response'
-
-    def test_make_response_tuple(self):
-        app = Tipfy()
-        request = Request.from_values()
-        response = app.make_response(request, ('Ooops!', 404))
-
-        assert isinstance(response, Response)
-        assert response.status_code == 404
-        assert response.mimetype == 'text/html'
-        assert response.data == 'Ooops!'
-
     def test_handler_internal_server_error(self):
-        app = Tipfy({
-            'tipfy': {
-                'dev': False,
-            },
-        }, rules=get_url_rules())
+        app = Tipfy(rules=get_url_rules(), debug=False)
 
         client = Client(app, response_wrapper=BaseResponse)
         response = client.open(path='/test-exception')
@@ -631,13 +590,13 @@ class TestMiscelaneous(unittest.TestCase):
                 del environ[key]
 
     def test_make_wsgi_app(self):
-        app = make_wsgi_app({'tipfy': {
+        app = make_wsgi_app(config={'tipfy': {
         }})
 
         assert isinstance(app, Tipfy)
 
     def test_make_wsgi_app2(self):
-        app = make_wsgi_app({'tipfy': {
+        app = make_wsgi_app(config={'tipfy': {
             'foo': 'bar'
         }})
 
@@ -645,7 +604,7 @@ class TestMiscelaneous(unittest.TestCase):
         assert app.config.get('tipfy', 'foo') == 'bar'
 
     def test_make_wsgi_app_with_middleware(self):
-        app = make_wsgi_app({'tipfy': {
+        app = make_wsgi_app(config={'tipfy': {
             'middleware': [AppMiddleware]
         }})
 
@@ -659,9 +618,7 @@ class TestMiscelaneous(unittest.TestCase):
         environ['SERVER_PORT'] = '80'
         environ['REQUEST_METHOD'] = 'GET'
 
-        app = make_wsgi_app({'tipfy': {
-            'dev': True,
-        }}, rules=get_url_rules())
+        app = make_wsgi_app(rules=get_url_rules(), debug=True)
         run_wsgi_app(app)
 
     def test_run_wsgi_app_with_middleware(self):
@@ -671,9 +628,9 @@ class TestMiscelaneous(unittest.TestCase):
         environ['SERVER_PORT'] = '80'
         environ['REQUEST_METHOD'] = 'GET'
 
-        app = make_wsgi_app({'tipfy': {
+        app = make_wsgi_app(rules=get_url_rules(), config={'tipfy': {
             'middleware': [AppMiddleware_2]
-        }}, rules=get_url_rules())
+        }})
 
         run_wsgi_app(app)
 

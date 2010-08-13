@@ -219,10 +219,10 @@ class RequestHandler(object):
         """
         return redirect(location, code)
 
-    def redirect_to(self, endpoint, _method=None, _anchor=None, _code=302,
+    def redirect_to(self, _endpoint, _method=None, _anchor=None, _code=302,
         **kwargs):
         """.. seealso:: :func:`redirect_to`."""
-        return redirect_to(endpoint, _method, _anchor, _code, **kwargs)
+        return redirect_to(_endpoint, _method, _anchor, _code, **kwargs)
 
 
 class Context(dict):
@@ -332,7 +332,7 @@ class Tipfy(object):
     #: The active :class:`Request` instance.
     request = None
 
-    def __init__(self, config=None, rules='urls.get_rules', app_id='__main__'):
+    def __init__(self, config=None, rules='urls.get_rules'):
         """Initializes the application.
 
         :param config:
@@ -343,17 +343,9 @@ class Tipfy(object):
             returns the rules list. The callable is called passing the WSGI
             application as parameter. Default is ``urls.get_rules``: import
             ``get_rules()`` from *urls.py* and calls it passing the app.
-        :param app_id:
-            An identifier for this instance, in case multiple instances
-            are being used by the same app. This can be used to identify
-            instance specific data such as cache and whatever needs to be tied
-            to this instance.
         """
         # Set the currently active wsgi app instance.
         self.set_wsgi_app()
-
-        # Set the instance id.
-        self.app_id = app_id
 
         # Load default config and update with values for this instance.
         self.config = Config(config, {'tipfy': default_config}, ['tipfy'])

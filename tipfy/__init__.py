@@ -10,7 +10,8 @@
 """
 import os
 import logging
-from wsgiref.handlers import CGIHandler
+
+from google.appengine.ext.webapp.util import run_bare_wsgi_app, run_wsgi_app
 
 # Werkzeug swiss knife.
 # Need to import werkzeug first otherwise py_zipimport fails.
@@ -597,6 +598,36 @@ class Tipfy(object):
         from werkzeug import Client
         return Client(self, self.response_class, use_cookies=True)
 
+    def run(self, bare=False):
+        """Runs the app using ``google.appengine.ext.webapp.util.run_wsgi_app``.
+        This is generally called inside a ``main()`` function of the file
+        mapped in *app.yaml* to run the application::
+
+            # ...
+
+            app = WSGIApplication([
+                Rule(r'/', endpoint='home', handler=HelloWorldHandler),
+            ])
+
+            def main():
+                app.run()
+
+            if __name__ == '__main__':
+                main()
+
+        :param bare:
+            If True, uses ``run_bare_wsgi_app`` instead of ``run_wsgi_app``,
+            which doesn't add WSGI middleware.
+        """
+        # Fix issue #772.
+        if self.debug:
+            fix_sys_path()
+
+        if bare:
+            run_bare_wsgi_app(self)
+        else:
+            run_wsgi_app(self)
+
 
 class Config(dict):
     """A simple configuration dictionary keyed by module name. This is a
@@ -1045,22 +1076,6 @@ def make_wsgi_app(*args, **kwargs):
         app = hook(app)
 
     return app
-
-
-def run_wsgi_app(app):
-    """Executes the application, optionally wrapping it by middleware.
-
-    :param app:
-        A :class:`Tipfy` instance.
-    :returns:
-        None.
-    """
-    # Fix issue #772.
-    if app.debug:
-        fix_sys_path()
-
-    # Run it.
-    CGIHandler().run(app)
 
 
 _ULTIMATE_SYS_PATH = None

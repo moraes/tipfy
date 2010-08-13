@@ -23,12 +23,11 @@ import tipfy
 debug = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 
 # Instantiate the application.
-application = tipfy.make_wsgi_app(config=config.config, debug=debug)
+app = tipfy.make_wsgi_app(config=config.config, debug=debug)
 
 
 def main():
-    # Run it!
-    tipfy.run_wsgi_app(application)
+    app.run()
 
 
 if __name__ == '__main__':

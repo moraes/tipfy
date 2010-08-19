@@ -27,14 +27,12 @@ from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
     RequestRedirect, Rule as WerkzeugRule, RuleFactory, RuleTemplate,
     Subdomain, Submount)
 
-if os.environ.get('SERVER_SOFTWARE', None) is None:
-    try:
-        # We declare the namespace to be used outside of App Engine, so that
-        # we can distribute and install separate extensions.
-        #__import__('pkg_resources').declare_namespace(__name__)
-        pass
-    except ImportError, e:
-        pass
+try:
+    # We declare the namespace to be used outside of App Engine, so that
+    # we can distribute and install separate extensions.
+    __import__('pkg_resources').declare_namespace(__name__)
+except ImportError, e:
+    pass
 
 __version__ = '0.6.1'
 __version_info__ = tuple(int(n) for n in __version__.split('.'))

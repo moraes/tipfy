@@ -1,5 +1,5 @@
-Development version
-===================
+Version 0.6.1 - August 19, 2010
+===============================
 - RequestHandler instances are now callables. __call__() is used instead of
   dispatch(), which is now deprecated and just calls the instance.
 

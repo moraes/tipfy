@@ -5,7 +5,8 @@
 import unittest
 from nose.tools import raises
 
-from tipfy import Request, RequestHandler, Response, Rule, Tipfy, url_for
+from tipfy import (HandlerPrefix, Request, RequestHandler, Response, Rule,
+    Tipfy, url_for)
 
 
 class HomeHandler(RequestHandler):
@@ -86,14 +87,14 @@ class TestUrls(unittest.TestCase):
     def test_url_for(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
-        app.router.match(request)
+        app.match_url(request)
 
         assert url_for('home') == '/'
 
     def test_url_for2(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
-        app.router.match(request)
+        app.match_url(request)
 
         assert url_for('profile', username='calvin') == '/people/calvin'
         assert url_for('profile', username='hobbes') == '/people/hobbes'
@@ -102,14 +103,14 @@ class TestUrls(unittest.TestCase):
     def test_url_for_full(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
-        app.router.match(request)
+        app.match_url(request)
 
         assert url_for('home', full=True) == 'http://foo.com/'
 
     def test_url_for_full2(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
-        app.router.match(request)
+        app.match_url(request)
 
         assert url_for('profile', username='calvin', full=True) == \
             'http://foo.com/people/calvin'
@@ -121,7 +122,25 @@ class TestUrls(unittest.TestCase):
     def test_url_for_with_anchor(self):
         app = get_app()
         request = get_request(app, base_url='http://foo.com')
-        app.router.match(request)
+        app.match_url(request)
 
         assert url_for('home', _anchor='my-little-anchor') == '/#my-little-anchor'
         assert url_for('home', _full=True, _anchor='my-little-anchor') == 'http://foo.com/#my-little-anchor'
+
+
+class TestHandlerPrefix(unittest.TestCase):
+    def tearDown(self):
+        Tipfy.app = Tipfy.request = None
+
+    def test_get_rules(self):
+        rule = HandlerPrefix('myapp.my.module.', [
+            Rule('/', endpoint='home', handler='HomeHandler'),
+            Rule('/users', endpoint='users', handler='UsersHandler'),
+            Rule('/contact', endpoint='contact', handler='ContactHandler'),
+        ])
+
+        rules = list(rule.get_rules(None))
+        self.assertEqual(len(rules), 3)
+        self.assertEqual(rules[0].handler, 'myapp.my.module.HomeHandler')
+        self.assertEqual(rules[1].handler, 'myapp.my.module.UsersHandler')
+        self.assertEqual(rules[2].handler, 'myapp.my.module.ContactHandler')

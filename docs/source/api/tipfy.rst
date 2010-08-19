@@ -23,18 +23,20 @@ WSGI application
 RequestHandler
 --------------
 .. autoclass:: RequestHandler
-   :members: __init__, middleware, dispatch
+   :members:  middleware, __init__, __call__, abort, get_config,
+              handle_exception, redirect, redirect_to, url_for
 
 
 Configuration class
 -------------------
 .. autoclass:: Config
-   :members: update, setdefault, get
+   :members: get, get_or_load, setdefault, update
 
 
 URL Routing
 -----------
 .. autoclass:: Rule
+.. autoclass:: HandlerPrefix
 
 
 Functions

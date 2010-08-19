@@ -560,14 +560,6 @@ class TestTipfy(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, 'I replaced the handler response!')
 
-    @raises(ValueError)
-    def test_handler_raises_exception(self):
-        app = Tipfy(rules=get_url_rules(), debug=True)
-
-        client = Client(app, response_wrapper=BaseResponse)
-        response = client.open(path='/test-exception')
-        self.assertEqual(response.status_code, 200)
-
     def test_handler_internal_server_error(self):
         app = Tipfy(rules=get_url_rules(), debug=False)
 

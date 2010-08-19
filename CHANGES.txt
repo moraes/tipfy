@@ -1,13 +1,19 @@
 Development version
 ===================
-- New RequestHandler methods:
+- RequestHandler instances are now callables. __call__() is used instead of
+  dispatch(), which is now deprecated and just calls the instance.
+
+- Added RequestHandler methods:
   - abort(), a wrapper for abort().
   - get_config(), a wrapper for Config.get_or_load().
+  - handle_exception()
   - redirect().
-  - redirect_to().
+  - redirect_to(): redirect() + url_for()
+  - url_for():
 
-- RequestHandler instances are now callable. __call__() replaces dispatch(),
-  which is now deprecated and just calls the instance.
+- Added get_valid_methods(), which returns the HTTP methods a handler can
+  handle. This is used when raising MethodNotAllowed, which now correctly
+  lists the allowed methods as required by HTTP 1.1 spec.
 
 - Added HandlerPrefix, a rule factory to prefix handler definition in rules.
   For example, take these rules::
@@ -26,26 +32,19 @@ Development version
           Rule('/entry/<entry_slug>', endpoint='show', handler='my_app.handlers.ShowHandler'),
       ]
 
+- If the requested method is not in ALLOWED_METHODS, a NotImplemented exception
+  ("501 Not Implemented") is raised, instead of MethodNotAllowed ("405 Method
+  Not Allowed").
+
+- ALLOWED_METHODS are now listed in upper case.
+
 - Moved the logic from Tipfy.get_config() to the new method
   Config.get_or_load().
 
-- Added get_valid_methods(), to return the HTTP methods a handler can handle.
-  This is used when raising MethodNotAllowed, which now correctly lists the
-  allowed methods as required by HTTP 1.1 spec.
-
-- Added Tipfy.get_url_adapter(), that returns a bound URL map, to make it
-  easier to override the bound server_name or subdomain.
-
-- Exceptions caused when loading a badly configured middleware class are now
-  caught and a warning is emitted.
-
-- Minor change: ALLOWED_METHODS are now listed in upper case.
-
 - Removed app_id argument from Tipfy.__init__(). Not really needed or used.
 
-- Removed Tipfy.make_response(). It is a bit of not-really-needed magic here,
-  and we should stick to explicitness. Always returning a Response object is
-  not hard.
+- Exceptions caused when importing a badly configured middleware class are now
+  caught and a warning is emitted.
 
 
 Version 0.6 - July 25, 2010

@@ -8,8 +8,8 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-import os
 import logging
+import os
 from wsgiref.handlers import CGIHandler
 
 # Werkzeug swiss knife.
@@ -34,7 +34,7 @@ try:
 except ImportError, e:
     pass
 
-__version__ = '0.6.1'
+__version__ = '0.6.2'
 __version_info__ = tuple(int(n) for n in __version__.split('.'))
 
 #: Default configuration values for this module. Keys are:
@@ -700,6 +700,29 @@ class Tipfy(object):
         from werkzeug import Client
         return Client(self, self.response_class, use_cookies=True)
 
+    def run(self):
+        """Runs the app using ``CGIHandler``. This must be called inside a
+        ``main()`` function in the file defined in *app.yaml* to run the
+        application::
+
+            # ...
+
+            app = Tipfy(rules=[
+                Rule('/', endpoint='home', handler=HelloWorldHandler),
+            ])
+
+            def main():
+                app.run()
+
+            if __name__ == '__main__':
+                main()
+        """
+        # Fix issue #772.
+        if self.dev:
+            fix_sys_path()
+
+        CGIHandler().run(self)
+
 
 class Config(dict):
     """A simple configuration dictionary keyed by module name. This is a
@@ -1155,17 +1178,15 @@ def make_wsgi_app(config=None, **kwargs):
 def run_wsgi_app(app):
     """Executes the application, optionally wrapping it by middleware.
 
+    .. warning::
+       This is deprecated. Use app.run() instead.
+
     :param app:
         A :class:`Tipfy` instance.
     :return:
         None.
     """
-    # Fix issue #772.
-    if app.dev:
-        fix_sys_path()
-
-    # Run it.
-    CGIHandler().run(app)
+    app.run()
 
 
 _ULTIMATE_SYS_PATH = None

@@ -1,3 +1,8 @@
+Version 0.6.2 - August 20, 2010
+===============================
+- Added Tipfy.run(): run_wsgi_app(app) is now deprecated and calls app.run().
+
+
 Version 0.6.1 - August 19, 2010
 ===============================
 - RequestHandler instances are now callables. __call__() is used instead of

@@ -17,7 +17,7 @@ Default configuration
 WSGI application
 ----------------
 .. autoclass:: Tipfy
-   :members: __init__
+   :members: __init__, run
 
 
 RequestHandler

@@ -11,7 +11,7 @@ Development version
 - Removed make_response(). It is unneeded magic that adds many ways to to the
   same basic thing: build a Response object. If you rely on automatic wrapping
   returned values from handlers into Response objects, you need to explicitly
-  return Response objects now.
+  return a Response object now.
 
 
 Version 0.6.2 - August 20, 2010

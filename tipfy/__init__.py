@@ -30,7 +30,8 @@ from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
 try:
     # We declare the namespace to be used outside of App Engine, so that
     # we can distribute and install separate extensions.
-    __import__('pkg_resources').declare_namespace(__name__)
+    # __import__('pkg_resources').declare_namespace(__name__)
+    pass
 except ImportError, e:
     pass
 
@@ -60,27 +61,12 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #: subdomain
 #:     Force this subdomain to be used instead of extracting
 #:     the subdomain from the current url.
-#:
-#: dev
-#:     True is this is the development server, False otherwise.
-#:     Default is the value of ``os.environ['SERVER_SOFTWARE']``.
-#:
-#: app_id
-#:     The application id. Default is the value of
-#:     ``os.environ['APPLICATION_ID']``.
-#:
-#: version_id
-#:     The current deplyment version id. Default is the value
-#:     of ``os.environ['CURRENT_VERSION_ID']``.
 default_config = {
     'apps_installed': [],
     'apps_entry_points': {},
     'middleware': [],
     'server_name': None,
     'subdomain': None,
-    'dev': os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
-    'app_id': os.environ.get('APPLICATION_ID', None),
-    'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
 }
 
 # Allowed request methods.
@@ -370,7 +356,7 @@ class Tipfy(object):
         self.registry = {}
 
         # Set a shortcut to the development flag.
-        self.dev = self.config.get('tipfy', 'dev', False)
+        self.debug = debug
 
         # Cache for loaded handler classes.
         self.handlers = {}
@@ -640,7 +626,7 @@ class Tipfy(object):
             if response is not None:
                 return response
 
-        if self.dev:
+        if self.debug:
             raise
 
         logging.exception(e)
@@ -722,6 +708,21 @@ class Tipfy(object):
             fix_sys_path()
 
         CGIHandler().run(self)
+
+    @cached_property
+    def dev(self):
+        """True is the app is using the dev server, False otherwise."""
+        return os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
+
+    @cached_property
+    def app_id(self):
+        """The application ID as defined in *app.yaml*."""
+        return os.environ.get('APPLICATION_ID', None)
+
+    @cached_property
+    def version_id(self):
+        """The deployed version ID. Always '1' when using the dev server."""
+        return os.environ.get('CURRENT_VERSION_ID', '1')
 
 
 class Config(dict):
@@ -1165,7 +1166,7 @@ def make_wsgi_app(config=None, **kwargs):
     """
     app = Tipfy(config=config, **kwargs)
 
-    if app.dev:
+    if app.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
     # Execute post_make_app middleware.

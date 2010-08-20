@@ -1,3 +1,14 @@
+Development version
+===================
+- App has now a debug attribute, set when it is initialized with debug=True.
+
+- Removed 3 configuration keys, which are now available as properties of the
+  WSGI app instance:
+  - dev: True is the app is using the dev server, False otherwise.
+  - app_id: the application ID as defined in *app.yaml*.
+  - version_id: the deployed version ID. Always '1' when using the dev server.
+
+
 Version 0.6.2 - August 20, 2010
 ===============================
 - Added Tipfy.run(): run_wsgi_app(app) is now deprecated and calls app.run().

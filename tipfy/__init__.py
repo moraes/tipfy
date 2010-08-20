@@ -158,9 +158,6 @@ class RequestHandler(object):
                 else:
                     raise
 
-        # Make sure we have a response object.
-        response = self.app.make_response(self.request, response)
-
         # Execute post_dispatch middleware.
         for hook in middleware.get('post_dispatch', []):
             response = hook(self, response)
@@ -416,7 +413,6 @@ class Tipfy(object):
                 rv = self.dispatch(request)
 
             # Run post_dispatch_handler middleware.
-            response = self.make_response(request, rv)
             response = self.post_dispatch(request, response)
         except RequestRedirect, e:
             # Execute redirects raised by the routing system or the
@@ -426,7 +422,6 @@ class Tipfy(object):
             # Handle HTTP and uncaught exceptions.
             cleanup = not self.dev
             response = self.handle_exception(request, e)
-            response = self.make_response(request, response)
         finally:
             # Do not clean request if we are in development mode and an
             # exception happened. This allows the debugger to still access
@@ -552,8 +547,7 @@ class Tipfy(object):
             A :class:`Request` instance.
         :param response:
             The :class:`Response` returned from :meth:`Tipfy.pre_dispatch`
-            or :meth:`Tipfy.dispatch` and converted by
-            :meth:`Tipfy.make_response`.
+            or :meth:`Tipfy.dispatch`.
         :return:
             A :class:`Response` instance.
         """
@@ -561,53 +555,6 @@ class Tipfy(object):
             response = hook(response)
 
         return response
-
-    def make_response(self, request, rv):
-        """Converts the return value from a handler to a real response
-        object that is an instance of :class:`Response`.
-
-        The following types are allowd for ``rv``:
-
-        response_class
-            The object is returned unchanged.
-
-        str
-            A response object is created with the string as body.
-
-        unicode
-            A response object is created with the string encoded to
-            utf-8 as body.
-
-        tuple
-            The response object is created with the contents of the
-            tuple as arguments.
-
-        WSGI function
-            The function is called as WSGI application and
-            buffered as response object.
-
-        This method comes from `Flask <http://flask.pocoo.org/>`_.
-
-        :param request:
-            A :class:`Request` instance.
-        :param rv:
-            The return value from the handler.
-        :return:
-            A :class:`Response` instance.
-        """
-        if isinstance(rv, self.response_class):
-            return rv
-
-        if isinstance(rv, basestring):
-            return self.response_class(rv)
-
-        if isinstance(rv, tuple):
-            return self.response_class(*rv)
-
-        if rv is None:
-            raise ValueError('Handler did not return a response.')
-
-        return self.response_class.force_type(rv, request.environ)
 
     def handle_exception(self, request, e):
         """Handles HTTPException or uncaught exceptions raised by the WSGI

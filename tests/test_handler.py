@@ -22,16 +22,27 @@ class TestHandler(unittest.TestCase):
         client = app.get_test_client()
 
         response = client.get('/')
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, 'Home sweet home!')
 
         response = client.post('/')
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, 'Home sweet home!')
 
-        self.assertRaises(MethodNotAllowed, client.delete, '/')
-        self.assertRaises(MethodNotAllowed, client.head, '/')
-        self.assertRaises(MethodNotAllowed, client.put, '/')
-        self.assertRaises(MethodNotAllowed, client.open, '/', method='OPTIONS')
-        self.assertRaises(MethodNotAllowed, client.open, '/', method='TRACE')
+        response = client.delete('/')
+        self.assertEqual(response.status_code, 405)
+
+        response = client.head('/')
+        self.assertEqual(response.status_code, 405)
+
+        response = client.put('/')
+        self.assertEqual(response.status_code, 405)
+
+        response = client.open('/', method='OPTIONS')
+        self.assertEqual(response.status_code, 405)
+
+        response = client.open('/', method='TRACE')
+        self.assertEqual(response.status_code, 405)
 
     def test_abort(self):
         class HandlerWith400(RequestHandler):
@@ -54,9 +65,14 @@ class TestHandler(unittest.TestCase):
 
         client = app.get_test_client()
 
-        self.assertRaises(BadRequest, client.get, '/400')
-        self.assertRaises(Forbidden, client.post, '/403')
-        self.assertRaises(NotFound, client.put, '/404')
+        response = client.get('/400')
+        self.assertEqual(response.status_code, 400)
+
+        response = client.post('/403')
+        self.assertEqual(response.status_code, 403)
+
+        response = client.put('/404')
+        self.assertEqual(response.status_code, 404)
 
     def test_get_config(self):
         pass

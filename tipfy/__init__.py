@@ -248,14 +248,14 @@ class Request(BaseRequest):
         # A context for template variables.
         self.context = {}
 
-    def url_for(self, endpoint, **kwargs):
+    def url_for(self, _name, **kwargs):
         """Builds and returns a URL for a named :class:`Rule`. This is here
         for backwards compatibility only. Use :meth:`Tipfy.url_for` or
         :meth:`RequestHandler.url_for` instead.
 
         This is a shortcut to :meth:`Tipfy.url_for`.
         """
-        return Tipfy.app.url_for(endpoint, **kwargs)
+        return Tipfy.app.router.build(self, _name, kwargs)
 
 
 class Response(BaseResponse):
@@ -751,9 +751,7 @@ class Router(object):
             force_external=full)
 
         if scheme or netloc:
-            scheme = scheme or 'http'
-            netloc = netloc or request.host
-            url = '%s://%s%s' % (scheme, netloc, url)
+            url = '%s://%s%s' % (scheme or 'http', netloc or request.host, url)
 
         if anchor:
             url += '#%s' % url_quote(anchor)
@@ -942,7 +940,7 @@ def get_config(module, key=None, default=REQUIRED_VALUE):
 
     .. seealso:: :meth:`Config.get_or_load`.
     """
-    return Tipfy.app.config.get_or_load(module, key=key, default=default)
+    return Tipfy.app.get_config(module, key=key, default=default)
 
 
 def get_valid_methods(handler):
@@ -957,47 +955,25 @@ def get_valid_methods(handler):
         getattr(handler, method.lower().replace('-', '_'), None)]
 
 
-def url_for(endpoint, **kwargs):
+def url_for(_name, **kwargs):
     """Builds and returns a URL for a named :class:`Rule`.
 
     This is a shortcut to :meth:`Tipfy.url_for`.
     """
     # For backwards compatibility, check old keywords.
-    if 'full' in kwargs:
-        kwargs['_full'] = kwargs.pop('full')
-
-    if 'method' in kwargs:
-        kwargs['_method'] = kwargs.pop('method')
-
-    return Tipfy.app.url_for(endpoint, **kwargs)
+    _full = kwargs.pop('full', kwargs.pop('_full', False))
+    _method = kwargs.pop('method', kwargs.pop('_method', None))
+    return Tipfy.app.url_for(_name, _full=_full, _method=_method, **kwargs)
 
 
-def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
+def redirect_to(_name, _code=302, **kwargs):
     """Convenience function mixing ``werkzeug.redirect`` and
     :meth:`Request.url_for`: redirects the client to a URL built using a named
     :class:`Rule`.
-
-    :param endpoint:
-        The rule endpoint.
-    :param _method:
-        The rule request method, in case there are different rules
-        for different request methods.
-    :param _anchor:
-        An anchor to add to the end of the URL.
-    :param _code:
-        The redirect status code.
-    :param kwargs:
-        Keyword arguments to build the URL.
-    :return:
-        A :class:`Response` object with headers set for redirection.
     """
-    # For backwards compatibility, check old keywords.
-    method = kwargs.pop('method', _method)
-    code = kwargs.pop('code', _code)
-
-    url = Tipfy.request.url_for(endpoint, _full=True, _method=method,
-        _anchor=_anchor, **kwargs)
-    return redirect(url, code=code)
+    # For backwards compatibility, check old keyword.
+    _code = kwargs.pop('code', _code)
+    return redirect(url_for(_name, **kwargs), code=_code)
 
 
 def render_json_response(*args, **kwargs):

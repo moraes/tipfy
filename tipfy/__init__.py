@@ -10,6 +10,7 @@
 """
 import logging
 import os
+import warnings
 from wsgiref.handlers import CGIHandler
 
 # Werkzeug swiss knife.
@@ -153,7 +154,13 @@ class RequestHandler(object):
         return response
 
     def dispatch(self, _method, *args, **kwargs):
-        """Deprecated method: a wrapper for :meth:`__call__`."""
+        """A wrapper for :meth:`__call__`.
+
+        .. warning::
+           This is deprecated. Use :meth:`__call__` instead.
+        """
+        warnings.warn(DeprecationWarning('RequestHandler.dispatch() is '
+            'deprecated. Use RequestHandler.__call__() instead.'))
         return self(_method, *args, **kwargs)
 
     def abort(self, code, *args, **kwargs):
@@ -249,12 +256,14 @@ class Request(BaseRequest):
         self.context = {}
 
     def url_for(self, _name, **kwargs):
-        """Builds and returns a URL for a named :class:`Rule`. This is here
-        for backwards compatibility only. Use :meth:`Tipfy.url_for` or
-        :meth:`RequestHandler.url_for` instead.
+        """Builds and returns a URL for a named :class:`Rule`.
 
-        This is a shortcut to :meth:`Tipfy.url_for`.
+        .. warning::
+           This is deprecated. Use :meth:`Tipfy.url_for` or
+           :meth:`RequestHandler.url_for` instead.
         """
+        warnings.warn(DeprecationWarning('Request.url_for() is deprecated. '
+            'Use Tipfy.url_for() or RequestHandler.url_for() instead.'))
         return Tipfy.app.router.build(self, _name, kwargs)
 
 
@@ -839,14 +848,12 @@ class Tipfy(object):
         return response(environ, start_response)
 
     def handle_exception(self, request, exception):
-        logging.exception(exception)
-
         if isinstance(exception, HTTPException):
             code = exception.code
         else:
             code = 500
 
-        handler = self.error_handlers.get(code) or self.error_handlers.get(500)
+        handler = self.error_handlers.get(code)
         if handler:
             rule = Rule('/', handler=handler, endpoint='__exception__')
             kwargs = dict(exception=exception, debug=self.debug)
@@ -1025,6 +1032,8 @@ def run_wsgi_app(app):
     :return:
         None.
     """
+    warnings.warn(DeprecationWarning('run_wsgi_app() is deprecated. '
+            'Use Tipfy.run() instead.'))
     app.run()
 
 

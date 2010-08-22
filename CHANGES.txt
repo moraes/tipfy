@@ -14,14 +14,15 @@ Development version
   return a Response object now.
 
 - Added a Router class which is responsible for matching, dispatching and
-  building URLs. Some implications:
+  building URLs. The main reason was to implement better exception handling,
+  but it adds other flexibility points. Some implications:
   - Moved methods from Tipfy that are now part of the router functionality:
     get_url_map(), add_url_rule(), match_url(), pre_dispatch(), dispatch() and
-    post_dispatch().
+    post_dispatch(). If you extended them in some way, you must now extend
+    the router.
   - URL building is centralized in the router, so url_for() methods
-    (from RequestHnadler or Tipfy) call router.build(). This means that
-    Request.url_for() is not used anymore, but it is left for backwards
-    compatibility.
+    (from Request, RequestHandler or Tipfy) call router.build(). They remain
+    backwards compatible, just the internals changed.
 
 - New, easier and improved exception handling scheme:
   XXX explain it

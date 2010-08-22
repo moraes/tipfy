@@ -2,9 +2,6 @@ import unittest
 
 from tipfy import RequestHandler, Response, Rule, Tipfy
 
-from werkzeug.exceptions import (BadRequest, MethodNotAllowed, NotFound,
-    Forbidden)
-
 
 class TestHandler(unittest.TestCase):
     def test_405(self):

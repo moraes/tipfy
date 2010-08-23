@@ -1,6 +1,6 @@
 import unittest
 
-from tipfy import RequestHandler, Response, Rule, Tipfy
+from tipfy import Request, RequestHandler, Response, Rule, Tipfy
 
 
 class TestHandler(unittest.TestCase):
@@ -134,6 +134,33 @@ class TestHandler(unittest.TestCase):
         client = app.get_test_client()
         response = client.get('/redirect-me', follow_redirects=True)
         self.assertEqual(response.data, 'Home sweet home!')
+
+    def test_redirect_relative_uris(self):
+        app = Tipfy()
+        class Handler(RequestHandler):
+            pass
+
+        request = Request.from_values('/foo/bar/')
+        handler = Handler(app, request)
+        response = handler.redirect('/baz')
+        self.assertEqual(response.headers['Location'], 'http://localhost/baz')
+
+        response = handler.redirect('./baz')
+        self.assertEqual(response.headers['Location'], 'http://localhost/foo/bar/baz')
+
+        response = handler.redirect('../baz')
+        self.assertEqual(response.headers['Location'], 'http://localhost/foo/baz')
+
+        request = Request.from_values('/foo/bar')
+        handler = Handler(app, request)
+        response = handler.redirect('/baz')
+        self.assertEqual(response.headers['Location'], 'http://localhost/baz')
+
+        response = handler.redirect('./baz')
+        self.assertEqual(response.headers['Location'], 'http://localhost/foo/baz')
+
+        response = handler.redirect('../baz')
+        self.assertEqual(response.headers['Location'], 'http://localhost/baz')
 
     def test_url_for(self):
         pass

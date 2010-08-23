@@ -10,6 +10,7 @@
 """
 import logging
 import os
+import urlparse
 import warnings
 from wsgiref.handlers import CGIHandler
 
@@ -120,7 +121,7 @@ class RequestHandler(object):
             lower case, e.g., 'get', 'post', 'head' or 'put'.
         :param kwargs:
             Keyword arguments from the matched :class:`Rule`.
-        :return:
+        :returns:
             A :class:`Response` instance.
         """
         method = getattr(self, _method, None)
@@ -195,23 +196,29 @@ class RequestHandler(object):
         raise
 
     def redirect(self, location, code=302):
-        """Issues an HTTP redirect to the given URL. This won't stop
-        code execution. You must return when calling this method::
+        """Returns a response object with headers set for redirection to the
+        given URI. This won't stop code execution, so you must return when
+        calling this method::
 
             return self.redirect('/some-path')
 
         :param location:
-            An absolute URI.
+            A relative or absolute URI (e.g., '../contacts').
         :param code:
             The HTTP status code for the redirect.
-        :return:
+        :returns:
             A :class:`Response` object with headers set for redirection.
         """
+        if location.startswith(('.', '/')):
+            # Make it absolute.
+            location = urlparse.urljoin(self.request.url, location)
+
         return redirect(location, code)
 
     def redirect_to(self, _name, _code=302, **kwargs):
         """Convenience method mixing :meth:`redirect` and :methd:`url_for`:
-        redirects the client to a URL built using a named :class:`Rule`.
+        returns a response object with headers set for redirection to a URL
+        built using a named :class:`Rule`.
 
         :param _name:
             The rule name.
@@ -219,13 +226,13 @@ class RequestHandler(object):
             The HTTP status code for the redirect.
         :param kwargs:
             Keyword arguments to build the URL.
-        :return:
+        :returns:
             A :class:`Response` object with headers set for redirection.
         """
         return self.redirect(self.url_for(_name, **kwargs), code=_code)
 
     def url_for(self, _name, **kwargs):
-        """Builds a URL for a named :class:`Rule`.
+        """Returns a URL for a named :class:`Rule`.
 
         .. seealso:: :meth:`Router.build`.
         """
@@ -256,7 +263,7 @@ class Request(BaseRequest):
         self.context = {}
 
     def url_for(self, _name, **kwargs):
-        """Builds and returns a URL for a named :class:`Rule`.
+        """Returns a URL for a named :class:`Rule`.
 
         .. warning::
            This is deprecated. Use :meth:`Tipfy.url_for` or
@@ -500,7 +507,7 @@ class MiddlewareFactory(object):
             :class:`RequestHandler`).
         :param classes:
             A list of middleware classes.
-        :return:
+        :returns:
             A dictionary with middleware instance methods.
         """
         id = obj.__module__ + '.' + obj.__class__.__name__
@@ -516,7 +523,7 @@ class MiddlewareFactory(object):
 
         :param specs:
             A list of middleware classes, classes as strings or instances.
-        :return:
+        :returns:
             A dictionary with middleware instance methods.
         """
         res = {}
@@ -597,17 +604,18 @@ class HandlerPrefix(RuleFactory):
     nested rules with another string. For example, take these rules::
 
         rules = [
+            Rule('/', endpoint='index', handler='my_app.handlers.IndexHandler'),
+            Rule('/entry/<entry_slug>', endpoint='show', handler='my_app.handlers.ShowHandler'),
+        ]
+
+    You can wrap them by ``HandlerPrefix`` to define the handler module and
+    avoid repetition. This is equivalent to the above::
+
+        rules = [
             HandlerPrefix('my_app.handlers.', [
                 Rule('/', endpoint='index', handler='IndexHandler'),
                 Rule('/entry/<entry_slug>', endpoint='show', handler='ShowHandler'),
             ]),
-        ]
-
-    These are the same as::
-
-        rules = [
-            Rule('/', endpoint='index', handler='my_app.handlers.IndexHandler'),
-            Rule('/entry/<entry_slug>', endpoint='show', handler='my_app.handlers.ShowHandler'),
         ]
     """
     def __init__(self, prefix, rules):
@@ -696,6 +704,19 @@ class Router(object):
         return response
 
     def dispatch(self, app, request, match, method=None):
+        """Dispatches a request. This calls the :class:`RequestHandler` from
+        the matched :class:`Rule`.
+
+        :param app:
+            A :class:`WSGIApplication` instance.
+        :param request:
+            A :class:`Request` instance.
+        :param match:
+            A tuple ``(rule, kwargs)``, resulted from the matched URL.
+        :param method:
+            Handler method to be called. In cases like exception handling, a
+            method can be forced instead of using the request method.
+        """
         method = method or request.method.lower().replace('-', '_')
         rule, kwargs = match
 
@@ -747,6 +768,34 @@ class Router(object):
         return Map(rules)
 
     def build(self, request, name, kwargs):
+        """Returns a URL for a named :class:`Rule`. This is the central place
+        to build URLs for an app. It is used by :meth:`RequestHandler.url_for`,
+        :meth:`Tipfy.url_for and the standalone function :func:`url_for`.
+        Those functions conveniently pass the current request object so you
+        don't have to.
+
+        :param request:
+            The current request object.
+        :param name:
+            The rule name.
+        :param kwargs:
+            Values to build the URL. All variables not set in the rule
+            default values must be passed and must conform to the format set
+            in the rule. Extra keywords are appended as query arguments.
+
+            A few keywords have special meaning:
+
+            - **_full**: If True, builds an absolute URL.
+            - **_method**: Uses a rule defined to handle specific request
+              methods, if any are defined.
+            - **_scheme**: URL scheme, e.g., `http` or `https`. If defined,
+              an absolute URL is always returned.
+            - **_netloc**: Network location, e.g., `www.google.com`. If
+              defined, an absolute URL is always returned.
+            - **_anchor**: If set, appends an anchor to generated URL.
+        :returns:
+            An absolute or relative URL.
+        """
         full = kwargs.pop('_full', False)
         method = kwargs.pop('_method', None)
         scheme = kwargs.pop('_scheme', None)
@@ -878,7 +927,7 @@ class Tipfy(object):
             :class:`RequestHandler` instance).
         :param classes:
             A list of middleware classes.
-        :return:
+        :returns:
             A dictionary with middleware instance methods.
         """
         if not classes:
@@ -887,7 +936,7 @@ class Tipfy(object):
         return self.middleware_factory.get_middleware(obj, classes)
 
     def url_for(self, _name, **kwargs):
-        """Builds a URL for a named :class:`Rule`.
+        """Returns a URL for a named :class:`Rule`.
 
         .. seealso:: :meth:`Router.build`.
         """
@@ -896,9 +945,8 @@ class Tipfy(object):
     def get_test_client(self):
         """Creates a test client for this application.
 
-        :return:
-            A ``werkzeug.Client``, which is a :class:`Tipfy` wrapped
-            for tests.
+        :returns:
+            A ``werkzeug.Client`` with the WSGI application wrapped for tests.
         """
         from werkzeug import Client
         return Client(self, self.response_class, use_cookies=True)
@@ -963,9 +1011,9 @@ def get_valid_methods(handler):
 
 
 def url_for(_name, **kwargs):
-    """Builds and returns a URL for a named :class:`Rule`.
+    """Returns a URL for a named :class:`Rule`.
 
-    This is a shortcut to :meth:`Tipfy.url_for`.
+    .. seealso:: :meth:`Router.build`.
     """
     # For backwards compatibility, check old keywords.
     _full = kwargs.pop('full', kwargs.pop('_full', False))
@@ -974,13 +1022,24 @@ def url_for(_name, **kwargs):
 
 
 def redirect_to(_name, _code=302, **kwargs):
-    """Convenience function mixing ``werkzeug.redirect`` and
-    :meth:`Request.url_for`: redirects the client to a URL built using a named
-    :class:`Rule`.
+    """Convenience method mixing ``werkzeug.redirect`` and :func:`url_for`:
+    returns a response object with headers set for redirection to a URL
+    built using a named :class:`Rule`.
+
+    :param _name:
+        The rule name.
+    :param _code:
+        The HTTP status code for the redirect.
+    :param kwargs:
+        Keyword arguments to build the URL.
+    :returns:
+        A :class:`Response` object with headers set for redirection.
     """
     # For backwards compatibility, check old keyword.
     _code = kwargs.pop('code', _code)
-    return redirect(url_for(_name, **kwargs), code=_code)
+    # Make sure it is absolute (also checking old keyword).
+    _full = kwargs.pop('full', kwargs.pop('_full', True))
+    return redirect(url_for(_name, _full=True, **kwargs), code=_code)
 
 
 def render_json_response(*args, **kwargs):
@@ -990,7 +1049,7 @@ def render_json_response(*args, **kwargs):
         Arguments to be passed to simplejson.dumps().
     :param kwargs:
         Keyword arguments to be passed to simplejson.dumps().
-    :return:
+    :returns:
         A :class:`Response` object with a JSON string in the body and
         mimetype set to ``application/json``.
     """
@@ -1006,7 +1065,7 @@ def make_wsgi_app(config=None, **kwargs):
         A dictionary of configuration values.
     :param kwargs:
         Additional keyword arguments to instantiate :class:`Tipfy`.
-    :return:
+    :returns:
         A :class:`Tipfy` instance.
     """
     app = Tipfy(config=config, **kwargs)
@@ -1029,7 +1088,7 @@ def run_wsgi_app(app):
 
     :param app:
         A :class:`Tipfy` instance.
-    :return:
+    :returns:
         None.
     """
     warnings.warn(DeprecationWarning('run_wsgi_app() is deprecated. '

@@ -1,5 +1,8 @@
 Development version
 ===================
+- RequestHandler.redirect() now also accepts relative URIs. Passing a path
+  will result in a redirection to the path joined to the current URL.
+
 - App has now a debug attribute, set when it is initialized with debug=True.
 
 - Removed 3 configuration keys, which are now available as properties of the

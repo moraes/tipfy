@@ -26,7 +26,7 @@ from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
     RequestURITooLarge, ServiceUnavailable, Unauthorized,
     UnsupportedMediaType)
 from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
-    RequestRedirect, Rule as WerkzeugRule, RuleFactory, RuleTemplate,
+    RequestRedirect, Rule as BaseRule, RuleFactory, RuleTemplate,
     Subdomain, Submount)
 
 try:
@@ -294,7 +294,7 @@ class Config(dict):
             'foo': 'bar',
         }
 
-        app = Tipfy(rules=[Rule('/', endpoint='home', handler=MyHandler)], config=config)
+        app = Tipfy(rules=[Rule('/', name='home', handler=MyHandler)], config=config)
 
     Then to read configuration values, use :meth:`RequestHandler.get_config`::
 
@@ -569,23 +569,24 @@ class MiddlewareFactory(object):
         return res
 
 
-class Rule(WerkzeugRule):
-    """Extends Werkzeug routing to support a handler definition for each Rule.
-    Handler is a :class:`RequestHandler` module and class specification, and
-    endpoint is a friendly name used to build URL's. For example:
+class Rule(BaseRule):
+    """Extends Werkzeug routing to support handler and name definitions for
+    each Rule. Handler is a :class:`RequestHandler` class and name is a
+    friendly name used to build URL's. For example:
 
     .. code-block:: python
 
-        Rule('/users', endpoint='user-list', handler='my_app:UsersHandler')
+        Rule('/users', name='user-list', handler='my_app:UsersHandler')
 
     Access to the URL ``/users`` loads ``UsersHandler`` class from
     ``my_app`` module. To generate a URL to that page, use :func:`url_for`::
 
         url = url_for('user-list')
     """
-    def __init__(self, *args, **kwargs):
-        self.handler = kwargs.pop('handler', kwargs.get('endpoint', None))
-        super(Rule, self).__init__(*args, **kwargs)
+    def __init__(self, path, handler=None, name=None, **kwargs):
+        endpoint = kwargs.pop('endpoint', name)
+        self.handler = handler or endpoint
+        super(Rule, self).__init__(path, endpoint=endpoint, **kwargs)
 
     def empty(self):
         """Returns an unbound copy of this rule. This can be useful if you
@@ -594,9 +595,11 @@ class Rule(WerkzeugRule):
         defaults = None
         if self.defaults is not None:
             defaults = dict(self.defaults)
-        return Rule(self.rule, defaults, self.subdomain, self.methods,
-                    self.build_only, self.endpoint, self.strict_slashes,
-                    self.redirect_to, handler=self.handler)
+
+        return Rule(self.rule, handler=self.handler, name=self.endpoint,
+            defaults=defaults, subdomain=self.subdomain, methods=self.methods,
+            build_only=self.build_only, strict_slashes=self.strict_slashes,
+            redirect_to=self.redirect_to)
 
 
 class HandlerPrefix(RuleFactory):
@@ -604,8 +607,8 @@ class HandlerPrefix(RuleFactory):
     nested rules with another string. For example, take these rules::
 
         rules = [
-            Rule('/', endpoint='index', handler='my_app.handlers.IndexHandler'),
-            Rule('/entry/<entry_slug>', endpoint='show', handler='my_app.handlers.ShowHandler'),
+            Rule('/', name='index', handler='my_app.handlers.IndexHandler'),
+            Rule('/entry/<entry_slug>', name='show', handler='my_app.handlers.ShowHandler'),
         ]
 
     You can wrap them by ``HandlerPrefix`` to define the handler module and
@@ -613,8 +616,8 @@ class HandlerPrefix(RuleFactory):
 
         rules = [
             HandlerPrefix('my_app.handlers.', [
-                Rule('/', endpoint='index', handler='IndexHandler'),
-                Rule('/entry/<entry_slug>', endpoint='show', handler='ShowHandler'),
+                Rule('/', name='index', handler='IndexHandler'),
+                Rule('/entry/<entry_slug>', name='show', handler='ShowHandler'),
             ]),
         ]
     """
@@ -650,13 +653,8 @@ class Router(object):
     def add(self, rule):
         """Adds a rule to the URL map.
 
-        :param path:
-            The URL path.
-        :param endpoint:
-            The rule endpoint: an identifier for the rule.
-        :param handler:
-            A :class:`RequestHandler` class, or a module and class
-            specification as a string.
+        :param rule:
+            A :class:`Rule` or rule factory to be added.
         """
         self.map.add(rule)
 
@@ -904,7 +902,7 @@ class Tipfy(object):
 
         handler = self.error_handlers.get(code)
         if handler:
-            rule = Rule('/', handler=handler, endpoint='__exception__')
+            rule = Rule('/', handler=handler, name='__exception__')
             kwargs = dict(exception=exception, debug=self.debug)
             return self.router.dispatch(self, request, (rule, kwargs),
                 method='handle_exception')
@@ -959,7 +957,7 @@ class Tipfy(object):
             # ...
 
             app = Tipfy(rules=[
-                Rule('/', endpoint='home', handler=HelloWorldHandler),
+                Rule('/', name='home', handler=HelloWorldHandler),
             ])
 
             def main():

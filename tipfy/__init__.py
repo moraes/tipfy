@@ -10,15 +10,13 @@
 """
 import logging
 import os
-import urlparse
-import warnings
 from wsgiref.handlers import CGIHandler
 
 # Werkzeug swiss knife.
 # Need to import werkzeug first otherwise py_zipimport fails.
 import werkzeug
 from werkzeug import (cached_property, escape, import_string, redirect,
-    Request as BaseRequest, Response as BaseResponse, url_quote)
+    Request as WerkzeugRequest, Response as WerkzeugResponse, url_quote)
 from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
     Gone, HTTPException, InternalServerError, LengthRequired,
     MethodNotAllowed, NotAcceptable, NotFound, NotImplemented,
@@ -26,18 +24,17 @@ from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
     RequestURITooLarge, ServiceUnavailable, Unauthorized,
     UnsupportedMediaType)
 from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
-    RequestRedirect, Rule as BaseRule, RuleFactory, RuleTemplate,
+    RequestRedirect, Rule as WerkzeugRule, RuleFactory, RuleTemplate,
     Subdomain, Submount)
 
 try:
     # We declare the namespace to be used outside of App Engine, so that
     # we can distribute and install separate extensions.
-    # __import__('pkg_resources').declare_namespace(__name__)
-    pass
+    __import__('pkg_resources').declare_namespace(__name__)
 except ImportError, e:
     pass
 
-__version__ = '0.6.2'
+__version__ = '0.6.3'
 __version_info__ = tuple(int(n) for n in __version__.split('.'))
 
 #: Default configuration values for this module. Keys are:
@@ -63,12 +60,27 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #: subdomain
 #:     Force this subdomain to be used instead of extracting
 #:     the subdomain from the current url.
+#:
+#: dev
+#:     True is this is the development server, False otherwise.
+#:     Default is the value of ``os.environ['SERVER_SOFTWARE']``.
+#:
+#: app_id
+#:     The application id. Default is the value of
+#:     ``os.environ['APPLICATION_ID']``.
+#:
+#: version_id
+#:     The current deplyment version id. Default is the value
+#:     of ``os.environ['CURRENT_VERSION_ID']``.
 default_config = {
     'apps_installed': [],
     'apps_entry_points': {},
     'middleware': [],
     'server_name': None,
     'subdomain': None,
+    'dev': os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
+    'app_id': os.environ.get('APPLICATION_ID', None),
+    'version_id': os.environ.get('CURRENT_VERSION_ID', '1'),
 }
 
 # Allowed request methods.
@@ -99,6 +111,9 @@ class RequestHandler(object):
     #: post_dispatch(handler, response)
     #:     Called after the requested method is executed. Must always return
     #:     a response. All *post_dispatch* middleware are always executed.
+    #:
+    #: handle_exception(exception, handler)
+    #:     Called if an exception occurs.
     middleware = []
 
     def __init__(self, app, request):
@@ -121,7 +136,7 @@ class RequestHandler(object):
             lower case, e.g., 'get', 'post', 'head' or 'put'.
         :param kwargs:
             Keyword arguments from the matched :class:`Rule`.
-        :returns:
+        :return:
             A :class:`Response` instance.
         """
         method = getattr(self, _method, None)
@@ -145,7 +160,20 @@ class RequestHandler(object):
             if response is not None:
                 break
         else:
-            response = method(*args, **kwargs)
+            try:
+                # Execute the requested method.
+                response = method(*args, **kwargs)
+            except Exception, e:
+                # Execute handle_exception middleware.
+                for hook in middleware.get('handle_exception', []):
+                    response = hook(e, self)
+                    if response is not None:
+                        break
+                else:
+                    raise
+
+        # Make sure we have a response object.
+        response = self.app.make_response(self.request, response)
 
         # Execute post_dispatch middleware.
         for hook in middleware.get('post_dispatch', []):
@@ -155,13 +183,7 @@ class RequestHandler(object):
         return response
 
     def dispatch(self, _method, *args, **kwargs):
-        """A wrapper for :meth:`__call__`.
-
-        .. warning::
-           This is deprecated. Use :meth:`__call__` instead.
-        """
-        warnings.warn(DeprecationWarning('RequestHandler.dispatch() is '
-            'deprecated. Use RequestHandler.__call__() instead.'))
+        """Deprecated method: a wrapper for :meth:`__call__`."""
         return self(_method, *args, **kwargs)
 
     def abort(self, code, *args, **kwargs):
@@ -196,29 +218,23 @@ class RequestHandler(object):
         raise
 
     def redirect(self, location, code=302):
-        """Returns a response object with headers set for redirection to the
-        given URI. This won't stop code execution, so you must return when
-        calling this method::
+        """Issues an HTTP redirect to the given URL. This won't stop
+        code execution. You must return when calling this method::
 
             return self.redirect('/some-path')
 
         :param location:
-            A relative or absolute URI (e.g., '../contacts').
+            An absolute URI.
         :param code:
             The HTTP status code for the redirect.
-        :returns:
+        :return:
             A :class:`Response` object with headers set for redirection.
         """
-        if location.startswith(('.', '/')):
-            # Make it absolute.
-            location = urlparse.urljoin(self.request.url, location)
-
         return redirect(location, code)
 
     def redirect_to(self, _name, _code=302, **kwargs):
         """Convenience method mixing :meth:`redirect` and :methd:`url_for`:
-        returns a response object with headers set for redirection to a URL
-        built using a named :class:`Rule`.
+        redirects the client to a URL built using a named :class:`Rule`.
 
         :param _name:
             The rule name.
@@ -226,20 +242,20 @@ class RequestHandler(object):
             The HTTP status code for the redirect.
         :param kwargs:
             Keyword arguments to build the URL.
-        :returns:
+        :return:
             A :class:`Response` object with headers set for redirection.
         """
         return self.redirect(self.url_for(_name, **kwargs), code=_code)
 
     def url_for(self, _name, **kwargs):
-        """Returns a URL for a named :class:`Rule`.
+        """Builds a URL for a named :class:`Rule`.
 
-        .. seealso:: :meth:`Router.build`.
+        .. seealso:: :meth:`Request.url_for`.
         """
-        return self.app.router.build(self.request, _name, kwargs)
+        return self.request.url_for(_name, **kwargs)
 
 
-class Request(BaseRequest):
+class Request(WerkzeugRequest):
     """The :class:`Request` object contains all environment variables for the
     current request: GET, POST, FILES, cookies and headers. Additionally
     it stores the URL adapter bound to the request and information about the
@@ -251,32 +267,461 @@ class Request(BaseRequest):
     rule = None
     #: Keyword arguments from the matched rule.
     rule_args = None
+    #: Exception raised when matching URL rules, if any.
+    routing_exception = None
 
     def __init__(self, environ):
         """Initializes the request. This also sets a context attribute to
         hold variables valid for a single request.
         """
         super(Request, self).__init__(environ)
+
         # A registry for objects in use during a request.
         self.registry = {}
+
         # A context for template variables.
         self.context = {}
 
-    def url_for(self, _name, **kwargs):
-        """Returns a URL for a named :class:`Rule`.
+    def url_for(self, endpoint, _full=False, _method=None, _anchor=None,
+        **kwargs):
+        """Builds and returns a URL for a named :class:`Rule`.
 
-        .. warning::
-           This is deprecated. Use :meth:`Tipfy.url_for` or
-           :meth:`RequestHandler.url_for` instead.
+        For example, if you have these rules registered in the application:
+
+        .. code-block::
+
+            Rule('/', endoint='home/main' handler='handlers.MyHomeHandler')
+            Rule('/wiki', endoint='wiki/start' handler='handlers.WikiHandler')
+
+        Here are some examples of how to generate URLs for them:
+
+        >>> url = url_for('home/main')
+        >>> '/'
+        >>> url = url_for('home/main', _full=True)
+        >>> 'http://localhost:8080/'
+        >>> url = url_for('wiki/start')
+        >>> '/wiki'
+        >>> url = url_for('wiki/start', _full=True)
+        >>> 'http://localhost:8080/wiki'
+        >>> url = url_for('wiki/start', _full=True, _anchor='my-heading')
+        >>> 'http://localhost:8080/wiki#my-heading'
+
+        :param endpoint:
+            The rule endpoint.
+        :param _full:
+            If True, returns an absolute URL. Otherwise, returns a
+            relative one.
+        :param _method:
+            The rule request method, in case there are different rules
+            for different request methods.
+        :param _anchor:
+            An anchor to add to the end of the URL.
+        :param kwargs:
+            Keyword arguments to build the URL.
+        :return:
+            An absolute or relative URL.
         """
-        warnings.warn(DeprecationWarning('Request.url_for() is deprecated. '
-            'Use Tipfy.url_for() or RequestHandler.url_for() instead.'))
-        return Tipfy.app.router.build(self, _name, kwargs)
+        url = self.url_adapter.build(endpoint, force_external=_full,
+            method=_method, values=kwargs)
+
+        if _anchor:
+            url += '#' + url_quote(_anchor)
+
+        return url
 
 
-class Response(BaseResponse):
+class Response(WerkzeugResponse):
     """A response object with default mimetype set to ``text/html``."""
     default_mimetype = 'text/html'
+
+
+class Tipfy(object):
+    """The WSGI application which centralizes URL dispatching, configuration
+    and hooks for an App Rngine app.
+    """
+    #: Default class for requests.
+    request_class = Request
+    #: Default class for responses.
+    response_class = Response
+    #: The active :class:`Tipfy` instance.
+    app = None
+    #: The active :class:`Request` instance.
+    request = None
+
+    def __init__(self, config=None, rules='urls.get_rules', debug=False):
+        """Initializes the application.
+
+        :param config:
+            Dictionary with configuration for the application modules.
+        :param rules:
+            URL rules definitions for the application. It can be a list of
+            :class:`Rule`, a callable or a string defining a callable that
+            returns the rules list. The callable is called passing the WSGI
+            application as parameter. Default is ``urls.get_rules``: import
+            ``get_rules()`` from *urls.py* and calls it passing the app.
+        """
+        # Set the currently active wsgi app instance.
+        self.set_wsgi_app()
+
+        # Load default config and update with values for this instance.
+        self.config = Config(config, {'tipfy': default_config}, ['tipfy'])
+
+        # Set up a context registry for this app.
+        self.registry = {}
+
+        # Set a shortcut to the development flag.
+        self.dev = self.config.get('tipfy', 'dev', False)
+
+        # Cache for loaded handler classes.
+        self.handlers = {}
+
+        # Middleware factory and registry.
+        self.middleware_factory = MiddlewareFactory()
+
+        # Store the app middleware dict.
+        self.middleware = self.get_middleware(self, self.config.get('tipfy',
+            'middleware'))
+
+        # Initialize the URL map.
+        self.url_map = self.get_url_map(rules)
+
+    def __call__(self, environ, start_response):
+        """Shortcut for :meth:`Tipfy.wsgi_app`."""
+        return self.wsgi_app(environ, start_response)
+
+    def wsgi_app(self, environ, start_response):
+        """The actual WSGI application.  This is not implemented in
+        :meth:`Tipfy.__call__` so that middlewares can be applied without
+        losing a reference to the class. So instead of doing this::
+
+            app = MyMiddleware(app)
+
+        It's a better idea to do this instead::
+
+            app.wsgi_app = MyMiddleware(app.wsgi_app)
+
+        Then you still have the original application object around and
+        can continue to call methods on it.
+
+        :param environ:
+            A WSGI environment.
+        :param start_response:
+            A callable accepting a status code, a list of headers and an
+            optional exception context to start the response.
+        """
+        cleanup = True
+        try:
+            # Set the currently active wsgi app and request instances.
+            request = self.request_class(environ)
+            self.set_wsgi_app()
+            self.set_request(request)
+
+            # Make sure that the requested method is allowed in App Engine.
+            if request.method not in ALLOWED_METHODS:
+                abort(501)
+
+            # Match current URL and store routing exceptions if any.
+            self.match_url(request)
+
+            # Run pre_dispatch_handler middleware.
+            rv = self.pre_dispatch(request)
+            if rv is None:
+                # Dispatch the requested handler.
+                rv = self.dispatch(request)
+
+            # Run post_dispatch_handler middleware.
+            response = self.make_response(request, rv)
+            response = self.post_dispatch(request, response)
+        except RequestRedirect, e:
+            # Execute redirects raised by the routing system or the
+            # application.
+            response = e
+        except Exception, e:
+            # Handle HTTP and uncaught exceptions.
+            cleanup = not self.dev
+            response = self.handle_exception(request, e)
+            response = self.make_response(request, response)
+        finally:
+            # Do not clean request if we are in development mode and an
+            # exception happened. This allows the debugger to still access
+            # request and other variables in the interactive shell.
+            if cleanup:
+                self.cleanup()
+
+        # Call the response object as a WSGI application.
+        return response(environ, start_response)
+
+    def get_url_map(self, rules=None):
+        """Returns a ``werkzeug.routing.Map`` instance with initial
+        :class:`Rule` definitions.
+
+        :param rules:
+            Initial list of :class:`Rule`, a callable or a string defining
+            a callable that returns the list of rules.
+        :return:
+            A ``werkzeug.routing.Map`` instance.
+        """
+        if isinstance(rules, basestring):
+            try:
+                rules = import_string(rules)
+            except (AttributeError, ImportError), e:
+                logging.warning('Missing %s. No URL rules were loaded.' %
+                    rules)
+                rules = None
+
+        if callable(rules):
+            try:
+                rules = rules(self)
+            except TypeError, e:
+                # Backwards compatibility:
+                # Previously get_rules() didn't receive the WSGI app.
+                rules = rules()
+
+        return Map(rules)
+
+    def add_url_rule(self, path, endpoint, handler, **kwargs):
+        """Adds a rule to the URL map.
+
+        :param path:
+            The URL path.
+        :param endpoint:
+            The rule endpoint: an identifier for the rule.
+        :param handler:
+            A :class:`RequestHandler` class, or a module and class
+            specification as a string.
+        """
+        rule = Rule(path, endpoint=endpoint, handler=handler, **kwargs)
+        self.url_map.add(rule)
+
+    def match_url(self, request):
+        """Matches registered :class:`Rule` definitions against the request.
+        This will store the URL adapter, matched rule and rule arguments in
+        the :class: `Request` instance.
+
+        Three exceptions can occur when matching the rules: ``NotFound``,
+        ``MethodNotAllowed`` or ``RequestRedirect``. If they are
+        raised, they are stored in the request for later use.
+
+        :param request:
+            A :class:`Request` instance.
+        :return:
+            None.
+        """
+        # Bind url map to the current request location.
+        config = self.config.get('tipfy')
+        request.url_adapter = self.url_map.bind_to_environ(request.environ,
+            server_name=config.get('server_name'),
+            subdomain=config.get('subdomain'))
+
+        try:
+            # Match the path against registered rules.
+            request.rule, request.rule_args = request.url_adapter.match(
+                return_rule=True)
+        except HTTPException, e:
+            request.routing_exception = e
+
+    def pre_dispatch(self, request):
+        """Executes pre_dispatch_handler middleware. If a middleware returns
+        anything, the chain is stopped and that value is retirned.
+
+        :param request:
+            A :class:`Request` instance.
+        :return:
+            The returned value from a middleware or None.
+        """
+        for hook in self.middleware.get('pre_dispatch_handler', []):
+            rv = hook()
+            if rv is not None:
+                return rv
+
+    def dispatch(self, request):
+        """Matches the current URL against registered rules and returns the
+        resut from the :class:`RequestHandler`.
+
+        :param request:
+            A :class:`Request` instance.
+        :return:
+            The returned value from a middleware or None.
+        """
+        if request.routing_exception is not None:
+            raise request.routing_exception
+
+        handler = request.rule.handler
+        if isinstance(handler, basestring):
+            if handler not in self.handlers:
+                # Import handler set in matched rule.
+                self.handlers[handler] = import_string(handler)
+
+            handler = self.handlers[handler]
+
+        # Instantiate handler and dispatch requested method.
+        method = request.method.lower().replace('-', '_')
+        return handler(self, request)(method, **request.rule_args)
+
+    def post_dispatch(self, request, response):
+        """Executes post_dispatch_handler middleware. All middleware are
+        executed and must return a response object.
+
+        :param request:
+            A :class:`Request` instance.
+        :param response:
+            The :class:`Response` returned from :meth:`Tipfy.pre_dispatch`
+            or :meth:`Tipfy.dispatch` and converted by
+            :meth:`Tipfy.make_response`.
+        :return:
+            A :class:`Response` instance.
+        """
+        for hook in self.middleware.get('post_dispatch_handler', []):
+            response = hook(response)
+
+        return response
+
+    def make_response(self, request, rv):
+        """Converts the return value from a handler to a real response
+        object that is an instance of :class:`Response`.
+
+        The following types are allowd for ``rv``:
+
+        response_class
+            The object is returned unchanged.
+
+        str
+            A response object is created with the string as body.
+
+        unicode
+            A response object is created with the string encoded to
+            utf-8 as body.
+
+        tuple
+            The response object is created with the contents of the
+            tuple as arguments.
+
+        WSGI function
+            The function is called as WSGI application and
+            buffered as response object.
+
+        This method comes from `Flask <http://flask.pocoo.org/>`_.
+
+        :param request:
+            A :class:`Request` instance.
+        :param rv:
+            The return value from the handler.
+        :return:
+            A :class:`Response` instance.
+        """
+        if isinstance(rv, self.response_class):
+            return rv
+
+        if isinstance(rv, basestring):
+            return self.response_class(rv)
+
+        if isinstance(rv, tuple):
+            return self.response_class(*rv)
+
+        if rv is None:
+            raise ValueError('Handler did not return a response.')
+
+        return self.response_class.force_type(rv, request.environ)
+
+    def handle_exception(self, request, e):
+        """Handles HTTPException or uncaught exceptions raised by the WSGI
+        application, optionally applying exception middleware.
+
+        :param request:
+            A :class:`Request` instance.
+        :param e:
+            The catched exception.
+        :return:
+            A :class:`Response` instance, if the exception is not raised.
+        """
+        # Execute handle_exception middleware.
+        for hook in self.middleware.get('handle_exception', []):
+            response = hook(e)
+            if response is not None:
+                return response
+
+        if self.dev:
+            raise
+
+        logging.exception(e)
+
+        if isinstance(e, HTTPException):
+            return e
+
+        return InternalServerError()
+
+    def get_middleware(self, obj, classes):
+        """Returns a dictionary of all middleware instance methods for a given
+        object.
+
+        :param obj:
+            The object to search for related middleware (:class:`Tipfy` or
+            :class:`RequestHandler` instance).
+        :param classes:
+            A list of middleware classes.
+        :return:
+            A dictionary with middleware instance methods.
+        """
+        if not classes:
+            return {}
+
+        return self.middleware_factory.get_middleware(obj, classes)
+
+    def get_config(self, module, key=None, default=REQUIRED_VALUE):
+        """Returns a configuration value for a module.
+
+        .. seealso:: :meth:`Config.get_or_load`.
+        """
+        return self.config.get_or_load(module, key=key, default=default)
+
+    def set_wsgi_app(self):
+        """Sets the currently active :class:`Tipfy` instance."""
+        Tipfy.app = self
+
+    def set_request(self, request):
+        """Sets the currently active :class:`Request` instance.
+
+        :param request:
+            The currently active :class:`Request` instance.
+        """
+        Tipfy.request = request
+
+    def cleanup(self):
+        """Cleans :class:`Tipfy` variables at the end of a request."""
+        Tipfy.app = Tipfy.request = None
+
+    def get_test_client(self):
+        """Creates a test client for this application.
+
+        :return:
+            A ``werkzeug.Client``, which is a :class:`Tipfy` wrapped
+            for tests.
+        """
+        from werkzeug import Client
+        return Client(self, self.response_class, use_cookies=True)
+
+    def run(self):
+        """Runs the app using ``CGIHandler``. This must be called inside a
+        ``main()`` function in the file defined in *app.yaml* to run the
+        application::
+
+            # ...
+
+            app = Tipfy(rules=[
+                Rule('/', endpoint='home', handler=HelloWorldHandler),
+            ])
+
+            def main():
+                app.run()
+
+            if __name__ == '__main__':
+                main()
+        """
+        # Fix issue #772.
+        if self.dev:
+            fix_sys_path()
+
+        CGIHandler().run(self)
 
 
 class Config(dict):
@@ -294,7 +739,7 @@ class Config(dict):
             'foo': 'bar',
         }
 
-        app = Tipfy(rules=[Rule('/', name='home', handler=MyHandler)], config=config)
+        app = Tipfy(rules=[Rule('/', endpoint='home', handler=MyHandler)], config=config)
 
     Then to read configuration values, use :meth:`RequestHandler.get_config`::
 
@@ -483,11 +928,13 @@ class MiddlewareFactory(object):
         'post_dispatch_handler',
         'pre_dispatch',
         'post_dispatch',
+        'handle_exception',
     )
     #: Methods that must run in reverse order.
     reverse_names = (
         'post_dispatch_handler',
         'post_dispatch',
+        'handle_exception',
     )
 
     def __init__(self):
@@ -507,7 +954,7 @@ class MiddlewareFactory(object):
             :class:`RequestHandler`).
         :param classes:
             A list of middleware classes.
-        :returns:
+        :return:
             A dictionary with middleware instance methods.
         """
         id = obj.__module__ + '.' + obj.__class__.__name__
@@ -523,7 +970,7 @@ class MiddlewareFactory(object):
 
         :param specs:
             A list of middleware classes, classes as strings or instances.
-        :returns:
+        :return:
             A dictionary with middleware instance methods.
         """
         res = {}
@@ -569,24 +1016,23 @@ class MiddlewareFactory(object):
         return res
 
 
-class Rule(BaseRule):
-    """Extends Werkzeug routing to support handler and name definitions for
-    each Rule. Handler is a :class:`RequestHandler` class and name is a
-    friendly name used to build URL's. For example:
+class Rule(WerkzeugRule):
+    """Extends Werkzeug routing to support a handler definition for each Rule.
+    Handler is a :class:`RequestHandler` module and class specification, and
+    endpoint is a friendly name used to build URL's. For example:
 
     .. code-block:: python
 
-        Rule('/users', name='user-list', handler='my_app:UsersHandler')
+        Rule('/users', endpoint='user-list', handler='my_app:UsersHandler')
 
     Access to the URL ``/users`` loads ``UsersHandler`` class from
     ``my_app`` module. To generate a URL to that page, use :func:`url_for`::
 
         url = url_for('user-list')
     """
-    def __init__(self, path, handler=None, name=None, **kwargs):
-        endpoint = kwargs.pop('endpoint', name)
-        self.handler = handler or endpoint
-        super(Rule, self).__init__(path, endpoint=endpoint, **kwargs)
+    def __init__(self, *args, **kwargs):
+        self.handler = kwargs.pop('handler', kwargs.get('endpoint', None))
+        super(Rule, self).__init__(*args, **kwargs)
 
     def empty(self):
         """Returns an unbound copy of this rule. This can be useful if you
@@ -595,11 +1041,9 @@ class Rule(BaseRule):
         defaults = None
         if self.defaults is not None:
             defaults = dict(self.defaults)
-
-        return Rule(self.rule, handler=self.handler, name=self.endpoint,
-            defaults=defaults, subdomain=self.subdomain, methods=self.methods,
-            build_only=self.build_only, strict_slashes=self.strict_slashes,
-            redirect_to=self.redirect_to)
+        return Rule(self.rule, defaults, self.subdomain, self.methods,
+                    self.build_only, self.endpoint, self.strict_slashes,
+                    self.redirect_to, handler=self.handler)
 
 
 class HandlerPrefix(RuleFactory):
@@ -607,18 +1051,17 @@ class HandlerPrefix(RuleFactory):
     nested rules with another string. For example, take these rules::
 
         rules = [
-            Rule('/', name='index', handler='my_app.handlers.IndexHandler'),
-            Rule('/entry/<entry_slug>', name='show', handler='my_app.handlers.ShowHandler'),
+            HandlerPrefix('my_app.handlers.', [
+                Rule('/', endpoint='index', handler='IndexHandler'),
+                Rule('/entry/<entry_slug>', endpoint='show', handler='ShowHandler'),
+            ]),
         ]
 
-    You can wrap them by ``HandlerPrefix`` to define the handler module and
-    avoid repetition. This is equivalent to the above::
+    These are the same as::
 
         rules = [
-            HandlerPrefix('my_app.handlers.', [
-                Rule('/', name='index', handler='IndexHandler'),
-                Rule('/entry/<entry_slug>', name='show', handler='ShowHandler'),
-            ]),
+            Rule('/', endpoint='index', handler='my_app.handlers.IndexHandler'),
+            Rule('/entry/<entry_slug>', endpoint='show', handler='my_app.handlers.ShowHandler'),
         ]
     """
     def __init__(self, prefix, rules):
@@ -633,367 +1076,12 @@ class HandlerPrefix(RuleFactory):
                 yield rule
 
 
-class Router(object):
-    def __init__(self, app, rules=None):
-        """
-        :param app:
-            A :class:`Tipfy` instance.
-        :param rules:
-            Initial URL rules definitions. It can be a list of :class:`Rule`,
-            a callable or a string defining a callable that returns the rules
-            list. The callable is called passing the WSGI application as
-            parameter. If None, it will import ``get_rules()`` from *urls.py*
-            and call it passing the WSGI application.
-        """
-        self.app = app
-        self.map = self.get_map(rules)
-        # Cache for loaded handler classes.
-        self.handlers = {}
-
-    def add(self, rule):
-        """Adds a rule to the URL map.
-
-        :param rule:
-            A :class:`Rule` or rule factory to be added.
-        """
-        self.map.add(rule)
-
-    def match(self, request):
-        """Matches registered :class:`Rule` definitions against the URL
-        adapter. This will store the URL adapter, matched rule and rule
-        arguments in the :class:`Request` instance.
-
-        Three exceptions can occur when matching the rules: ``NotFound``,
-        ``MethodNotAllowed`` or ``RequestRedirect``. If they are
-        raised, they are stored in the request for later use.
-
-        :param request:
-            A :class:`Request` instance.
-        :returns:
-            None.
-        """
-        # Bind the URL map to the current request
-        request.url_adapter = self.map.bind_to_environ(request.environ,
-            server_name=self.app.config.get('tipfy', 'server_name'),
-            subdomain=self.app.config.get('tipfy', 'subdomain'))
-
-        # Match the path against registered rules.
-        match = request.url_adapter.match(return_rule=True)
-        request.rule, request.rule_args = match
-        return match
-
-    def dispatch_with_hooks(self, app, request, match):
-        # XXX fix this method name, split in two: pre and post_dispatch.
-
-        # Executes pre_dispatch_handler middleware. If a middleware returns
-        # a response, the chain is stopped.
-        for hook in app.middleware.get('pre_dispatch_handler', []):
-            response = hook()
-            if response is not None:
-                break
-        else:
-            response = self.dispatch(app, request, match)
-
-        # Executes post_dispatch_handler middleware. All middleware are
-        # executed and must return a response object.
-        for hook in app.middleware.get('post_dispatch_handler', []):
-            response = hook(response)
-
-        return response
-
-    def dispatch(self, app, request, match, method=None):
-        """Dispatches a request. This calls the :class:`RequestHandler` from
-        the matched :class:`Rule`.
-
-        :param app:
-            A :class:`WSGIApplication` instance.
-        :param request:
-            A :class:`Request` instance.
-        :param match:
-            A tuple ``(rule, kwargs)``, resulted from the matched URL.
-        :param method:
-            Handler method to be called. In cases like exception handling, a
-            method can be forced instead of using the request method.
-        """
-        method = method or request.method.lower().replace('-', '_')
-        rule, kwargs = match
-
-        if isinstance(rule.handler, basestring):
-            if rule.handler not in self.handlers:
-                # Import handler set in matched rule. This can raise an
-                # ImportError or AttributeError if the handler is badly
-                # defined. The exception will be caught in the WSGI app.
-                self.handlers[rule.handler] = import_string(rule.handler)
-
-            rule.handler = self.handlers[rule.handler]
-
-        # Instantiate handler.
-        handler = rule.handler(app, request)
-        try:
-            # Dispatch the requested method.
-            return handler(method, **kwargs)
-        except Exception, e:
-            if method == 'handle_exception':
-                # We are already handling an exception.
-                raise
-
-            # If the handler implements exception handling, let it handle it.
-            return handler.handle_exception(exception=e, debug=self.app.debug)
-
-    def get_map(self, rules=None):
-        """Returns a ``werkzeug.routing.Map`` instance with the given
-        :class:`Rule` definitions.
-
-        :param rules:
-            A list of :class:`Rule`, a callable or a string defining
-            a callable that returns the list of rules.
-        :returns:
-            A ``werkzeug.routing.Map`` instance.
-        """
-        if rules is None:
-            # Load rules from urls.py.
-            rules = 'urls.get_rules'
-
-        if isinstance(rules, basestring):
-            rules = import_string(rules, silent=True)
-            if not rules:
-                logging.warning('Missing %s. No URL rules were loaded.' %
-                    rules)
-
-        if callable(rules):
-            rules = rules(self.app)
-
-        return Map(rules)
-
-    def build(self, request, name, kwargs):
-        """Returns a URL for a named :class:`Rule`. This is the central place
-        to build URLs for an app. It is used by :meth:`RequestHandler.url_for`,
-        :meth:`Tipfy.url_for and the standalone function :func:`url_for`.
-        Those functions conveniently pass the current request object so you
-        don't have to.
-
-        :param request:
-            The current request object.
-        :param name:
-            The rule name.
-        :param kwargs:
-            Values to build the URL. All variables not set in the rule
-            default values must be passed and must conform to the format set
-            in the rule. Extra keywords are appended as query arguments.
-
-            A few keywords have special meaning:
-
-            - **_full**: If True, builds an absolute URL.
-            - **_method**: Uses a rule defined to handle specific request
-              methods, if any are defined.
-            - **_scheme**: URL scheme, e.g., `http` or `https`. If defined,
-              an absolute URL is always returned.
-            - **_netloc**: Network location, e.g., `www.google.com`. If
-              defined, an absolute URL is always returned.
-            - **_anchor**: If set, appends an anchor to generated URL.
-        :returns:
-            An absolute or relative URL.
-        """
-        full = kwargs.pop('_full', False)
-        method = kwargs.pop('_method', None)
-        scheme = kwargs.pop('_scheme', None)
-        netloc = kwargs.pop('_netloc', None)
-        anchor = kwargs.pop('_anchor', None)
-
-        if scheme or netloc:
-            full = False
-
-        url = request.url_adapter.build(name, values=kwargs, method=method,
-            force_external=full)
-
-        if scheme or netloc:
-            url = '%s://%s%s' % (scheme or 'http', netloc or request.host, url)
-
-        if anchor:
-            url += '#%s' % url_quote(anchor)
-
-        return url
-
-
-class Tipfy(object):
-    """The WSGI application which centralizes URL dispatching, configuration
-    and hooks for an App Rngine app.
-    """
-    #: Default class for requests.
-    request_class = Request
-    #: Default class for responses.
-    response_class = Response
-    #: Default class for the configuration object.
-    config_class = Config
-    #: Default class for the configuration object.
-    router_class = Router
-    #: The active :class:`Tipfy` instance.
-    app = None
-    #: The active :class:`Request` instance.
-    request = None
-
-    def __init__(self, config=None, rules=None, debug=False):
-        """Initializes the application.
-
-        :param config:
-            Dictionary with configuration for the application modules.
-        :param rules:
-            URL rules definitions for the application. It can be a list of
-            :class:`Rule`, a callable or a string defining a callable that
-            returns the rules list. The callable is called passing the WSGI
-            application as parameter. Default is ``urls.get_rules``: import
-            ``get_rules()`` from *urls.py* and calls it passing the app.
-        """
-        Tipfy.app = self
-        self.debug = debug
-        self.registry = {}
-        self.error_handlers = {}
-
-        # Load default config and update with values for this instance.
-        self.config = self.config_class(config, {'tipfy': default_config},
-            ['tipfy'])
-
-        # Middleware factory and registry.
-        self.middleware_factory = MiddlewareFactory()
-
-        # Store the app middleware dict.
-        self.middleware = self.get_middleware(self, self.config.get('tipfy',
-            'middleware'))
-
-        self.router = self.router_class(self, rules)
-
-    def __call__(self, environ, start_response):
-        """Shortcut for :meth:`Tipfy.wsgi_app`."""
-        return self.wsgi_app(environ, start_response)
-
-    def wsgi_app(self, environ, start_response):
-        cleanup = True
-        try:
-            Tipfy.app = self
-            Tipfy.request = request = self.request_class(environ)
-
-            if request.method not in ALLOWED_METHODS:
-                abort(501)
-
-            match = self.router.match(request)
-            response = self.router.dispatch_with_hooks(self, request, match)
-        except Exception, e:
-            try:
-                response = self.handle_exception(request, e)
-            except HTTPException, e:
-                response = e
-            except:
-                if self.debug:
-                    cleanup = False
-                    raise
-
-                response = InternalServerError()
-        finally:
-            if cleanup:
-                Tipfy.app = Tipfy.request = None
-
-        return response(environ, start_response)
-
-    def handle_exception(self, request, exception):
-        if isinstance(exception, HTTPException):
-            code = exception.code
-        else:
-            code = 500
-
-        handler = self.error_handlers.get(code)
-        if handler:
-            rule = Rule('/', handler=handler, name='__exception__')
-            kwargs = dict(exception=exception, debug=self.debug)
-            return self.router.dispatch(self, request, (rule, kwargs),
-                method='handle_exception')
-        else:
-            raise
-
-    def get_config(self, module, key=None, default=REQUIRED_VALUE):
-        """Returns a configuration value for a module.
-
-        .. seealso:: :meth:`Config.get_or_load`.
-        """
-        return self.config.get_or_load(module, key=key, default=default)
-
-    def get_middleware(self, obj, classes):
-        """Returns a dictionary of all middleware instance methods for a given
-        object.
-
-        :param obj:
-            The object to search for related middleware (:class:`Tipfy` or
-            :class:`RequestHandler` instance).
-        :param classes:
-            A list of middleware classes.
-        :returns:
-            A dictionary with middleware instance methods.
-        """
-        if not classes:
-            return {}
-
-        return self.middleware_factory.get_middleware(obj, classes)
-
-    def url_for(self, _name, **kwargs):
-        """Returns a URL for a named :class:`Rule`.
-
-        .. seealso:: :meth:`Router.build`.
-        """
-        return self.router.build(self.request, _name, kwargs)
-
-    def get_test_client(self):
-        """Creates a test client for this application.
-
-        :returns:
-            A ``werkzeug.Client`` with the WSGI application wrapped for tests.
-        """
-        from werkzeug import Client
-        return Client(self, self.response_class, use_cookies=True)
-
-    def run(self):
-        """Runs the app using ``CGIHandler``. This must be called inside a
-        ``main()`` function in the file defined in *app.yaml* to run the
-        application::
-
-            # ...
-
-            app = Tipfy(rules=[
-                Rule('/', name='home', handler=HelloWorldHandler),
-            ])
-
-            def main():
-                app.run()
-
-            if __name__ == '__main__':
-                main()
-        """
-        # Fix issue #772.
-        if self.dev:
-            fix_sys_path()
-
-        CGIHandler().run(self)
-
-    @cached_property
-    def dev(self):
-        """True is the app is using the dev server, False otherwise."""
-        return os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
-
-    @cached_property
-    def app_id(self):
-        """The application ID as defined in *app.yaml*."""
-        return os.environ.get('APPLICATION_ID', None)
-
-    @cached_property
-    def version_id(self):
-        """The deployed version ID. Always '1' when using the dev server."""
-        return os.environ.get('CURRENT_VERSION_ID', '1')
-
-
 def get_config(module, key=None, default=REQUIRED_VALUE):
     """Returns a configuration value for a module.
 
     .. seealso:: :meth:`Config.get_or_load`.
     """
-    return Tipfy.app.get_config(module, key=key, default=default)
+    return Tipfy.app.config.get_or_load(module, key=key, default=default)
 
 
 def get_valid_methods(handler):
@@ -1008,36 +1096,45 @@ def get_valid_methods(handler):
         getattr(handler, method.lower().replace('-', '_'), None)]
 
 
-def url_for(_name, **kwargs):
-    """Returns a URL for a named :class:`Rule`.
+def url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs):
+    """Builds and returns a URL for a named :class:`Rule`.
 
-    .. seealso:: :meth:`Router.build`.
+    This is a shortcut to :meth:`Request.url_for`.
     """
     # For backwards compatibility, check old keywords.
-    _full = kwargs.pop('full', kwargs.pop('_full', False))
-    _method = kwargs.pop('method', kwargs.pop('_method', None))
-    return Tipfy.app.url_for(_name, _full=_full, _method=_method, **kwargs)
+    full = kwargs.pop('full', _full)
+    method = kwargs.pop('method', _method)
+
+    return Tipfy.request.url_for(endpoint, _full=full, _method=method,
+        _anchor=_anchor, **kwargs)
 
 
-def redirect_to(_name, _code=302, **kwargs):
-    """Convenience method mixing ``werkzeug.redirect`` and :func:`url_for`:
-    returns a response object with headers set for redirection to a URL
-    built using a named :class:`Rule`.
+def redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs):
+    """Convenience function mixing ``werkzeug.redirect`` and
+    :meth:`Request.url_for`: redirects the client to a URL built using a named
+    :class:`Rule`.
 
-    :param _name:
-        The rule name.
+    :param endpoint:
+        The rule endpoint.
+    :param _method:
+        The rule request method, in case there are different rules
+        for different request methods.
+    :param _anchor:
+        An anchor to add to the end of the URL.
     :param _code:
-        The HTTP status code for the redirect.
+        The redirect status code.
     :param kwargs:
         Keyword arguments to build the URL.
-    :returns:
+    :return:
         A :class:`Response` object with headers set for redirection.
     """
-    # For backwards compatibility, check old keyword.
-    _code = kwargs.pop('code', _code)
-    # Make sure it is absolute (also checking old keyword).
-    _full = kwargs.pop('full', kwargs.pop('_full', True))
-    return redirect(url_for(_name, _full=True, **kwargs), code=_code)
+    # For backwards compatibility, check old keywords.
+    method = kwargs.pop('method', _method)
+    code = kwargs.pop('code', _code)
+
+    url = Tipfy.request.url_for(endpoint, _full=True, _method=method,
+        _anchor=_anchor, **kwargs)
+    return redirect(url, code=code)
 
 
 def render_json_response(*args, **kwargs):
@@ -1047,7 +1144,7 @@ def render_json_response(*args, **kwargs):
         Arguments to be passed to simplejson.dumps().
     :param kwargs:
         Keyword arguments to be passed to simplejson.dumps().
-    :returns:
+    :return:
         A :class:`Response` object with a JSON string in the body and
         mimetype set to ``application/json``.
     """
@@ -1063,12 +1160,12 @@ def make_wsgi_app(config=None, **kwargs):
         A dictionary of configuration values.
     :param kwargs:
         Additional keyword arguments to instantiate :class:`Tipfy`.
-    :returns:
+    :return:
         A :class:`Tipfy` instance.
     """
     app = Tipfy(config=config, **kwargs)
 
-    if app.debug:
+    if app.dev:
         logging.getLogger().setLevel(logging.DEBUG)
 
     # Execute post_make_app middleware.
@@ -1086,11 +1183,9 @@ def run_wsgi_app(app):
 
     :param app:
         A :class:`Tipfy` instance.
-    :returns:
+    :return:
         None.
     """
-    warnings.warn(DeprecationWarning('run_wsgi_app() is deprecated. '
-            'Use Tipfy.run() instead.'))
     app.run()
 
 
@@ -1109,3 +1204,36 @@ def fix_sys_path():
         _ULTIMATE_SYS_PATH = list(sys.path)
     elif sys.path != _ULTIMATE_SYS_PATH:
         sys.path[:] = _ULTIMATE_SYS_PATH
+
+
+__all__ = [
+    'Config',
+    'DEFAULT_VALUE',
+    'EndpointPrefix',
+    'HTTPException',
+    'InternalServerError',
+    'Map',
+    'REQUIRED_VALUE',
+    'Request',
+    'RequestHandler',
+    'RequestRedirect',
+    'Response',
+    'Rule',
+    'RuleTemplate',
+    'Subdomain',
+    'Submount',
+    'Tipfy',
+    'abort',
+    'cached_property',
+    'default_config',
+    'escape',
+    'get_config',
+    'import_string',
+    'make_wsgi_app',
+    'redirect',
+    'redirect_to',
+    'render_json_response',
+    'run_wsgi_app',
+    'url_for',
+    'url_quote',
+]

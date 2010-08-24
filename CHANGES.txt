@@ -1,34 +1,7 @@
-Development version
-===================
-- RequestHandler.redirect() now also accepts relative URIs. Passing a path
-  will result in a redirection to the path joined to the current URL.
-
-- App has now a debug attribute, set when it is initialized with debug=True.
-
-- Removed 3 configuration keys, which are now available as properties of the
-  WSGI app instance:
-  - dev: True is the app is using the dev server, False otherwise.
-  - app_id: the application ID as defined in *app.yaml*.
-  - version_id: the deployed version ID. Always '1' when using the dev server.
-
-- Removed make_response(). It is unneeded magic that adds many ways to to the
-  same basic thing: build a Response object. If you rely on automatic wrapping
-  returned values from handlers into Response objects, you need to explicitly
-  return a Response object now.
-
-- Added a Router class which is responsible for matching, dispatching and
-  building URLs. The main reason was to implement better exception handling,
-  but it adds other flexibility points. Some implications:
-  - Moved methods from Tipfy that are now part of the router functionality:
-    get_url_map(), add_url_rule(), match_url(), pre_dispatch(), dispatch() and
-    post_dispatch(). If you extended them in some way, you must now extend
-    the router.
-  - URL building is centralized in the router, so url_for() methods
-    (from Request, RequestHandler or Tipfy) call router.build(). They remain
-    backwards compatible, just the internals changed.
-
-- New, easier and improved exception handling scheme:
-  XXX explain it
+Version 0.6.3 - August 24, 2010
+===============================
+- Updated zc.buildout 1.5.0 was causing problems, so now we force 1.4.4 in
+  bootstrap.py.
 
 
 Version 0.6.2 - August 20, 2010

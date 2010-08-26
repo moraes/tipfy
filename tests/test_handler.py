@@ -1,16 +1,30 @@
 import unittest
 
-from tipfy import Request, RequestHandler, Response, Rule, Tipfy
+from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
+    ALLOWED_METHODS)
 
 
 class TestHandler(unittest.TestCase):
+    def tearDown(self):
+        Tipfy.app = Tipfy.request = None
+
     def test_405(self):
         class HomeHandler(RequestHandler):
-            def get(self, **kwargs):
-                return Response('Home sweet home!')
+            pass
 
-            def post(self, **kwargs):
-                return Response('Home sweet home!')
+        app = Tipfy(rules=[
+            Rule('/', endpoint='home', handler=HomeHandler),
+        ])
+
+        client = app.get_test_client()
+
+        for method in ALLOWED_METHODS:
+            response = client.open('/', method=method)
+            self.assertEqual(response.status_code, 405)
+
+    def test_405_debug(self):
+        class HomeHandler(RequestHandler):
+            pass
 
         app = Tipfy(rules=[
             Rule('/', endpoint='home', handler=HomeHandler),
@@ -18,28 +32,9 @@ class TestHandler(unittest.TestCase):
 
         client = app.get_test_client()
 
-        response = client.get('/')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, 'Home sweet home!')
-
-        response = client.post('/')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, 'Home sweet home!')
-
-        response = client.delete('/')
-        self.assertEqual(response.status_code, 405)
-
-        response = client.head('/')
-        self.assertEqual(response.status_code, 405)
-
-        response = client.put('/')
-        self.assertEqual(response.status_code, 405)
-
-        response = client.open('/', method='OPTIONS')
-        self.assertEqual(response.status_code, 405)
-
-        response = client.open('/', method='TRACE')
-        self.assertEqual(response.status_code, 405)
+        for method in ALLOWED_METHODS:
+            response = client.open('/', method=method)
+            self.assertEqual(response.status_code, 405)
 
     def test_abort(self):
         class HandlerWith400(RequestHandler):
@@ -77,17 +72,14 @@ class TestHandler(unittest.TestCase):
     def test_handle_exception(self):
         class HandlerWithValueError(RequestHandler):
             def get(self, **kwargs):
-                try:
-                    raise ValueError()
-                except Exception, e:
-                    self.handle_exception(exception=e, debug=True)
+                raise ValueError()
 
         class HandlerWithNotImplementedError(RequestHandler):
             def get(self, **kwargs):
-                try:
-                    raise NotImplementedError()
-                except Exception, e:
-                    self.handle_exception(exception=e, debug=True)
+                raise NotImplementedError()
+
+            def handle_exception(self, exception=None, debug=True):
+                return Response('I fixed it!')
 
         app = Tipfy(rules=[
             Rule('/value-error', endpoint='value-error', handler=HandlerWithValueError),
@@ -97,7 +89,10 @@ class TestHandler(unittest.TestCase):
         client = app.get_test_client()
 
         self.assertRaises(ValueError, client.get, '/value-error')
-        self.assertRaises(NotImplementedError, client.get, '/not-implemented-error')
+
+        response = client.get('/not-implemented-error')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, 'I fixed it!')
 
     def test_redirect(self):
         class HomeHandler(RequestHandler):

@@ -7,6 +7,9 @@ from tipfy import Request, RequestHandler, Response, Rule, Tipfy
 
 
 class TestHandler(unittest.TestCase):
+    def tearDown(self):
+        Tipfy.app = Tipfy.request = None
+
     def test_dispatch(self):
         class HomeHandler(RequestHandler):
             def get(self, **kwargs):

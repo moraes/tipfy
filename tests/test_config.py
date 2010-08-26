@@ -8,6 +8,9 @@ from tipfy import Config, Tipfy, RequestHandler, REQUIRED_VALUE
 
 
 class TestConfig(unittest.TestCase):
+    def tearDown(self):
+        Tipfy.app = Tipfy.request = None
+
     def test_get_existing_keys(self):
         config = Config({'foo': {
             'bar': 'baz',
@@ -147,7 +150,10 @@ class TestConfig(unittest.TestCase):
         self.assertRaises(AssertionError, setitem, 'foo', None)
 
 
-class TestGetConfig(unittest.TestCase):
+class TestLoadConfig(unittest.TestCase):
+    def tearDown(self):
+        Tipfy.app = Tipfy.request = None
+
     def test_default_config(self):
         config = Config()
 

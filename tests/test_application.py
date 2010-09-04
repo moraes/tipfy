@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
@@ -66,3 +67,30 @@ class TestApp(unittest.TestCase):
         client = app.get_test_client()
         response = client.open('/', method='CONNECT')
         self.assertEqual(response.status_code, 501)
+
+    def test_dev(self):
+        app = Tipfy()
+        self.assertEqual(app.dev, False)
+
+        os.environ['SERVER_SOFTWARE'] = 'Dev'
+        app = Tipfy()
+        self.assertEqual(app.dev, True)
+        os.environ.pop('SERVER_SOFTWARE')
+
+    def test_app_id(self):
+        app = Tipfy()
+        self.assertEqual(app.app_id, None)
+
+        os.environ['APPLICATION_ID'] = 'myapp'
+        app = Tipfy()
+        self.assertEqual(app.app_id, 'myapp')
+        os.environ.pop('APPLICATION_ID')
+
+    def test_version_id(self):
+        app = Tipfy()
+        self.assertEqual(app.version_id, '1')
+
+        os.environ['CURRENT_VERSION_ID'] = 'testing'
+        app = Tipfy()
+        self.assertEqual(app.version_id, 'testing')
+        os.environ.pop('CURRENT_VERSION_ID')

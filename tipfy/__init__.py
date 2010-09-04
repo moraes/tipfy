@@ -14,20 +14,13 @@ import urlparse
 import warnings
 from wsgiref.handlers import CGIHandler
 
-# Werkzeug swiss knife.
+# Werkzeug Swiss knife.
 # Need to import werkzeug first otherwise py_zipimport fails.
 import werkzeug
-from werkzeug import (cached_property, escape, import_string, redirect,
-    Request as BaseRequest, Response as BaseResponse, url_quote)
-from werkzeug.exceptions import (abort, BadGateway, BadRequest, Forbidden,
-    Gone, HTTPException, InternalServerError, LengthRequired,
-    MethodNotAllowed, NotAcceptable, NotFound, NotImplemented,
-    PreconditionFailed, RequestEntityTooLarge, RequestTimeout,
-    RequestURITooLarge, ServiceUnavailable, Unauthorized,
-    UnsupportedMediaType)
-from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
-    RequestRedirect, Rule as BaseRule, RuleFactory, RuleTemplate,
-    Subdomain, Submount)
+from werkzeug import (Request as BaseRequest, Response as BaseResponse,
+    cached_property, import_string, redirect, url_quote)
+from werkzeug.exceptions import HTTPException, InternalServerError, abort
+from werkzeug.routing import BaseConverter, Map, Rule as BaseRule, RuleFactory
 
 try:
     # We declare the namespace to be used outside of App Engine, so that
@@ -37,7 +30,7 @@ try:
 except ImportError, e:
     pass
 
-__version__ = '0.6.2'
+__version__ = '0.7'
 __version_info__ = tuple(int(n) for n in __version__.split('.'))
 
 #: Default configuration values for this module. Keys are:
@@ -50,25 +43,24 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #:     using base paths.
 #:
 #: middleware
-#:     A list of middleware classes for the WSGIApplication. The classes can
+#:     A list of middleware classes for the WSGI application. The classes can
 #:     be defined as strings. They define hooks that plug into the application
 #:     to initialize stuff when the app is built, at the start or end of a
 #:     request or to handle exceptions. Default is an empty list.
 #:
 #: server_name
-#:     A server name hint, used to calculate current subdomain.
-#:     If you plan to use dynamic subdomains, you must define the main domain
-#:     here so that the subdomain can be extracted and applied to URL rules.
+#:     The server name used to calculate current subdomain. If you want to use
+#:     dynamic subdomains, define the main domain here so that the subdomain
+#:     can be calculated to match URL rules.
 #:
-#: subdomain
-#:     Force this subdomain to be used instead of extracting
-#:     the subdomain from the current url.
+#: default_subdomain
+#:     The default subdomain used for rules without a subdomain defined.
 default_config = {
     'apps_installed': [],
     'apps_entry_points': {},
     'middleware': [],
     'server_name': None,
-    'subdomain': None,
+    'default_subdomain': '',
 }
 
 # Allowed request methods.
@@ -87,19 +79,19 @@ class RequestHandler(object):
     The dispatch method implements a middleware system to execute hooks before
     and after processing a request and to handle exceptions.
     """
-    #: A list of middleware classes or callables. A middleware can implement
+    #: A list of plugin classes or callables. A plugin can implement
     #: three methods that are called before and after the current request
     #: method is executed, or if an exception occurs:
     #:
     #: pre_dispatch(handler)
     #:     Called before the requested method is
-    #:     executed. If returns a response, stops the middleware chain and
+    #:     executed. If returns a response, stops the plugin chain and
     #:     uses that response, not calling the requested method.
     #:
     #: post_dispatch(handler, response)
     #:     Called after the requested method is executed. Must always return
-    #:     a response. All *post_dispatch* middleware are always executed.
-    middleware = []
+    #:     a response. All *post_dispatch* plugin are always executed.
+    plugins = middleware = None
 
     def __init__(self, app, request):
         """Initializes the handler.
@@ -132,24 +124,25 @@ class RequestHandler(object):
             # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.6
             self.abort(405, valid_methods=get_valid_methods(self))
 
-        if not self.middleware:
-            # No middleware is set: just execute the method.
+        plugins = self.plugins or self.middleware
+        if not plugins:
+            # No plugins are set: just execute the method.
             return method(*args, **kwargs)
 
-        # Get all middleware for this handler.
-        middleware = self.app.get_middleware(self, self.middleware)
+        # Get all plugins for this handler.
+        plugins = self.app.get_middleware(self, plugins)
 
-        # Execute pre_dispatch middleware.
-        for hook in middleware.get('pre_dispatch', []):
-            response = hook(self)
+        # Execute pre_dispatch plugins.
+        for func in plugins.get('pre_dispatch', []):
+            response = func(self)
             if response is not None:
                 break
         else:
             response = method(*args, **kwargs)
 
-        # Execute post_dispatch middleware.
-        for hook in middleware.get('post_dispatch', []):
-            response = hook(self, response)
+        # Execute post_dispatch plugins.
+        for func in plugins.get('post_dispatch', []):
+            response = func(self, response)
 
         # Done!
         return response
@@ -209,7 +202,7 @@ class RequestHandler(object):
         :returns:
             A :class:`Response` object with headers set for redirection.
         """
-        if location.startswith(('.', '/')):
+        if not location.startswith('http'):
             # Make it absolute.
             location = urlparse.urljoin(self.request.url, location)
 
@@ -584,9 +577,9 @@ class Rule(BaseRule):
         url = url_for('user-list')
     """
     def __init__(self, path, handler=None, name=None, **kwargs):
-        endpoint = kwargs.pop('endpoint', name)
-        self.handler = handler or endpoint
-        super(Rule, self).__init__(path, endpoint=endpoint, **kwargs)
+        self.name = kwargs.pop('endpoint', name)
+        self.handler = handler or self.name
+        super(Rule, self).__init__(path, endpoint=self.name, **kwargs)
 
     def empty(self):
         """Returns an unbound copy of this rule. This can be useful if you
@@ -633,6 +626,16 @@ class HandlerPrefix(RuleFactory):
                 yield rule
 
 
+class RegexConverter(BaseConverter):
+    """A :class: `Rule` converter that matches a regular expression::
+
+        Rule(r'/<regex(".*$"):name>')
+    """
+    def __init__(self, map, *items):
+        BaseConverter.__init__(self, map)
+        self.regex = items[0]
+
+
 class Router(object):
     def __init__(self, app, rules=None):
         """
@@ -646,9 +649,8 @@ class Router(object):
             and call it passing the WSGI application.
         """
         self.app = app
-        self.map = self.get_map(rules)
-        # Cache for loaded handler classes.
         self.handlers = {}
+        self.map = self.get_map(rules)
 
     def add(self, rule):
         """Adds a rule to the URL map.
@@ -674,8 +676,7 @@ class Router(object):
         """
         # Bind the URL map to the current request
         request.url_adapter = self.map.bind_to_environ(request.environ,
-            server_name=self.app.config.get('tipfy', 'server_name'),
-            subdomain=self.app.config.get('tipfy', 'subdomain'))
+            server_name=self.get_server_name())
 
         # Match the path against registered rules.
         match = request.url_adapter.match(return_rule=True)
@@ -683,12 +684,12 @@ class Router(object):
         return match
 
     def dispatch_with_hooks(self, app, request, match):
-        # XXX fix this method name, split in two: pre and post_dispatch.
+        # XXX rename this method name, split in two: pre and post_dispatch.
 
         # Executes pre_dispatch_handler middleware. If a middleware returns
         # a response, the chain is stopped.
-        for hook in app.middleware.get('pre_dispatch_handler', []):
-            response = hook()
+        for func in app.middleware.get('pre_dispatch_handler', []):
+            response = func()
             if response is not None:
                 break
         else:
@@ -696,8 +697,8 @@ class Router(object):
 
         # Executes post_dispatch_handler middleware. All middleware are
         # executed and must return a response object.
-        for hook in app.middleware.get('post_dispatch_handler', []):
-            response = hook(response)
+        for func in app.middleware.get('post_dispatch_handler', []):
+            response = func(response)
 
         return response
 
@@ -706,7 +707,7 @@ class Router(object):
         the matched :class:`Rule`.
 
         :param app:
-            A :class:`WSGIApplication` instance.
+            A :class:`Tipfy` instance.
         :param request:
             A :class:`Request` instance.
         :param match:
@@ -739,31 +740,6 @@ class Router(object):
 
             # If the handler implements exception handling, let it handle it.
             return handler.handle_exception(exception=e, debug=self.app.debug)
-
-    def get_map(self, rules=None):
-        """Returns a ``werkzeug.routing.Map`` instance with the given
-        :class:`Rule` definitions.
-
-        :param rules:
-            A list of :class:`Rule`, a callable or a string defining
-            a callable that returns the list of rules.
-        :returns:
-            A ``werkzeug.routing.Map`` instance.
-        """
-        if rules is None:
-            # Load rules from urls.py.
-            rules = 'urls.get_rules'
-
-        if isinstance(rules, basestring):
-            rules = import_string(rules, silent=True)
-            if not rules:
-                logging.warning('Missing %s. No URL rules were loaded.' %
-                    rules)
-
-        if callable(rules):
-            rules = rules(self.app)
-
-        return Map(rules)
 
     def build(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place
@@ -814,11 +790,54 @@ class Router(object):
 
         return url
 
+    def get_server_name(self):
+        """Returns the server name used to bind the URL map. By default it
+        returns the configured server name. Extend this if you want to
+        calculate the server name dynamically (e.g., to match subdomains
+        from multiple domains).
+
+        :returns:
+            The server name used to build the URL adapter.
+        """
+        return self.app.config.get('tipfy', 'server_name')
+
+    def get_default_subdomain(self):
+        """Returns the default subdomain for rules without a subdomain
+        defined. By default it returns the configured default subdomain.
+
+        :returns:
+            The default subdomain to be used in the URL map.
+        """
+        return self.app.config.get('tipfy', 'default_subdomain')
+
+    def get_map(self, rules=None):
+        """Returns a ``werkzeug.routing.Map`` instance with the given
+        :class:`Rule` definitions.
+
+        :param rules:
+            A list of :class:`Rule`, a callable or a string defining
+            a callable that returns the list of rules.
+        :returns:
+            A ``werkzeug.routing.Map`` instance.
+        """
+        if rules is None:
+            # Load rules from urls.py.
+            rules = 'urls.get_rules'
+
+        if isinstance(rules, basestring):
+            rules = import_string(rules, silent=True)
+            if not rules:
+                logging.warning('Missing %s. No URL rules were loaded.' %
+                    rules)
+
+        if callable(rules):
+            rules = rules(self.app)
+
+        return Map(rules, default_subdomain=self.get_default_subdomain())
+
 
 class Tipfy(object):
-    """The WSGI application which centralizes URL dispatching, configuration
-    and hooks for an App Rngine app.
-    """
+    """The WSGI application."""
     #: Default class for requests.
     request_class = Request
     #: Default class for responses.
@@ -832,26 +851,37 @@ class Tipfy(object):
     #: The active :class:`Request` instance.
     request = None
 
-    def __init__(self, config=None, rules=None, debug=False):
+    def __init__(self, rules=None, config=None, debug=False):
         """Initializes the application.
 
+        :param rules:
+            URL rules definitions for the application.
         :param config:
             Dictionary with configuration for the application modules.
-        :param rules:
-            URL rules definitions for the application. It can be a list of
-            :class:`Rule`, a callable or a string defining a callable that
-            returns the rules list. The callable is called passing the WSGI
-            application as parameter. Default is ``urls.get_rules``: import
-            ``get_rules()`` from *urls.py* and calls it passing the app.
+        :param debug:
+            True if this is debug mode, False otherwise.
         """
+        # For backwards compatibility, accept 1st parameter as config (dict)
+        # and second as rules (list).
+        _rules, _config = rules, config
+        if isinstance(rules, dict) or isinstance(config, list):
+            config = _rules
+            rules = _config
+
         Tipfy.app = self
         self.debug = debug
         self.registry = {}
         self.error_handlers = {}
 
+        if self.debug:
+            logging.getLogger().setLevel(logging.DEBUG)
+
         # Load default config and update with values for this instance.
         self.config = self.config_class(config, {'tipfy': default_config},
             ['tipfy'])
+
+        # Load URL rules.
+        self.router = self.router_class(self, rules)
 
         # Middleware factory and registry.
         self.middleware_factory = MiddlewareFactory()
@@ -860,13 +890,36 @@ class Tipfy(object):
         self.middleware = self.get_middleware(self, self.config.get('tipfy',
             'middleware'))
 
-        self.router = self.router_class(self, rules)
+        # Execute post_make_app middleware.
+        for func in self.middleware.get('post_make_app', []):
+            func(self)
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""
         return self.wsgi_app(environ, start_response)
 
     def wsgi_app(self, environ, start_response):
+        """This is the actual WSGI application.  This is not implemented in
+        :meth:`__call__` so that middlewares can be applied without losing a
+        reference to the class. So instead of doing this::
+
+            app = MyMiddleware(app)
+
+        It's a better idea to do this instead::
+
+            app.wsgi_app = MyMiddleware(app.wsgi_app)
+
+        Then you still have the original application object around and
+        can continue to call methods on it.
+
+        This idea comes from `Flask`_.
+
+        :param environ:
+            A WSGI environment.
+        :param start_response:
+            A callable accepting a status code, a list of headers and an
+            optional exception context to start the response.
+        """
         cleanup = True
         try:
             Tipfy.app = self
@@ -895,6 +948,39 @@ class Tipfy(object):
         return response(environ, start_response)
 
     def handle_exception(self, request, exception):
+        """Handles an exception. To set app-wide error handlers, define them
+        using the corresponent HTTP status code in the ``error_handlers``
+        dictionary of :class:`Tipfy`. For example, to set a custom
+        `Not Found` page::
+
+            class Handle404(RequestHandler):
+                def handle_exception(self, exception, debug_mode):
+                    return Response('Oops! I could swear this page was here!',
+                        status=404)
+
+            app = Tipfy([
+                Rule('/', handler=MyHandler, name='home'),
+            ])
+            app.error_handlers[404] = Handle404
+
+        When an ``HTTPException`` is raised using :func:`abort` or because the
+        app could not fulfill the request, the error handler defined for the
+        exception HTTP status code will be called. If it is not set, the
+        exception is re-raised.
+
+        .. note::
+           Although being a :class:`RequestHandler`, the error handler will
+           execute the ``handle_exception`` method after instantiation, instead
+           of the method corresponding to the current request.
+
+           Also, the error handler is responsible for setting the response
+           status code, as shown in the example above.
+
+        :param request:
+            A :class:`Request` instance.
+        :param exception:
+            The raised exception.
+        """
         if isinstance(exception, HTTPException):
             code = exception.code
         else:
@@ -1052,30 +1138,21 @@ def render_json_response(*args, **kwargs):
         mimetype set to ``application/json``.
     """
     from django.utils import simplejson
-    return Response(simplejson.dumps(*args, **kwargs),
+    return Tipfy.response_class(simplejson.dumps(*args, **kwargs),
         mimetype='application/json')
 
 
-def make_wsgi_app(config=None, **kwargs):
+def make_wsgi_app(**kwargs):
     """Returns a instance of :class:`Tipfy`.
 
-    :param config:
-        A dictionary of configuration values.
     :param kwargs:
-        Additional keyword arguments to instantiate :class:`Tipfy`.
+        Keyword arguments to instantiate :class:`Tipfy`.
     :returns:
         A :class:`Tipfy` instance.
     """
-    app = Tipfy(config=config, **kwargs)
-
-    if app.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    # Execute post_make_app middleware.
-    for hook in app.middleware.get('post_make_app', []):
-        app = hook(app)
-
-    return app
+    warnings.warn(DeprecationWarning('make_wsgi_app() is deprecated. '
+            'Instantiate Tipfy directly instead.'))
+    return Tipfy(**kwargs)
 
 
 def run_wsgi_app(app):
@@ -1109,3 +1186,23 @@ def fix_sys_path():
         _ULTIMATE_SYS_PATH = list(sys.path)
     elif sys.path != _ULTIMATE_SYS_PATH:
         sys.path[:] = _ULTIMATE_SYS_PATH
+
+
+# Add regex converter to the list of converters.
+Map.default_converters = dict(Map.default_converters)
+Map.default_converters['regex'] = RegexConverter
+
+# Short aliases.
+App = Tipfy
+Handler = RequestHandler
+
+# These imports are not used in this file but tipfy provided them as interface
+# and so they should stay here for backwards compatibility. They will most
+# likely be removed in a future version in favor of direct Werkzeug imports.
+from werkzeug import escape
+from werkzeug.exceptions import (BadGateway, BadRequest, Forbidden, Gone,
+    LengthRequired, MethodNotAllowed, NotAcceptable, NotFound, NotImplemented,
+    PreconditionFailed, RequestEntityTooLarge, RequestTimeout,
+    RequestURITooLarge, ServiceUnavailable, Unauthorized, UnsupportedMediaType)
+from werkzeug.routing import (EndpointPrefix, RequestRedirect, RuleTemplate,
+    Subdomain, Submount)

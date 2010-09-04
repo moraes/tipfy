@@ -5,6 +5,21 @@ Development version
 
 - App has now a debug attribute, set when it is initialized with debug=True.
 
+- Rules can now receive a 'name' argument, which is equivalent to 'endpoint'.
+  This is just a better name for what it does (it is the name used to build
+  URLs). 'endpoint' will still work, but we will start to use 'name' for docs.
+
+- Added a RegexConverter, which can be usefull specially to match subdomains
+  except 'www'. For example, here we define a rule for the root URL of all
+  non-www sundomains, and a different one for www::
+
+      rules = [
+          Rule('/', endpoint='index', handler='IndexHandler'),
+          Subdomain(r'<regex("(?!www\\b)\\w+"):namespace>', [
+              Rule('/', endpoint='index', handler='SubdomainIndexHandler'),
+          ]),
+      ]
+
 - Removed 3 configuration keys, which are now available as properties of the
   WSGI app instance:
   - dev: True is the app is using the dev server, False otherwise.

@@ -1,13 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-    main
-    ~~~~
-
-    Run Tipfy apps.
-
-    :copyright: 2009 by tipfy.org.
-    :license: BSD, see LICENSE for more details.
-"""
 import os
 import sys
 
@@ -16,17 +7,17 @@ if 'lib' not in sys.path:
     # and optionally to distlib loaded using zipimport.
     sys.path[0:0] = ['lib', 'distlib', 'distlib.zip']
 
-import config
-import tipfy
+from tipfy import Tipfy
+from config import config
 
 # Is this the development server?
 debug = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 
 # Instantiate the application.
-app = tipfy.make_wsgi_app(config=config.config, debug=debug)
-
+app = Tipfy(config=config, debug=debug)
 
 def main():
+    # Run the app!
     app.run()
 
 

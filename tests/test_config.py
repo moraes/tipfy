@@ -4,7 +4,7 @@ Tests for tipfy config
 """
 import unittest
 
-from tipfy import Config, Tipfy, RequestHandler, REQUIRED_VALUE
+from tipfy import Config, Tipfy, RequestHandler, get_config, REQUIRED_VALUE
 
 
 class TestConfig(unittest.TestCase):
@@ -267,3 +267,12 @@ class TestLoadConfig(unittest.TestCase):
             'timezone': 'America/Chicago',
             'required': REQUIRED_VALUE,
         })
+
+
+class TestGetConfig(unittest.TestCase):
+    def tearDown(self):
+        Tipfy.app = Tipfy.request = None
+
+    def test_get_config(self):
+        app = Tipfy()
+        self.assertEqual(get_config('resources.i18n', 'locale'), 'en_US')

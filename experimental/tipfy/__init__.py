@@ -51,7 +51,8 @@ DEFAULT_VALUE = object()
 DEV = os.environ.get('SERVER_SOFTWARE', '') == 'Development/1.0'
 APP_ID = os.environ.get('APPLICATION_ID', None)
 VERSION_ID = os.environ.get('CURRENT_VERSION_ID', '1')
-IS_APPENGINE = (APP_ID and VERSION_ID)
+# How else?
+IS_APPENGINE = (APP_ID is not None)
 
 
 class RequestHandler(object):
@@ -956,7 +957,7 @@ def redirect(location, code=302):
     """
     if not location.startswith('http'):
         # Make it absolute.
-        location = urlparse.urljoin(Tipfy.app.request.url, location)
+        location = urlparse.urljoin(Tipfy.request.url, location)
 
     return base_redirect(location, code)
 

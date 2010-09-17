@@ -892,6 +892,12 @@ class Tipfy(object):
         """The deployed version ID. Always '1' when using the dev server."""
         return os.environ.get('CURRENT_VERSION_ID', '1')
 
+    @cached_property
+    def is_appengine(self):
+        """True if the app is running on App Engine, False otherwise."""
+        # How else?
+        return (self.app_id and self.version_id)
+
 
 def get_config(module, key=None, default=REQUIRED_VALUE):
     """Returns a configuration value for a module.

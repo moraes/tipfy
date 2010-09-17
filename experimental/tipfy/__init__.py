@@ -1026,4 +1026,5 @@ if IS_APPENGINE:
 else:
     from werkzeug import Local
     local = Local()
-    app = local('app')
+    Tipfy.app = app = local('app')
+    Tipfy.request = local('request')

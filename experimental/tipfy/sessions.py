@@ -15,7 +15,7 @@ import hmac
 import logging
 import time
 
-from tipfy import REQUIRED_VALUE
+from tipfy import DEFAULT_VALUE, REQUIRED_VALUE
 from tipfy.utils import json_encode, json_decode
 
 from werkzeug import cached_property
@@ -25,12 +25,12 @@ from werkzeug.contrib.sessions import ModificationTrackingDict
 #:
 #: secret_key
 #:     Secret key to generate session cookies. Set this to something random
-#:     and unguessable. Default is :data:`webapp2.REQUIRED_VALUE` (an exception
+#:     and unguessable. Default is :data:`tipfy.REQUIRED_VALUE` (an exception
 #:     is raised if it is not set).
 #:
 #: cookie_name
 #:     Name of the cookie to save a session or session id. Default is
-#:     `webapp2.session`.
+#:     `tipfy.session`.
 #:
 #: session_max_age:
 #:     Default session expiration time in seconds. Limits the duration of the
@@ -236,8 +236,8 @@ class SessionStore(object):
 
         self._sessions[backend][key] = (value, kwargs)
 
-    def get_secure_cookie(self, name, max_age=REQUIRED_VALUE):
-        if max_age is REQUIRED_VALUE:
+    def get_secure_cookie(self, name, max_age=DEFAULT_VALUE):
+        if max_age is DEFAULT_VALUE:
             max_age = self.config['session_max_age']
 
         return self.secure_cookie_factory.get_cookie(self.request, name,

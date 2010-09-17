@@ -11,14 +11,13 @@
 import logging
 import os
 import urlparse
-import warnings
 from wsgiref.handlers import CGIHandler
 
 # Werkzeug Swiss knife.
 # Need to import werkzeug first otherwise py_zipimport fails.
 import werkzeug
 from werkzeug import (Request as BaseRequest, Response as BaseResponse,
-    cached_property, import_string, redirect, url_quote)
+    cached_property, import_string, redirect as base_redirect, url_quote)
 from werkzeug.exceptions import HTTPException, InternalServerError, abort
 from werkzeug.routing import BaseConverter, Map, Rule as BaseRule, RuleFactory
 
@@ -29,19 +28,6 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 
 #: Default configuration values for this module. Keys are:
 #:
-#: apps_installed
-#:     A list of active app modules as a string. Default is an empty list.
-#:
-#: apps_entry_points
-#:     URL entry points for the installed apps, in case their URLs are mounted
-#:     using base paths.
-#:
-#: middleware
-#:     A list of middleware classes for the WSGI application. The classes can
-#:     be defined as strings. They define hooks that plug into the application
-#:     to initialize stuff when the app is built, at the start or end of a
-#:     request or to handle exceptions. Default is an empty list.
-#:
 #: server_name
 #:     The server name used to calculate current subdomain. If you want to use
 #:     dynamic subdomains, define the main domain here so that the subdomain
@@ -50,9 +36,6 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #: default_subdomain
 #:     The default subdomain used for rules without a subdomain defined.
 default_config = {
-    'apps_installed': [],
-    'apps_entry_points': {},
-    'middleware': [],
     'server_name': None,
     'default_subdomain': '',
 }
@@ -85,6 +68,9 @@ class RequestHandler(object):
     #: after_dispatch(handler, response)
     #:     Called after the requested method is executed. Must always return
     #:     a response. All *post_dispatch* plugin are always executed.
+    #:
+    #: handle_exception(handler, exception, debug)
+    #:     Called if an exception occurs while executing the requested method.
     plugins = None
 
     def __init__(self, app, request):
@@ -149,16 +135,6 @@ class RequestHandler(object):
 
         # Done!
         return response
-
-    def dispatch(self, _method, *args, **kwargs):
-        """A wrapper for :meth:`__call__`.
-
-        .. warning::
-           This is deprecated. Use :meth:`__call__` instead.
-        """
-        warnings.warn(DeprecationWarning('RequestHandler.dispatch() is '
-            'deprecated. Use RequestHandler.__call__() instead.'))
-        return self(_method, *args, **kwargs)
 
     def abort(self, code, *args, **kwargs):
         """Raises an :class:`HTTPException`. This stops code execution,
@@ -257,17 +233,6 @@ class Request(BaseRequest):
         self.registry = {}
         # A context for template variables.
         self.context = {}
-
-    def url_for(self, _name, **kwargs):
-        """Returns a URL for a named :class:`Rule`.
-
-        .. warning::
-           This is deprecated. Use :meth:`Tipfy.url_for` or
-           :meth:`RequestHandler.url_for` instead.
-        """
-        warnings.warn(DeprecationWarning('Request.url_for() is deprecated. '
-            'Use Tipfy.url_for() or RequestHandler.url_for() instead.'))
-        return Tipfy.app.router.build(self, _name, kwargs)
 
 
 class Response(BaseResponse):
@@ -591,25 +556,6 @@ class Router(object):
         request.rule, request.rule_args = match
         return match
 
-    def dispatch_with_hooks(self, app, request, match):
-        # XXX rename this method name, split in two: pre and post_dispatch.
-
-        # Executes pre_dispatch_handler middleware. If a middleware returns
-        # a response, the chain is stopped.
-        for func in app.middleware.get('pre_dispatch_handler', []):
-            response = func()
-            if response is not None:
-                break
-        else:
-            response = self.dispatch(app, request, match)
-
-        # Executes post_dispatch_handler middleware. All middleware are
-        # executed and must return a response object.
-        for func in app.middleware.get('post_dispatch_handler', []):
-            response = func(response)
-
-        return response
-
     def dispatch(self, app, request, match, method=None):
         """Dispatches a request. This calls the :class:`RequestHandler` from
         the matched :class:`Rule`.
@@ -769,13 +715,6 @@ class Tipfy(object):
         :param debug:
             True if this is debug mode, False otherwise.
         """
-        # For backwards compatibility, accept 1st parameter as config (dict)
-        # and second as rules (list).
-        _rules, _config = rules, config
-        if isinstance(rules, dict) or isinstance(config, list):
-            config = _rules
-            rules = _config
-
         Tipfy.app = self
         self.debug = debug
         self.registry = {}
@@ -826,7 +765,7 @@ class Tipfy(object):
                 abort(501)
 
             match = self.router.match(request)
-            response = self.router.dispatch_with_hooks(self, request, match)
+            response = self.router.dispatch(self, request, match)
         except Exception, e:
             try:
                 response = self.handle_exception(request, e)
@@ -979,10 +918,28 @@ def url_for(_name, **kwargs):
 
     .. seealso:: :meth:`Router.build`.
     """
-    # For backwards compatibility, check old keywords.
-    _full = kwargs.pop('full', kwargs.pop('_full', False))
-    _method = kwargs.pop('method', kwargs.pop('_method', None))
-    return Tipfy.app.url_for(_name, _full=_full, _method=_method, **kwargs)
+    return Tipfy.app.url_for(_name, **kwargs)
+
+
+def redirect(location, code=302):
+    """Returns a response object with headers set for redirection to the
+    given URI. This won't stop code execution, so you must return when
+    calling this method::
+
+        return redirect('/some-path')
+
+    :param location:
+        A relative or absolute URI (e.g., '../contacts').
+    :param code:
+        The HTTP status code for the redirect.
+    :returns:
+        A :class:`Response` object with headers set for redirection.
+    """
+    if not location.startswith('http'):
+        # Make it absolute.
+        location = urlparse.urljoin(Tipfy.app.request.url, location)
+
+    return base_redirect(location, code)
 
 
 def redirect_to(_name, _code=302, **kwargs):
@@ -999,11 +956,7 @@ def redirect_to(_name, _code=302, **kwargs):
     :returns:
         A :class:`Response` object with headers set for redirection.
     """
-    # For backwards compatibility, check old keyword.
-    _code = kwargs.pop('code', _code)
-    # Make sure it is absolute (also checking old keyword).
-    _full = kwargs.pop('full', kwargs.pop('_full', True))
-    return redirect(url_for(_name, _full=True, **kwargs), code=_code)
+    return redirect(url_for(_name, **kwargs), code=_code)
 
 
 def render_json_response(*args, **kwargs):
@@ -1019,35 +972,6 @@ def render_json_response(*args, **kwargs):
     """
     return Tipfy.response_class(json_encode(*args, **kwargs),
         mimetype='application/json')
-
-
-def make_wsgi_app(**kwargs):
-    """Returns a instance of :class:`Tipfy`.
-
-    :param kwargs:
-        Keyword arguments to instantiate :class:`Tipfy`.
-    :returns:
-        A :class:`Tipfy` instance.
-    """
-    warnings.warn(DeprecationWarning('make_wsgi_app() is deprecated. '
-            'Instantiate Tipfy directly instead.'))
-    return Tipfy(**kwargs)
-
-
-def run_wsgi_app(app):
-    """Executes the application, optionally wrapping it by middleware.
-
-    .. warning::
-       This is deprecated. Use app.run() instead.
-
-    :param app:
-        A :class:`Tipfy` instance.
-    :returns:
-        None.
-    """
-    warnings.warn(DeprecationWarning('run_wsgi_app() is deprecated. '
-            'Use Tipfy.run() instead.'))
-    app.run()
 
 
 _ULTIMATE_SYS_PATH = None
@@ -1074,14 +998,3 @@ Map.default_converters['regex'] = RegexConverter
 # Short aliases.
 App = Tipfy
 Handler = RequestHandler
-
-# These imports are not used in this file but tipfy provided them as interface
-# and so they should stay here for backwards compatibility. They will most
-# likely be removed in a future version in favor of direct Werkzeug imports.
-from werkzeug import escape
-from werkzeug.exceptions import (BadGateway, BadRequest, Forbidden, Gone,
-    LengthRequired, MethodNotAllowed, NotAcceptable, NotFound, NotImplemented,
-    PreconditionFailed, RequestEntityTooLarge, RequestTimeout,
-    RequestURITooLarge, ServiceUnavailable, Unauthorized, UnsupportedMediaType)
-from werkzeug.routing import (EndpointPrefix, RequestRedirect, RuleTemplate,
-    Subdomain, Submount)

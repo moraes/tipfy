@@ -50,7 +50,7 @@ DEFAULT_VALUE = object()
 # App Engine flags
 DEV = os.environ.get('SERVER_SOFTWARE', '') == 'Development/1.0'
 APP_ID = os.environ.get('APPLICATION_ID', None)
-VERSION_ID = os.environ.get('CURRENTVERSION_ID', '1')
+VERSION_ID = os.environ.get('CURRENT_VERSION_ID', '1')
 IS_APPENGINE = (APP_ID and VERSION_ID)
 
 

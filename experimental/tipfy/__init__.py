@@ -47,6 +47,11 @@ ALLOWED_METHODS = frozenset(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT',
 REQUIRED_VALUE = object()
 # Value used for missing default values.
 DEFAULT_VALUE = object()
+# App Engine flags
+DEV = os.environ.get('SERVER_SOFTWARE', '') == 'Development/1.0'
+APP_ID = os.environ.get('APPLICATION_ID', None)
+VERSION_ID = os.environ.get('CURRENTVERSION_ID', '1')
+IS_APPENGINE = (APP_ID and VERSION_ID)
 
 
 class RequestHandler(object):
@@ -692,6 +697,14 @@ class Router(object):
 
 class Tipfy(object):
     """The WSGI application."""
+    #: True if the app is using App Engine dev server, False otherwise.
+    dev = DEV
+    #: The application ID as defined in *app.yaml*."""
+    app_id = APP_ID
+    #: The deployed version ID. Always '1' when using the dev server.
+    version_id = VERSION_ID
+    #: True if the app is running on App Engine, False otherwise.
+    is_appengine = IS_APPENGINE
     #: Default class for requests.
     request_class = Request
     #: Default class for responses.
@@ -715,7 +728,7 @@ class Tipfy(object):
         :param debug:
             True if this is debug mode, False otherwise.
         """
-        Tipfy.app = self
+        self.set_locals()
         self.debug = debug
         self.registry = {}
         self.error_handlers = {}
@@ -758,8 +771,8 @@ class Tipfy(object):
         """
         cleanup = True
         try:
-            Tipfy.app = self
-            Tipfy.request = request = self.request_class(environ)
+            request = self.request_class(environ)
+            self.set_locals(request)
 
             if request.method not in ALLOWED_METHODS:
                 abort(501)
@@ -779,7 +792,7 @@ class Tipfy(object):
                 response = InternalServerError()
         finally:
             if cleanup:
-                Tipfy.app = Tipfy.request = None
+                self.clear_locals()
 
         return response(environ, start_response)
 
@@ -877,26 +890,26 @@ class Tipfy(object):
 
         CGIHandler().run(self)
 
-    @cached_property
-    def dev(self):
-        """True if the app is using App Engine dev server, False otherwise."""
-        return os.environ.get('SERVER_SOFTWARE', '') == 'Development/1.0'
+    def set_locals(self, request=None):
+        """Sets variables for a single request. Uses simple class attributes
+        when running on App Engine and thread locals outside.
 
-    @cached_property
-    def app_id(self):
-        """The application ID as defined in *app.yaml*."""
-        return os.environ.get('APPLICATION_ID', None)
+        :param request:
+            A :class:`Request` instance, if any.
+        """
+        if self.is_appengine:
+            Tipfy.app = self
+            Tipfy.request = request
+        else:
+            local.app = self
+            local.request = request
 
-    @cached_property
-    def version_id(self):
-        """The deployed version ID. Always '1' when using the dev server."""
-        return os.environ.get('CURRENT_VERSION_ID', '1')
-
-    @cached_property
-    def is_appengine(self):
-        """True if the app is running on App Engine, False otherwise."""
-        # How else?
-        return (self.app_id and self.version_id)
+    def clear_locals(self):
+        """Clears the variables set for a single request."""
+        if self.is_appengine:
+            Tipfy.app = Tipfy.request = None
+        else:
+            local.__release_local__()
 
 
 def get_config(module, key=None, default=REQUIRED_VALUE):
@@ -1004,3 +1017,13 @@ Map.default_converters['regex'] = RegexConverter
 # Short aliases.
 App = Tipfy
 Handler = RequestHandler
+
+# Locals.
+if IS_APPENGINE:
+    from werkzeug import LocalProxy
+    local = None
+    app = LocalProxy(lambda: Tipfy.app)
+else:
+    from werkzeug import Local
+    local = Local()
+    app = local('app')

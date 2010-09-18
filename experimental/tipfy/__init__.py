@@ -696,24 +696,10 @@ class Router(object):
         :class:`Rule` definitions.
 
         :param rules:
-            A list of :class:`Rule`, a callable or a string defining
-            a callable that returns the list of rules.
+            A list of :class:`Rule` definitions.
         :returns:
             A ``werkzeug.routing.Map`` instance.
         """
-        if rules is None:
-            # Load rules from urls.py.
-            rules = 'urls.get_rules'
-
-        if isinstance(rules, basestring):
-            rules = import_string(rules, silent=True)
-            if not rules:
-                logging.warning('Missing %s. No URL rules were loaded.' %
-                    rules)
-
-        if callable(rules):
-            rules = rules(self.app)
-
         return Map(rules, default_subdomain=self.get_default_subdomain())
 
 

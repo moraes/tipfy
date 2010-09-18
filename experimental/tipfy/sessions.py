@@ -196,11 +196,24 @@ class SessionStore(object):
         self.config = app.get_config(__name__)
         # Tracked sessions.
         self._sessions = {}
+        # Tracked cookies.
+        self._cookies = {}
 
     @cached_property
     def secure_cookie_factory(self):
         """Factory for secure cookies."""
         return SecureCookie(self.app.get_config(__name__, 'secret_key'))
+
+    def get_cookie_args(self, **kwargs):
+        """Returns a copy of the default cookie configuration updated with the
+        passed arguments.
+
+        :param kwargs:
+            Keyword arguments to override in the cookie configuration.
+        """
+        _kwargs = self.config['cookie_args'].copy()
+        _kwargs.update(kwargs)
+        return _kwargs
 
     def get_session(self, key=None, backend=None, **kwargs):
         """Returns a session for a given key. If the session doesn't exist, a
@@ -221,9 +234,7 @@ class SessionStore(object):
         sessions = self._sessions.setdefault(backend, {})
 
         if key not in sessions:
-            if not kwargs:
-                kwargs = self.config['cookie_args'].copy()
-
+            kwargs = self.get_cookie_args(**kwargs)
             value = self.backends[backend].get_session(self, key, **kwargs)
             self._sessions[backend][key] = (value, kwargs)
 
@@ -231,9 +242,7 @@ class SessionStore(object):
 
     def set_session(self, key, value, backend=None, **kwargs):
         backend = backend or self.default_backend
-        if not kwargs:
-            kwargs = self.config['cookie_args'].copy()
-
+        kwargs = self.get_cookie_args(**kwargs)
         self._sessions[backend][key] = (value, kwargs)
 
     def get_secure_cookie(self, name, max_age=DEFAULT_VALUE):
@@ -245,9 +254,7 @@ class SessionStore(object):
 
     def set_secure_cookie(self, response, name, value, **kwargs):
         assert isinstance(value, dict), 'SecureCookie values must be a dict.'
-        if not kwargs:
-            kwargs = self.config['cookie_args'].copy()
-
+        kwargs = self.get_cookie_args(**kwargs)
         self.secure_cookie_factory.set_cookie(response, name, value, **kwargs)
 
     def get_flash(self, key=None, backend=None, flash_key='_flash', **kwargs):
@@ -273,20 +280,55 @@ class SessionStore(object):
             Cookie unique name.
         :param kwargs:
             Options to save the cookie. See :meth:`SessionStore.get_session`.
-        :returns:
-            None.
         """
         session = self.get_session(key=key, backend=backend, **kwargs)
         session.setdefault(flash_key, []).append(data)
 
-    def save_sessions(self, response):
-        """Saves all sessions to a response object."""
-        if not self._sessions:
-            return
+    def set_cookie(self, key, value, **kwargs):
+        """Registers a cookie or secure cookie to be saved or deleted.
 
-        for sessions in self._sessions.values():
-            for key, (value, kwargs) in sessions.iteritems():
-                value.save_session(self, response, key, **kwargs)
+        :param key:
+            Cookie unique name.
+        :param value:
+            A cookie value.
+        :param kwargs:
+            Keyword arguments to save the cookie.
+        """
+        self._cookies[key] = (value, self.get_cookie_args(**kwargs))
+
+    def unset_cookie(self, key):
+        """Unsets a cookie previously set. This won't delete the cookie, it
+        just won't be saved.
+
+        :param key:
+            Cookie unique name.
+        """
+        self._cookies.pop(key, None)
+
+    def delete_cookie(self, key, **kwargs):
+        """Registers a cookie or secure cookie to be deleted.
+
+        :param key:
+            Cookie unique name.
+        :param kwargs:
+            Keyword arguments to delete the cookie.
+        """
+        self._cookies[key] = (None, self.get_cookie_args(**kwargs))
+
+    def save(self, response):
+        """Saves all cookies and sessions to a response object."""
+        if self._cookies:
+            for key, (value, kwargs) in self._cookies.iteritems():
+                if value is None:
+                    response.delete_cookie(key, path=kwargs.get('path', '/'),
+                        domain=kwargs.get('domain', None))
+                else:
+                    response.set_cookie(key, value, **kwargs)
+
+        if self._sessions:
+            for sessions in self._sessions.values():
+                for key, (value, kwargs) in sessions.iteritems():
+                    value.save_session(self, response, key, **kwargs)
 
     @classmethod
     def factory(cls, _app, _name, **kwargs):

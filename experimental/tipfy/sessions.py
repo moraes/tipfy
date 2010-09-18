@@ -75,13 +75,14 @@ default_config = {
 }
 
 
-class SecureCookie(object):
+class SecureCookieStore(object):
     """Encapsulates getting and setting secure cookies.
 
     Extracted from `Tornado`_ and modified.
     """
     def __init__(self, secret_key):
-        """
+        """Initilizes this secure cookie store.
+
         :param secret_key:
             A long, random sequence of bytes to be used as the HMAC secret
             for the cookie signature.
@@ -89,7 +90,16 @@ class SecureCookie(object):
         self.secret_key = secret_key
 
     def get_cookie(self, request, name, max_age=None):
-        """Returns the given signed cookie if it validates, or None."""
+        """Returns the given signed cookie if it validates, or None.
+
+        :param request:
+            A :class:`tipfy.Request` object.
+        :param name:
+            Cookie name.
+        :param max_age:
+            Maximum age in seconds for a valid cookie. If the cookie is older
+            than this, returns None.
+        """
         value = request.cookies.get(name)
 
         if not value:
@@ -118,11 +128,29 @@ class SecureCookie(object):
         """Signs and timestamps a cookie so it cannot be forged.
 
         To read a cookie set with this method, use get_cookie().
+
+        :param response:
+            A :class:`tipfy.Response` instance.
+        :param name:
+            Cookie name.
+        :param value:
+            Cookie value.
+        :param kwargs:
+            Options to save the cookie. See :meth:`SessionStore.get_session`.
         """
         value = self.get_signed_value(name, value)
         response.set_cookie(name, value, **kwargs)
 
     def get_signed_value(self, name, value):
+        """Returns a signed value for a cookie.
+
+        :param name:
+            Cookie name.
+        :param value:
+            Cookie value.
+        :returns:
+            An signed value using HMAC.
+        """
         timestamp = str(int(time.time()))
         value = self._encode(value)
         signature = self._get_signature(name, value, timestamp)
@@ -205,9 +233,9 @@ class SessionStore(object):
         self._cookies = {}
 
     @cached_property
-    def secure_cookie_factory(self):
+    def secure_cookie_store(self):
         """Factory for secure cookies."""
-        return SecureCookie(self.app.get_config(__name__, 'secret_key'))
+        return SecureCookieStore(self.app.get_config(__name__, 'secret_key'))
 
     def get_cookie_args(self, **kwargs):
         """Returns a copy of the default cookie configuration updated with the
@@ -280,14 +308,14 @@ class SessionStore(object):
         if max_age is DEFAULT_VALUE:
             max_age = self.config['session_max_age']
 
-        return self.secure_cookie_factory.get_cookie(self.request, name,
+        return self.secure_cookie_store.get_cookie(self.request, name,
             max_age=max_age)
 
     def set_secure_cookie(self, response, name, value, **kwargs):
         """Sets a secure cookie in the response.
 
         :param response:
-            A ``tipfy.Response`` object.
+            A :class:`tipfy.Response` object.
         :param name:
             Cookie name.
         :param value:
@@ -295,9 +323,9 @@ class SessionStore(object):
         :param kwargs:
             Options to save the cookie. See :meth:`get_session`.
         """
-        assert isinstance(value, dict), 'SecureCookie values must be a dict.'
+        assert isinstance(value, dict), 'Secure cookie values must be a dict.'
         kwargs = self.get_cookie_args(**kwargs)
-        self.secure_cookie_factory.set_cookie(response, name, value, **kwargs)
+        self.secure_cookie_store.set_cookie(response, name, value, **kwargs)
 
     def get_flash(self, key=None, backend=None, flash_key='_flash', **kwargs):
         """Returns a flash message. Flash messages are deleted when first read.

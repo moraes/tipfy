@@ -49,13 +49,13 @@ REQUIRED_VALUE = object()
 DEFAULT_VALUE = object()
 # App Engine flags.
 SERVER_SOFTWARE = os.environ.get('SERVER_SOFTWARE', '')
-APP_ID = os.environ.get('APPLICATION_ID', None)
-VERSION_ID = os.environ.get('CURRENT_VERSION_ID', '1')
+APPLICATION_ID = os.environ.get('APPLICATION_ID', None)
+CURRENT_VERSION_ID = os.environ.get('CURRENT_VERSION_ID', '1')
 DEV = SERVER_SOFTWARE.startswith('Development')
 
 try:
     import google.appengine
-    APPENGINE = (APP_ID and (DEV or SERVER_SOFTWARE.startswith(
+    APPENGINE = (APPLICATION_ID and (DEV or SERVER_SOFTWARE.startswith(
         'Google App Engine')))
 except ImportError:
     APPENGINE = False
@@ -720,9 +720,9 @@ class Router(object):
 class Tipfy(object):
     """The WSGI application."""
     #: The application ID as defined in *app.yaml*."""
-    app_id = APP_ID
+    application_id = APPLICATION_ID
     #: The deployed version ID. Always '1' when using the dev server.
-    version_id = VERSION_ID
+    current_version_id = CURRENT_VERSION_ID
     #: True if the app is running on App Engine, False otherwise.
     appengine = APPENGINE
     #: True if the app is using App Engine dev server, False otherwise.
@@ -889,29 +889,6 @@ class Tipfy(object):
         from werkzeug import Client
         return Client(self, self.response_class, use_cookies=True)
 
-    def run(self):
-        """Runs the app using ``CGIHandler``. This must be called inside a
-        ``main()`` function in the file defined in *app.yaml* to run the
-        application::
-
-            # ...
-
-            app = Tipfy(rules=[
-                Rule('/', name='home', handler=HelloWorldHandler),
-            ])
-
-            def main():
-                app.run()
-
-            if __name__ == '__main__':
-                main()
-        """
-        # Fix issue #772.
-        if self.dev:
-            fix_sys_path()
-
-        CGIHandler().run(self)
-
     def set_locals(self, request=None):
         """Sets variables for a single request. Uses simple class attributes
         when running on App Engine and thread locals outside.
@@ -932,6 +909,35 @@ class Tipfy(object):
             Tipfy.app = Tipfy.request = None
         else:
             local.__release_local__()
+
+    def run(self, add_wsgi_middleware=None):
+        """Runs the app using ``CGIHandler``. This must be called inside a
+        ``main()`` function in the file defined in *app.yaml* to run the
+        application::
+
+            # ...
+
+            app = Tipfy(rules=[
+                Rule('/', name='home', handler=HelloWorldHandler),
+            ])
+
+            def main():
+                app.run()
+
+            if __name__ == '__main__':
+                main()
+
+        :param add_wsgi_middleware:
+            A function to be called to add WSGI middleware to the app.
+        """
+        # Fix issue #772.
+        if self.dev:
+            fix_sys_path()
+
+        if add_wsgi_middleware is None:
+            CGIHandler().run(self)
+        else:
+            CGIHandler().run(add_wsgi_middleware(self))
 
 
 def get_config(module, key=None, default=REQUIRED_VALUE):

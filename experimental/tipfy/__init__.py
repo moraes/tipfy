@@ -240,6 +240,21 @@ class Request(BaseRequest):
         # A context for template variables.
         self.context = {}
 
+    @cached_property
+    def session_store(self):
+        # TODO
+        pass
+
+    @cached_property
+    def session(self):
+        # TODO
+        pass
+
+    @cached_property
+    def current_user(self):
+        # TODO
+        pass
+
 
 class Response(BaseResponse):
     """A response object with default mimetype set to ``text/html``."""
@@ -1024,8 +1039,9 @@ if IS_APPENGINE:
     from werkzeug import LocalProxy
     local = None
     app = LocalProxy(lambda: Tipfy.app)
+    request = LocalProxy(lambda: Tipfy.request)
 else:
     from werkzeug import Local
     local = Local()
     Tipfy.app = app = local('app')
-    Tipfy.request = local('request')
+    Tipfy.request = request = local('request')

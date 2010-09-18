@@ -21,9 +21,6 @@ from werkzeug import (Request as BaseRequest, Response as BaseResponse,
 from werkzeug.exceptions import HTTPException, InternalServerError, abort
 from werkzeug.routing import BaseConverter, Map, Rule as BaseRule, RuleFactory
 
-from tipfy.sessions import SessionStore
-from tipfy.utils import json_encode
-
 __version__ = '0.7'
 __version_info__ = tuple(int(n) for n in __version__.split('.'))
 
@@ -1042,3 +1039,7 @@ else:
     local = Local()
     Tipfy.app = app = local('app')
     Tipfy.request = request = local('request')
+
+# Imported here to avoid recursive imports.
+from tipfy.sessions import SessionStore
+from tipfy.utils import json_encode

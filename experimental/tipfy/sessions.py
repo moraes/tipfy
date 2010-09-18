@@ -250,7 +250,7 @@ class SessionStore(object):
 
         self.secure_cookie_factory.set_cookie(response, name, value, **kwargs)
 
-    def get_flash(self, key=None, backend=None, **kwargs):
+    def get_flash(self, key=None, backend=None, flash_key='_flash', **kwargs):
         """Returns a flash message. Flash messages are deleted when first read.
 
         :param key:
@@ -261,9 +261,10 @@ class SessionStore(object):
             The data stored in the flash, or an empty list.
         """
         session = self.get_session(key=key, backend=backend, **kwargs)
-        return session.pop('_flash', [])
+        return session.pop(flash_key, [])
 
-    def set_flash(self, data, key=None, backend=None, **kwargs):
+    def set_flash(self, data, key=None, backend=None, flash_key='_flash',
+        **kwargs):
         """Sets a flash message. Flash messages are deleted when first read.
 
         :param data:
@@ -276,7 +277,7 @@ class SessionStore(object):
             None.
         """
         session = self.get_session(key=key, backend=backend, **kwargs)
-        session.setdefault('_flash', []).append(data)
+        session.setdefault(flash_key, []).append(data)
 
     def save_sessions(self, response):
         """Saves all sessions to a response object."""

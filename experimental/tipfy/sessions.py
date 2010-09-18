@@ -151,7 +151,7 @@ class DatastoreSession(ModificationTrackingDict):
         """TODO"""
         raise NotImplementedError()
 
-    def save_session(self, store, name, **kwargs):
+    def save_session(self, response, store, name, **kwargs):
         """TODO"""
         raise NotImplementedError()
 
@@ -162,7 +162,7 @@ class MemcacheSession(ModificationTrackingDict):
         """TODO"""
         raise NotImplementedError()
 
-    def save_session(self, store, name, **kwargs):
+    def save_session(self, response, store, name, **kwargs):
         """TODO"""
         raise NotImplementedError()
 
@@ -172,7 +172,7 @@ class SecureCookieSession(ModificationTrackingDict):
     def get_session(cls, store, name, **kwargs):
         return cls(store.get_secure_cookie(name) or ())
 
-    def save_session(self, store, response, name, **kwargs):
+    def save_session(self, response, store, name, **kwargs):
         if self.modified:
             store.set_secure_cookie(response, name, self, **kwargs)
 
@@ -220,12 +220,16 @@ class SessionStore(object):
         new session is returned.
 
         :param key:
-            Cookie unique name. If not provided, uses the ``cookie_name``
+            Cookie name. If not provided, uses the ``cookie_name``
             value configured for this module.
+        :param backend:
+            Name of the session backend to be used. If not set, uses the
+            default backend.
         :param kwargs:
-            Keyword arguments to set the session cookie. Keys are the same
-            that can be passed to ``Response.set_cookie``. If not set, use
-            the ``cookie_args`` values configured for this module.
+            Options to set the session cookie. Keys are the same that can be
+            passed to ``Response.set_cookie``, and override the ``cookie_args``
+            values configured for this module. If not set, use the configured
+            values.
         :returns:
             A dictionary-like session object.
         """
@@ -241,11 +245,33 @@ class SessionStore(object):
         return self._sessions[backend][key][0]
 
     def set_session(self, key, value, backend=None, **kwargs):
+        """Returns a session for a given key. If the session doesn't exist, a
+        new session is returned.
+
+        :param key:
+            Cookie name. See :meth:`get_session`.
+        :param value:
+            Session value.
+        :param backend:
+            Name of the session backend. See :meth:`get_session`.
+        :param kwargs:
+            Options to save the cookie. See :meth:`get_session`.
+        """
         backend = backend or self.default_backend
         kwargs = self.get_cookie_args(**kwargs)
         self._sessions[backend][key] = (value, kwargs)
 
     def get_secure_cookie(self, name, max_age=DEFAULT_VALUE):
+        """Returns a secure cookie from the request.
+
+        :param name:
+            Cookie name.
+        :param max_age:
+            Maximum age in seconds for a valid cookie. If the cookie is older
+            than this, returns ``None``.
+        :returns:
+            A secure cookie value or ``None`` if it is not set.
+        """
         if max_age is DEFAULT_VALUE:
             max_age = self.config['session_max_age']
 
@@ -253,6 +279,17 @@ class SessionStore(object):
             max_age=max_age)
 
     def set_secure_cookie(self, response, name, value, **kwargs):
+        """Sets a secure cookie in the response.
+
+        :param response:
+            A ``tipfy.Response`` object.
+        :param name:
+            Cookie name.
+        :param value:
+            Cookie value. Must be a dictionary.
+        :param kwargs:
+            Options to save the cookie. See :meth:`get_session`.
+        """
         assert isinstance(value, dict), 'SecureCookie values must be a dict.'
         kwargs = self.get_cookie_args(**kwargs)
         self.secure_cookie_factory.set_cookie(response, name, value, **kwargs)
@@ -261,38 +298,46 @@ class SessionStore(object):
         """Returns a flash message. Flash messages are deleted when first read.
 
         :param key:
-            Cookie unique name.
+            Cookie name. See :meth:`get_session`.
+        :param backend:
+            Name of the session backend. See :meth:`get_session`.
+        :param flash_key:
+            Name of the flash key stored in the session. Default is '_flash'.
         :param kwargs:
-            Options to save the cookie. See :meth:`SessionStore.get_session`.
+            Options to save the cookie. See :meth:`get_session`.
         :returns:
             The data stored in the flash, or an empty list.
         """
         session = self.get_session(key=key, backend=backend, **kwargs)
         return session.pop(flash_key, [])
 
-    def set_flash(self, data, key=None, backend=None, flash_key='_flash',
+    def set_flash(self, value, key=None, backend=None, flash_key='_flash',
         **kwargs):
         """Sets a flash message. Flash messages are deleted when first read.
 
-        :param data:
+        :param value:
             Dictionary to be saved in the flash message.
         :param key:
-            Cookie unique name.
+            Cookie name. See :meth:`get_session`.
+        :param backend:
+            Name of the session backend. See :meth:`get_session`.
+        :param flash_key:
+            Name of the flash key stored in the session. Default is '_flash'.
         :param kwargs:
-            Options to save the cookie. See :meth:`SessionStore.get_session`.
+            Options to save the cookie. See :meth:`get_session`.
         """
         session = self.get_session(key=key, backend=backend, **kwargs)
-        session.setdefault(flash_key, []).append(data)
+        session.setdefault(flash_key, []).append(value)
 
     def set_cookie(self, key, value, **kwargs):
         """Registers a cookie or secure cookie to be saved or deleted.
 
         :param key:
-            Cookie unique name.
+            Cookie name.
         :param value:
-            A cookie value.
+            Cookie value.
         :param kwargs:
-            Keyword arguments to save the cookie.
+            Options to save the cookie. See :meth:`get_session`.
         """
         self._cookies[key] = (value, self.get_cookie_args(**kwargs))
 
@@ -301,7 +346,7 @@ class SessionStore(object):
         just won't be saved.
 
         :param key:
-            Cookie unique name.
+            Cookie name.
         """
         self._cookies.pop(key, None)
 
@@ -309,14 +354,18 @@ class SessionStore(object):
         """Registers a cookie or secure cookie to be deleted.
 
         :param key:
-            Cookie unique name.
+            Cookie name.
         :param kwargs:
-            Keyword arguments to delete the cookie.
+            Options to delete the cookie. See :meth:`get_session`.
         """
         self._cookies[key] = (None, self.get_cookie_args(**kwargs))
 
     def save(self, response):
-        """Saves all cookies and sessions to a response object."""
+        """Saves all cookies and sessions to a response object.
+
+        :param response:
+            A ``tipfy.Response`` object.
+        """
         if self._cookies:
             for key, (value, kwargs) in self._cookies.iteritems():
                 if value is None:
@@ -328,7 +377,7 @@ class SessionStore(object):
         if self._sessions:
             for sessions in self._sessions.values():
                 for key, (value, kwargs) in sessions.iteritems():
-                    value.save_session(self, response, key, **kwargs)
+                    value.save_session(response, self, key, **kwargs)
 
     @classmethod
     def factory(cls, _app, _name, **kwargs):

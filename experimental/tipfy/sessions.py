@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    sessions
-    ========
+    tipfy.sessions
+    ==============
 
     Lightweight sessions support for tipfy. Includes sessions using secure
     cookies and supports flash messages.
@@ -27,6 +27,10 @@ from werkzeug.contrib.sessions import ModificationTrackingDict
 #:     Secret key to generate session cookies. Set this to something random
 #:     and unguessable. Default is :data:`tipfy.REQUIRED_VALUE` (an exception
 #:     is raised if it is not set).
+#:
+#: default_backend
+#:     The default backend to use when none is provided. Default is
+#:     `securecookie`.
 #:
 #: cookie_name
 #:     Name of the cookie to save a session or session id. Default is
@@ -58,6 +62,7 @@ from werkzeug.contrib.sessions import ModificationTrackingDict
 #:     - httponly: Disallow JavaScript to access the cookie.
 default_config = {
     'secret_key':      REQUIRED_VALUE,
+    'default_backend': 'securecookie',
     'cookie_name':     'tipfy.session',
     'session_max_age': None,
     'cookie_args': {
@@ -185,15 +190,15 @@ class SessionStore(object):
         'securecookie': SecureCookieSession,
     }
 
-    def __init__(self, app, backends=None, default_backend='securecookie'):
+    def __init__(self, app, backends=None):
         self.app = app
         self.request = app.request
+        # Base configuration.
+        self.config = app.get_config(__name__)
         # A dictionary of support backend classes.
         self.backends = backends or self.default_backends
         # The default backend to use when none is provided.
-        self.default_backend = default_backend
-        # Base configuration.
-        self.config = app.get_config(__name__)
+        self.default_backend = self.config.get('default_backend')
         # Tracked sessions.
         self._sessions = {}
         # Tracked cookies.
@@ -268,9 +273,9 @@ class SessionStore(object):
             Cookie name.
         :param max_age:
             Maximum age in seconds for a valid cookie. If the cookie is older
-            than this, returns ``None``.
+            than this, returns None.
         :returns:
-            A secure cookie value or ``None`` if it is not set.
+            A secure cookie value or None if it is not set.
         """
         if max_age is DEFAULT_VALUE:
             max_age = self.config['session_max_age']

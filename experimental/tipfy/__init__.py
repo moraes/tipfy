@@ -21,6 +21,7 @@ from werkzeug import (Request as BaseRequest, Response as BaseResponse,
 from werkzeug.exceptions import HTTPException, InternalServerError, abort
 from werkzeug.routing import BaseConverter, Map, Rule as BaseRule, RuleFactory
 
+from tipfy.sessions import SessionStore
 from tipfy.utils import json_encode
 
 __version__ = '0.7'
@@ -248,13 +249,11 @@ class Request(BaseRequest):
 
     @cached_property
     def session_store(self):
-        # TODO
-        pass
+        return SessionStore(Tipfy.app)
 
     @cached_property
     def session(self):
-        # TODO
-        pass
+        return self.session_store.get_session()
 
     @cached_property
     def current_user(self):

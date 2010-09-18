@@ -892,7 +892,7 @@ class Tipfy(object):
         else:
             local.__release_local__()
 
-    def run(self, add_wsgi_middleware=None):
+    def run(self):
         """Runs the app using ``CGIHandler``. This must be called inside a
         ``main()`` function in the file defined in *app.yaml* to run the
         application::
@@ -908,18 +908,12 @@ class Tipfy(object):
 
             if __name__ == '__main__':
                 main()
-
-        :param add_wsgi_middleware:
-            A function to be called to add WSGI middleware to the app.
         """
         # Fix issue #772.
         if self.dev:
             fix_sys_path()
 
-        if add_wsgi_middleware is None:
-            CGIHandler().run(self)
-        else:
-            CGIHandler().run(add_wsgi_middleware(self))
+        CGIHandler().run(self)
 
 
 def get_config(module, key=None, default=REQUIRED_VALUE):

@@ -47,12 +47,18 @@ ALLOWED_METHODS = frozenset(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT',
 REQUIRED_VALUE = object()
 # Value used for missing default values.
 DEFAULT_VALUE = object()
-# App Engine flags
-DEV = os.environ.get('SERVER_SOFTWARE', '') == 'Development/1.0'
+# App Engine flags.
+SERVER_SOFTWARE = os.environ.get('SERVER_SOFTWARE', '')
 APP_ID = os.environ.get('APPLICATION_ID', None)
 VERSION_ID = os.environ.get('CURRENT_VERSION_ID', '1')
-# How else?
-IS_APPENGINE = (APP_ID is not None)
+DEV = SERVER_SOFTWARE.startswith('Development')
+
+try:
+    import google.appengine
+    APPENGINE = (APP_ID and (DEV or SERVER_SOFTWARE.startswith(
+        'Google App Engine')))
+except ImportError:
+    APPENGINE = False
 
 
 class RequestHandler(object):
@@ -713,14 +719,14 @@ class Router(object):
 
 class Tipfy(object):
     """The WSGI application."""
-    #: True if the app is using App Engine dev server, False otherwise.
-    dev = DEV
     #: The application ID as defined in *app.yaml*."""
     app_id = APP_ID
     #: The deployed version ID. Always '1' when using the dev server.
     version_id = VERSION_ID
     #: True if the app is running on App Engine, False otherwise.
-    is_appengine = IS_APPENGINE
+    appengine = APPENGINE
+    #: True if the app is using App Engine dev server, False otherwise.
+    dev = DEV
     #: Default class for requests.
     request_class = Request
     #: Default class for responses.
@@ -913,7 +919,7 @@ class Tipfy(object):
         :param request:
             A :class:`Request` instance, if any.
         """
-        if self.is_appengine:
+        if self.appengine:
             Tipfy.app = self
             Tipfy.request = request
         else:
@@ -922,7 +928,7 @@ class Tipfy(object):
 
     def clear_locals(self):
         """Clears the variables set for a single request."""
-        if self.is_appengine:
+        if self.appengine:
             Tipfy.app = Tipfy.request = None
         else:
             local.__release_local__()
@@ -1035,7 +1041,7 @@ App = Tipfy
 Handler = RequestHandler
 
 # Locals.
-if IS_APPENGINE:
+if APPENGINE:
     from werkzeug import LocalProxy
     local = None
     app = LocalProxy(lambda: Tipfy.app)

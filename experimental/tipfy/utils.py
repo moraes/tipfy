@@ -22,29 +22,21 @@ import xml.sax.saxutils
 import urllib
 
 try:
-    # For Google App Engine.
-    from django.utils import simplejson
-    _json_decode = lambda s: simplejson.loads(_unicode(s))
-    _json_encode = lambda v: simplejson.dumps(v)
-except:
+    # Preference for installed library with updated fixes.
+    import simplejson
+except ImportError:
     try:
-        # json module is in the standard library as of python 2.6; fall back to
-        # simplejson if present for older versions.
-        import json
-        assert hasattr(json, "loads") and hasattr(json, "dumps")
-        _json_decode = json.loads
-        _json_encode = json.dumps
+        # Google App Engine.
+        from django.utils import simplejson
     except ImportError:
         try:
-            import simplejson
-            _json_decode = lambda s: simplejson.loads(_unicode(s))
-            _json_encode = lambda v: simplejson.dumps(v)
-        except ImportError:
-            def _json_decode(s):
-                raise NotImplementedError(
-                    "A JSON parser is required, e.g., simplejson at "
-                    "http://pypi.python.org/pypi/simplejson/")
-            _json_encode = _json_decode
+            # Standard library module in Python 2.6.
+            import json as simplejson
+            assert hasattr(simplejson, 'loads') and hasattr(simplejson,
+                'dumps')
+        except (ImportError, AssertionError):
+            raise RuntimeError('A JSON parser is required, e.g., '
+                'simplejson at http://pypi.python.org/pypi/simplejson/')
 
 
 def xhtml_escape(value):
@@ -57,7 +49,7 @@ def xhtml_unescape(value):
     return re.sub(r"&(#?)(\w+?);", _convert_entity, _unicode(value))
 
 
-def json_encode(value):
+def json_encode(value, *args, **kwargs):
     """JSON-encodes the given Python object."""
     # JSON permits but does not require forward slashes to be escaped.
     # This is useful when json data is emitted in a <script> tag
@@ -65,12 +57,12 @@ def json_encode(value):
     # the javscript.  Some json libraries do this escaping by default,
     # although python's standard library does not, so we do it here.
     # http://stackoverflow.com/questions/1580647/json-why-are-forward-slashes-escaped
-    return _json_encode(value).replace("</", "<\\/")
+    return simplejson.dumps(value, *args, **kwargs).replace("</", "<\\/")
 
 
-def json_decode(value):
+def json_decode(value, *args, **kwargs):
     """Returns Python objects for the given JSON string."""
-    return _json_decode(value)
+    return simplejson.loads(_unicode(value), *args, **kwargs)
 
 
 def squeeze(value):

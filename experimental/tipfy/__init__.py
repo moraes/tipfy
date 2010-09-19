@@ -279,6 +279,12 @@ class Request(BaseRequest):
 
     @cached_property
     def auth(self):
+        """The auth store which provides access to the authenticated user and
+        auth related functions.
+
+        :returns:
+            An auth store instance.
+        """
         return Tipfy.app.auth_store_class(Tipfy.app, self)
 
 

@@ -66,22 +66,22 @@ class RequestHandler(object):
     The dispatch method implements a middleware system to execute hooks before
     and after processing a request and to handle exceptions.
     """
-    #: A list of plugin classes or callables. A plugin can implement
+    #: A list of middleware classes or callables. A middleware can implement
     #: three methods that are called before and after the current request
     #: method is executed, or if an exception occurs:
     #:
     #: before_dispatch(handler)
-    #:     Called before the requested method is
-    #:     executed. If returns a response, stops the plugin chain and
-    #:     uses that response, not calling the requested method.
+    #:     Called before the requested method is executed. If returns a
+    #:     response, stops the middleware chain and uses that response, not
+    #:     calling the requested method.
     #:
     #: after_dispatch(handler, response)
     #:     Called after the requested method is executed. Must always return
-    #:     a response. All *post_dispatch* plugin are always executed.
+    #:     a response. All *after_dispatch* middleware are always executed.
     #:
     #: handle_exception(handler, exception, debug)
     #:     Called if an exception occurs while executing the requested method.
-    plugins = None
+    middleware = None
 
     def __init__(self, app, request):
         """Initializes the handler.
@@ -114,13 +114,13 @@ class RequestHandler(object):
             # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.6
             self.abort(405, valid_methods=get_valid_methods(self))
 
-        if not self.plugins:
-            # No plugins are set: just execute the method.
+        if not self.middleware:
+            # No middleware are set: just execute the method.
             return method(*args, **kwargs)
 
-        # Execute before_dispatch plugins.
-        for plugin in self.plugins:
-            func = getattr(plugin, 'before_dispatch', None)
+        # Execute before_dispatch middleware.
+        for obj in self.middleware:
+            func = getattr(obj, 'before_dispatch', None)
             if func:
                 response = func(self)
                 if response is not None:
@@ -129,17 +129,17 @@ class RequestHandler(object):
             try:
                 response = method(*args, **kwargs)
             except Exception, e:
-                # Execute handle_exception plugins.
-                for plugin in reversed(self.plugins):
-                    func = getattr(plugin, 'handle_exception', None)
+                # Execute handle_exception middleware.
+                for obj in reversed(self.middleware):
+                    func = getattr(obj, 'handle_exception', None)
                     if func:
-                        response = func(self, e, self.app.debug)
+                        response = func(self, e)
                         if response is not None:
                             break
 
-        # Execute after_dispatch plugins.
-        for plugin in reversed(self.plugins):
-            func = getattr(plugin, 'after_dispatch', None)
+        # Execute after_dispatch middleware.
+        for obj in reversed(self.middleware):
+            func = getattr(obj, 'after_dispatch', None)
             if func:
                 response = func(self, response)
 
@@ -166,14 +166,12 @@ class RequestHandler(object):
         """
         return self.app.config.get_or_load(module, key=key, default=default)
 
-    def handle_exception(self, exception=None, debug=False):
+    def handle_exception(self, exception=None):
         """Handles an exception. The default behavior is to re-raise the
         exception (no exception handling is implemented).
 
         :param exception:
             The exception that was thrown.
-        :param debug:
-            True if the exception should be handled in debug mode.
         """
         raise
 
@@ -621,7 +619,7 @@ class Router(object):
                 raise
 
             # If the handler implements exception handling, let it handle it.
-            return handler.handle_exception(exception=e, debug=self.app.debug)
+            return handler.handle_exception(exception=e)
 
     def build(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place
@@ -812,7 +810,7 @@ class Tipfy(object):
         `Not Found` page::
 
             class Handle404(RequestHandler):
-                def handle_exception(self, exception, debug_mode):
+                def handle_exception(self, exception):
                     return Response('Oops! I could swear this page was here!',
                         status=404)
 

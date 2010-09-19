@@ -180,7 +180,7 @@ class TestHandler(unittest.TestCase):
         self.assertEqual(handler.url_for('contact'), '/contact')
 
 
-class TestHandlerPlugin(unittest.TestCase):
+class TestHandlerMiddleware(unittest.TestCase):
     def tearDown(self):
         try:
             Tipfy.app.clear_locals()
@@ -189,12 +189,12 @@ class TestHandlerPlugin(unittest.TestCase):
 
     def test_before_dispatch(self):
         res = 'Intercepted!'
-        class MyPlugin(object):
+        class MyMiddleware(object):
             def before_dispatch(self, handler):
                 return Response(res)
 
         class MyHandler(RequestHandler):
-            plugins = [MyPlugin()]
+            middleware = [MyMiddleware()]
 
             def get(self, **kwargs):
                 return Response('default')
@@ -208,13 +208,13 @@ class TestHandlerPlugin(unittest.TestCase):
 
     def test_after_dispatch(self):
         res = 'Intercepted!'
-        class MyPlugin(object):
+        class MyMiddleware(object):
             def after_dispatch(self, handler, response):
                 response.data += res
                 return response
 
         class MyHandler(RequestHandler):
-            plugins = [MyPlugin()]
+            middleware = [MyMiddleware()]
 
             def get(self, **kwargs):
                 return Response('default')
@@ -228,12 +228,12 @@ class TestHandlerPlugin(unittest.TestCase):
 
     def test_handle_exception(self):
         res = 'Catched!'
-        class MyPlugin(object):
-            def handle_exception(self, handler, exception, debug):
+        class MyMiddleware(object):
+            def handle_exception(self, handler, exception):
                 return Response(res)
 
         class MyHandler(RequestHandler):
-            plugins = [MyPlugin()]
+            middleware = [MyMiddleware()]
 
             def get(self, **kwargs):
                 raise ValueError()

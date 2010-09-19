@@ -77,4 +77,28 @@ class TestSessionStore(unittest.TestCase):
         self.assertEqual(isinstance(session, SecureCookieSession), True)
         self.assertEqual(session, {'foo': 'bar'})
 
+    def test_set_delete_cookie(self):
+        app = self._get_app()
+        app.set_locals(Request.from_values('/'))
+        store = SessionStore(app)
 
+        store.set_cookie('foo', 'bar')
+        store.set_cookie('baz', 'ding')
+
+        response = Response()
+        store.save(response)
+
+        headers = {'Cookie': '\n'.join(response.headers.getlist('Set-Cookie'))}
+        request = Request.from_values('/', headers=headers)
+
+        self.assertEqual(request.cookies.get('foo'), 'bar')
+        self.assertEqual(request.cookies.get('baz'), 'ding')
+
+        store.delete_cookie('foo')
+        store.save(response)
+
+        headers = {'Cookie': '\n'.join(response.headers.getlist('Set-Cookie'))}
+        request = Request.from_values('/', headers=headers)
+
+        self.assertEqual(request.cookies.get('foo', None), '')
+        self.assertEqual(request.cookies['baz'], 'ding')

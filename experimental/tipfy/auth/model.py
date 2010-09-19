@@ -17,9 +17,9 @@ from hashlib import sha1, md5
 
 from google.appengine.ext import db
 
-SALT_CHARS = string.ascii_letters + string.digits
-
 from tipfy import Tipfy
+
+SALT_CHARS = string.ascii_letters + string.digits
 
 
 class User(db.Model):

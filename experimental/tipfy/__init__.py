@@ -279,8 +279,13 @@ class Request(BaseRequest):
 
     @cached_property
     def auth(self):
-        # TODO
-        pass
+        app = Tipfy.app
+        registry = app.registry
+        if 'auth_store_class' not in registry:
+            cls = app.get_config('tipfy.auth', 'auth_store')
+            registry['auth_store_class'] = import_string(cls)
+
+        return registry['auth_store_class'](app, self)
 
 
 class Response(BaseResponse):

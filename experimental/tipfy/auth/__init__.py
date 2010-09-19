@@ -21,10 +21,14 @@ from werkzeug.routing import RequestRedirect
 #:
 #: user_model
 #:     A ``db.Model`` class used for authenticated users, as a string.
-#:     Default is ``tipfy.auth.model.User``.
+#:     Default is `tipfy.auth.model.User`.
+#:
+#: secure_urls
+#:     True to use secure URLs for login, logout and sign up, False otherwise.
+#:     Default is False.
 #:
 #: cookie_name
-#:     Name of the autentication cookie. Default is ``tipfy.auth``.
+#:     Name of the autentication cookie. Default is `auth`.
 #:
 #: session_max_age
 #:     Interval in seconds before a user session id is renewed.
@@ -32,16 +36,16 @@ from werkzeug.routing import RequestRedirect
 default_config = {
     'user_model':      'tipfy.auth.model.User',
     'cookie_name':     'auth',
+    'secure_urls':     False,
     'session_max_age': 86400 * 7,
 }
 
 
 class BaseAuth(object):
-    def __init__(self, app, secure_urls=False, user_model=None):
+    def __init__(self, app, request):
         self.app = app
-        self.secure_urls = secure_urls
-        if user_model:
-            self.user_model = user_model
+        self.request = request
+        self.secure_urls = app.get_config(__name__, 'secure_urls')
 
     @cached_property
     def user_model(self):
@@ -59,7 +63,7 @@ class BaseAuth(object):
         return registry[key]
 
     def _url(self, _name, **kwargs):
-        kwargs.setdefault('redirect', self.app.request.path)
+        kwargs.setdefault('redirect', self.request.path)
         if not self.app.debug and self.secure_urls:
             kwargs['_scheme'] = 'https'
 
@@ -120,10 +124,18 @@ class BaseAuth(object):
         elif username:
             return self.user_model.get_by_username(username)
 
+    @property
+    def user(self):
+        raise NotImplementedError()
+
+    @property
+    def is_admin(self):
+        return False
+
     @classmethod
     def factory(cls, _app, _name, **kwargs):
         if _name not in _app.request.registry:
-            _app.request.registry[_name] = cls(_app, **kwargs)
+            _app.request.registry[_name] = cls(_app, _app.request, **kwargs)
 
         return _app.request.registry[_name]
 
@@ -154,7 +166,7 @@ class AppEngineAuth(BaseAuth):
         return users.get_current_user()
 
     @cached_property
-    def current_user(self):
+    def user(self):
         """Returns the currently logged in user entity or None.
 
         :returns:
@@ -177,33 +189,13 @@ class AppEngineAuth(BaseAuth):
         """
         return users.is_current_user_admin()
 
-    def login_url(self, redirect=None):
-        """Returns a URL that, when visited, prompts the user to sign in.
-
-        :param redirect:
-            A full URL or relative path to redirect to after logging in.
-        :returns:
-            A URL to perform logout.
-        """
-        return users.create_login_url(redirect or self.app.request.path)
-
-    def logout_url(self, redirect=None):
-        """Returns a URL that, when visited, logs out the user.
-
-        :param redirect:
-            A full URL or relative path to redirect to after logging out.
-        :returns:
-            A URL to perform logout.
-        """
-        return users.create_logout_url(redirect or self.app.request.path)
-
 
 class AppEngineMixedAuth(BaseAuth):
     @cached_property
     def session(self):
         """Returns the currently logged in user session."""
         # First try to get a user from the session.
-        session_store = self.app.request.session_store
+        session_store = self.request.session_store
         cookie_name = self.app.get_config(__name__, 'cookie_name')
         session = session_store.get_session(cookie_name)
         if not session.get('user_id'):
@@ -212,14 +204,14 @@ class AppEngineMixedAuth(BaseAuth):
             if user:
                 session.update(gae_user_to_dict(user))
                 auth_id = 'gae|%s' % session.get('user_id')
-                self.current_user = self.get_user_entity(auth_id=auth_id)
-                if self.current_user:
-                    session['session_id'] = self.current_user.session_id
+                self.user = self.get_user_entity(auth_id=auth_id)
+                if self.user:
+                    session['session_id'] = self.user.session_id
 
         return session
 
     @cached_property
-    def current_user(self):
+    def user(self):
         """Returns the currently logged in user entity or None.
 
         :returns:
@@ -246,7 +238,7 @@ class AppEngineMixedAuth(BaseAuth):
         return user
 
     def _set_session(self, session_id):
-        session_store = self.app.request.session_store
+        session_store = self.request.session_store
         cookie_name = self.app.get_config(__name__, 'cookie_name')
 
         cookie_args = self.app.get_config('tipfy.sessions', 'cookie_args')
@@ -435,7 +427,7 @@ def _user_required(handler):
     if not auth.session:
         return handler.redirect(auth.login_url())
 
-    if not auth.current_user:
+    if not auth.user:
         return handler.redirect(auth.signup_url())
 
 

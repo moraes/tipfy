@@ -797,8 +797,12 @@ class Tipfy(object):
 
     @cached_property
     def auth_store_class(self):
-        cls = self.get_config('tipfy.auth', 'auth_store')
-        return import_string(cls)
+        """Returns the configured auth store class.
+
+        :returns:
+            An auth store class.
+        """
+        return import_string(self.get_config('tipfy.auth', 'auth_store'))
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""

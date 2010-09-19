@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
@@ -248,3 +249,71 @@ class TestHandlerMiddleware(unittest.TestCase):
         client = app.get_test_client()
         response = client.get('/')
         self.assertEqual(response.data, res)
+
+    def test_handle_exception2(self):
+        res = 'I fixed it!'
+        class MyMiddleware(object):
+            def handle_exception(self, handler, exception):
+                raise ValueError()
+
+        class MyHandler(RequestHandler):
+            middleware = [MyMiddleware()]
+
+            def get(self, **kwargs):
+                raise ValueError()
+
+        class ErrorHandler(RequestHandler):
+            def handle_exception(self, exception):
+                return Response(res)
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ], debug=False)
+        app.error_handlers[500] = ErrorHandler
+
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.data, res)
+
+    def test_handle_exception2(self):
+        class MyMiddleware(object):
+            def handle_exception(self, handler, exception):
+                raise ValueError()
+
+        class MyHandler(RequestHandler):
+            middleware = [MyMiddleware()]
+
+            def get(self, **kwargs):
+                raise ValueError()
+
+        class ErrorHandler(RequestHandler):
+            def handle_exception(self, exception):
+                raise ValueError()
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ], debug=False)
+        app.error_handlers[500] = ErrorHandler
+
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.status_code, 500)
+
+    def test_handle_exception3(self):
+        res = 'Catched!'
+        class MyMiddleware(object):
+            def handle_exception(self, handler, exception):
+                pass
+
+        class MyHandler(RequestHandler):
+            middleware = [MyMiddleware()]
+
+            def get(self, **kwargs):
+                raise ValueError()
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ])
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.status_code, 500)

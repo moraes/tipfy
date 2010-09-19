@@ -53,8 +53,8 @@ DEV = SERVER_SOFTWARE.startswith('Development')
 
 try:
     import google.appengine
-    APPENGINE = (APPLICATION_ID and (DEV or SERVER_SOFTWARE.startswith(
-        'Google App Engine')))
+    APPENGINE = (APPLICATION_ID is not None and (DEV or
+        SERVER_SOFTWARE.startswith('Google App Engine')))
 except ImportError:
     APPENGINE = False
 
@@ -437,7 +437,7 @@ class Tipfy(object):
         handler = self.error_handlers.get(code)
         if handler:
             rule = Rule('/', handler=handler, name='__exception__')
-            kwargs = dict(exception=exception, debug=self.debug)
+            kwargs = dict(exception=exception)
             return self.router.dispatch(self, request, (rule, kwargs),
                 method='handle_exception')
         else:

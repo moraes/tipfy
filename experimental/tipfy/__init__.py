@@ -135,7 +135,10 @@ class RequestHandler(object):
                     if func:
                         response = func(self, e)
                         if response is not None:
-                            break
+                            return response
+                else:
+                    # If a middleware didn't return a response, reraise.
+                    raise e
 
         # Execute after_dispatch middleware.
         for obj in reversed(self.middleware):
@@ -167,7 +170,7 @@ class RequestHandler(object):
         return self.app.config.get_or_load(module, key=key, default=default)
 
     def handle_exception(self, exception=None):
-        """Handles an exception. The default behavior is to re-raise the
+        """Handles an exception. The default behavior is to reraise the
         exception (no exception handling is implemented).
 
         :param exception:
@@ -822,7 +825,7 @@ class Tipfy(object):
         When an ``HTTPException`` is raised using :func:`abort` or because the
         app could not fulfill the request, the error handler defined for the
         exception HTTP status code will be called. If it is not set, the
-        exception is re-raised.
+        exception is reraised.
 
         .. note::
            Although being a :class:`RequestHandler`, the error handler will

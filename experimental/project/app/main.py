@@ -9,12 +9,14 @@ if 'lib' not in sys.path:
 
 from tipfy import Tipfy
 from config import config
+from urls import rules
 
 # Is this the development server?
 debug = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 
 # Instantiate the application.
-app = Tipfy(config=config, debug=debug)
+app = Tipfy(rules=rules, config=config, debug=debug)
+
 
 def main():
     # Run the app!

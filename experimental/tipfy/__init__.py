@@ -135,7 +135,7 @@ class RequestHandler(object):
                     if func:
                         response = func(self, e)
                         if response is not None:
-                            return response
+                            break
                 else:
                     # If a middleware didn't return a response, reraise.
                     raise e

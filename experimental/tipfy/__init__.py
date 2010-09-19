@@ -279,13 +279,7 @@ class Request(BaseRequest):
 
     @cached_property
     def auth(self):
-        app = Tipfy.app
-        registry = app.registry
-        if 'auth_store_class' not in registry:
-            cls = app.get_config('tipfy.auth', 'auth_store')
-            registry['auth_store_class'] = import_string(cls)
-
-        return registry['auth_store_class'](app, self)
+        return Tipfy.app.auth_store_class(Tipfy.app, self)
 
 
 class Response(BaseResponse):
@@ -794,6 +788,11 @@ class Tipfy(object):
 
         # Load URL rules.
         self.router = self.router_class(self, rules)
+
+    @cached_property
+    def auth_store_class(self):
+        cls = self.get_config('tipfy.auth', 'auth_store')
+        return import_string(cls)
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""

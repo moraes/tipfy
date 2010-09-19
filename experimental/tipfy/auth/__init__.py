@@ -52,7 +52,7 @@ class BaseAuth(object):
         """Returns the configured user model.
 
         :returns:
-            A :class:`webapp2.ext.auth.model.User` class.
+            A :class:`tipfy.auth.model.User` class.
         """
         registry = self.app.registry
         key = 'ext.auth.user_model'
@@ -269,17 +269,17 @@ class AppEngineMixedAuth(BaseAuth):
         return user
 
 
-class LoginRequiredPlugin(object):
-    """A RequestHandler plugin to require user authentication. This
+class LoginRequiredMiddleware(object):
+    """A RequestHandler middleware to require user authentication. This
     acts as a `login_required` decorator but for handler classes. Example:
 
     .. code-block:: python
 
-       from webapp2 import RequestHandler
-       from webapp2.ext.auth import AppEngineAuthMixin, LoginRequiredPlugin
+       from tipfy import RequestHandler
+       from tipfy.auth import LoginRequiredMiddleware
 
-       class MyHandler(RequestHandler, AppEngineAuthMixin):
-           plugin = [LoginRequiredPlugin]
+       class MyHandler(RequestHandler):
+           middleware = [LoginRequiredMiddleware]
 
            def get(self, **kwargs):
                return 'Only logged in users can see this.'
@@ -288,18 +288,18 @@ class LoginRequiredPlugin(object):
         return _login_required(handler)
 
 
-class UserRequiredPlugin(object):
-    """A RequestHandler plugin decorator to require the current user to
-    have an account saved in datastore. This acts as a `user_required`
-    decorator but for handler classes. Example:
+class UserRequiredMiddleware(object):
+    """A RequestHandler middleware to require the current user to have an
+    account saved in datastore. This acts as a `user_required` decorator but
+    for handler classes. Example:
 
     .. code-block:: python
 
-       from webapp2 import RequestHandler
-       from webapp2.ext.auth import AppEngineAuthMixin, UserRequiredPlugin
+       from tipfy import RequestHandler
+       from tipfy.auth import UserRequiredMiddleware
 
-       class MyHandler(RequestHandler, AppEngineAuthMixin):
-           plugin = [UserRequiredPlugin]
+       class MyHandler(RequestHandler):
+           middleware = [UserRequiredMiddleware]
 
            def get(self, **kwargs):
                return 'Only users can see this.'
@@ -308,17 +308,38 @@ class UserRequiredPlugin(object):
         return _user_required(handler)
 
 
-class AdminRequiredPlugin(object):
-    """A RequestHandler plugin to require the current user to be admin.
+class UserRequiredIfAuthenticatedMiddleware(object):
+    """A RequestHandler middleware to require the current user to have an
+    account saved in datastore, but only if he is logged in. This acts as a
+    `user_required_if_authenticated` decorator but for handler classes.
+    Example:
+
+    .. code-block:: python
+
+       from tipfy import RequestHandler
+       from tipfy.auth import UserRequiredIfAuthenticatedMiddleware
+
+       class MyHandler(RequestHandler):
+           middleware = [UserRequiredIfAuthenticatedMiddleware]
+
+           def get(self, **kwargs):
+               return 'Only non-logged in users or users with saved accounts can see this.'
+    """
+    def before_dispatch(self, handler):
+        return _user_required_if_authenticated(handler)
+
+
+class AdminRequiredMiddleware(object):
+    """A RequestHandler middleware to require the current user to be admin.
     This acts as a `admin_required` decorator but for handler classes. Example:
 
     .. code-block:: python
 
-       from webapp2 import RequestHandler
-       from webapp2.ext.auth import AppEngineAuthMixin, AdminRequiredPlugin
+       from tipfy import RequestHandler
+       from tipfy.auth import AdminRequiredMiddleware
 
-       class MyHandler(RequestHandler, AppEngineAuthMixin):
-           plugin = [AdminRequiredPlugin]
+       class MyHandler(RequestHandler):
+           middleware = [AdminRequiredMiddleware]
 
            def get(self, **kwargs):
                return 'Only admins can see this.'
@@ -333,10 +354,10 @@ def login_required(func):
 
     .. code-block:: python
 
-       from webapp2 import RequestHandler
-       from webapp2.ext.auth import AppEngineAuthMixin, login_required
+       from tipfy import RequestHandler
+       from tipfy.auth import login_required
 
-       class MyHandler(RequestHandler, AppEngineAuthMixin):
+       class MyHandler(RequestHandler):
            @login_required
            def get(self, **kwargs):
                return 'Only logged in users can see this.'
@@ -358,10 +379,10 @@ def user_required(func):
 
     .. code-block:: python
 
-       from webapp2 import RequestHandler
-       from webapp2.ext.auth import AppEngineAuthMixin, user_required
+       from tipfy import RequestHandler
+       from tipfy.auth import user_required
 
-       class MyHandler(RequestHandler, AppEngineAuthMixin):
+       class MyHandler(RequestHandler):
            @user_required
            def get(self, **kwargs):
                return 'Only users can see this.'
@@ -377,16 +398,42 @@ def user_required(func):
     return decorated
 
 
+def user_required_if_authenticated(func):
+    """A RequestHandler method decorator to require the current user to
+    have an account saved in datastore, but only if he is logged in. Example:
+
+    .. code-block:: python
+
+       from tipfy import RequestHandler
+       from tipfy.auth import user_required_if_authenticated
+
+       class MyHandler(RequestHandler):
+           @user_required_if_authenticated
+           def get(self, **kwargs):
+               return 'Only non-logged in users or users with saved accounts can see this.'
+
+    :param func:
+        The handler method to be decorated.
+    :returns:
+        The decorated method.
+    """
+    def decorated(self, *args, **kwargs):
+        return _user_required_if_authenticated(self) or \
+            func(self, *args, **kwargs)
+
+    return decorated
+
+
 def admin_required(func):
     """A RequestHandler method decorator to require the current user to be
     admin. Example:
 
     .. code-block:: python
 
-       from webapp2 import RequestHandler
-       from webapp2.ext.auth import AppEngineAuthMixin, admin_required
+       from tipfy import RequestHandler
+       from tipfy.auth import admin_required
 
-       class MyHandler(RequestHandler, AppEngineAuthMixin):
+       class MyHandler(RequestHandler):
            @admin_required
            def get(self, **kwargs):
                return 'Only admins can see this.'
@@ -413,7 +460,7 @@ def gae_user_to_dict(user):
 
 
 def _login_required(handler):
-    """Implementation for login_required and LoginRequiredPlugin."""
+    """Implementation for login_required and LoginRequiredMiddleware."""
     auth = handler.request.auth
 
     if not auth.session:
@@ -421,7 +468,7 @@ def _login_required(handler):
 
 
 def _user_required(handler):
-    """Implementation for user_required and UserRequiredPlugin."""
+    """Implementation for user_required and UserRequiredMiddleware."""
     auth = handler.request.auth
 
     if not auth.session:
@@ -431,8 +478,18 @@ def _user_required(handler):
         return handler.redirect(auth.signup_url())
 
 
+def _user_required_if_authenticated(handler):
+    """Implementation for user_required_if_authenticated and
+    UserRequiredIfAuthenticatedMiddleware.
+    """
+    auth = handler.request.auth
+
+    if auth.session and not auth.user:
+        return handler.redirect(auth.signup_url())
+
+
 def _admin_required(handler):
-    """Implementation for admin_required and AdminRequiredPlugin."""
+    """Implementation for admin_required and AdminRequiredMiddleware."""
     auth = handler.request.auth
 
     if not auth.session:

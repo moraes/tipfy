@@ -41,10 +41,13 @@ default_config = {
 # Allowed request methods.
 ALLOWED_METHODS = frozenset(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT',
     'TRACE'])
+
 # Value used for required values.
 REQUIRED_VALUE = object()
+
 # Value used for missing default values.
 DEFAULT_VALUE = object()
+
 # App Engine flags.
 SERVER_SOFTWARE = os.environ.get('SERVER_SOFTWARE', '')
 APPLICATION_ID = os.environ.get('APPLICATION_ID', None)
@@ -224,15 +227,13 @@ class RequestHandler(object):
 
 class Request(BaseRequest):
     """The :class:`Request` object contains all environment variables for the
-    current request: GET, POST, FILES, cookies and headers. Additionally
-    it stores the URL adapter bound to the request and information about the
-    matched URL rule.
+    current request: GET, POST, FILES, cookies and headers.
     """
     #: URL adapter bound to a request.
     url_adapter = None
     #: Matched URL rule for a request.
     rule = None
-    #: Keyword arguments from the matched rule.
+    #: Keyword arguments from the matched URL rule.
     rule_args = None
 
     def __init__(self, environ):
@@ -246,11 +247,34 @@ class Request(BaseRequest):
         self.context = {}
 
     @cached_property
+    def json(self):
+        """If the mimetype is `application/json` this will contain the
+        parsed JSON data.
+
+        This function is borrowed from `Flask`_.
+
+        :returns:
+            The decoded JSON request data.
+        """
+        if self.mimetype == 'application/json':
+            return json_decode(self.data)
+
+    @cached_property
     def session_store(self):
+        """The session store, responsible for managing sessions and flashes.
+
+        :returns:
+            A :class:`tipfy.sessions.SessionStore` instance.
+        """
         return SessionStore(Tipfy.app)
 
     @cached_property
     def session(self):
+        """A session dictionary using the default session configuration.
+
+        :returns:
+            A dictionary-like object with the current session data.
+        """
         return self.session_store.get_session()
 
     @cached_property
@@ -1042,4 +1066,4 @@ else:
 
 # Imported here to avoid recursive imports.
 from tipfy.sessions import SessionStore
-from tipfy.utils import json_encode
+from tipfy.utils import json_decode, json_encode

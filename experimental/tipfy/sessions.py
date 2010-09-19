@@ -122,6 +122,7 @@ class SecureCookieStore(object):
         try:
             return self._decode(parts[0])
         except:
+            logging.warning('Cookie value failed to be decoded: %r', parts[0])
             return None
 
     def set_cookie(self, response, name, value, **kwargs):

@@ -14,33 +14,25 @@
 import os
 import sys
 
-from tipfy.template import Loader
 
-__version__ = '0.6'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
-
-
-# The template loader.
-loader = Loader(os.path.abspath(os.path.join(os.path.dirname(__file__),
-    'templates')))
+def DebuggerMiddleware(app):
+    apply_monkeypatches()
+    from werkzeug import DebuggedApplication
+    app.wsgi_app = DebuggedApplication(app.wsgi_app, evalex=True)
+    return app
 
 
-# werkzeug.debug.utils
 def get_template(filename):
+    """Replaces ``werkzeug.debug.utils.get_template()``."""
+    from tipfy.template import Loader
+    loader = Loader(os.path.abspath(os.path.join(os.path.dirname(__file__),
+        'templates')))
     return loader.load(filename)
 
 
 def render_template(filename, **context):
+    """Replaces ``werkzeug.debug.utils.render_template()``."""
     return get_template(filename).generate(**context)
-
-
-def get_debugged_app(app):
-    if app.dev:
-        apply_monkeypatches()
-        from werkzeug import DebuggedApplication
-        app.wsgi_app = DebuggedApplication(app.wsgi_app, evalex=True)
-
-    return app
 
 
 def apply_monkeypatches():

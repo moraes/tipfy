@@ -420,3 +420,10 @@ class SessionStore(object):
             _app.request.registry[_name] = cls(_app, **kwargs)
 
         return _app.request.registry[_name]
+
+
+class SessionMiddleware(object):
+    """Saves sessions at the end of a request."""
+    def after_dispatch(self, handler, response):
+        handler.request.session_store.save(response)
+        return response

@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+    tipfy.routing
+    ~~~~~~~~~~~~~
+
+    URL routing utilities.
+
+    :copyright: 2010 by tipfy.org.
+    :license: BSD, see LICENSE.txt for more details.
+"""
 from werkzeug import import_string, url_quote
 from werkzeug.routing import BaseConverter, Map, Rule as BaseRule, RuleFactory
 
@@ -6,7 +16,7 @@ class Router(object):
     def __init__(self, app, rules=None):
         """
         :param app:
-            A :class:`Tipfy` instance.
+            A :class:`tipfy.Tipfy` instance.
         :param rules:
             Initial URL rules definitions. It can be a list of :class:`Rule`,
             a callable or a string defining a callable that returns the rules
@@ -34,16 +44,17 @@ class Router(object):
     def match(self, request):
         """Matches registered :class:`Rule` definitions against the URL
         adapter. This will store the URL adapter, matched rule and rule
-        arguments in the :class:`Request` instance.
+        arguments in the :class:`tipfy.Request` instance.
 
         Three exceptions can occur when matching the rules: ``NotFound``,
         ``MethodNotAllowed`` or ``RequestRedirect``. If they are
-        raised, they are stored in the request for later use.
+        raised, they are handled by the WSGI application.
 
         :param request:
-            A :class:`Request` instance.
+            A :class:`tipfy.Request` instance.
         :returns:
-            None.
+            A tuple ``(rule, rule_args)`` with the matched :class:`Rule` and
+            rule arguments.
         """
         # Bind the URL map to the current request
         request.url_adapter = self.map.bind_to_environ(request.environ,
@@ -55,13 +66,13 @@ class Router(object):
         return match
 
     def dispatch(self, app, request, match, method=None):
-        """Dispatches a request. This calls the :class:`RequestHandler` from
-        the matched :class:`Rule`.
+        """Dispatches a request. This instantiates and calls a
+        :class:`tipfy.RequestHandler` based on the matched :class:`Rule`.
 
         :param app:
-            A :class:`Tipfy` instance.
+            A :class:`tipfy.Tipfy` instance.
         :param request:
-            A :class:`Request` instance.
+            A :class:`tipfy.Request` instance.
         :param match:
             A tuple ``(rule, kwargs)``, resulted from the matched URL.
         :param method:
@@ -176,7 +187,7 @@ class Router(object):
 
 class Rule(BaseRule):
     """Extends Werkzeug routing to support handler and name definitions for
-    each Rule. Handler is a :class:`RequestHandler` class and name is a
+    each Rule. Handler is a :class:`tipfy.RequestHandler` class and name is a
     friendly name used to build URL's. For example:
 
     .. code-block:: python
@@ -239,9 +250,11 @@ class HandlerPrefix(RuleFactory):
 
 
 class RegexConverter(BaseConverter):
-    """A :class: `Rule` converter that matches a regular expression::
+    """A :class:`Rule` converter that matches a regular expression::
 
         Rule(r'/<regex(".*$"):name>')
+
+    This is mainly useful to match subdomains. Don't use it for normal rules.
     """
     def __init__(self, map, *items):
         BaseConverter.__init__(self, map)

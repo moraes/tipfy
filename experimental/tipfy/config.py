@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+    tipfy.config
+    ~~~~~~~~~~~~
+
+    Configuration object.
+
+    :copyright: 2010 by tipfy.org.
+    :license: BSD, see LICENSE.txt for more details.
+"""
 from werkzeug import import_string
 
 # Value used for required values.
@@ -35,17 +45,16 @@ class Config(dict):
     #: Loaded module configurations.
     loaded = None
 
-    def __init__(self, value=None, default=None, loaded=None):
+    def __init__(self, value=None, default=None):
         """Initializes the configuration object.
 
         :param value:
             A dictionary of configuration dictionaries for modules.
         :param default:
             A dictionary of configuration dictionaries for default values.
-        :param loaded:
-            A list of modules to be marked as loaded.
+            These modules are marked as loaded.
         """
-        self.loaded = loaded or []
+        self.loaded = []
         if value is not None:
             assert isinstance(value, dict)
             for module in value.keys():
@@ -55,6 +64,7 @@ class Config(dict):
             assert isinstance(default, dict)
             for module in default.keys():
                 self.setdefault(module, default[module])
+                self.loaded.append(module)
 
     def __setitem__(self, module, value):
         """Sets a configuration for a module, requiring it to be a dictionary.

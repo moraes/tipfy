@@ -1,3 +1,16 @@
+# -*- coding: utf-8 -*-
+"""
+    tipfy.middleware
+    ~~~~~~~~~~~~~~~~
+
+    Miscelaneous handler middleware classes.
+
+    :copyright: 2010 by tipfy.org.
+    :license: BSD, see LICENSE.txt for more details.
+"""
+from tipfy import Tipfy
+
+
 class ETagMiddleware(object):
     """Adds an etag to all responses if they haven't already set one, and
     returns '304 Not Modified' if the request contains a matching etag.

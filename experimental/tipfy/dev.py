@@ -1,3 +1,15 @@
+# -*- coding: utf-8 -*-
+"""
+    tipfy.dev
+    ~~~~~~~~~
+
+    Development patches.
+
+    :copyright: 2010 by tipfy.org.
+    :license: BSD, see LICENSE.txt for more details.
+"""
+import sys
+
 _ULTIMATE_SYS_PATH = None
 
 
@@ -8,7 +20,6 @@ def fix_sys_path():
     See: http://code.google.com/p/googleappengine/issues/detail?id=772
     """
     global _ULTIMATE_SYS_PATH
-    import sys
     if _ULTIMATE_SYS_PATH is None:
         _ULTIMATE_SYS_PATH = list(sys.path)
     elif sys.path != _ULTIMATE_SYS_PATH:

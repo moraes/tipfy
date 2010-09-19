@@ -327,16 +327,11 @@ class Tipfy(object):
         self.debug = debug
         self.registry = {}
         self.error_handlers = {}
+        self.config = self.config_class(config, {'tipfy': default_config})
+        self.router = self.router_class(self, rules)
 
         if self.debug:
             logging.getLogger().setLevel(logging.DEBUG)
-
-        # Load default config and update with values for this instance.
-        self.config = self.config_class(config, {'tipfy': default_config},
-            ['tipfy'])
-
-        # Load URL rules.
-        self.router = self.router_class(self, rules)
 
     @cached_property
     def auth_store_class(self):

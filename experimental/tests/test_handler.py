@@ -161,4 +161,86 @@ class TestHandler(unittest.TestCase):
         self.assertEqual(response.headers['Location'], 'http://localhost/baz')
 
     def test_url_for(self):
-        pass
+        class Handler(RequestHandler):
+            pass
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler='handlers.Home'),
+            Rule('/about', name='about', handler='handlers.About'),
+            Rule('/contact', name='contact', handler='handlers.Contact'),
+        ])
+        request = Request.from_values('/')
+        app.set_locals(request)
+        app.router.match(request)
+
+        handler = Handler(app, request)
+
+        self.assertEqual(handler.url_for('home'), '/')
+        self.assertEqual(handler.url_for('about'), '/about')
+        self.assertEqual(handler.url_for('contact'), '/contact')
+
+
+class TestHandlerPlugin(unittest.TestCase):
+    def tearDown(self):
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
+
+    def test_before_dispatch(self):
+        res = 'Intercepted!'
+        class MyPlugin(object):
+            def before_dispatch(self, handler):
+                return Response(res)
+
+        class MyHandler(RequestHandler):
+            plugins = [MyPlugin()]
+
+            def get(self, **kwargs):
+                return Response('default')
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ])
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.data, res)
+
+    def test_after_dispatch(self):
+        res = 'Intercepted!'
+        class MyPlugin(object):
+            def after_dispatch(self, handler, response):
+                response.data += res
+                return response
+
+        class MyHandler(RequestHandler):
+            plugins = [MyPlugin()]
+
+            def get(self, **kwargs):
+                return Response('default')
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ])
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.data, 'default' + res)
+
+    def test_handle_exception(self):
+        res = 'Catched!'
+        class MyPlugin(object):
+            def handle_exception(self, handler, exception, debug):
+                return Response(res)
+
+        class MyHandler(RequestHandler):
+            plugins = [MyPlugin()]
+
+            def get(self, **kwargs):
+                raise ValueError()
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ])
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.data, res)

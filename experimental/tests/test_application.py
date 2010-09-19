@@ -3,6 +3,7 @@ import unittest
 
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
     ALLOWED_METHODS)
+from tipfy.sessions import SessionStore, SecureCookieSession
 
 
 class BrokenHandler(RequestHandler):
@@ -137,7 +138,40 @@ class TestHandleException(unittest.TestCase):
         self.assertEqual(res.data, '500 custom handler')
 
 
-class SillyTests(unittest.TestCase):
+class TestRequest(unittest.TestCase):
+    def tearDown(self):
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
+
+    def _get_app(self):
+        return Tipfy(config={
+            'tipfy.sessions': {
+                'secret_key': 'secret',
+            }
+        })
+
+    def test_session_store(self):
+        app = self._get_app()
+        request = Request.from_values('/')
+        app.set_locals(request)
+        store = SessionStore(app)
+
+        self.assertEqual(isinstance(request.session_store, SessionStore), True)
+
+    def test_session(self):
+        app = self._get_app()
+        request = Request.from_values('/')
+        app.set_locals(request)
+        store = SessionStore(app)
+
+        session = request.session
+        self.assertEqual(isinstance(session, SecureCookieSession), True)
+        self.assertEqual(session, {})
+
+
+class TestSilly(unittest.TestCase):
     def tearDown(self):
         try:
             Tipfy.app.clear_locals()

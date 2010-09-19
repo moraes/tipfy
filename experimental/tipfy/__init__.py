@@ -253,7 +253,7 @@ class Request(BaseRequest):
         return self.session_store.get_session()
 
     @cached_property
-    def current_user(self):
+    def auth(self):
         # TODO
         pass
 
@@ -552,9 +552,14 @@ class Router(object):
         """Adds a rule to the URL map.
 
         :param rule:
-            A :class:`Rule` or rule factory to be added.
+            A :class:`Rule` or rule factory instance or a list of rules
+            to be added.
         """
-        self.map.add(rule)
+        if isinstance(rule, list):
+            for r in rule:
+                self.map.add(r)
+        else:
+            self.map.add(rule)
 
     def match(self, request):
         """Matches registered :class:`Rule` definitions against the URL

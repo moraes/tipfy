@@ -34,7 +34,7 @@ from werkzeug.contrib.sessions import ModificationTrackingDict
 #:
 #: cookie_name
 #:     Name of the cookie to save a session or session id. Default is
-#:     `tipfy.session`.
+#:     `session`.
 #:
 #: session_max_age:
 #:     Default session expiration time in seconds. Limits the duration of the
@@ -63,7 +63,7 @@ from werkzeug.contrib.sessions import ModificationTrackingDict
 default_config = {
     'secret_key':      REQUIRED_VALUE,
     'default_backend': 'securecookie',
-    'cookie_name':     'tipfy.session',
+    'cookie_name':     'session',
     'session_max_age': None,
     'cookie_args': {
         'max_age':     None,
@@ -178,6 +178,7 @@ class SecureCookieStore(object):
         return result == 0
 
 
+'''
 class DatastoreSession(ModificationTrackingDict):
     @classmethod
     def get_session(cls, store, name, **kwargs):
@@ -198,6 +199,7 @@ class MemcacheSession(ModificationTrackingDict):
     def save_session(self, response, store, name, **kwargs):
         """TODO"""
         raise NotImplementedError()
+'''
 
 
 class SecureCookieSession(ModificationTrackingDict):

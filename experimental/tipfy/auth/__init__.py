@@ -15,7 +15,6 @@ from google.appengine.api import users
 from tipfy import abort
 
 from werkzeug import cached_property, import_string
-from werkzeug.routing import RequestRedirect
 
 #: Default configuration values for this module. Keys are:
 #:

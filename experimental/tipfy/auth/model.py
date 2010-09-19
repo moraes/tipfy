@@ -38,11 +38,11 @@ class User(db.Model):
     email = db.EmailProperty()
     #: Authentication identifier, depending on the auth method used.
     #: For example:
-    #: * own:username
-    #: * gae:user_id
-    #: * openid:identifier
-    #: * twitter:username
-    #: * facebook:username
+    #: * own|username
+    #: * gae|user_id
+    #: * openid|identifier
+    #: * twitter|username
+    #: * facebook|username
     auth_id = db.StringProperty(required=True)
     # Session id, renewed periodically for improved security.
     session_id = db.StringProperty(required=True)

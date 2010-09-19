@@ -179,6 +179,10 @@ class TestHandler(unittest.TestCase):
         self.assertEqual(handler.url_for('about'), '/about')
         self.assertEqual(handler.url_for('contact'), '/contact')
 
+        # Extras
+        self.assertEqual(handler.url_for('about', _anchor='history'), '/about#history')
+        self.assertEqual(handler.url_for('about', _scheme='https'), 'https://localhost/about')
+
 
 class TestHandlerMiddleware(unittest.TestCase):
     def tearDown(self):

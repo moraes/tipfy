@@ -14,7 +14,7 @@ from __future__ import absolute_import
 
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
-from tipfy import Tipfy
+from werkzeug import cached_property
 
 try:
     from tipfyext import i18n
@@ -42,25 +42,30 @@ default_config = {
     'force_use_compiled': False,
 }
 
-_INSTANCE = None
+
+class Jinja2Mixin(object):
+    """Mixin that adds ``render_template`` and ``render_response`` methods
+    to a :class:`tipfy.RequestHandler`. It will use the request context to
+    render templates.
+    """
+    @cached_property
+    def jinja2(self):
+        return Jinja2.factory(self.app, 'jinja2')
+
+    def render_template(self, _filename, **context):
+        return self.jinja2.render_template(_filename, **context)
+
+    def render_response(self, _filename, **context):
+        return self.jinja2.render_response(_filename, **context)
 
 
 class Jinja2(object):
-    """:class:`tipfy.RequestHandler` mixin that add ``render_template`` and
-    ``render_response`` methods to a :class:`tipfy.RequestHandler`. It will
-    use the request context to render templates.
-    """
-    def __init__(self, app, globals=None, filters=None, extensions=None):
+    def __init__(self, app, _globals=None, filters=None, extensions=()):
         self.app = app
-        self.globals = globals or {}
-        self.filters = filters pr {}
-        self.extensions = extensions or []
-        self.environment = None
 
-    def create_environment(self):
-        cfg = self.app.get_config(__name__)
+        cfg = app.get_config(__name__)
         templates_compiled_target = cfg.get('templates_compiled_target')
-        use_compiled = not self.app.debug or cfg.get('force_use_compiled')
+        use_compiled = not app.debug or cfg.get('force_use_compiled')
 
         if templates_compiled_target is not None and use_compiled:
             # Use precompiled templates loaded from a module or zip.
@@ -69,14 +74,18 @@ class Jinja2(object):
             # Parse templates for every new environment instances.
             loader = FileSystemLoader(cfg.get('templates_dir'))
 
-        if i18n:
-            self.extensions.append('jinja2.ext.i18n')
-
         # Initialize the environment.
-        env = Environment(loader=loader, extensions=self.extensions)
+        env = Environment(loader=loader, extensions=extensions)
+
+        if _globals:
+            env.globals.update(_globals)
+
+        if filters:
+            env.filters.update(filters)
 
         if i18n:
             # Install i18n.
+            env.add_extension('jinja2.ext.i18n')
             trans = i18n.get_translations
             env.install_gettext_callables(
                 lambda s: trans().ugettext(s),
@@ -89,12 +98,8 @@ class Jinja2(object):
                 'format_datetime': i18n.format_datetime,
             })
 
-        env.globals['url_for'] = self.app.url_for
-        env.globals.update(self.globals)
-        env.filters.update(self.filters)
-
+        env.globals['url_for'] = app.url_for
         self.environment = env
-        return env
 
     def render(self, _filename, **context):
         """Renders a template and returns a response object.
@@ -107,10 +112,9 @@ class Jinja2(object):
        :returns:
             A rendered template.
         """
-        environment = self.environment or self.create_environment()
-        return environment.get_template(_filename).render(**context)
+        return self.environment.get_template(_filename).render(**context)
 
-    def render_with_context(self, _filename, **context):
+    def render_template(self, _filename, **context):
         """Renders a template and returns a response object.
 
         :param _filename:
@@ -134,7 +138,7 @@ class Jinja2(object):
             Keyword arguments used as variables in the rendered template.
             These will override values set in the request context.
         """
-        res = self.render_with_context(_filename, **context)
+        res = self.render_template(_filename, **context)
         return self.app.response_class(res)
 
     @classmethod
@@ -143,11 +147,3 @@ class Jinja2(object):
             _app.registry[_name] = cls(_app, **kwargs)
 
         return _app.registry[_name]
-
-
-def get_jinja2(*args, **kwargs):
-    global _INSTANCE
-    if _INSTANCE is None:
-        _INSTANCE = Jinja2(Tipfy.app, *args, **kwargs)
-
-    return _INSTANCE

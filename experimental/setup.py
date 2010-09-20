@@ -1,7 +1,7 @@
 """
 Tipfy
 =====
-This is the tipfy experimental branch, which will be released as tipfy 0.7
+This is a tipfy experimental branch, which will be released as tipfy 0.7
 in the future.
 
 Tipfy is a small but powerful framework made specifically for
@@ -47,11 +47,10 @@ setup(
     platforms = 'any',
     packages = [
         'tipfy',
-        'tipfy.ext',
+        'tipfyext',
     ],
     namespace_packages = [
-        'tipfy',
-        'tipfy.ext',
+        'tipfyext',
     ],
     include_package_data = True,
     install_requires = [

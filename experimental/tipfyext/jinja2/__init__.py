@@ -10,8 +10,6 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from __future__ import absolute_import
-
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from werkzeug import cached_property

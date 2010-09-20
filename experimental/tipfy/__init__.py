@@ -184,7 +184,7 @@ class RequestHandler(object):
         exception (no exception handling is implemented).
 
         :param exception:
-            The exception that was thrown.
+            The exception that was raised.
         """
         raise
 

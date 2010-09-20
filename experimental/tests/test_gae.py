@@ -4,6 +4,9 @@ import unittest
 
 class TestGae(unittest.TestCase):
     def setUp(self):
+        self.app_id = os.environ.get('APPLICATION_ID', None)
+        self.server = os.environ.get('SERVER_SOFTWARE', None)
+
         os.environ['APPLICATION_ID'] = ''
         os.environ['SERVER_SOFTWARE'] = ''
 
@@ -16,6 +19,12 @@ class TestGae(unittest.TestCase):
             tipfy.Tipfy.app.clear_locals()
         except:
             pass
+
+        if self.app_id is not None:
+            os.environ['APPLICATION_ID'] = self.app_id
+
+        if self.server is not None:
+            os.environ['SERVER_SOFTWARE'] = self.server
 
     def test_appengine_flag(self):
         import tipfy

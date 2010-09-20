@@ -52,9 +52,9 @@ class Jinja2(object):
     """
     def __init__(self, app, globals=None, filters=None, extensions=None):
         self.app = app
-        self.globals = globals
-        self.filters = filters
-        self.extensions = extensions
+        self.globals = globals or {}
+        self.filters = filters pr {}
+        self.extensions = extensions or []
         self.environment = None
 
     def create_environment(self):
@@ -69,12 +69,11 @@ class Jinja2(object):
             # Parse templates for every new environment instances.
             loader = FileSystemLoader(cfg.get('templates_dir'))
 
-        extensions = []
         if i18n:
-            extensions.append('jinja2.ext.i18n')
+            self.extensions.append('jinja2.ext.i18n')
 
         # Initialize the environment.
-        env = Environment(loader=loader, extensions=extensions)
+        env = Environment(loader=loader, extensions=self.extensions)
 
         if i18n:
             # Install i18n.
@@ -91,6 +90,8 @@ class Jinja2(object):
             })
 
         env.globals['url_for'] = self.app.url_for
+        env.globals.update(self.globals)
+        env.filters.update(self.filters)
 
         self.environment = env
         return env

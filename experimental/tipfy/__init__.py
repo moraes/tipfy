@@ -330,7 +330,7 @@ class Tipfy(object):
         self.config = self.config_class(config, {'tipfy': default_config})
         self.router = self.router_class(self, rules)
 
-        if self.debug:
+        if debug:
             logging.getLogger().setLevel(logging.DEBUG)
 
     @cached_property
@@ -504,8 +504,8 @@ class Tipfy(object):
             if __name__ == '__main__':
                 main()
         """
-        # Fix issue #772.
         if self.dev:
+            # Fix issue #772.
             from tipfy.dev import fix_sys_path
             fix_sys_path()
 

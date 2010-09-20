@@ -15,11 +15,10 @@ import os
 import sys
 
 
-def DebuggerMiddleware(app):
+def debugger_wsgi_middleware(app):
     apply_monkeypatches()
     from werkzeug import DebuggedApplication
-    app.wsgi_app = DebuggedApplication(app.wsgi_app, evalex=True)
-    return app
+    return DebuggedApplication(app, evalex=True)
 
 
 def get_template(filename):

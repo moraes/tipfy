@@ -1,6 +1,9 @@
 """
 Tipfy
 =====
+This is the tipfy experimental branch, which will be released as tipfy 0.7
+in the future.
+
 Tipfy is a small but powerful framework made specifically for
 `Google App Engine <http://code.google.com/appengine/>`_. It is a lot like
 `webapp <http://code.google.com/appengine/docs/python/tools/webapp/>`_::
@@ -31,8 +34,8 @@ Links
 from setuptools import setup
 
 setup(
-    name = 'tipfy',
-    version = '0.7',
+    name = 'tipfy-dev',
+    version = '0.1',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/tipfy.tar.gz',

@@ -442,6 +442,8 @@ class Tipfy(object):
                 method='handle_exception')
         else:
             if code >= 500:
+                # We log only unhandled exceptions with 500+ status code.
+                # Users should take care of logging in custom error handlers.
                 logging.exception(exception)
 
             raise

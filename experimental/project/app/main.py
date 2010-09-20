@@ -6,11 +6,7 @@ import sys
 if 'lib' not in sys.path:
     # Add lib as primary libraries directory, with fallback to lib/dist
     # and optionally to lib/dist.zip, loaded using zipimport.
-    sys.path[0:0] = [
-        'lib',
-        os.path.join('lib', 'dist'),
-        os.path.join('lib', 'dist.zip'),
-    ]
+    sys.path[0:0] = ['lib', 'lib/dist', 'lib/dist.zip']
 
 from tipfy import Tipfy
 from config import config

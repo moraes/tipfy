@@ -35,7 +35,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy-dev',
-    version = '0.1',
+    version = '0.2',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/tipfy.tar.gz',
@@ -51,6 +51,7 @@ setup(
         'tipfy.debugger',
         'tipfyext',
         'tipfyext.appengine',
+        'tipfyext.jinja2',
     ],
     namespace_packages = [
         'tipfyext',
@@ -63,6 +64,11 @@ setup(
         'gaepytz',
         'setuptools',
     ],
+    entry_points = {
+        'console_scripts': [
+            'jinja2_compile = tipfyext.jinja2.scripts:compile_templates',
+        ],
+    },
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',

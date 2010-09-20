@@ -1,8 +1,15 @@
-\.py[co]$
-\.DS_Store$
 \.coverage
+\.DS_Store$
 \.egg-info
+\.eprj
+\.installed\.cfg
+\.orig
+\.py[co]$
+bin
 dist
 docs/build
 docs/project
 tests/project
+var
+project/etc
+project/var

@@ -441,6 +441,9 @@ class Tipfy(object):
             return self.router.dispatch(self, request, (rule, kwargs),
                 method='handle_exception')
         else:
+            if code >= 500:
+                logging.exception(exception)
+
             raise
 
     def get_config(self, module, key=None, default=REQUIRED_VALUE):

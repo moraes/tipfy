@@ -177,7 +177,7 @@ class RequestHandler(object):
 
         .. seealso:: :meth:`Config.get`.
         """
-        return self.app.config.get(module, key=key, default=default)
+        return self.app.config.get_config(module, key=key, default=default)
 
     def handle_exception(self, exception=None):
         """Handles an exception. The default behavior is to reraise the
@@ -448,7 +448,7 @@ class Tipfy(object):
 
         .. seealso:: :meth:`Config.get`.
         """
-        return self.config.get(module, key=key, default=default)
+        return self.config.get_config(module, key=key, default=default)
 
     def url_for(self, _name, **kwargs):
         """Returns a URL for a named :class:`Rule`.
@@ -517,7 +517,7 @@ def get_config(module, key=None, default=REQUIRED_VALUE):
 
     .. seealso:: :meth:`Config.get`.
     """
-    return Tipfy.app.get_config(module, key=key, default=default)
+    return Tipfy.app.config.get_config(module, key=key, default=default)
 
 
 def get_valid_methods(handler):

@@ -162,7 +162,7 @@ class Router(object):
         :returns:
             The server name used to build the URL adapter.
         """
-        return self.app.config.get('tipfy', 'server_name')
+        return self.app.get_config('tipfy', 'server_name')
 
     def get_default_subdomain(self):
         """Returns the default subdomain for rules without a subdomain
@@ -171,7 +171,7 @@ class Router(object):
         :returns:
             The default subdomain to be used in the URL map.
         """
-        return self.app.config.get('tipfy', 'default_subdomain')
+        return self.app.get_config('tipfy', 'default_subdomain')
 
     def get_map(self, rules=None):
         """Returns a ``werkzeug.routing.Map`` instance with the given

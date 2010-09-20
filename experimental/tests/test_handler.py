@@ -136,10 +136,11 @@ class TestHandler(unittest.TestCase):
 
     def test_redirect_relative_uris(self):
         app = Tipfy()
+        request = Request.from_values('/foo/bar/')
+        app.set_locals(request)
         class Handler(RequestHandler):
             pass
 
-        request = Request.from_values('/foo/bar/')
         handler = Handler(app, request)
         response = handler.redirect('/baz')
         self.assertEqual(response.headers['Location'], 'http://localhost/baz')
@@ -150,8 +151,7 @@ class TestHandler(unittest.TestCase):
         response = handler.redirect('../baz')
         self.assertEqual(response.headers['Location'], 'http://localhost/foo/baz')
 
-        request = Request.from_values('/foo/bar')
-        handler = Handler(app, request)
+        app.set_locals(Request.from_values('/foo/bar'))
         response = handler.redirect('/baz')
         self.assertEqual(response.headers['Location'], 'http://localhost/baz')
 

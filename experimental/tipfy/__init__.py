@@ -29,16 +29,26 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 
 #: Default configuration values for this module. Keys are:
 #:
+#: auth_store_class
+#:     The default auth store class to use in :class:`tipfy.Request`.
+#:     Default is `tipfy.auth.AppEngineAuthStore`.
+#:
+#: session_store_class
+#:     The default session store class to use in :class:`tipfy.Request`.
+#:     Default is `tipfy.sessions.SessionStore`.
+#:
 #: server_name
-#:     The server name used to calculate current subdomain. If you want to use
-#:     dynamic subdomains, define the main domain here so that the subdomain
-#:     can be calculated to match URL rules.
+#:     The server name used to calculate current subdomain. This only need
+#:     to be defined to map URLs to subdomains. Default is None.
 #:
 #: default_subdomain
 #:     The default subdomain used for rules without a subdomain defined.
+#:     This only need to be defined to map URLs to subdomains. Default is ''.
 default_config = {
-    'server_name': None,
-    'default_subdomain': '',
+    'auth_store_class':    'tipfy.auth.AppEngineAuthStore',
+    'session_store_class': 'tipfy.sessions.SessionStore',
+    'server_name':         None,
+    'default_subdomain':   '',
 }
 
 # Allowed request methods.
@@ -180,22 +190,10 @@ class RequestHandler(object):
 
     def redirect(self, location, code=302):
         """Returns a response object with headers set for redirection to the
-        given URI. This won't stop code execution, so you must return when
-        calling this method::
+        given URI.
 
-            return self.redirect('/some-path')
-
-        :param location:
-            A relative or absolute URI (e.g., '../contacts').
-        :param code:
-            The HTTP status code for the redirect.
-        :returns:
-            A :class:`Response` object with headers set for redirection.
+        .. seealso:: :func:`redirect`.
         """
-        if not location.startswith('http'):
-            # Make it absolute.
-            location = urlparse.urljoin(self.request.url, location)
-
         return redirect(location, code)
 
     def redirect_to(self, _name, _code=302, **kwargs):
@@ -203,14 +201,7 @@ class RequestHandler(object):
         returns a response object with headers set for redirection to a URL
         built using a named :class:`Rule`.
 
-        :param _name:
-            The rule name.
-        :param _code:
-            The HTTP status code for the redirect.
-        :param kwargs:
-            Keyword arguments to build the URL.
-        :returns:
-            A :class:`Response` object with headers set for redirection.
+        .. seealso:: :func:`redirect_to`.
         """
         return self.redirect(self.url_for(_name, **kwargs), code=_code)
 
@@ -257,13 +248,23 @@ class Request(BaseRequest):
             return json_decode(self.data)
 
     @cached_property
+    def auth(self):
+        """The auth store which provides access to the authenticated user and
+        auth related functions.
+
+        :returns:
+            An auth store instance.
+        """
+        return Tipfy.app.auth_store_class(Tipfy.app, self)
+
+    @cached_property
     def session_store(self):
         """The session store, responsible for managing sessions and flashes.
 
         :returns:
-            A :class:`tipfy.sessions.SessionStore` instance.
+            A session store instance.
         """
-        return SessionStore(Tipfy.app)
+        return Tipfy.app.session_store_class(Tipfy.app, self)
 
     @cached_property
     def session(self):
@@ -273,16 +274,6 @@ class Request(BaseRequest):
             A dictionary-like object with the current session data.
         """
         return self.session_store.get_session()
-
-    @cached_property
-    def auth(self):
-        """The auth store which provides access to the authenticated user and
-        auth related functions.
-
-        :returns:
-            An auth store instance.
-        """
-        return Tipfy.app.auth_store_class(Tipfy.app, self)
 
 
 class Response(BaseResponse):
@@ -340,7 +331,16 @@ class Tipfy(object):
         :returns:
             An auth store class.
         """
-        return import_string(self.get_config('tipfy.auth', 'auth_store'))
+        return import_string(self.get_config('tipfy', 'auth_store_class'))
+
+    @cached_property
+    def session_store_class(self):
+        """Returns the configured session store class.
+
+        :returns:
+            A session store class.
+        """
+        return import_string(self.get_config('tipfy', 'session_store_class'))
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""
@@ -608,6 +608,3 @@ else:
     local = Local()
     Tipfy.app = app = local('app')
     Tipfy.request = request = local('request')
-
-# Imported here to avoid recursive imports.
-from tipfy.sessions import SessionStore

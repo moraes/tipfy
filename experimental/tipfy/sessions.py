@@ -139,8 +139,7 @@ class SecureCookieStore(object):
         :param kwargs:
             Options to save the cookie. See :meth:`SessionStore.get_session`.
         """
-        value = self.get_signed_value(name, value)
-        response.set_cookie(name, value, **kwargs)
+        response.set_cookie(name, self.get_signed_value(name, value), **kwargs)
 
     def get_signed_value(self, name, value):
         """Returns a signed value for a cookie.
@@ -158,7 +157,7 @@ class SecureCookieStore(object):
         return '|'.join([value, timestamp, signature])
 
     def _encode(self, value):
-        return base64.b64encode(json_encode(value, separators=(',',':')))
+        return base64.b64encode(json_encode(value, separators=(',', ':')))
 
     def _decode(self, value):
         return json_decode(base64.b64decode(value))
@@ -221,9 +220,9 @@ class SessionStore(object):
         'securecookie': SecureCookieSession,
     }
 
-    def __init__(self, app, backends=None):
+    def __init__(self, app, request, backends=None):
         self.app = app
-        self.request = app.request
+        self.request = request
         # Base configuration.
         self.config = app.get_config(__name__)
         # A dictionary of support backend classes.
@@ -281,8 +280,7 @@ class SessionStore(object):
         return self._sessions[backend][key][0]
 
     def set_session(self, key, value, backend=None, **kwargs):
-        """Returns a session for a given key. If the session doesn't exist, a
-        new session is returned.
+        """Sets a session value.
 
         :param key:
             Cookie name. See :meth:`get_session`.

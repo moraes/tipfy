@@ -20,22 +20,19 @@ class TestSessionStore(unittest.TestCase):
 
     def test_secure_cookie_store(self):
         app = self._get_app()
-        app.set_locals(Request.from_values('/'))
-        store = SessionStore(app)
+        store = SessionStore(app, Request.from_values('/'))
 
         self.assertEqual(isinstance(store.secure_cookie_store, SecureCookieStore), True)
 
     def test_secure_cookie_store_no_secret_key(self):
         app = Tipfy()
-        app.set_locals(Request.from_values('/'))
-        store = SessionStore(app)
+        store = SessionStore(app, Request.from_values('/'))
 
         self.assertRaises(KeyError, getattr, store, 'secure_cookie_store')
 
     def test_get_cookie_args(self):
         app = self._get_app()
-        app.set_locals(Request.from_values('/'))
-        store = SessionStore(app)
+        store = SessionStore(app, Request.from_values('/'))
 
         self.assertEqual(store.get_cookie_args(), {
             'max_age':     None,
@@ -55,8 +52,7 @@ class TestSessionStore(unittest.TestCase):
 
     def test_get_save_session(self):
         app = self._get_app()
-        app.set_locals(Request.from_values('/'))
-        store = SessionStore(app)
+        store = SessionStore(app, Request.from_values('/'))
 
         session = store.get_session()
         self.assertEqual(isinstance(session, SecureCookieSession), True)
@@ -67,11 +63,9 @@ class TestSessionStore(unittest.TestCase):
         response = Response()
         store.save(response)
 
-        #self.assertEqual(response.headers['Set-Cookie'], None)
-
         app = self._get_app()
-        app.set_locals(Request.from_values('/', headers=[('Cookie', response.headers['Set-Cookie'])]))
-        store = SessionStore(app)
+        request = Request.from_values('/', headers=[('Cookie', response.headers['Set-Cookie'])])
+        store = SessionStore(app, request)
 
         session = store.get_session()
         self.assertEqual(isinstance(session, SecureCookieSession), True)
@@ -79,8 +73,7 @@ class TestSessionStore(unittest.TestCase):
 
     def test_set_delete_cookie(self):
         app = self._get_app()
-        app.set_locals(Request.from_values('/'))
-        store = SessionStore(app)
+        store = SessionStore(app, Request.from_values('/'))
 
         store.set_cookie('foo', 'bar')
         store.set_cookie('baz', 'ding')

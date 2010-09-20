@@ -18,10 +18,6 @@ from werkzeug import cached_property, import_string
 
 #: Default configuration values for this module. Keys are:
 #:
-#: auth_store
-#:     The default auth store to use in :class:`tipfy.Request`.
-#:     Default is `AppEngineAuthStore`.
-#:
 #: user_model
 #:     A ``db.Model`` class used for authenticated users, as a string.
 #:     Default is `tipfy.auth.model.User`.
@@ -37,7 +33,6 @@ from werkzeug import cached_property, import_string
 #:     Interval in seconds before a user session id is renewed.
 #:     Default is 1 week.
 default_config = {
-    'auth_store':      'tipfy.auth.AppEngineAuthStore',
     'user_model':      'tipfy.auth.model.User',
     'cookie_name':     'auth',
     'secure_urls':     False,

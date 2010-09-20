@@ -23,6 +23,7 @@ debug = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 app = Tipfy(rules=rules, config=config, debug=debug)
 
 if debug:
+    # Enable debugger middleware.
     from tipfy.debugger import debugger_wsgi_middleware
     app.wsgi_app = debugger_wsgi_middleware(app.wsgi_app)
 

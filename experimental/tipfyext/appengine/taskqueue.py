@@ -67,7 +67,7 @@ class Mapper(object):
        from tipfyext.taskqueue import Mapper
        from mymodels import myModel
 
-       class MyModelMapper(EntityTaskHandler):
+       class MyModelMapper(Mapper):
            model = MyModel
 
            def map(self, entity):

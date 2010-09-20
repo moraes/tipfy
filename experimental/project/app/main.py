@@ -22,6 +22,10 @@ def enable_appstats(app):
 def enable_debugger(app):
     """Enables debugger middleware."""
     if debug:
+        # This enables better debugging info for errors in Jinja2 templates.
+        from google.appengine.tools.dev_appserver import HardenedModulesHook
+        HardenedModulesHook._WHITE_LIST_C_MODULES += ['_ctypes', 'gestalt']
+        # This enables the pretty interactive debugger.
         from tipfy.debugger import debugger_wsgi_middleware
         app.wsgi_app = debugger_wsgi_middleware(app.wsgi_app)
 

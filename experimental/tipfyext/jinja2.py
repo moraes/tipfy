@@ -14,6 +14,8 @@ from __future__ import absolute_import
 
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
+from tipfy import Tipfy
+
 try:
     from tipfyext import i18n
 except ImportError:
@@ -39,6 +41,8 @@ default_config = {
     'templates_compiled_target': None,
     'force_use_compiled': False,
 }
+
+_INSTANCE = None
 
 
 class Jinja2(object):
@@ -138,3 +142,11 @@ class Jinja2(object):
             _app.registry[_name] = cls(_app, **kwargs)
 
         return _app.registry[_name]
+
+
+def get_jinja2(*args, **kwargs):
+    global _INSTANCE
+    if _INSTANCE is None:
+        _INSTANCE = Jinja2(Tipfy.app, *args, **kwargs)
+
+    return _INSTANCE

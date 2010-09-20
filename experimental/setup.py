@@ -58,6 +58,10 @@ setup(
     include_package_data = True,
     install_requires = [
         'werkzeug>=0.6.1',
+        'jinja2',
+        'babel',
+        'gaepytz',
+        'setuptools',
     ],
     classifiers = [
         'Development Status :: 5 - Production/Stable',

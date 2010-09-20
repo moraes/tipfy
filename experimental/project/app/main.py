@@ -16,16 +16,26 @@ from tipfy import Tipfy
 from config import config
 from urls import rules
 
+def enable_debugger(app):
+    """Enables debugger middleware."""
+    if debug:
+        from tipfy.debugger import debugger_wsgi_middleware
+        app.wsgi_app = debugger_wsgi_middleware(app.wsgi_app)
+
+
+def enable_appstats(app):
+    """Enables appstats middleware."""
+    from google.appengine.ext.appstats.recording import appstats_wsgi_middleware
+    app.wsgi_app = appstats_wsgi_middleware(app.wsgi_app)
+
+
 # Is this the development server?
 debug = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 
 # Instantiate the application.
 app = Tipfy(rules=rules, config=config, debug=debug)
-
-if debug:
-    # Enable debugger middleware.
-    from tipfy.debugger import debugger_wsgi_middleware
-    app.wsgi_app = debugger_wsgi_middleware(app.wsgi_app)
+enable_appstats(app)
+enable_debugger(app)
 
 
 def main():

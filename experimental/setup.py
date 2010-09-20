@@ -47,7 +47,10 @@ setup(
     platforms = 'any',
     packages = [
         'tipfy',
+        'tipfy.auth',
+        'tipfy.debugger',
         'tipfyext',
+        'tipfyext.appengine',
     ],
     namespace_packages = [
         'tipfyext',

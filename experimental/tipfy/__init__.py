@@ -148,7 +148,7 @@ class RequestHandler(object):
                             break
                 else:
                     # If a middleware didn't return a response, reraise.
-                    raise e
+                    raise
 
         # Execute after_dispatch middleware.
         for obj in reversed(self.middleware):

@@ -87,7 +87,7 @@ def compile_templates(argv=None):
 
     cwd = os.getcwd()
     app_path = os.path.join(cwd, 'app')
-    gae_path = os.path.join(cwd, 'etc/parts/google_appengine')
+    gae_path = os.path.join(cwd, 'var/parts/google_appengine')
 
     extra_paths = [
         app_path,

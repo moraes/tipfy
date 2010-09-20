@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.blobstore
-    ~~~~~~~~~~~~~~~~~~~
+    tipfyext.blobstore
+    ~~~~~~~~~~~~~~~~~~
 
     Handler library for Blobstore API.
 

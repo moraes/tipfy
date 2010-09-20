@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.jinja2
-    ~~~~~~~~~~~~~~~~
+    tipfyext.jinja2
+    ~~~~~~~~~~~~~~~
 
     Jinja2 template support for Tipfy.
 

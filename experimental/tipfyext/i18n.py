@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.i18n
-    ~~~~~~~~~~~~~~
+    tipfyext.i18n
+    ~~~~~~~~~~~~~
 
     Internationalization extension.
 

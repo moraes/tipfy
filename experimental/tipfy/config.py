@@ -98,7 +98,7 @@ class Config(dict):
         """Sets a configuration for a module, requiring it to be a dictionary.
 
         :param module:
-            A module name for the configuration, e.g.: `tipfy.ext.i18n`.
+            A module name for the configuration, e.g.: `tipfyext.i18n`.
         :param values:
             A dictionary of configurations for the module.
         """
@@ -125,19 +125,19 @@ class Config(dict):
     def setdefault(self, module, values):
         """Sets a default configuration dictionary for a module.
 
-        >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
-        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        >>> cfg = Config({'tipfyext.i18n': {'locale': 'pt_BR'})
+        >>> cfg.get('tipfyext.i18n', 'locale')
         pt_BR
-        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        >>> cfg.get('tipfyext.i18n', 'foo')
         None
-        >>> cfg.setdefault('tipfy.ext.i18n', {'locale': 'en_US', 'foo': 'bar'})
-        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        >>> cfg.setdefault('tipfyext.i18n', {'locale': 'en_US', 'foo': 'bar'})
+        >>> cfg.get('tipfyext.i18n', 'locale')
         pt_BR
-        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        >>> cfg.get('tipfyext.i18n', 'foo')
         bar
 
         :param module:
-            The module to set default configuration, e.g.: `tipfy.ext.i18n`.
+            The module to set default configuration, e.g.: `tipfyext.i18n`.
         :param values:
             A dictionary of configurations for the module.
         :returns:
@@ -157,19 +157,19 @@ class Config(dict):
     def update(self, module, values):
         """Updates the configuration dictionary for a module.
 
-        >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
-        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        >>> cfg = Config({'tipfyext.i18n': {'locale': 'pt_BR'})
+        >>> cfg.get('tipfyext.i18n', 'locale')
         pt_BR
-        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        >>> cfg.get('tipfyext.i18n', 'foo')
         None
-        >>> cfg.update('tipfy.ext.i18n', {'locale': 'en_US', 'foo': 'bar'})
-        >>> cfg.get('tipfy.ext.i18n', 'locale')
+        >>> cfg.update('tipfyext.i18n', {'locale': 'en_US', 'foo': 'bar'})
+        >>> cfg.get('tipfyext.i18n', 'locale')
         en_US
-        >>> cfg.get('tipfy.ext.i18n', 'foo')
+        >>> cfg.get('tipfyext.i18n', 'foo')
         bar
 
         :param module:
-            The module to update the configuration, e.g.: `tipfy.ext.i18n`.
+            The module to update the configuration, e.g.: `tipfyext.i18n`.
         :param values:
             A dictionary of configurations for the module.
         """

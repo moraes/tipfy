@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.mail
-    ~~~~~~~~~~~~~~
+    tipfyext.mail
+    ~~~~~~~~~~~~~
 
     A simple [[tipfy.RequestHandler]] to help with receiving mail.
 

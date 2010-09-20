@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.xmpp
-    ~~~~~~~~~~~~~~
+    tipfyext.xmpp
+    ~~~~~~~~~~~~~
 
     XMPP webapp handler classes.
 

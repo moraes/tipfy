@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.ext.taskqueue
-    ~~~~~~~~~~~~~~~~~~~
+    tipfyext.taskqueue
+    ~~~~~~~~~~~~~~~~~~
 
     Task queue utilities extension.
 
@@ -40,7 +40,7 @@ class DeferredHandler(RequestHandler):
     .. code-block:: python
 
        Rule('/_ah/queue/deferred', endpoint='tasks/deferred',
-            handler='tipfy.ext.taskqueue:DeferredHandler')
+            handler='tipfyext.taskqueue:DeferredHandler')
     """
     def post(self):
         headers = ['%s:%s' % (k, v) for k, v in self.request.headers.items()
@@ -64,7 +64,7 @@ class Mapper(object):
 
     .. code-block:: python
 
-       from tipfy.ext.taskqueue import Mapper
+       from tipfyext.taskqueue import Mapper
        from mymodels import myModel
 
        class MyModelMapper(EntityTaskHandler):
@@ -90,7 +90,7 @@ class Mapper(object):
     .. code-block:: python
 
        Rule('/_ah/queue/deferred', endpoint='tasks/deferred',
-           handler='tipfy.ext.tasks:DeferredHandler')
+           handler='tipfyext.tasks:DeferredHandler')
 
     This class derives from `deffered article <http://code.google.com/appengine/articles/deferred.html>`_.
     """

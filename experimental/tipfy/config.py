@@ -45,76 +45,58 @@ class Config(dict):
     #: Loaded module configurations.
     loaded = None
 
-    def __init__(self, value=None, default=None):
+    def __init__(self, values=None, defaults=None):
         """Initializes the configuration object.
 
-        :param value:
+        :param values:
             A dictionary of configuration dictionaries for modules.
-        :param default:
-            A dictionary of configuration dictionaries for default values.
-            These modules are marked as loaded.
+        :param defaults:
+            A dictionary of configuration dictionaries for initial default
+            values. These modules are marked as loaded.
         """
         self.loaded = []
-        if value is not None:
-            assert isinstance(value, dict)
-            for module in value.keys():
-                self.update(module, value[module])
+        if values is not None:
+            assert isinstance(values, dict)
+            for module, config in values.iteritems():
+                self.update(module, config)
 
-        if default is not None:
-            assert isinstance(default, dict)
-            for module in default.keys():
-                self.setdefault(module, default[module])
+        if defaults is not None:
+            assert isinstance(defaults, dict)
+            for module, config in defaults.iteritems():
+                self.setdefault(module, config)
                 self.loaded.append(module)
 
-    def __setitem__(self, module, value):
+    def __getitem__(self, module):
+        """Returns a configuration for a module.
+
+        :param module:
+            A module name for the configuration, e.g.: `tipfy.ext.i18n`.
+        :returns:
+            A dictionary of configurations for the module.
+        """
+        """
+        if module in self and module in self.loaded:
+            return dict.__getitem__(self, module)
+
+        return self.get(module)
+        """
+        if module not in self.loaded:
+            return self.get(module)
+
+        return dict.__getitem__(self, module)
+
+    def __setitem__(self, module, values):
         """Sets a configuration for a module, requiring it to be a dictionary.
 
         :param module:
             A module name for the configuration, e.g.: `tipfy.ext.i18n`.
-        :param value:
+        :param values:
             A dictionary of configurations for the module.
         """
-        assert isinstance(value, dict)
-        super(Config, self).__setitem__(module, value)
+        assert isinstance(values, dict)
+        dict.__setitem__(self, module, values)
 
-    def get(self, module, key=None, default=None):
-        """Returns a configuration value for given key in a given module.
-
-        >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
-        >>> cfg.get('tipfy.ext.i18n')
-        {'locale': 'pt_BR'}
-        >>> cfg.get('tipfy.ext.i18n', 'locale')
-        pt_BR
-        >>> cfg.get('tipfy.ext.i18n', 'invalid-key')
-        None
-        >>> cfg.get('tipfy.ext.i18n', 'invalid-key', 'default-value')
-        default-value
-
-        :param module:
-            The module to get a configuration from, e.g.: `tipfy.ext.i18n`.
-        :param key:
-            The key from the module configuration.
-        :param default:
-            A default value to return when the configuration for the given
-            key is not set. It is only returned if **key** is defined.
-        :returns:
-            The configuration value.
-        """
-        if module not in self:
-            if key is None:
-                return None
-
-            return default
-
-        if key is None:
-            return self[module]
-
-        if key not in self[module]:
-            return default
-
-        return self[module][key]
-
-    def get_or_load(self, module, key=None, default=REQUIRED_VALUE):
+    def get(self, module, key=None, default=REQUIRED_VALUE):
         """Returns a configuration value for a module. If it is not already
         set, loads a ``default_config`` variable from the given module,
         updates the app configuration with those default values and returns
@@ -145,18 +127,17 @@ class Config(dict):
 
             self.loaded.append(module)
 
-        value = self.get(module, key, default)
+        try:
+            value = dict.__getitem__(self, module)
+        except KeyError:
+            raise KeyError('Module %r is not configured.' % module)
 
-        if value is not REQUIRED_VALUE and not (key is None and value is None):
+        if key is None:
             return value
 
-        if key is None and value is None:
-            raise KeyError('Module %s is not configured.' % module)
+        return value.get(key, default)
 
-        raise KeyError('Module %s requires the config key "%s" to be '
-                'set.' % (module, key))
-
-    def setdefault(self, module, value):
+    def setdefault(self, module, values):
         """Sets a default configuration dictionary for a module.
 
         >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
@@ -172,19 +153,19 @@ class Config(dict):
 
         :param module:
             The module to set default configuration, e.g.: `tipfy.ext.i18n`.
-        :param value:
+        :param values:
             A dictionary of configurations for the module.
         :returns:
             None.
         """
-        assert isinstance(value, dict)
+        assert isinstance(values, dict)
         if module not in self:
-            self[module] = {}
+            dict.__setitem__(self, module, SubConfig(module))
 
-        for key in value.keys():
-            self[module].setdefault(key, value[key])
+        for key, value in values.iteritems():
+            dict.__getitem__(self, module).setdefault(key, value)
 
-    def update(self, module, value):
+    def update(self, module, values):
         """Updates the configuration dictionary for a module.
 
         >>> cfg = Config({'tipfy.ext.i18n': {'locale': 'pt_BR'})
@@ -200,13 +181,44 @@ class Config(dict):
 
         :param module:
             The module to update the configuration, e.g.: `tipfy.ext.i18n`.
-        :param value:
+        :param values:
             A dictionary of configurations for the module.
         :returns:
             None.
         """
-        assert isinstance(value, dict)
+        assert isinstance(values, dict)
         if module not in self:
-            self[module] = {}
+            dict.__setitem__(self, module, SubConfig(module))
 
-        self[module].update(value)
+        dict.__getitem__(self, module).update(values)
+
+
+class SubConfig(dict):
+    def __init__(self, module, values=None):
+        dict.__init__(self, values or ())
+        self.module = module
+
+    def __getitem__(self, key):
+        try:
+            value = dict.__getitem__(self, key)
+        except KeyError:
+            raise KeyError('Module %r does not have the config key %r' %
+                (self.module, key))
+
+        if value is REQUIRED_VALUE:
+            raise KeyError('Module %r requires the config key %r to be '
+                'set.' % (self.module, key))
+
+        return value
+
+    def get(self, key, default=None):
+        if key not in self:
+            value = default
+        else:
+            value = dict.__getitem__(self, key)
+
+        if value is REQUIRED_VALUE:
+            raise KeyError('Module %r requires the config key %r to be '
+                'set.' % (self.module, key))
+
+        return value

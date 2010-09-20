@@ -175,9 +175,9 @@ class RequestHandler(object):
     def get_config(self, module, key=None, default=REQUIRED_VALUE):
         """Returns a configuration value for a module.
 
-        .. seealso:: :meth:`Config.get_or_load`.
+        .. seealso:: :meth:`Config.get`.
         """
-        return self.app.config.get_or_load(module, key=key, default=default)
+        return self.app.config.get(module, key=key, default=default)
 
     def handle_exception(self, exception=None):
         """Handles an exception. The default behavior is to reraise the
@@ -446,9 +446,9 @@ class Tipfy(object):
     def get_config(self, module, key=None, default=REQUIRED_VALUE):
         """Returns a configuration value for a module.
 
-        .. seealso:: :meth:`Config.get_or_load`.
+        .. seealso:: :meth:`Config.get`.
         """
-        return self.config.get_or_load(module, key=key, default=default)
+        return self.config.get(module, key=key, default=default)
 
     def url_for(self, _name, **kwargs):
         """Returns a URL for a named :class:`Rule`.
@@ -515,7 +515,7 @@ class Tipfy(object):
 def get_config(module, key=None, default=REQUIRED_VALUE):
     """Returns a configuration value for a module.
 
-    .. seealso:: :meth:`Config.get_or_load`.
+    .. seealso:: :meth:`Config.get`.
     """
     return Tipfy.app.get_config(module, key=key, default=default)
 

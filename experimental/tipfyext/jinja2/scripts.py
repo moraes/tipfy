@@ -13,8 +13,8 @@ import sys
 
 from jinja2 import FileSystemLoader
 
-from tipfy import get_config, make_wsgi_app
-from tipfyext.jinja2 import get_env
+from tipfy import Tipfy
+from tipfyext.jinja2 import Jinja2
 
 
 def walk(top, topdown=True, onerror=None, followlinks=False):
@@ -104,9 +104,9 @@ def compile_templates(argv=None):
 
     from config import config
 
-    app = make_wsgi_app(config)
-    template_path = get_config('tipfy.ext.jinja2', 'templates_dir')
-    compiled_path = get_config('tipfy.ext.jinja2', 'templates_compiled_target')
+    app = Tipfy(config=config)
+    template_path = app.get_config('tipfyext.jinja2', 'templates_dir')
+    compiled_path = app.get_config('tipfyext.jinja2', 'templates_compiled_target')
 
     if compiled_path is None:
         raise ValueError('Missing configuration key to compile templates.')
@@ -122,8 +122,8 @@ def compile_templates(argv=None):
 
     # Set templates dir and deactivate compiled dir to use normal loader to
     # find the templates to be compiled.
-    app.config['tipfy.ext.jinja2']['templates_dir'] = source
-    app.config['tipfy.ext.jinja2']['templates_compiled_target'] = None
+    app.config['tipfyext.jinja2']['templates_dir'] = source
+    app.config['tipfyext.jinja2']['templates_compiled_target'] = None
 
     if target.endswith('.zip'):
         zip_cfg = 'deflated'
@@ -133,7 +133,7 @@ def compile_templates(argv=None):
     old_list_templates = FileSystemLoader.list_templates
     FileSystemLoader.list_templates = list_templates
 
-    env = get_env()
+    env = Jinja2.factory(app, 'jinja2').environment
     env.compile_templates(target, extensions=None, filter_func=filter_templates,
                           zip=zip_cfg, log_function=logger,
                           ignore_errors=False, py_compile=False)

@@ -62,6 +62,7 @@ setup(
         'jinja2',
         'babel',
         'gaepytz',
+        'wtforms',
         'setuptools',
     ],
     entry_points = {

@@ -67,7 +67,7 @@ from google.appengine.api import memcache
 from werkzeug import cached_property
 
 from tipfy import Tipfy
-from tipfyext.db import PickleProperty
+from tipfyext.appengine.db import PickleProperty
 
 __version__ = '0.6'
 __version_info__ = tuple(int(n) for n in __version__.split('.'))

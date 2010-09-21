@@ -10,11 +10,11 @@
 """
 from werkzeug import import_string
 
-# Value used for required values.
-REQUIRED_VALUE = object()
-
 # Value used for missing default values.
 DEFAULT_VALUE = object()
+
+# Value used for required values.
+REQUIRED_VALUE = object()
 
 
 class Config(dict):
@@ -125,17 +125,6 @@ class Config(dict):
     def setdefault(self, module, values):
         """Sets a default configuration dictionary for a module.
 
-        >>> cfg = Config({'tipfyext.i18n': {'locale': 'pt_BR'})
-        >>> cfg.get('tipfyext.i18n', 'locale')
-        pt_BR
-        >>> cfg.get('tipfyext.i18n', 'foo')
-        None
-        >>> cfg.setdefault('tipfyext.i18n', {'locale': 'en_US', 'foo': 'bar'})
-        >>> cfg.get('tipfyext.i18n', 'locale')
-        pt_BR
-        >>> cfg.get('tipfyext.i18n', 'foo')
-        bar
-
         :param module:
             The module to set default configuration, e.g.: `tipfyext.i18n`.
         :param values:
@@ -156,17 +145,6 @@ class Config(dict):
 
     def update(self, module, values):
         """Updates the configuration dictionary for a module.
-
-        >>> cfg = Config({'tipfyext.i18n': {'locale': 'pt_BR'})
-        >>> cfg.get('tipfyext.i18n', 'locale')
-        pt_BR
-        >>> cfg.get('tipfyext.i18n', 'foo')
-        None
-        >>> cfg.update('tipfyext.i18n', {'locale': 'en_US', 'foo': 'bar'})
-        >>> cfg.get('tipfyext.i18n', 'locale')
-        en_US
-        >>> cfg.get('tipfyext.i18n', 'foo')
-        bar
 
         :param module:
             The module to update the configuration, e.g.: `tipfyext.i18n`.

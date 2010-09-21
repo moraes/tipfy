@@ -237,7 +237,7 @@ class SessionStore(object):
     @cached_property
     def secure_cookie_store(self):
         """Factory for secure cookies."""
-        return SecureCookieStore(self.app.get_config(__name__, 'secret_key'))
+        return SecureCookieStore(self.config.get('secret_key'))
 
     def get_cookie_args(self, **kwargs):
         """Returns a copy of the default cookie configuration updated with the

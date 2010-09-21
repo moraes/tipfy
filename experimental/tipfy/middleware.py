@@ -11,11 +11,12 @@
 from tipfy import Tipfy
 from werkzeug import ETagResponseMixin
 
+
 class ETagMiddleware(object):
     """Adds an etag to all responses if they haven't already set one, and
     returns '304 Not Modified' if the request contains a matching etag.
     """
-    def after_dispatch(self, handler, response):        
+    def after_dispatch(self, handler, response):
         if not isinstance(response, ETagResponseMixin):
             return response
 

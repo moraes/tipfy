@@ -442,11 +442,32 @@ class Tipfy(object):
                 method='handle_exception')
         else:
             if code >= 500:
-                # We log only unhandled exceptions with 500+ status code.
+                # We only log unhandled exceptions with 500+ status code.
                 # Users should take care of logging in custom error handlers.
                 logging.exception(exception)
 
             raise
+
+    def set_locals(self, request=None):
+        """Sets variables for a single request. Uses simple class attributes
+        when running on App Engine and thread locals outside.
+
+        :param request:
+            A :class:`Request` instance, if any.
+        """
+        if self.appengine:
+            Tipfy.app = self
+            Tipfy.request = request
+        else:
+            local.app = self
+            local.request = request
+
+    def clear_locals(self):
+        """Clears the variables set for a single request."""
+        if self.appengine:
+            Tipfy.app = Tipfy.request = None
+        else:
+            local.__release_local__()
 
     def get_config(self, module, key=None, default=REQUIRED_VALUE):
         """Returns a configuration value for a module.
@@ -470,27 +491,6 @@ class Tipfy(object):
         """
         from werkzeug import Client
         return Client(self, self.response_class, use_cookies=True)
-
-    def set_locals(self, request=None):
-        """Sets variables for a single request. Uses simple class attributes
-        when running on App Engine and thread locals outside.
-
-        :param request:
-            A :class:`Request` instance, if any.
-        """
-        if self.appengine:
-            Tipfy.app = self
-            Tipfy.request = request
-        else:
-            local.app = self
-            local.request = request
-
-    def clear_locals(self):
-        """Clears the variables set for a single request."""
-        if self.appengine:
-            Tipfy.app = Tipfy.request = None
-        else:
-            local.__release_local__()
 
     def run(self):
         """Runs the app using ``CGIHandler``. This must be called inside a

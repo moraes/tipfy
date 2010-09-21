@@ -127,10 +127,6 @@ class BaseAuthStore(object):
     def user(self):
         raise NotImplementedError()
 
-    @property
-    def is_admin(self):
-        return False
-
     @classmethod
     def factory(cls, _app, _name, **kwargs):
         if _name not in _app.request.registry:
@@ -155,13 +151,6 @@ class AppEngineAuthStore(BaseAuthStore):
     """
     @cached_property
     def session(self):
-        """Returns the currently logged in user session. For app Engine auth,
-        this corresponds to the `google.appengine.api.users.User` object.
-
-        :returns:
-            A `google.appengine.api.users.User` object if the user for the
-            current request is logged in, or None.
-        """
         return users.get_current_user()
 
     @cached_property
@@ -175,39 +164,23 @@ class AppEngineAuthStore(BaseAuthStore):
         if not self.session:
             return None
 
-        auth_id = 'gae|%s' % self.session.user_id()
-        return self.get_user_entity(auth_id=auth_id)
-
-    @cached_property
-    def is_admin(self):
-        """Returns True if the current user is an admin.
-
-        :returns:
-            True if the user for the current request is an admin,
-            False otherwise.
-        """
-        return users.is_current_user_admin()
+        return self.get_user_entity(auth_id='gae|%s' % self.session.user_id())
 
 
 class AppEngineMixedAuthStore(BaseAuthStore):
+    def __init__(self, *args, **kwargs):
+        super(AppEngineMixedAuthStore, self).__init__(*args, **kwargs)
+        self.loaded = False
+        self._session = None
+        self._user = None
+
     @cached_property
     def session(self):
         """Returns the currently logged in user session."""
-        # First try to get a user from the session.
-        session_store = self.request.session_store
-        cookie_name = self.app.get_config(__name__, 'cookie_name')
-        session = session_store.get_session(cookie_name)
-        if not session.get('user_id'):
-            # User not found. Get it from built-in Users API.
-            user = users.get_current_user()
-            if user:
-                session.update(gae_user_to_dict(user))
-                auth_id = 'gae|%s' % session.get('user_id')
-                self.user = self.get_user_entity(auth_id=auth_id)
-                if self.user:
-                    session['session_id'] = self.user.session_id
+        if self.loaded is False:
+            self._load_session_and_user()
 
-        return session
+        return self._session
 
     @cached_property
     def user(self):
@@ -217,53 +190,60 @@ class AppEngineMixedAuthStore(BaseAuthStore):
             A :class:`User` entity, if the user for the current request is
             logged in, or None.
         """
-        # Get the authentication and session ids.
-        user_id = self.session.get('user_id', None)
-        if user_id is None:
-            return None
+        if self.loaded is False:
+            self._load_session_and_user()
 
-        # Load user entity.
-        auth_id = 'gae|%s' % user_id
-        user = self.get_user_entity(auth_id=auth_id)
-        if user is None:
-            return None
-
-        # Check if session matches.
-        session_id = self.session.get('session_id', None)
-        if not session_id or user.check_session(session_id) is not True:
-            return None
-
-        self._set_session(user.session_id)
-        return user
-
-    def _set_session(self, session_id):
-        session_store = self.request.session_store
-        cookie_name = self.app.get_config(__name__, 'cookie_name')
-
-        cookie_args = self.app.get_config('tipfy.sessions', 'cookie_args')
-        cookie_args = cookie_args.copy()
-
-        remember = self.session.get('remember', '0')
-        if remember == '0':
-            # Non-persistent authentication (only lasts for a session).
-            cookie_args['max_age'] = None
-        else:
-            cookie_args['max_age'] = self.app.get_config(__name__,
-                'session_max_age')
-
-        self.session['session_id'] = session_id
-        session_store.set_session(cookie_name, self.session, **cookie_args)
+        return self._user
 
     def logout(self):
         """Logs out the current user. This deletes the authentication session.
         """
-        self.session.clear()
+        self._reset()
+
+    def _reset(self):
+        self.request.session.pop('_auth', None)
+        self._session = None
+        self._user = None
+
+    def _load_session_and_user(self):
+        self.loaded = True
+        check_token = True
+
+        self._session = self.request.session.setdefault('_auth', {})
+        auth_id = self._session.get('id')
+
+        if auth_id is None:
+            # Load using GAE auth.
+            gae_user = users.get_current_user()
+            if not gae_user:
+                self._reset()
+                return
+
+            self._session['id'] = auth_id = 'gae|%s' % gae_user.user_id()
+            check_token = False
+
+        # Fetch the user entity.
+        user = self.get_user_entity(auth_id=auth_id)
+        if user is None:
+            return
+
+        if check_token is False:
+            self._session['token'] = user.session_id
+        elif user.check_session(self._session.get('token')) is not True:
+            # Session token didn't match.
+            self._reset()
+            return
+
+        self._user = user
 
     def create_user(self, username, auth_id, **kwargs):
-        user = super(AppEngineMixedAuth, self).create_user(username, auth_id,
-            **kwargs)
+        user = super(AppEngineMixedAuthStore, self).create_user(username,
+            auth_id, **kwargs)
         if user:
-            self.session['session_id'] = user.session_id
+            self.request.session['_auth'] = {
+                'id':    auth_id,
+                'token': user.session_id,
+            }
 
         return user
 

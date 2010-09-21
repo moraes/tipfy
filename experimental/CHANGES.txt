@@ -1,2 +1,74 @@
 Version 0.7
 ===========
+*This document is a work in progress*
+
+Tipfy 0.7 is a huge step with several additional features and improvements in
+tipfy's core design. Here's an overview of what is new:
+
+- NEW: Tipfy can now be used outside of App Engine. Variables that are not
+  thread safe such as Tipfy.app and Tipfy.request are now stored in thread
+  locals for non-App Engine servers.
+
+- NEW: added a simple template engine (from Tornado). This eliminates dependency
+  on Jinja2 for the debugger.
+
+- NEW: added a router object that centralizes URL matching, dispatching and
+  building.
+
+- NEW: Debugger is now part of tipfy core, without extra-dependencies. [explain]
+
+- NEW: Sessions is now part of tipfy core. [explain]
+
+- NEW: Auth is now part of tipfy core. [explain]
+
+- REMOVED: make_wsgi_app() and run_wsgi_app(). [explain]
+
+- CHANGED: URL rules are not automatically loaded from urls.py. Instead tipfy
+  is instantiated passing the URL rules, like webapp. Later other rules can
+  be added to the router. For example:
+
+      app = Tipfy(rules=[
+          Rule('/', name='home', handler='handlers.HomeHandler'),
+          Rule('/about', name='about', handler='handlers.AboutHandler'),
+      ])
+
+      # Add an extra rule.
+      app.router.add(Rule('/contact', name='contact', handler='handlers.ContactHandler'))
+
+      # Or add a list of rules.
+      app.router.add([
+          Rule('/products', name='products', handler='handlers.ProductsHandler'),
+          Rule('/history', name='history', handler='handlers.HistorytHandler'),
+      ])
+
+  The previous behavior using urls.py is easy to reproduce. For example,
+  given a urls.py like the following:
+
+      from tipfy import Rule
+
+      def get_rules(app):
+          rules = [
+              Rule('/', name='home', handler='handlers.HomeHandler'),
+              Rule('/about', name='about', handler='handlers.AboutHandler'),
+              Rule('/contact', name='contact', handler='handlers.ContactHandler'),
+          ]
+
+          return rules
+
+  You can still import and use it in main.py:
+
+      from urls import get_rules
+
+      app = Tipfy()
+
+      # Add a list of rules.
+      app.router.add(get_rules(app))
+
+  Or you can simply have a list of rules defined in urls.py, outside of a
+  function, and import it:
+
+      from urls import rules
+
+      app = Tipfy(rules=rules)
+
+- ...

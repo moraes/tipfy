@@ -10,9 +10,7 @@
 """
 from __future__ import absolute_import
 
-from google.appengine.api import users
-
-from tipfy import abort
+from tipfy import abort, APPENGINE
 
 from werkzeug import cached_property, import_string
 
@@ -44,7 +42,7 @@ class BaseAuthStore(object):
     def __init__(self, app, request):
         self.app = app
         self.request = request
-        self.secure_urls = app.get_config(__name__, 'secure_urls')
+        self.config = app.get_config(__name__)
 
     @cached_property
     def user_model(self):
@@ -54,16 +52,20 @@ class BaseAuthStore(object):
             A :class:`tipfy.auth.model.User` class.
         """
         registry = self.app.registry
-        key = 'ext.auth.user_model'
+        key = 'auth.user_model'
         if key not in registry:
-            registry[key] = import_string(self.app.get_config(__name__,
-                'user_model'))
+            registry[key] = import_string(self.config.get('user_model'))
 
         return registry[key]
 
+    @cached_property
+    def _session_base(self):
+        cookie_name = self.config.get('cookie_name')
+        return self.request.session_store.get_session(cookie_name)
+
     def _url(self, _name, **kwargs):
         kwargs.setdefault('redirect', self.request.path)
-        if not self.app.debug and self.secure_urls:
+        if not self.app.dev and self.config.get('secure_urls'):
             kwargs['_scheme'] = 'https'
 
         return self.app.url_for(_name, **kwargs)
@@ -124,7 +126,17 @@ class BaseAuthStore(object):
             return self.user_model.get_by_username(username)
 
     @property
+    def session(self):
+        """The auth session. For third party auth, it is possible that an
+        auth session exists but :attr:`user` is None (the user wasn't created
+        yet). We access the session to check if the user is logged in but
+        doesn't have an account.
+        """
+        raise NotImplementedError()
+
+    @property
     def user(self):
+        """The user entity."""
         raise NotImplementedError()
 
     @classmethod
@@ -133,149 +145,6 @@ class BaseAuthStore(object):
             _app.request.registry[_name] = cls(_app, _app.request, **kwargs)
 
         return _app.request.registry[_name]
-
-
-class AppEngineAuthStore(BaseAuthStore):
-    """This RequestHandler mixin uses App Engine's built-in Users API. Main
-    reasons to use it instead of Users API are:
-
-    - You can use the decorator :func:`user_required` to require a user record
-      stored in datastore after a user signs in.
-    - It also adds a convenient access to current logged in user directly
-      inside the handler, as well as the functions to generate auth-related
-      URLs.
-    - It standardizes how you create login, logout and signup URLs, and how
-      you check for a logged in user and load an {{{User}}} entity. If you
-      change to a different auth method later, these don't need to be
-      changed in your code.
-    """
-    @cached_property
-    def session(self):
-        """Returns the currently logged in user session. For app Engine auth,
-        this corresponds to the `google.appengine.api.users.User` object.
-
-        :returns:
-            A `google.appengine.api.users.User` object if the user for the
-            current request is logged in, or None.
-        """
-        return users.get_current_user()
-
-    @cached_property
-    def user(self):
-        """Returns the currently logged in user entity or None.
-
-        :returns:
-            A :class:`User` entity, if the user for the current request is
-            logged in, or None.
-        """
-        if not self.session:
-            return None
-
-        return self.get_user_entity(auth_id='gae|%s' % self.session.user_id())
-
-
-class AppEngineMixedAuthStore(BaseAuthStore):
-    def __init__(self, *args, **kwargs):
-        super(AppEngineMixedAuthStore, self).__init__(*args, **kwargs)
-        self.loaded = False
-        self._session = None
-        self._user = None
-
-    @cached_property
-    def session(self):
-        """Returns the currently logged in user session."""
-        if self.loaded is False:
-            self._load_session_and_user()
-
-        return self._session
-
-    @cached_property
-    def user(self):
-        """Returns the currently logged in user entity or None.
-
-        :returns:
-            A :class:`User` entity, if the user for the current request is
-            logged in, or None.
-        """
-        if self.loaded is False:
-            self._load_session_and_user()
-
-        return self._user
-
-    def create_user(self, username, **kwargs):
-        auth_id = self._session_base.get('_auth', {}).get('id')
-        if not auth_id:
-            return
-
-        user = super(AppEngineMixedAuthStore, self).create_user(username,
-            auth_id, **kwargs)
-
-        if user:
-            self._set_session(auth_id, user)
-
-        return user
-
-    def logout(self):
-        """Logs out the current user. This deletes the authentication session.
-        """
-        self.loaded = True
-        self._session_base.pop('_auth', None)
-        self._user = None
-        self._session = None
-
-    @cached_property
-    def _session_base(self):
-        cookie_name = self.app.get_config(__name__, 'cookie_name')
-        return self.request.session_store.get_session(cookie_name)
-
-    def _set_session(self, auth_id, user=None):
-        config = self.app.get_config(__name__)
-        kwargs = self.app.get_config('tipfy.sessions', 'cookie_args').copy()
-        kwargs['max_age'] = None
-
-        session = {'id': auth_id}
-        if user:
-            session['token'] = user.session_id
-            if user.auth_remember:
-                kwargs['max_age'] = config.get('session_max_age')
-
-        self._session_base['_auth'] = self._session = session
-        self.request.session_store.set_session(config.get('cookie_name'),
-            self._session_base, **kwargs)
-
-    def _load_session_and_user(self):
-        self.loaded = True
-        session = self._session_base.get('_auth', {})
-        gae_user = users.get_current_user()
-
-        if gae_user:
-            auth_id = 'gae|%s' % gae_user.user_id()
-        else:
-            auth_id = session.get('id')
-
-        if auth_id is None:
-            # No session, no user.
-            return
-
-        # Fetch the user entity.
-        user = self.get_user_entity(auth_id=auth_id)
-        if user is None:
-            if gae_user:
-                return self._set_session(auth_id)
-
-            # Bad auth id, no fallback: must log in again.
-            return self.logout()
-
-        current_token = user.session_id
-        if not user.check_session(session.get('token')):
-            # Token didn't match.
-            return self.logout()
-
-        if (current_token != user.session_id) or user.auth_remember:
-            # Token was updated or we need to renew session per request.
-            self._set_session(auth_id, user)
-
-        self._user = user
 
 
 class LoginRequiredMiddleware(object):
@@ -506,3 +375,8 @@ def _admin_required(handler):
 
     if not auth.is_admin:
         abort(403)
+
+
+if APPENGINE:
+    from tipfy.auth.appengine import (AppEngineAuthStore,
+        AppEngineMixedAuthStore)

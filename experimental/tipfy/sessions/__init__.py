@@ -15,7 +15,7 @@ import hmac
 import logging
 import time
 
-from tipfy import DEFAULT_VALUE, REQUIRED_VALUE
+from tipfy import APPENGINE, DEFAULT_VALUE, REQUIRED_VALUE
 from tipfy.utils import json_encode, json_decode
 
 from werkzeug import cached_property
@@ -178,30 +178,6 @@ class SecureCookieStore(object):
         return result == 0
 
 
-'''
-class DatastoreSession(ModificationTrackingDict):
-    @classmethod
-    def get_session(cls, store, name, **kwargs):
-        """TODO"""
-        raise NotImplementedError()
-
-    def save_session(self, response, store, name, **kwargs):
-        """TODO"""
-        raise NotImplementedError()
-
-
-class MemcacheSession(ModificationTrackingDict):
-    @classmethod
-    def get_session(cls, store, name, **kwargs):
-        """TODO"""
-        raise NotImplementedError()
-
-    def save_session(self, response, store, name, **kwargs):
-        """TODO"""
-        raise NotImplementedError()
-'''
-
-
 class SecureCookieSession(ModificationTrackingDict):
     @classmethod
     def get_session(cls, store, name, **kwargs):
@@ -215,8 +191,6 @@ class SecureCookieSession(ModificationTrackingDict):
 class SessionStore(object):
     #: A dictionary with the default supported backends.
     default_backends = {
-        #'datastore':    DatastoreSession,
-        #'memcache':     MemcacheSession,
         'securecookie': SecureCookieSession,
     }
 
@@ -426,3 +400,12 @@ class SessionMiddleware(object):
     def after_dispatch(self, handler, response):
         handler.request.session_store.save(response)
         return response
+
+
+if APPENGINE:
+    from tipfy.sessions.appengine import DatastoreSession, MemcacheSession
+
+    SessionStore.default_backends.update({
+        'datastore': DatastoreSession,
+        'memcache':  MemcacheSession,
+    }

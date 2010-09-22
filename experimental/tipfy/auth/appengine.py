@@ -152,3 +152,13 @@ class AppEngineMixedAuthStore(BaseAuthStore):
             self._set_session(auth_id, user)
 
         self._user = user
+
+
+def gae_user_to_dict(user):
+    return {
+        'nickname':           user.nickname(),
+        'email':              user.email(),
+        'user_id':            user.user_id(),
+        'federated_identity': user.federated_identity(),
+        'federated_provider': user.federated_provider(),
+    }

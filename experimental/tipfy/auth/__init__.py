@@ -327,16 +327,6 @@ def admin_required(func):
     return decorated
 
 
-def gae_user_to_dict(user):
-    return {
-        'nickname':           user.nickname(),
-        'email':              user.email(),
-        'user_id':            user.user_id(),
-        'federated_identity': user.federated_identity(),
-        'federated_provider': user.federated_provider(),
-    }
-
-
 def _login_required(handler):
     """Implementation for login_required and LoginRequiredMiddleware."""
     auth = handler.request.auth

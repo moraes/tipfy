@@ -11,15 +11,12 @@
 from __future__ import absolute_import
 
 import datetime
-import string
-from random import choice
-from hashlib import sha1, md5
+import hashlib
+import uuid
 
 from google.appengine.ext import db
 
 from tipfy import Tipfy
-
-SALT_CHARS = string.ascii_letters + string.digits
 
 
 class User(db.Model):
@@ -36,20 +33,21 @@ class User(db.Model):
     password = db.StringProperty(required=False)
     #: User email
     email = db.EmailProperty()
-    #: Authentication identifier, depending on the auth method used.
-    #: For example:
+    # Admin flag.
+    is_admin = db.BooleanProperty(required=True, default=False)
+    #: Authentication identifier according to the auth method in use. Examples:
     #: * own|username
     #: * gae|user_id
     #: * openid|identifier
     #: * twitter|username
     #: * facebook|username
     auth_id = db.StringProperty(required=True)
-    # Session id, renewed periodically for improved security.
+    # Flag to persist the auth accross sessions for thirdy party auth.
+    auth_remember = db.BooleanProperty(default=False)
+    # Auth token, renewed periodically for improved security.
     session_id = db.StringProperty(required=True)
-    # Session id last renewal date.
+    # Auth token last renewal date.
     session_updated = db.DateTimeProperty(auto_now_add=True)
-    # Admin flag.
-    is_admin = db.BooleanProperty(required=True, default=False)
 
     @classmethod
     def get_by_username(cls, username):
@@ -77,7 +75,7 @@ class User(db.Model):
         kwargs['key_name'] = username
         kwargs['auth_id'] = auth_id
         # Generate an initial session id.
-        kwargs['session_id'] = gen_salt(length=32)
+        kwargs['session_id'] = uuid.uuid4().hex
 
         if 'password_hash' in kwargs:
             # Password is already hashed.
@@ -123,12 +121,12 @@ class User(db.Model):
         return True
 
     def check_session(self, session_id):
-        """Checks if a session id is valid.
+        """Checks if an auth token is valid.
 
         :param session_id:
-            Session id to be checked.
+            Token to be checked.
         :returns:
-            True is the session id is valid, False otherwise.
+            True is the token id is valid, False otherwise.
         """
         if self.session_id != session_id:
             return False
@@ -154,7 +152,7 @@ class User(db.Model):
             force = (self.session_updated + expires < datetime.datetime.now())
 
         if force is True:
-            self.session_id = gen_salt(length=32)
+            self.session_id = uuid.uuid4().hex
             self.session_updated = datetime.datetime.now()
             self.put()
 
@@ -194,22 +192,10 @@ class User(db.Model):
         return not self.__eq__(obj)
 
 
-def gen_salt(length=10):
-    """Generates a random string of SALT_CHARS with specified ``length``.
-
-    :param length:
-        Length of the salt.
-    :returns:
-        A random salt.
-    """
-    if length <= 0:
-        raise ValueError('requested salt of length <= 0')
-
-    return ''.join(choice(SALT_CHARS) for i in xrange(length))
-
-
 def gen_pwhash(password):
     """Returns the password encrypted in sha1 format with a random salt.
+
+    This function is adapted from `Zine`.
 
     :param password:
         Password to e hashed and formatted.
@@ -219,8 +205,8 @@ def gen_pwhash(password):
     if isinstance(password, unicode):
         password = password.encode('utf-8')
 
-    salt = gen_salt()
-    h = sha1()
+    salt = uuid.uuid4().hex
+    h = hashlib.sha1()
     h.update(salt)
     h.update(password)
     return 'sha1$%s$%s' % (salt, h.hexdigest())
@@ -259,6 +245,8 @@ def check_password(pwhash, password):
     >>> check_password('md42$xyz$bcc27016b4fdceb2bd1b369d5dc46c3f', 'example')
     False
 
+    This function is adapted from `Zine`.
+
     :param pwhash:
         Hash to be checked.
     :param password:
@@ -280,9 +268,9 @@ def check_password(pwhash, password):
     if method == 'plain':
         return hashval == password
     elif method == 'md5':
-        h = md5()
+        h = hashlib.md5()
     elif method == 'sha1':
-        h = sha1()
+        h = hashlib.sha1()
     else:
         return False
 

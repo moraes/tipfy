@@ -151,6 +151,13 @@ class AppEngineAuthStore(BaseAuthStore):
     """
     @cached_property
     def session(self):
+        """Returns the currently logged in user session. For app Engine auth,
+        this corresponds to the `google.appengine.api.users.User` object.
+
+        :returns:
+            A `google.appengine.api.users.User` object if the user for the
+            current request is logged in, or None.
+        """
         return users.get_current_user()
 
     @cached_property
@@ -195,57 +202,76 @@ class AppEngineMixedAuthStore(BaseAuthStore):
 
         return self._user
 
+    def create_user(self, username, auth_id, **kwargs):
+        user = super(AppEngineMixedAuthStore, self).create_user(username,
+            auth_id, **kwargs)
+
+        if user:
+            self._set_session(auth_id, user)
+
+        return user
+
     def logout(self):
         """Logs out the current user. This deletes the authentication session.
         """
-        self._reset()
-
-    def _reset(self):
-        self.request.session.pop('_auth', None)
-        self._session = None
+        self.loaded = True
+        self._session_base.pop('_auth', None)
         self._user = None
+        self._session = None
+
+    @cached_property
+    def _session_base(self):
+        cookie_name = self.app.get_config(__name__, 'cookie_name')
+        return self.request.session_store.get_session(cookie_name)
+
+    def _set_session(self, auth_id, user=None):
+        config = self.app.get_config(__name__)
+        kwargs = self.app.get_config('tipfy.sessions', 'cookie_args').copy()
+        kwargs['max_age'] = None
+
+        session = {'id': auth_id}
+        if user:
+            session['token'] = user.session_id
+            if user.auth_remember:
+                kwargs['max_age'] = config.get('session_max_age')
+
+        self._session_base['_auth'] = self._session = session
+        self.request.session_store.set_session(config.get('cookie_name'),
+            self._session_base, **kwargs)
 
     def _load_session_and_user(self):
         self.loaded = True
-        check_token = True
+        session = self._session_base.get('_auth', {})
+        gae_user = users.get_current_user()
 
-        self._session = self.request.session.setdefault('_auth', {})
-        auth_id = self._session.get('id')
+        if gae_user:
+            auth_id = 'gae|%s' % gae_user.user_id()
+        else:
+            auth_id = session.get('id')
 
         if auth_id is None:
-            # Load using GAE auth.
-            gae_user = users.get_current_user()
-            if not gae_user:
-                self._reset()
-                return
-
-            self._session['id'] = auth_id = 'gae|%s' % gae_user.user_id()
-            check_token = False
+            # No session, no user.
+            return
 
         # Fetch the user entity.
         user = self.get_user_entity(auth_id=auth_id)
         if user is None:
-            return
+            if gae_user:
+                return self._set_session(auth_id)
 
-        if check_token is False:
-            self._session['token'] = user.session_id
-        elif user.check_session(self._session.get('token')) is not True:
-            # Session token didn't match.
-            self._reset()
-            return
+            # Bad auth id, no fallback: must log in again.
+            return self.logout()
+
+        current_token = user.session_id
+        if not user.check_session(session.get('token')):
+            # Token didn't match.
+            return self.logout()
+
+        if (current_token != user.session_id) or user.auth_remember:
+            # Token was updated or we need to renew session per request.
+            self._set_session(auth_id, user)
 
         self._user = user
-
-    def create_user(self, username, auth_id, **kwargs):
-        user = super(AppEngineMixedAuthStore, self).create_user(username,
-            auth_id, **kwargs)
-        if user:
-            self.request.session['_auth'] = {
-                'id':    auth_id,
-                'token': user.session_id,
-            }
-
-        return user
 
 
 class LoginRequiredMiddleware(object):

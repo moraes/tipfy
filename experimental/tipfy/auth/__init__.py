@@ -202,7 +202,11 @@ class AppEngineMixedAuthStore(BaseAuthStore):
 
         return self._user
 
-    def create_user(self, username, auth_id, **kwargs):
+    def create_user(self, username, **kwargs):
+        auth_id = self._session_base.get('_auth', {}).get('id')
+        if not auth_id:
+            return
+
         user = super(AppEngineMixedAuthStore, self).create_user(username,
             auth_id, **kwargs)
 

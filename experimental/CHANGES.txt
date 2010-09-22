@@ -9,17 +9,40 @@ tipfy's core design. Here's an overview of what is new:
   thread safe such as Tipfy.app and Tipfy.request are now stored in thread
   locals for non-App Engine servers.
 
-- NEW: added a simple template engine (from Tornado). This eliminates dependency
-  on Jinja2 for the debugger.
+- NEW: added a simple template engine (from Tornado). This eliminates
+  dependency on Jinja2 for the debugger.
+
+- NEW: AppEngineMixedAuthStore, which allows login using App Engine Auth
+  across subdomains. It mixes App Engine auth with own sessions to achieve
+  this.
 
 - NEW: added a router object that centralizes URL matching, dispatching and
-  building.
+  building. [explain]
 
 - NEW: Debugger is now part of tipfy core, without extra-dependencies. [explain]
 
 - NEW: Sessions is now part of tipfy core. [explain]
 
 - NEW: Auth is now part of tipfy core. [explain]
+
+- NEW: configuration now behaves much more like a dictionary, still
+  auto-loading configuration values when needed and honoring required configs.
+  For example, we always used this::
+
+      secret_key = self.app.get_config('tipfy.sessions', 'secret_key')
+
+  Now it is also possible to use direct access and dict methods::
+
+      secret_key = self.app.config['tipfy.sessions']['secret_key']
+      # or...
+      secret_key = self.app.config['tipfy.sessions'].get('secret_key')
+      # or...
+      secret_key = self.app.config.get('tipfy.sessions').get('secret_key')
+
+  The previous get_config() method works as always; we just made config
+  behave more like a normal dict.
+
+- NEW: added a new rule converter, RegexConverter. [explain]
 
 - REMOVED: make_wsgi_app() and run_wsgi_app(). [explain]
 

@@ -1,3 +1,6 @@
+from werkzeug.contrib.sessions import ModificationTrackingDict
+
+
 class DatastoreSession(ModificationTrackingDict):
     @classmethod
     def get_session(cls, store, name, **kwargs):

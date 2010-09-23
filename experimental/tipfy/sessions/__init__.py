@@ -184,8 +184,10 @@ class SecureCookieSession(ModificationTrackingDict):
         return cls(store.get_secure_cookie(name) or ())
 
     def save_session(self, response, store, name, **kwargs):
-        if self.modified:
-            store.set_secure_cookie(response, name, self, **kwargs)
+        if not self or not self.modified:
+            return
+
+        store.set_secure_cookie(response, name, self, **kwargs)
 
 
 class SessionStore(object):

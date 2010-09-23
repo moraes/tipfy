@@ -619,3 +619,6 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
         entity = ext_db.run_in_namespace('ns1', get_entity, 'foo')
         self.assertNotEqual(entity, None)
+
+        entity = ext_db.run_in_namespace('ns2', get_entity, 'foo')
+        self.assertEqual(entity, None)

@@ -402,6 +402,105 @@ class SessionMiddleware(object):
         return response
 
 
+class BaseSessionMixin(object):
+    """Base class for all session-related mixins. Must be used with
+    :class:`SessionMiddleware`.
+    """
+    @cached_property
+    def session_store(self):
+        return self.request.session_store
+
+
+class CookieMixin(BaseSessionMixin):
+    """Adds set_cookie() and delete_cookie() methods to a
+    :class:`tipfy.RequestHandler`.
+    """
+    def set_cookie(self, key, value, **kwargs):
+        self.session_store.set_cookie(key, value, **kwargs)
+
+    def delete_cookie(self, key, **kwargs):
+        self.session_store.delete_cookie(key, **kwargs)
+
+
+class SecureCookieMixin(BaseSessionMixin):
+    """A mixin that adds a get_secure_cookie() method to a
+    :class:`tipfy.RequestHandler`.
+    """
+    def get_secure_cookie(self, key, **kwargs):
+        """Returns a tracked secure cookie. See
+        :meth:`SessionStore.get_secure_cookie`.
+        """
+        return self.session_store.get_session(key, backend='securecookie',
+            **kwargs)
+
+
+class FlashMixin(BaseSessionMixin):
+    """A mixin that adds get_flash() and set_flash() methods to a
+    :class:`tipfy.RequestHandler`.
+    """
+    def get_flash(self, key=None, backend=None, **kwargs):
+        """Returns a flash message. See :meth:`SessionStore.get_flash`."""
+        return self.session_store.get_flash(key, backend, **kwargs)
+
+    def set_flash(self, data, key=None, backend=None, **kwargs):
+        """Sets a flash message. See :meth:`SessionStore.set_flash`."""
+        self.session_store.set_flash(data, key, backend, **kwargs)
+
+
+class MessagesMixin(BaseSessionMixin):
+    """A :class:`tipfy.RequestHandler` mixin for system messages."""
+    @cached_property
+    def messages(self):
+        """A list of status messages to be displayed to the user."""
+        messages = []
+        messages.extend(self.session_store.get_flash(flash_key='_messages'))
+        return messages
+
+    def set_message(self, level, body, title=None, life=None, flash=False):
+        """Adds a status message.
+
+        :param level:
+            Message level. Common values are "success", "error", "info" or
+            "alert".
+        :param body:
+            Message contents.
+        :param title:
+            Optional message title.
+        :param life:
+            Message life time in seconds. User interface can implement
+            a mechanism to make the message disappear after the elapsed time.
+            If not set, the message is permanent.
+        :returns:
+            None.
+        """
+        message = {'level': level, 'title': title, 'body': body, 'life': life}
+        if flash is True:
+            self.session_store.set_flash(message, flash_key='_messages')
+        else:
+            self.messages.append(message)
+
+
+class SessionMixin(BaseSessionMixin):
+    """A :class:`tipfy.RequestHandler` that provides access to the current
+    session.
+    """
+    @cached_property
+    def session(self):
+        """A dictionary-like object that is persisted at the end of the
+        request.
+        """
+        return self.session_store.get_session()
+
+    def get_session(self, key=None, backend=None, **kwargs):
+        """Returns a session. See :meth:`SessionStore.get_session`."""
+        return self.session_store.get_session(key, backend, **kwargs)
+
+
+class AllSessionMixins(CookieMixin, SecureCookieMixin, FlashMixin,
+    MessagesMixin, SessionMixin):
+    """All session mixins combined in one."""
+
+
 if APPENGINE:
     from tipfy.sessions.appengine import DatastoreSession, MemcacheSession
 

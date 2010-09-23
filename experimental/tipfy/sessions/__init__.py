@@ -390,7 +390,7 @@ class SessionStore(object):
     @classmethod
     def factory(cls, _app, _name, **kwargs):
         if _name not in _app.request.registry:
-            _app.request.registry[_name] = cls(_app, **kwargs)
+            _app.request.registry[_name] = cls(_app, _app.request, **kwargs)
 
         return _app.request.registry[_name]
 
@@ -494,6 +494,9 @@ class SessionMixin(BaseSessionMixin):
     def get_session(self, key=None, backend=None, **kwargs):
         """Returns a session. See :meth:`SessionStore.get_session`."""
         return self.session_store.get_session(key, backend, **kwargs)
+
+    def set_session(self, key, value, backend=None, **kwargs):
+        return self.session_store.set_session(key, value, backend, **kwargs)
 
 
 class AllSessionMixins(CookieMixin, SecureCookieMixin, FlashMixin,

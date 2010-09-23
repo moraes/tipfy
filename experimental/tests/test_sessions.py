@@ -3,8 +3,9 @@ import unittest
 from gaetestbed import DataStoreTestCase, MemcacheTestCase
 
 from tipfy import Tipfy, Request, RequestHandler, Response, Rule
-from tipfy.sessions import (AllSessionMixins, SessionStore, SecureCookieStore,
-    SecureCookieSession, SessionMiddleware)
+from tipfy.sessions import (AllSessionMixins, DatastoreSession, SessionStore,
+    SecureCookieStore, SecureCookieSession, SessionMiddleware)
+from tipfy.sessions.appengine import SessionModel
 
 
 class BaseHandler(RequestHandler, AllSessionMixins):
@@ -182,6 +183,31 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
         })
         self.assertEqual(response.data, 'a memcache session value')
 
+    def test_get_datastore_session(self):
+        class MyHandler(BaseHandler):
+            def get(self):
+                session = self.get_session(backend='datastore')
+                res = session.get('test')
+                if not res:
+                    res = 'undefined'
+                    session['test'] = 'a datastore session value'
+
+                return Response(res)
+
+        rules = [Rule('/', name='test', handler=MyHandler)]
+
+        app = self._get_app('/')
+        app.router.add(rules)
+        client = app.get_test_client()
+
+        response = client.get('/')
+        self.assertEqual(response.data, 'undefined')
+
+        response = client.get('/', headers={
+            'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
+        })
+        self.assertEqual(response.data, 'a datastore session value')
+
     def test_set_delete_cookie(self):
         class MyHandler(BaseHandler):
             def get(self):
@@ -315,3 +341,45 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
             'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
         })
         self.assertEqual(response.data, 'a flash message value|a normal message value')
+
+
+class TestSessionModel(DataStoreTestCase, MemcacheTestCase,
+    unittest.TestCase):
+    def setUp(self):
+        DataStoreTestCase.setUp(self)
+        MemcacheTestCase.setUp(self)
+        self.app = Tipfy()
+
+    def tearDown(self):
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
+
+    def test_get_by_sid_without_cache(self):
+        sid = 'test'
+        entity = SessionModel.create(sid, {'foo': 'bar', 'baz': 'ding'})
+        entity.put()
+
+        cached_data = SessionModel.get_cache(sid)
+        assert cached_data is not None
+
+        entity.delete_cache()
+        cached_data = SessionModel.get_cache(sid)
+        assert cached_data is None
+
+        entity = SessionModel.get_by_sid(sid)
+        assert entity is not None
+
+        # Now will fetch cache.
+        entity = SessionModel.get_by_sid(sid)
+        assert entity is not None
+
+        assert 'foo' in entity.data
+        assert 'baz' in entity.data
+        assert entity.data['foo'] == 'bar'
+        assert entity.data['baz'] == 'ding'
+
+        entity.delete()
+        entity = SessionModel.get_by_sid(sid)
+        assert entity is None

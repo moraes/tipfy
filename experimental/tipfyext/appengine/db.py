@@ -15,6 +15,7 @@ import re
 import time
 import unicodedata
 
+from google.appengine.api.namespace_manager import namespace_manager
 from google.appengine.ext import db
 
 from tipfy.utils import json_decode, json_encode

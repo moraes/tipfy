@@ -597,3 +597,25 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         loaded_foo = get(foo_key=str(foo.key()))
         assert str(loaded_foo.key()) == str(foo.key())
         assert get(foo_key=None) is None
+
+    #===========================================================================
+    # ext_db.run_in_namespace
+    #===========================================================================
+    def test_run_in_namespace(self):
+        class MyModel(db.Model):
+            name = db.StringProperty()
+
+        def create_entity(name):
+            entity = MyModel(key_name=name, name=name)
+            entity.put()
+
+        def get_entity(name):
+            return MyModel.get_by_key_name(name)
+
+        entity = ext_db.run_in_namespace('ns1', get_entity, 'foo')
+        self.assertEqual(entity, None)
+
+        ext_db.run_in_namespace('ns1', create_entity, 'foo')
+
+        entity = ext_db.run_in_namespace('ns1', get_entity, 'foo')
+        self.assertNotEqual(entity, None)

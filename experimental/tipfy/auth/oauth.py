@@ -27,9 +27,6 @@ from google.appengine.api import urlfetch
 
 from tipfy import abort, redirect
 
-__version__ = '0.2'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
-
 
 class OAuthMixin(object):
     """A :class:`tipfy.RequestHandler` mixin that implements OAuth

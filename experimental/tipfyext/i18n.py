@@ -27,9 +27,6 @@ from werkzeug import LocalProxy
 
 from tipfy import Tipfy
 
-__version__ = '0.7.1'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
-
 #: Default configuration values for this module. Keys are:
 #:
 #: locale

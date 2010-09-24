@@ -18,9 +18,6 @@ from google.appengine.runtime import apiproxy_errors
 
 from tipfy import get_config
 
-__version__ = '0.4'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
-
 #: Default configuration values for this module. Keys are:
 #:
 #: shards

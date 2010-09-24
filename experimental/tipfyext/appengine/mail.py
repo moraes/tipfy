@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.mail
-    ~~~~~~~~~~~~~
+    tipfyext.appengine.mail
+    ~~~~~~~~~~~~~~~~~~~~~~~
 
-    A simple [[tipfy.RequestHandler]] to help with receiving mail.
+    A simple RequestHandler to help with receiving mail.
 
     Ported from the original App Engine library:
     http://code.google.com/appengine/docs/python/mail/receivingmail.html
@@ -14,9 +14,6 @@
 from google.appengine.api import mail
 
 from tipfy import RequestHandler
-
-__version__ = '0.6'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
 
 
 class InboundMailHandler(RequestHandler):

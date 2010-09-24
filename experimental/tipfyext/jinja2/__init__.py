@@ -19,9 +19,6 @@ try:
 except ImportError:
     i18n = None
 
-__version__ = '0.1'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
-
 #: Default configuration values for this module. Keys are:
 #:
 #: templates_dir

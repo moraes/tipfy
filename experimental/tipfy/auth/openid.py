@@ -20,9 +20,6 @@ from google.appengine.api import urlfetch
 
 from tipfy import redirect
 
-__version__ = '0.3'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
-
 
 class OpenIdMixin(object):
     """A :class:`tipfy.RequestHandler` mixin that implements OpenID

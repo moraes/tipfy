@@ -4,7 +4,7 @@ import unittest
 
 from tipfy import Request, RequestHandler, Response, Rule, Tipfy
 from tipfy.sessions import SessionStore, SecureCookieSession
-from tipfy.auth import AppEngineAuthStore
+from tipfy.auth.appengine import AppEngineAuthStore
 from tipfy.utils import json_decode, json_encode
 
 

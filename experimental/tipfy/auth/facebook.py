@@ -26,9 +26,6 @@ from django.utils import simplejson
 from tipfy import redirect, REQUIRED_VALUE
 from tipfy.utils import json_decode, json_encode
 
-__version__ = '0.3'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
-
 #: Default configuration values for this module. Keys are:
 #:
 #: - ``api_key``: Key provided when you register an application with

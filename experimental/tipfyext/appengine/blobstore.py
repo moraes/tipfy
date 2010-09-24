@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.blobstore
-    ~~~~~~~~~~~~~~~~~~
+    tipfyext.appengine.blobstore
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Handler library for Blobstore API.
 
@@ -35,9 +35,6 @@ from google.appengine.api import blobstore as api_blobstore
 from webob import byterange
 
 from werkzeug import FileStorage, Response
-
-__version__ = '0.7'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
 
 _BASE_CREATION_HEADER_FORMAT = '%Y-%m-%d %H:%M:%S'
 _CONTENT_DISPOSITION_FORMAT = 'attachment; filename="%s"'

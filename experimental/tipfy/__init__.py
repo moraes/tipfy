@@ -31,7 +31,7 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #:
 #: auth_store_class
 #:     The default auth store class to use in :class:`tipfy.Request`.
-#:     Default is `tipfy.auth.AppEngineAuthStore`.
+#:     Default is `tipfy.auth.appengine.AppEngineAuthStore`.
 #:
 #: session_store_class
 #:     The default session store class to use in :class:`tipfy.Request`.
@@ -45,7 +45,7 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #:     The default subdomain used for rules without a subdomain defined.
 #:     This only need to be defined to map URLs to subdomains. Default is ''.
 default_config = {
-    'auth_store_class':    'tipfy.auth.AppEngineAuthStore',
+    'auth_store_class':    'tipfy.auth.appengine.AppEngineAuthStore',
     'session_store_class': 'tipfy.sessions.SessionStore',
     'server_name':         None,
     'default_subdomain':   '',

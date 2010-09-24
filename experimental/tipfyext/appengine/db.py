@@ -28,9 +28,6 @@ except ImportError, e:
 
 from tipfy import abort
 
-__version__ = '0.6.2'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
-
 
 def get_protobuf_from_entity(entities):
     """Converts one or more ``db.Model`` instances to encoded Protocol Buffers.

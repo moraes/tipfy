@@ -22,9 +22,6 @@ from tipfy import REQUIRED_VALUE
 from tipfy.auth.oauth import OAuthMixin
 from tipfy.utils import json_decode, json_encode
 
-__version__ = '0.2'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
-
 #: Default configuration values for this module. Keys are:
 #:
 #: consumer_key

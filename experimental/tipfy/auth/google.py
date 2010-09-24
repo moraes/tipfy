@@ -21,9 +21,6 @@ from tipfy import redirect, REQUIRED_VALUE
 from tipfy.auth.oauth import OAuthMixin
 from tipfy.auth.openid import OpenIdMixin
 
-__version__ = '0.2'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
-
 #: Default configuration values for this module. Keys are:
 #:
 #: google_consumer_key

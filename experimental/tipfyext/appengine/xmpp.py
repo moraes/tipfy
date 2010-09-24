@@ -16,7 +16,7 @@ import logging
 
 from google.appengine.api import xmpp
 
-from tipfy import RequestHandler
+from tipfy import RequestHandler, Tipfy
 
 __version__ = '0.6'
 __version_info__ = tuple(int(n) for n in __version__.split('.'))
@@ -44,7 +44,7 @@ class BaseHandler(RequestHandler):
         except xmpp.InvalidMessageError, e:
             logging.error('Invalid XMPP request: Missing required field %s',
                 e[0])
-            return ''
+            return Tipfy.response_class('')
 
         return self.message_received(self.xmpp_message)
 
@@ -100,7 +100,7 @@ class CommandHandlerMixin(object):
         else:
             self.text_message(message)
 
-        return ''
+        return Tipfy.response_class('')
 
 
 class CommandHandler(CommandHandlerMixin, BaseHandler):

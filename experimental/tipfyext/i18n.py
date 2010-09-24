@@ -61,8 +61,8 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 default_config = {
     'locale':                'en_US',
     'timezone':              'America/Chicago',
-    'cookie_name':           'tipfy.locale',
-    'locale_request_lookup': [('args', 'lang'), ('cookies', 'tipfy.locale')],
+    'cookie_name':           'locale',
+    'locale_request_lookup': [('args', 'lang'), ('cookies', 'locale')],
     'date_formats': {
         'time':             'medium',
         'date':             'medium',
@@ -90,7 +90,7 @@ class I18nMiddleware(object):
     """``tipfy.RequestHandler`` middleware that saves the current locale in
     a cookie at the end of request, if it differs from the default locale.
     """
-    def post_dispatch(self, handler, response):
+    def after_dispatch(self, handler, response):
         """Saves current locale in a cookie.
 
         :param handler:
@@ -100,25 +100,13 @@ class I18nMiddleware(object):
         :returns:
             None.
         """
-        ctx = Tipfy.request.context
-        locale = ctx.get('locale', None)
-        if locale is None:
-            # Locale isn't set.
-            return response
-
+        config = handler.app.get_config(__name__)
+        locale = handler.request.context.get('locale', config.get('locale'))
         # Persist locale using a cookie when it differs from default.
-        response.set_cookie(Tipfy.app.get_config(__name__, 'cookie_name'),
-            value=locale, max_age=(86400 * 30))
+        response.set_cookie(config.get('cookie_name'), value=locale,
+            max_age=(86400 * 30))
 
         return response
-
-    def pre_dispatch_handler(self):
-        """Called if i18n is used as a WSGI application middleware."""
-        set_translations_from_request()
-
-    def post_dispatch_handler(self, response):
-        """Called if i18n is used as a WSGI application middleware."""
-        return self.post_dispatch(None, response)
 
 
 def get_locale():

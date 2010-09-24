@@ -62,7 +62,7 @@ class TestRouting(unittest.TestCase):
                 return Response(kwargs.get('path'))
 
         app = Tipfy([
-            Rule('/<regex(".*"):path>', endpoint='home', handler=TestHandler),
+            Rule('/<regex(".*"):path>', name='home', handler=TestHandler),
         ])
 
         client = app.get_test_client()

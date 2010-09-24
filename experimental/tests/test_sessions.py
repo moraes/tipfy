@@ -72,7 +72,7 @@ class TestSessionStore(unittest.TestCase):
         store.save(response)
 
         app = self._get_app()
-        request = Request.from_values('/', headers=[('Cookie', response.headers['Set-Cookie'])])
+        request = Request.from_values('/', headers={'Cookie': '\n'.join(response.headers.getlist('Set-Cookie'))})
         store = SessionStore(app, request)
 
         session = store.get_session()
@@ -362,24 +362,24 @@ class TestSessionModel(DataStoreTestCase, MemcacheTestCase,
         entity.put()
 
         cached_data = SessionModel.get_cache(sid)
-        assert cached_data is not None
+        self.assertNotEqual(cached_data, None)
 
         entity.delete_cache()
         cached_data = SessionModel.get_cache(sid)
-        assert cached_data is None
+        self.assertEqual(cached_data, None)
 
         entity = SessionModel.get_by_sid(sid)
-        assert entity is not None
+        self.assertNotEqual(entity, None)
 
         # Now will fetch cache.
         entity = SessionModel.get_by_sid(sid)
-        assert entity is not None
+        self.assertNotEqual(entity, None)
 
-        assert 'foo' in entity.data
-        assert 'baz' in entity.data
-        assert entity.data['foo'] == 'bar'
-        assert entity.data['baz'] == 'ding'
+        self.assertEqual('foo' in entity.data, True)
+        self.assertEqual('baz' in entity.data, True)
+        self.assertEqual(entity.data['foo'], 'bar')
+        self.assertEqual(entity.data['baz'], 'ding')
 
         entity.delete()
         entity = SessionModel.get_by_sid(sid)
-        assert entity is None
+        self.assertEqual(entity, None)

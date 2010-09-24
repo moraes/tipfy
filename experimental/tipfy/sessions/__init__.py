@@ -184,7 +184,7 @@ class SecureCookieSession(ModificationTrackingDict):
         return cls(store.get_secure_cookie(name) or ())
 
     def save_session(self, response, store, name, **kwargs):
-        if not self or not self.modified:
+        if not self.modified:
             return
 
         store.set_secure_cookie(response, name, self, **kwargs)

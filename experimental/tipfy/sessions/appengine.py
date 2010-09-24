@@ -139,7 +139,7 @@ class DatastoreSession(_BaseSession):
         return cls(entity.data, sid)
 
     def save_session(self, response, store, name, **kwargs):
-        if not self or not self.modified:
+        if not self.modified:
             return
 
         self.entity = self.model_class.create(self.sid, dict(self))
@@ -162,7 +162,7 @@ class MemcacheSession(_BaseSession):
         return cls(data, sid)
 
     def save_session(self, response, store, name, **kwargs):
-        if not self or not self.modified:
+        if not self.modified:
             return
 
         max_age = kwargs.get('session_max_age')

@@ -17,7 +17,7 @@ class TestHandler(unittest.TestCase):
             pass
 
         app = Tipfy(rules=[
-            Rule('/', endpoint='home', handler=HomeHandler),
+            Rule('/', name='home', handler=HomeHandler),
         ])
 
         client = app.get_test_client()
@@ -31,7 +31,7 @@ class TestHandler(unittest.TestCase):
             pass
 
         app = Tipfy(rules=[
-            Rule('/', endpoint='home', handler=HomeHandler),
+            Rule('/', name='home', handler=HomeHandler),
         ], debug=True)
 
         client = app.get_test_client()
@@ -54,9 +54,9 @@ class TestHandler(unittest.TestCase):
                 self.abort(404)
 
         app = Tipfy(rules=[
-            Rule('/400', endpoint='400', handler=HandlerWith400),
-            Rule('/403', endpoint='403', handler=HandlerWith403),
-            Rule('/404', endpoint='404', handler=HandlerWith404),
+            Rule('/400', name='400', handler=HandlerWith400),
+            Rule('/403', name='403', handler=HandlerWith403),
+            Rule('/404', name='404', handler=HandlerWith404),
         ], debug=True)
 
         client = app.get_test_client()
@@ -86,8 +86,8 @@ class TestHandler(unittest.TestCase):
                 return Response('I fixed it!')
 
         app = Tipfy(rules=[
-            Rule('/value-error', endpoint='value-error', handler=HandlerWithValueError),
-            Rule('/not-implemented-error', endpoint='not-implemented-error', handler=HandlerWithNotImplementedError),
+            Rule('/value-error', name='value-error', handler=HandlerWithValueError),
+            Rule('/not-implemented-error', name='not-implemented-error', handler=HandlerWithNotImplementedError),
         ], debug=True)
 
         client = app.get_test_client()
@@ -108,8 +108,8 @@ class TestHandler(unittest.TestCase):
                 return self.redirect('/')
 
         app = Tipfy(rules=[
-            Rule('/', endpoint='home', handler=HomeHandler),
-            Rule('/redirect-me', endpoint='redirect', handler=HandlerWithRedirect),
+            Rule('/', name='home', handler=HomeHandler),
+            Rule('/redirect-me', name='redirect', handler=HandlerWithRedirect),
         ], debug=True)
 
         client = app.get_test_client()
@@ -126,8 +126,8 @@ class TestHandler(unittest.TestCase):
                 return self.redirect_to('home')
 
         app = Tipfy(rules=[
-            Rule('/', endpoint='home', handler=HomeHandler),
-            Rule('/redirect-me', endpoint='redirect', handler=HandlerWithRedirectTo),
+            Rule('/', name='home', handler=HomeHandler),
+            Rule('/redirect-me', name='redirect', handler=HandlerWithRedirectTo),
         ], debug=True)
 
         client = app.get_test_client()

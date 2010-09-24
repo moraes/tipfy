@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfy.ext.db
+    Tests for tipfyext.appengine.db
 """
 import unittest
 import hashlib
-from nose.tools import raises, assert_raises
 
 from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase
@@ -181,7 +180,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity_1.delete()
         entity_3 = BarModel.get_by_key_name('first_bar')
         # Won't resolve, but we can still get the key value.
-        assert_raises(db.Error, getattr, entity_3, 'foo')
+        self.assertRaises(db.Error, getattr, entity_3, 'foo')
         assert str(ext_db.get_reference_key(entity_3, 'foo')) == entity_1_key
 
     def test_get_reference_key_2(self):
@@ -221,7 +220,6 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         assert entity_1.age == 20
         assert entity_1.married is True
 
-    @raises(AttributeError)
     def test_populate_entity_2(self):
         entity_1 = FooModel(name='foo', age=15, married=False)
         entity_1.put()
@@ -233,7 +231,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         ext_db.populate_entity(entity_1, name='bar', age=20, married=True, city='Yukon')
         entity_1.put()
 
-        getattr(entity_1, 'city')
+        self.assertRaises(AttributeError, getattr, entity_1, 'city')
 
     def test_populate_expando_entity(self):
         entity_1 = FooExpandoModel(name='foo', age=15, married=False)
@@ -250,7 +248,6 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         assert entity_1.age == 20
         assert entity_1.married is True
 
-    @raises(AttributeError)
     def test_populate_expando_entity_2(self):
         entity_1 = FooExpandoModel(name='foo', age=15, married=False)
         entity_1.put()
@@ -262,7 +259,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         ext_db.populate_entity(entity_1, name='bar', age=20, married=True, city='Yukon')
         entity_1.put()
 
-        getattr(entity_1, 'city')
+        self.assertRaises(AttributeError, getattr, entity_1, 'city')
 
 
     #===========================================================================
@@ -337,9 +334,8 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity = ext_db.get_by_key_name_or_404(FooModel, 'foo')
         assert str(entity.key()) == str(entity_1.key())
 
-    @raises(NotFound)
     def test_get_by_key_name_or_404_2(self):
-        ext_db.get_by_key_name_or_404(FooModel, 'bar')
+        self.assertRaises(NotFound, ext_db.get_by_key_name_or_404, FooModel, 'bar')
 
     def test_get_by_id_or_404(self):
         entity_1 = FooModel(name='foo', age=15, married=False)
@@ -348,9 +344,8 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity = ext_db.get_by_id_or_404(FooModel, entity_1.key().id())
         assert str(entity.key()) == str(entity_1.key())
 
-    @raises(NotFound)
     def test_get_by_id_or_404_2(self):
-        ext_db.get_by_id_or_404(FooModel, -1)
+        self.assertRaises(NotFound, ext_db.get_by_id_or_404, FooModel, -1)
 
     def test_get_or_404(self):
         entity_1 = FooModel(name='foo', age=15, married=False)
@@ -359,13 +354,11 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity = ext_db.get_or_404(entity_1.key())
         assert str(entity.key()) == str(entity_1.key())
 
-    @raises(NotFound)
     def test_get_or_404_2(self):
-        ext_db.get_or_404(db.Key.from_path('FooModel', 'bar'))
+        self.assertRaises(NotFound, ext_db.get_or_404, db.Key.from_path('FooModel', 'bar'))
 
-    @raises(NotFound)
     def test_get_or_404_3(self):
-        ext_db.get_or_404('this is not a valid key')
+        self.assertRaises(NotFound, ext_db.get_or_404, 'this is not a valid key')
 
     #===========================================================================
     # db.Property
@@ -464,13 +457,8 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity_1 = JsonModel.get_by_key_name('foo')
         assert entity_1.data == {'foo': 'bar'}
 
-    @raises(db.BadValueError)
     def test_json_property2(self):
-        entity_1 = JsonModel(key_name='foo', data='foo')
-        entity_1.put()
-
-        entity_1 = JsonModel.get_by_key_name('foo')
-        assert entity_1.data == {'foo': 'bar'}
+        self.assertRaises(db.BadValueError, JsonModel, key_name='foo', data='foo')
 
     def test_timezone_property(self):
         zone = 'America/Chicago'
@@ -480,19 +468,11 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         entity_1 = TimezoneModel.get_by_key_name('foo')
         assert entity_1.data == ext_db.pytz.timezone(zone)
 
-    @raises(db.BadValueError)
     def test_timezone_property2(self):
-        zone = 'foo'
-        entity_1 = TimezoneModel(key_name='foo', data=[])
-        entity_1.put()
+        self.assertRaises(db.BadValueError, TimezoneModel, key_name='foo', data=[])
 
-    @raises(ext_db.pytz.UnknownTimeZoneError)
     def test_timezone_property3(self):
-        entity_1 = TimezoneModel(key_name='foo', data='foo')
-        entity_1.put()
-
-        entity_1 = TimezoneModel.get_by_key_name('foo')
-        assert entity_1.data == {'foo': 'bar'}
+        self.assertRaises(ext_db.pytz.UnknownTimeZoneError, TimezoneModel, key_name='foo', data='foo')
 
     #===========================================================================
     # @ext_db.retry_on_timeout
@@ -504,12 +484,12 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
     def test_retry_on_timeout_2(self):
         counter = [0]
-        assert_raises(ValueError, test_timeout_2, counter=counter)
+        self.assertRaises(ValueError, test_timeout_2, counter=counter)
         assert counter[0] == 5
 
     def test_retry_on_timeout_3(self):
         counter = [0]
-        assert_raises(db.Timeout, test_timeout_3, counter=counter)
+        self.assertRaises(db.Timeout, test_timeout_3, counter=counter)
         assert counter[0] == 3
 
     #===========================================================================
@@ -527,13 +507,12 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         assert str(loaded_foo.key()) == str(foo.key())
         assert get(foo_key=None) is None
 
-    @raises(NotFound)
     def test_load_entity_with_key_2(self):
         @ext_db.load_entity(FooModel, 'foo_key', 'foo', 'key')
         def get(*args, **kwargs):
             return kwargs['foo']
 
-        loaded_foo = get(foo_key=str(db.Key.from_path('FooModel', 'bar')))
+        self.assertRaises(NotFound, get, foo_key=str(db.Key.from_path('FooModel', 'bar')))
 
     def test_load_entity_with_id(self):
         @ext_db.load_entity(FooModel, 'foo_id', 'foo', 'id')
@@ -546,13 +525,12 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         loaded_foo = get(foo_id=foo.key().id())
         assert str(loaded_foo.key()) == str(foo.key())
 
-    @raises(NotFound)
     def test_load_entity_with_id_2(self):
         @ext_db.load_entity(FooModel, 'foo_id', 'foo', 'id')
         def get(*args, **kwargs):
             return kwargs['foo']
 
-        loaded_foo = get(foo_id=-1)
+        self.assertRaises(NotFound, get, foo_id=-1)
 
     def test_load_entity_with_key_name(self):
         @ext_db.load_entity(FooModel, 'foo_key_name', 'foo', 'key_name')
@@ -565,13 +543,12 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         loaded_foo = get(foo_key_name='foo')
         assert str(loaded_foo.key()) == str(foo.key())
 
-    @raises(NotFound)
     def test_load_entity_with_key_name_2(self):
         @ext_db.load_entity(FooModel, 'foo_key_name', 'foo', 'key_name')
         def get(*args, **kwargs):
             return kwargs['foo']
 
-        loaded_foo = get(foo_key_name='bar')
+        self.assertRaises(NotFound, get, foo_key_name='bar')
 
     def test_load_entity_with_key_with_guessed_fetch_mode(self):
         @ext_db.load_entity(FooModel, 'foo_key')
@@ -585,18 +562,13 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         assert str(loaded_foo.key()) == str(foo.key())
         assert get(foo_key=None) is None
 
-    @raises(NotImplementedError)
     def test_load_entity_with_key_with_impossible_fetch_mode(self):
-        @ext_db.load_entity(FooModel, 'foo_bar')
-        def get(*args, **kwargs):
-            return kwargs['foo']
+        def test():
+            @ext_db.load_entity(FooModel, 'foo_bar')
+            def get(*args, **kwargs):
+                return kwargs['foo']
 
-        foo = FooModel(name='foo')
-        foo.put()
-
-        loaded_foo = get(foo_key=str(foo.key()))
-        assert str(loaded_foo.key()) == str(foo.key())
-        assert get(foo_key=None) is None
+        self.assertRaises(NotImplementedError, test)
 
     #===========================================================================
     # ext_db.run_in_namespace

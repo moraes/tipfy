@@ -3,7 +3,6 @@
     Tests for tipfy utils
 """
 import unittest
-from nose.tools import raises
 
 import werkzeug
 
@@ -49,13 +48,13 @@ class RedirectToInvalidCodeHandler(RequestHandler):
 
 def get_app():
     return Tipfy(rules=[
-        Rule('/', endpoint='home', handler=HomeHandler),
-        Rule('/people/<string:username>', endpoint='profile', handler=ProfileHandler),
-        Rule('/redirect_to/', endpoint='redirect_to', handler=RedirectToHandler),
-        Rule('/redirect_to/<string:username>', endpoint='redirect_to', handler=RedirectToHandler),
-        Rule('/redirect_to_301/', endpoint='redirect_to', handler=RedirectTo301Handler),
-        Rule('/redirect_to_301/<string:username>', endpoint='redirect_to', handler=RedirectTo301Handler),
-        Rule('/redirect_to_invalid', endpoint='redirect_to_invalid', handler=RedirectToInvalidCodeHandler),
+        Rule('/', name='home', handler=HomeHandler),
+        Rule('/people/<string:username>', name='profile', handler=ProfileHandler),
+        Rule('/redirect_to/', name='redirect_to', handler=RedirectToHandler),
+        Rule('/redirect_to/<string:username>', name='redirect_to', handler=RedirectToHandler),
+        Rule('/redirect_to_301/', name='redirect_to', handler=RedirectTo301Handler),
+        Rule('/redirect_to_301/<string:username>', name='redirect_to', handler=RedirectTo301Handler),
+        Rule('/redirect_to_invalid', name='redirect_to_invalid', handler=RedirectToInvalidCodeHandler),
     ])
 
 
@@ -95,9 +94,8 @@ class TestRedirect(unittest.TestCase):
         assert response.headers['location'] == 'http://www.google.com/'
         assert response.status_code == 301
 
-    @raises(AssertionError)
     def test_redirect_invalid_code(self):
-        redirect('http://www.google.com/', 404)
+        self.assertRaises(AssertionError, redirect, 'http://www.google.com/', 404)
 
     #===========================================================================
     # redirect_to()

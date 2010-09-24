@@ -65,7 +65,7 @@ class TestGae(unittest.TestCase):
                 return tipfy.Response(res)
 
         app = tipfy.Tipfy(rules=[
-            tipfy.Rule('/', endpoint='home', handler=HomeHandler),
+            tipfy.Rule('/', name='home', handler=HomeHandler),
         ], debug=True)
 
         app.run()

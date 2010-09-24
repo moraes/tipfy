@@ -27,7 +27,7 @@ class TestRequest(unittest.TestCase):
                 return Response(self.request.json['foo'])
 
         app = Tipfy(rules=[
-            Rule('/', endpoint='home', handler=HomeHandler),
+            Rule('/', name='home', handler=HomeHandler),
         ], debug=True)
 
         data = json_encode({'foo': 'bar'})

@@ -17,10 +17,10 @@ from tipfy import Request
 from tipfyext.wtforms.fields import FileField, CsrfTokenField
 from tipfyext.wtforms.validators import CsrfToken
 
-#try:
-#    from tipfy.ext import i18n
-#except ImportError, e:
-#    i18n = None
+try:
+    from tipfyext import i18n
+except ImportError, e:
+    i18n = None
 
 
 class Form(BaseForm):

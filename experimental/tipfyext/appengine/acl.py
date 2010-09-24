@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.acl
-    ~~~~~~~~~~~~
+    tipfyext.appengine.acl
+    ~~~~~~~~~~~~~~~~~~~~~~
 
     Simple Access Control List
 
@@ -284,7 +284,7 @@ class Acl(object):
 
     .. code-block:: python
 
-       from tipfyext.acl import Acl
+       from tipfyext.appengine.acl import Acl
 
        # Build an Acl object for user 'John' in the 'code-reviews' area.
        acl = Acl('code-reviews', 'John')
@@ -322,7 +322,7 @@ class Acl(object):
             self.roles_lock = roles_lock
         elif self.roles_lock is None:
             # Set roles_lock default.
-            self.roles_lock = Tipfy.app.version_id
+            self.roles_lock = Tipfy.app.current_version_id
 
         if area and user:
             self._roles, self._rules = AclRules.get_roles_and_rules(area, user,

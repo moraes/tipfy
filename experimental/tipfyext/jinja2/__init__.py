@@ -139,6 +139,30 @@ class Jinja2(object):
         res = self.render_template(_filename, **context)
         return self.app.response_class(res)
 
+    def get_template_attribute(self, filename, attribute):
+        """Loads a macro (or variable) a template exports.  This can be used to
+        invoke a macro from within Python code.  If you for example have a
+        template named `_foo.html` with the following contents:
+
+        .. sourcecode:: html+jinja
+
+           {% macro hello(name) %}Hello {{ name }}!{% endmacro %}
+
+        You can access this from Python code like this::
+
+            hello = get_template_attribute('_foo.html', 'hello')
+            return hello('World')
+
+        This function is borrowed from `Flask`.
+
+        :param filename:
+            The template filename.
+        :param attribute:
+            The name of the variable of macro to acccess.
+        """
+        template = self.environment.get_template(filename)
+        return getattr(template.module, attribute)
+
     @classmethod
     def factory(cls, _app, _name, **kwargs):
         if _name not in _app.registry:

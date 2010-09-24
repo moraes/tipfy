@@ -33,10 +33,10 @@ class TestParseCreation(unittest.TestCase):
 
         res = parse_creation(to_convert, 'my_field_name')
 
-        assert res.timetuple() == curr_date.timetuple()
+        self.assertEqual(res.timetuple(), curr_date.timetuple())
 
 
 
 class TestParseBlobInfo(unittest.TestCase):
     def test_none(self):
-        assert parse_blob_info(None, 'my_field_name') is None
+        self.assertEqual(parse_blob_info(None, 'my_field_name'), None)

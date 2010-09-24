@@ -91,7 +91,7 @@ class TestCommandHandler(unittest.TestCase):
         data = {}
         client.open(method='POST', data=data)
 
-        assert fake_local.get('message', None) is None
+        self.assertEqual(fake_local.get('message', None), None)
 
     def test_not_implemented(self):
         app = get_app()
@@ -115,7 +115,7 @@ class TestCommandHandler(unittest.TestCase):
         }
         client.open(method='POST', data=data)
 
-        assert fake_local.get('message', None) == {'body': 'Unknown command'}
+        self.assertEqual(fake_local.get('message', None), {'body': 'Unknown command'})
 
     def test_command(self):
         app = get_app()
@@ -128,7 +128,7 @@ class TestCommandHandler(unittest.TestCase):
         }
         client.open(method='POST', data=data)
 
-        assert fake_local.get('message', None) == {'body': 'Foo command!'}
+        self.assertEqual(fake_local.get('message', None), {'body': 'Foo command!'})
 
         data = {
             'from': 'me@myself.com',
@@ -137,7 +137,7 @@ class TestCommandHandler(unittest.TestCase):
         }
         client.open(method='POST', data=data)
 
-        assert fake_local.get('message', None) == {'body': 'Bar command!'}
+        self.assertEqual(fake_local.get('message', None), {'body': 'Bar command!'})
 
     def test_text_message(self):
         app = get_app()
@@ -150,4 +150,4 @@ class TestCommandHandler(unittest.TestCase):
         }
         client.open(method='POST', data=data)
 
-        assert fake_local.get('message', None) == {'body': 'Hello, text message!'}
+        self.assertEqual(fake_local.get('message', None), {'body': 'Hello, text message!'})

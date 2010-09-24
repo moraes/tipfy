@@ -14,8 +14,10 @@ from tipfyext.i18n import (_, format_currency, format_date, format_datetime,
     format_decimal, format_number, format_percent, format_scientific,
     format_time, gettext, get_locale, get_translations, get_tzinfo,
     I18nMiddleware, is_default_locale, lazy_gettext, lazy_ngettext,
-    list_translations, ngettext, parse_number, parse_decimal, pytz,
-    set_translations, set_translations_from_request, to_local_timezone, to_utc)
+    list_translations, ngettext, parse_date, parse_datetime, parse_number,
+    parse_decimal, parse_time, pytz, set_translations,
+    set_translations_from_request, to_local_timezone, to_utc,
+    get_timezone, get_timezone_location)
 
 
 class Request(object):
@@ -405,6 +407,17 @@ class TestDates(unittest.TestCase):
         self.assertEqual(format_time(value, format='long'), u'16:36:05 +0000')
         self.assertEqual(format_time(value, format='full'), u'16h36min05s Horário Mundo (GMT)')
 
+    def test_parse_date(self):
+       self.assertEqual(parse_date('4/1/04', locale='en_US'), datetime.date(2004, 4, 1))
+       self.assertEqual(parse_date('01.04.2004', locale='de_DE'), datetime.date(2004, 4, 1))
+
+    def test_parse_datetime(self):
+       self.assertRaises(NotImplementedError, parse_datetime, '4/1/04 16:08:09', locale='en_US')
+
+    def test_parse_time(self):
+        self.assertEqual(parse_time('18:08:09', locale='en_US'), datetime.time(18, 8, 9))
+        self.assertEqual(parse_time('18:08:09', locale='de_DE'), datetime.time(18, 8, 9))
+
 #============================================================================
 # Timezones
 #============================================================================
@@ -475,6 +488,11 @@ class TestTimezones(unittest.TestCase):
         localtime = to_utc(base)
         result = localtime.strftime(format)
         self.assertEqual(result, '2002-10-27 11:00:00')
+
+    def test_get_timezone_location(self):
+        self.assertEqual(get_timezone_location(get_timezone('America/St_Johns'), locale='de_DE'), u'Kanada (St. John\'s)')
+        self.assertEqual(get_timezone_location(get_timezone('America/Mexico_City'), locale='de_DE'), u'Mexiko (Mexiko-Stadt)')
+        self.assertEqual(get_timezone_location(get_timezone('Europe/Berlin'), locale='de_DE'), u'Deutschland')
 
 #============================================================================
 # Number formatting

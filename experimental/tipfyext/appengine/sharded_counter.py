@@ -170,7 +170,7 @@ class CounterShard(db.Model):
             db.run_in_transaction(get_or_create_shard)
         except (db.Error, apiproxy_errors.Error), e:
             counter.delayed_incr.increment(incr)
-            logging.error("CounterShard (%s) delayed increment %d: %s",
+            logging.error('CounterShard (%s) delayed increment %d: %s',
                           counter_name, incr, e)
             return False
 

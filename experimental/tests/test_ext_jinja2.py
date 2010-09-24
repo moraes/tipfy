@@ -33,7 +33,7 @@ class TestJinja2(unittest.TestCase):
 
         message = 'Hello, World!'
         res = jinja2.render_template('template1.html', message=message)
-        assert res == message
+        self.assertEqual(res, message)
 
     def test_render_response(self):
         app = Tipfy(config={'tipfyext.jinja2': {'templates_dir': templates_dir}})
@@ -42,9 +42,9 @@ class TestJinja2(unittest.TestCase):
 
         message = 'Hello, World!'
         response = jinja2.render_response('template1.html', message=message)
-        assert isinstance(response, Response)
-        assert response.mimetype == 'text/html'
-        assert response.data == message
+        self.assertEqual(isinstance(response, Response), True)
+        self.assertEqual(response.mimetype, 'text/html')
+        self.assertEqual(response.data, message)
 
     def test_render_response_force_compiled(self):
         app = Tipfy(config={'tipfyext.jinja2': {
@@ -56,9 +56,9 @@ class TestJinja2(unittest.TestCase):
 
         message = 'Hello, World!'
         response = jinja2.render_response('template1.html', message=message)
-        assert isinstance(response, Response)
-        assert response.mimetype == 'text/html'
-        assert response.data == message
+        self.assertEqual(isinstance(response, Response), True)
+        self.assertEqual(response.mimetype, 'text/html')
+        self.assertEqual(response.data, message)
 
     def test_jinja2_mixin_render_template(self):
         class MyHandler(RequestHandler, Jinja2Mixin):
@@ -74,7 +74,7 @@ class TestJinja2(unittest.TestCase):
 
         handler = MyHandler(Tipfy.app, Tipfy.request)
         response = handler.render_template('template1.html', message=message)
-        assert response == message
+        self.assertEqual(response, message)
 
     def test_jinja2_mixin_render_response(self):
         class MyHandler(RequestHandler, Jinja2Mixin):
@@ -90,9 +90,9 @@ class TestJinja2(unittest.TestCase):
 
         handler = MyHandler(Tipfy.app, Tipfy.request)
         response = handler.render_response('template1.html', message=message)
-        assert isinstance(response, Response)
-        assert response.mimetype == 'text/html'
-        assert response.data == message
+        self.assertEqual(isinstance(response, Response), True)
+        self.assertEqual(response.mimetype, 'text/html')
+        self.assertEqual(response.data, message)
 
     def test_get_template_attribute(self):
         app = Tipfy(config={'tipfyext.jinja2': {'templates_dir': templates_dir}})
@@ -100,7 +100,7 @@ class TestJinja2(unittest.TestCase):
         jinja2 = Jinja2(app)
 
         hello = jinja2.get_template_attribute('hello.html', 'hello')
-        assert hello('World') == 'Hello, World!'
+        self.assertEqual(hello('World'), 'Hello, World!')
 
     def test_engine_factory(self):
         def get_jinja2_env():
@@ -121,7 +121,7 @@ class TestJinja2(unittest.TestCase):
 
         message = 'Hello, World!'
         res = jinja2.render_template('template1.html', message=message)
-        assert res == message
+        self.assertEqual(res, message)
 
     def test_engine_factory2(self):
         old_sys_path = sys.path[:]
@@ -136,6 +136,17 @@ class TestJinja2(unittest.TestCase):
 
         message = 'Hello, World!'
         res = jinja2.render_template('template1.html', message=message)
-        assert res == message
+        self.assertEqual(res, message)
 
         sys.path = old_sys_path
+
+    def test_engine_factory3(self):
+        app = Tipfy()
+        app.set_locals()
+        _globals = {'message': 'Hey there!'}
+        filters = {'ho': lambda e: e + ' Ho!'}
+        jinja2 = Jinja2(app, _globals=_globals, filters=filters)
+
+        template = jinja2.environment.from_string("""{{ message|ho }}""")
+
+        self.assertEqual(template.render(), 'Hey there! Ho!')

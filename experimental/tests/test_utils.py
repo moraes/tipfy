@@ -71,28 +71,28 @@ class TestRedirect(unittest.TestCase):
     def test_redirect(self):
         response = redirect('http://www.google.com/')
 
-        assert response.headers['location'] == 'http://www.google.com/'
-        assert response.status_code == 302
+        self.assertEqual(response.headers['location'], 'http://www.google.com/')
+        self.assertEqual(response.status_code, 302)
 
     def test_redirect_301(self):
         response = redirect('http://www.google.com/', 301)
 
-        assert response.headers['location'] == 'http://www.google.com/'
-        assert response.status_code == 301
+        self.assertEqual(response.headers['location'], 'http://www.google.com/')
+        self.assertEqual(response.status_code, 301)
 
     def test_redirect_no_response(self):
         response = redirect('http://www.google.com/')
 
-        assert isinstance(response, werkzeug.BaseResponse)
-        assert response.headers['location'] == 'http://www.google.com/'
-        assert response.status_code == 302
+        self.assertEqual(isinstance(response, werkzeug.BaseResponse), True)
+        self.assertEqual(response.headers['location'], 'http://www.google.com/')
+        self.assertEqual(response.status_code, 302)
 
     def test_redirect_no_response_301(self):
         response = redirect('http://www.google.com/', 301)
 
-        assert isinstance(response, werkzeug.BaseResponse)
-        assert response.headers['location'] == 'http://www.google.com/'
-        assert response.status_code == 301
+        self.assertEqual(isinstance(response, werkzeug.BaseResponse), True)
+        self.assertEqual(response.headers['location'], 'http://www.google.com/')
+        self.assertEqual(response.status_code, 301)
 
     def test_redirect_invalid_code(self):
         self.assertRaises(AssertionError, redirect, 'http://www.google.com/', 404)
@@ -105,8 +105,8 @@ class TestRedirect(unittest.TestCase):
         client = app.get_test_client()
 
         response = client.get('/redirect_to/', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/'
-        assert response.status_code == 302
+        self.assertEqual(response.headers['location'], 'http://foo.com/')
+        self.assertEqual(response.status_code, 302)
 
 
     def test_redirect_to2(self):
@@ -114,39 +114,39 @@ class TestRedirect(unittest.TestCase):
         client = app.get_test_client()
 
         response = client.get('/redirect_to/calvin', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/calvin'
-        assert response.status_code == 302
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/calvin')
+        self.assertEqual(response.status_code, 302)
 
         response = client.get('/redirect_to/hobbes', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/hobbes'
-        assert response.status_code == 302
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/hobbes')
+        self.assertEqual(response.status_code, 302)
 
         response = client.get('/redirect_to/moe', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/moe'
-        assert response.status_code == 302
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/moe')
+        self.assertEqual(response.status_code, 302)
 
     def test_redirect_to_301(self):
         app = get_app()
         client = app.get_test_client()
 
         response = client.get('/redirect_to_301/calvin', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/calvin'
-        assert response.status_code == 301
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/calvin')
+        self.assertEqual(response.status_code, 301)
 
         response = client.get('/redirect_to_301/hobbes', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/hobbes'
-        assert response.status_code == 301
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/hobbes')
+        self.assertEqual(response.status_code, 301)
 
         response = client.get('/redirect_to_301/moe', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/moe'
-        assert response.status_code == 301
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/moe')
+        self.assertEqual(response.status_code, 301)
 
     def test_redirect_to_invalid_code(self):
         app = get_app()
         client = app.get_test_client()
 
         response = client.get('/redirect_to_invalid', base_url='http://foo.com')
-        assert response.status_code == 500
+        self.assertEqual(response.status_code, 500)
 
 
 class TestRenderJson(unittest.TestCase):
@@ -162,9 +162,9 @@ class TestRenderJson(unittest.TestCase):
     def test_render_json_response(self):
         response = render_json_response({'foo': 'bar'})
 
-        assert isinstance(response, Response)
-        assert response.mimetype == 'application/json'
-        assert response.data == '{"foo": "bar"}'
+        self.assertEqual(isinstance(response, Response), True)
+        self.assertEqual(response.mimetype, 'application/json')
+        self.assertEqual(response.data, '{"foo": "bar"}')
 
 
 class TestUtils(unittest.TestCase):

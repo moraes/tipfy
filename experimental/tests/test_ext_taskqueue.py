@@ -68,14 +68,9 @@ class TestDeferredHandler(DataStoreTestCase, TaskQueueTestCase, unittest.TestCas
         numbers = [1234, 1577, 988]
         keys = [db.Key.from_path('FooModel', str(number)) for number in numbers]
         entities = db.get(keys)
-        assert entities == [None, None, None]
+        self.assertEqual(entities, [None, None, None])
 
         deferred.defer(save_entities, numbers)
-        #self.assertTasksInQueue()
-        #time.sleep(3)
-
-        #entities = db.get(keys)
-        #assert entities == [None, None, None]
 
 
 class TestTasks(DataStoreTestCase, TaskQueueTestCase, unittest.TestCase):

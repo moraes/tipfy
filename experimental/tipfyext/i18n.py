@@ -774,7 +774,7 @@ def parse_decimal(string, locale=None):
     return numbers.parse_decimal(string, locale=locale)
 
 
-def get_timezone_name(dt_or_tzinfo, locale=None):
+def get_timezone_location(dt_or_tzinfo, locale=None):
     """Returns a representation of the given timezone using "location format".
 
     The result depends on both the local display name of the country and the

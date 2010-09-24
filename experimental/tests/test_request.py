@@ -4,6 +4,7 @@ import unittest
 
 from tipfy import Request, RequestHandler, Response, Rule, Tipfy
 from tipfy.sessions import SessionStore, SecureCookieSession
+from tipfy.auth import AppEngineAuthStore
 from tipfy.utils import json_decode, json_encode
 
 
@@ -50,3 +51,11 @@ class TestRequest(unittest.TestCase):
         session = request.session
         self.assertEqual(isinstance(session, SecureCookieSession), True)
         self.assertEqual(session, {})
+
+    def test_auth_store(self):
+        app = self._get_app()
+        request = Request.from_values('/')
+        app.set_locals(request)
+
+        self.assertEqual(isinstance(request.auth, AppEngineAuthStore), True)
+

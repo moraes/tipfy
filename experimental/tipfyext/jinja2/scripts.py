@@ -29,9 +29,11 @@ def walk(top, topdown=True, onerror=None, followlinks=False):
     dirs, nondirs = [], []
     for name in names:
         if os.path.isdir(os.path.join(top, name)):
-            dirs.append(name)
+            if name != '_compiled':
+                dirs.append(name)
         else:
-            nondirs.append(name)
+            if name != '_compiled.zip':
+                nondirs.append(name)
 
     if topdown:
         yield top, dirs, nondirs
@@ -63,7 +65,7 @@ def list_templates(self):
 
 
 def logger(msg):
-    sys.stderr.write('\n%s\n' % msg)
+    sys.stderr.write('%s\n' % msg)
 
 
 def filter_templates(tpl):
@@ -105,11 +107,15 @@ def compile_templates(argv=None):
     from config import config
 
     app = Tipfy(config=config)
-    template_path = app.get_config('tipfyext.jinja2', 'templates_dir')
-    compiled_path = app.get_config('tipfyext.jinja2', 'templates_compiled_target')
+    cfg = app.get_config('tipfyext.jinja2')
+    template_path = cfg.get('templates_dir')
 
-    if compiled_path is None:
-        raise ValueError('Missing configuration key to compile templates.')
+    if cfg.get('use_zip_compiled'):
+        compiled_target = os.path.join(template_path, '_compiled.zip')
+        zip_cfg = 'deflated'
+    else:
+        compiled_target = os.path.join(template_path, '_compiled')
+        zip_cfg = None
 
     if isinstance(template_path, basestring):
         # A single path.
@@ -118,17 +124,13 @@ def compile_templates(argv=None):
         # A list of paths.
         source = [os.path.join(app_path, p) for p in template_path]
 
-    target = os.path.join(app_path, compiled_path)
+    target = os.path.join(app_path, compiled_target)
 
     # Set templates dir and deactivate compiled dir to use normal loader to
     # find the templates to be compiled.
-    app.config['tipfyext.jinja2']['templates_dir'] = source
-    app.config['tipfyext.jinja2']['templates_compiled_target'] = None
-
-    if target.endswith('.zip'):
-        zip_cfg = 'deflated'
-    else:
-        zip_cfg = None
+    cfg['templates_dir'] = source
+    cfg['use_compiled'] = False
+    cfg['use_zip_compiled'] = False
 
     old_list_templates = FileSystemLoader.list_templates
     FileSystemLoader.list_templates = list_templates

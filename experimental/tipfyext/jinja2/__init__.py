@@ -10,6 +10,8 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
+import os
+
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from werkzeug import cached_property
@@ -24,16 +26,19 @@ except ImportError:
 #: templates_dir
 #:     Directory for templates. Default is `templates`.
 #:
-#: templates_compiled_target
-#:     Target for compiled templates. If set, uses the loader for compiled
-#:     templates when deployed. If it ends with a '.zip' it will be treated
-#:     as a zip file. Default is None.
+#: use_compiled
+#:     If set, uses the loader for compiled templates when deployed.
+#:
+#: use_zip_compiled
+#:     If set, uses the loader for compiled templates when deployed, and the
+#:     compiler will compile the templates to a zip file.
 #:
 #: force_use_compiled
 #:     Forces the use of compiled templates even in the development server.
 default_config = {
-    'templates_dir': 'templates',
-    'templates_compiled_target': None,
+    'templates_dir':      'templates',
+    'use_compiled':       False,
+    'use_zip_compiled':   False,
     'force_use_compiled': False,
 }
 
@@ -59,15 +64,23 @@ class Jinja2(object):
         self.app = app
 
         cfg = app.get_config(__name__)
-        templates_compiled_target = cfg.get('templates_compiled_target')
+        templates_dir = cfg.get('templates_dir')
+
+        if cfg.get('use_zip_compiled'):
+            compiled_target = os.path.join(templates_dir, '_compiled.zip')
+        elif cfg.get('use_compiled'):
+            compiled_target = os.path.join(templates_dir, '_compiled')
+        else:
+            compiled_target = None
+
         use_compiled = not app.debug or cfg.get('force_use_compiled')
 
-        if templates_compiled_target is not None and use_compiled:
+        if compiled_target is not None and use_compiled:
             # Use precompiled templates loaded from a module or zip.
-            loader = ModuleLoader(templates_compiled_target)
+            loader = ModuleLoader(compiled_target)
         else:
             # Parse templates for every new environment instances.
-            loader = FileSystemLoader(cfg.get('templates_dir'))
+            loader = FileSystemLoader(templates_dir)
 
         # Initialize the environment.
         env = Environment(loader=loader, extensions=extensions)

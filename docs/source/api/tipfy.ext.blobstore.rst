@@ -59,7 +59,7 @@ are the URL rules for the handlers above:
 
    from tipfy import Rule
 
-   def get_rules():
+   def get_rules(app):
        rules = [
            Rule('/', endpoint='home', handler='handlers.MainHandler'),
            Rule('/upload', endpoint='blobstore/upload', handler='handlers.UploadHandler'),

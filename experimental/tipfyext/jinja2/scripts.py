@@ -29,11 +29,9 @@ def walk(top, topdown=True, onerror=None, followlinks=False):
     dirs, nondirs = [], []
     for name in names:
         if os.path.isdir(os.path.join(top, name)):
-            if name != '_compiled':
-                dirs.append(name)
+            dirs.append(name)
         else:
-            if name != '_compiled.zip':
-                nondirs.append(name)
+            nondirs.append(name)
 
     if topdown:
         yield top, dirs, nondirs
@@ -69,8 +67,14 @@ def logger(msg):
 
 
 def filter_templates(tpl):
-    # Only ignore templates that start with '.'.
-    return not os.path.basename(tpl).startswith('.')
+    # ignore templates that start with '.' and py files.
+    if os.path.basename(tpl).startswith('.'):
+        return False
+
+    if os.path.basename(tpl).endswith(('.py', '.pyc')):
+        return False
+
+    return True
 
 
 def compile_templates(argv=None):
@@ -107,15 +111,11 @@ def compile_templates(argv=None):
     from config import config
 
     app = Tipfy(config=config)
-    cfg = app.get_config('tipfyext.jinja2')
-    template_path = cfg.get('templates_dir')
+    template_path = app.get_config('tipfyext.jinja2', 'templates_dir')
+    compiled_path = app.get_config('tipfyext.jinja2', 'templates_compiled_target')
 
-    if cfg.get('use_zip_compiled'):
-        compiled_target = os.path.join(template_path, '_compiled.zip')
-        zip_cfg = 'deflated'
-    else:
-        compiled_target = os.path.join(template_path, '_compiled')
-        zip_cfg = None
+    if compiled_path is None:
+        raise ValueError('Missing configuration key to compile templates.')
 
     if isinstance(template_path, basestring):
         # A single path.
@@ -124,13 +124,17 @@ def compile_templates(argv=None):
         # A list of paths.
         source = [os.path.join(app_path, p) for p in template_path]
 
-    target = os.path.join(app_path, compiled_target)
+    target = os.path.join(app_path, compiled_path)
 
     # Set templates dir and deactivate compiled dir to use normal loader to
     # find the templates to be compiled.
-    cfg['templates_dir'] = source
-    cfg['use_compiled'] = False
-    cfg['use_zip_compiled'] = False
+    app.config['tipfyext.jinja2']['templates_dir'] = source
+    app.config['tipfyext.jinja2']['templates_compiled_target'] = None
+
+    if target.endswith('.zip'):
+        zip_cfg = 'deflated'
+    else:
+        zip_cfg = None
 
     old_list_templates = FileSystemLoader.list_templates
     FileSystemLoader.list_templates = list_templates

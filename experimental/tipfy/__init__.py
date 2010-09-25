@@ -16,8 +16,9 @@ from wsgiref.handlers import CGIHandler
 # Werkzeug Swiss knife.
 # Need to import werkzeug first otherwise py_zipimport fails.
 import werkzeug
-from werkzeug import (Request as BaseRequest, Response as BaseResponse,
-    cached_property, import_string, redirect as base_redirect)
+from werkzeug import (Local, LocalProxy, Request as BaseRequest,
+    Response as BaseResponse, cached_property, import_string,
+    redirect as base_redirect)
 from werkzeug.exceptions import HTTPException, InternalServerError, abort
 
 from tipfy.config import Config, DEFAULT_VALUE, REQUIRED_VALUE
@@ -604,12 +605,10 @@ Handler = RequestHandler
 
 # Locals.
 if APPENGINE:
-    from werkzeug import LocalProxy
     local = None
     app = LocalProxy(lambda: Tipfy.app)
     request = LocalProxy(lambda: Tipfy.request)
 else:
-    from werkzeug import Local
     local = Local()
     Tipfy.app = app = local('app')
     Tipfy.request = request = local('request')

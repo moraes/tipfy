@@ -135,15 +135,16 @@ class AppEngineMixedAuthStore(BaseAuthStore):
 
         # Fetch the user entity.
         user = self.get_user_entity(auth_id=auth_id)
-        if user is None:
+        session_token = session.get('token')
+        if user is None or session_token is None:
             if gae_user:
-                return self._set_session(auth_id)
+                return self._set_session(auth_id, user)
 
-            # Bad auth id, no fallback: must log in again.
+            # Bad auth id or token, no fallback: must log in again.
             return self.logout()
 
         current_token = user.session_id
-        if not user.check_session(session.get('token')):
+        if not user.check_session(session_token):
             # Token didn't match.
             return self.logout()
 

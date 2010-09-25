@@ -36,8 +36,7 @@ class SessionModel(db.Model):
 
     @classmethod
     def kind(cls):
-        """Returns the datastore kind we use for this model.
-        """
+        """Returns the datastore kind we use for this model."""
         return cls.kind_name
 
     @property
@@ -105,10 +104,9 @@ class SessionModel(db.Model):
 class _BaseSession(ModificationTrackingDict):
     __slots__ = ModificationTrackingDict.__slots__ + ('sid',)
 
-    def __init__(self, data, sid, modified=False):
+    def __init__(self, data, sid):
         ModificationTrackingDict.__init__(self, data)
         self.sid = sid
-        self.modified = modified
 
     @classmethod
     def _get_new_sid(cls):
@@ -134,7 +132,7 @@ class DatastoreSession(_BaseSession):
             entity = cls.model_class.get_by_sid(sid)
 
         if not entity:
-            return cls((), cls._get_new_sid(), modified=True)
+            return cls((), cls._get_new_sid())
 
         return cls(entity.data, sid)
 
@@ -142,8 +140,7 @@ class DatastoreSession(_BaseSession):
         if not self.modified:
             return
 
-        self.entity = self.model_class.create(self.sid, dict(self))
-        self.entity.put()
+        self.model_class.create(self.sid, dict(self)).put()
         store.set_secure_cookie(response, name, {'_sid': self.sid}, **kwargs)
 
 
@@ -157,7 +154,7 @@ class MemcacheSession(_BaseSession):
             data = memcache.get(sid)
 
         if not data:
-            return cls((), cls._get_new_sid(), modified=True)
+            return cls((), cls._get_new_sid())
 
         return cls(data, sid)
 
@@ -165,11 +162,7 @@ class MemcacheSession(_BaseSession):
         if not self.modified:
             return
 
-        max_age = kwargs.get('session_max_age')
-        if not max_age:
-            max_age = 0
-
-        memcache.set(self.sid, dict(self), time=max_age)
+        memcache.set(self.sid, dict(self))
         store.set_secure_cookie(response, name, {'_sid': self.sid}, **kwargs)
 
 

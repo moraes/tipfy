@@ -21,8 +21,6 @@ import urllib
 
 from google.appengine.api import urlfetch
 
-from django.utils import simplejson
-
 from tipfy import redirect, REQUIRED_VALUE
 from tipfy.utils import json_decode, json_encode
 

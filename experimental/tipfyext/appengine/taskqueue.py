@@ -36,8 +36,8 @@ class DeferredHandler(RequestHandler):
 
     .. code-block:: python
 
-       Rule('/_ah/queue/deferred', endpoint='tasks/deferred',
-            handler='tipfyext.taskqueue:DeferredHandler')
+       Rule('/_ah/queue/deferred', name='tasks/deferred',
+            handler='tipfyext.taskqueue.DeferredHandler')
     """
     def post(self):
         headers = ['%s:%s' % (k, v) for k, v in self.request.headers.items()
@@ -86,8 +86,8 @@ class Mapper(object):
 
     .. code-block:: python
 
-       Rule('/_ah/queue/deferred', endpoint='tasks/deferred',
-           handler='tipfyext.tasks:DeferredHandler')
+       Rule('/_ah/queue/deferred', name='tasks/deferred',
+           handler='tipfyext.tasks.DeferredHandler')
 
     This class derives from `deffered article <http://code.google.com/appengine/articles/deferred.html>`_.
     """

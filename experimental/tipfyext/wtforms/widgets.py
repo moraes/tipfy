@@ -12,7 +12,7 @@
 """
 #from werkzeug import url_encode
 
-from django.utils.simplejson import dumps
+from tipfy.utils import json_encode
 
 from wtforms.widgets import *
 
@@ -73,5 +73,5 @@ class RecaptchaWidget(object):
         return RECAPTCHA_HTML % dict(
             script_url='%schallenge?%s' % (server, query),
             frame_url='%snoscript?%s' % (server, query),
-            options=dumps(options)
+            options=json_encode(options)
         )

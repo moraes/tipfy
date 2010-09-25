@@ -297,13 +297,13 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
         })
         self.assertEqual(response.data, 'a secure cookie value')
 
-    def test_set_get_flash(self):
+    def test_set_get_flashes(self):
         class MyHandler(BaseHandler):
             def get(self):
-                res = self.get_flash()
+                res = self.get_flashes()
                 if not res:
                     res = [{'body': 'undefined'}]
-                    self.set_flash({'body': 'a flash value'})
+                    self.add_flash({'body': 'a flash value'})
 
                 return Response(res[0]['body'])
 

@@ -14,7 +14,7 @@ import uuid
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
-from werkzeug.contrib.sessions import ModificationTrackingDict
+from tipfy.sessions import BaseSession
 
 from tipfyext.appengine.db import (PickleProperty, get_protobuf_from_entity,
     get_entity_from_protobuf)
@@ -101,11 +101,11 @@ class SessionModel(db.Model):
         db.delete(self)
 
 
-class _BaseSession(ModificationTrackingDict):
-    __slots__ = ModificationTrackingDict.__slots__ + ('sid',)
+class AppEngineBaseSession(BaseSession):
+    __slots__ = BaseSession.__slots__ + ('sid',)
 
     def __init__(self, data, sid):
-        ModificationTrackingDict.__init__(self, data)
+        BaseSession.__init__(self, data)
         self.sid = sid
 
     @classmethod
@@ -120,7 +120,7 @@ class _BaseSession(ModificationTrackingDict):
         return cls._get_by_sid(cookie.get('_sid'), **kwargs)
 
 
-class DatastoreSession(_BaseSession):
+class DatastoreSession(AppEngineBaseSession):
     model_class = SessionModel
 
     @classmethod
@@ -144,7 +144,7 @@ class DatastoreSession(_BaseSession):
         store.set_secure_cookie(response, name, {'_sid': self.sid}, **kwargs)
 
 
-class MemcacheSession(_BaseSession):
+class MemcacheSession(AppEngineBaseSession):
     @classmethod
     def _get_by_sid(cls, sid, **kwargs):
         """Returns a session given a session id."""

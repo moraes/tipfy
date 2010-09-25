@@ -75,6 +75,44 @@ default_config = {
 }
 
 
+class BaseSession(ModificationTrackingDict):
+    def get_flashes(self, key='_flash'):
+        """Returns a flash message. Flash messages are deleted when first read.
+
+        :param key:
+            Name of the flash key stored in the session. Default is '_flash'.
+        :returns:
+            The data stored in the flash, or an empty list.
+        """
+        if key not in self:
+            # Avoid popping if the key doesn't exist to not modify the session.
+            return []
+
+        return self.pop(key, [])
+
+    def add_flash(self, value, key='_flash'):
+        """Sets a flash message. Flash messages are deleted when first read.
+
+        :param value:
+            Value to be saved in the flash message.
+        :param key:
+            Name of the flash key stored in the session. Default is '_flash'.
+        """
+        self.setdefault(key, []).append(value)
+
+
+class SecureCookieSession(BaseSession):
+    @classmethod
+    def get_session(cls, store, name, **kwargs):
+        return cls(store.get_secure_cookie(name) or ())
+
+    def save_session(self, response, store, name, **kwargs):
+        if not self.modified:
+            return
+
+        store.set_secure_cookie(response, name, dict(self), **kwargs)
+
+
 class SecureCookieStore(object):
     """Encapsulates getting and setting secure cookies.
 
@@ -176,18 +214,6 @@ class SecureCookieStore(object):
             result |= ord(x) ^ ord(y)
 
         return result == 0
-
-
-class SecureCookieSession(ModificationTrackingDict):
-    @classmethod
-    def get_session(cls, store, name, **kwargs):
-        return cls(store.get_secure_cookie(name) or ())
-
-    def save_session(self, response, store, name, **kwargs):
-        if not self.modified:
-            return
-
-        store.set_secure_cookie(response, name, self, **kwargs)
 
 
 class SessionStore(object):
@@ -304,41 +330,6 @@ class SessionStore(object):
         kwargs = self.get_cookie_args(**kwargs)
         self.secure_cookie_store.set_cookie(response, name, value, **kwargs)
 
-    def get_flash(self, key=None, backend=None, flash_key='_flash', **kwargs):
-        """Returns a flash message. Flash messages are deleted when first read.
-
-        :param key:
-            Cookie name. See :meth:`get_session`.
-        :param backend:
-            Name of the session backend. See :meth:`get_session`.
-        :param flash_key:
-            Name of the flash key stored in the session. Default is '_flash'.
-        :param kwargs:
-            Options to save the cookie. See :meth:`get_session`.
-        :returns:
-            The data stored in the flash, or an empty list.
-        """
-        session = self.get_session(key=key, backend=backend, **kwargs)
-        return session.pop(flash_key, [])
-
-    def set_flash(self, value, key=None, backend=None, flash_key='_flash',
-        **kwargs):
-        """Sets a flash message. Flash messages are deleted when first read.
-
-        :param value:
-            Dictionary to be saved in the flash message.
-        :param key:
-            Cookie name. See :meth:`get_session`.
-        :param backend:
-            Name of the session backend. See :meth:`get_session`.
-        :param flash_key:
-            Name of the flash key stored in the session. Default is '_flash'.
-        :param kwargs:
-            Options to save the cookie. See :meth:`get_session`.
-        """
-        session = self.get_session(key=key, backend=backend, **kwargs)
-        session.setdefault(flash_key, []).append(value)
-
     def set_cookie(self, key, value, **kwargs):
         """Registers a cookie or secure cookie to be saved or deleted.
 
@@ -412,6 +403,13 @@ class BaseSessionMixin(object):
     def session_store(self):
         return self.request.session_store
 
+    @cached_property
+    def session(self):
+        """A dictionary-like object that is persisted at the end of the
+        request.
+        """
+        return self.request.session_store.get_session()
+
 
 class CookieMixin(BaseSessionMixin):
     """Adds set_cookie() and delete_cookie() methods to a
@@ -440,13 +438,13 @@ class FlashMixin(BaseSessionMixin):
     """A mixin that adds get_flash() and set_flash() methods to a
     :class:`tipfy.RequestHandler`.
     """
-    def get_flash(self, key=None, backend=None, **kwargs):
+    def get_flashes(self, key='_flash'):
         """Returns a flash message. See :meth:`SessionStore.get_flash`."""
-        return self.session_store.get_flash(key, backend, **kwargs)
+        return self.session.get_flashes(key)
 
-    def set_flash(self, data, key=None, backend=None, **kwargs):
+    def add_flash(self, data, key='_flash'):
         """Sets a flash message. See :meth:`SessionStore.set_flash`."""
-        self.session_store.set_flash(data, key, backend, **kwargs)
+        self.session.add_flash(data, key)
 
 
 class MessagesMixin(BaseSessionMixin):
@@ -455,7 +453,7 @@ class MessagesMixin(BaseSessionMixin):
     def messages(self):
         """A list of status messages to be displayed to the user."""
         messages = []
-        messages.extend(self.session_store.get_flash(flash_key='_messages'))
+        messages.extend(self.session.get_flashes(key='_messages'))
         return messages
 
     def set_message(self, level, body, title=None, life=None, flash=False):
@@ -477,7 +475,7 @@ class MessagesMixin(BaseSessionMixin):
         """
         message = {'level': level, 'title': title, 'body': body, 'life': life}
         if flash is True:
-            self.session_store.set_flash(message, flash_key='_messages')
+            self.session.add_flash(message, key='_messages')
         else:
             self.messages.append(message)
 
@@ -486,13 +484,6 @@ class SessionMixin(BaseSessionMixin):
     """A :class:`tipfy.RequestHandler` that provides access to the current
     session.
     """
-    @cached_property
-    def session(self):
-        """A dictionary-like object that is persisted at the end of the
-        request.
-        """
-        return self.session_store.get_session()
-
     def get_session(self, key=None, backend=None, **kwargs):
         """Returns a session. See :meth:`SessionStore.get_session`."""
         return self.session_store.get_session(key, backend, **kwargs)

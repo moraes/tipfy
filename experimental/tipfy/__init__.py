@@ -178,7 +178,7 @@ class RequestHandler(object):
 
         .. seealso:: :meth:`Config.get`.
         """
-        return self.app.config.get_config(module, key=key, default=default)
+        return self.app.get_config(module, key=key, default=default)
 
     def handle_exception(self, exception=None):
         """Handles an exception. The default behavior is to reraise the
@@ -523,7 +523,7 @@ def get_config(module, key=None, default=REQUIRED_VALUE):
 
     .. seealso:: :meth:`Config.get`.
     """
-    return Tipfy.app.config.get_config(module, key=key, default=default)
+    return Tipfy.app.get_config(module, key=key, default=default)
 
 
 def get_valid_methods(handler):

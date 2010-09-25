@@ -9,6 +9,17 @@ tipfy's core design. Here's an overview of what is new:
   thread safe such as Tipfy.app and Tipfy.request are now stored in thread
   locals for non-App Engine servers.
 
+- NEW: app and request globals are back, available as globals in tipfy. They
+  are stored in thread locals outside of App Engine. Current usage doesn't
+  change but now it is possible to import app and request directly, like this::
+
+      # app and request are proxies to Tipfy.app and Tipfy.request
+      from tipfy import app, request
+
+- NEW: tipfy.utils provides the functions json_decode and json_encode, which
+  will use the best simplejson module for the environment and apply correct
+  escaping.
+
 - NEW: added a simple template engine (from Tornado). This eliminates
   dependency on Jinja2 for the debugger.
 
@@ -16,16 +27,73 @@ tipfy's core design. Here's an overview of what is new:
   across subdomains. It mixes App Engine auth with own sessions to achieve
   this.
 
-- NEW: added a router object that centralizes URL matching, dispatching and
-  building. [explain]
+- NEW: secure cookie has a faster and easier to use implementation. See
+  tipfy.sessions.SecureCookieStore.
 
-- NEW: Debugger is now part of tipfy core, without extra-dependencies. [explain]
+- NEW: Debugger is now part of tipfy core, without extra-dependencies.
+  Previously the debugger was dependent on Jinja2, but now it uses the built-in
+  template engine. The debugger is enabled directly in main.py as a normal
+  WSGI middleware. See main.py in the project dir for a setup that also
+  includes patching the dev server for better Jinja2 debugging.
 
-- NEW: Sessions is now part of tipfy core. [explain]
+- NEW: Sessions is now part of tipfy core. It is available in the request
+  object and lazily loaded when accessed. Request has now 'session' and
+  'session_store' attributes:
+
+  - request.session is a shortcut to get a session using the configured
+    backend and session key.
+  - request.session_store provides session related utilities such as getting
+    sessions from different backends and setting/deleting cookies.
+
+  Examples::
+
+      # Set a value in the current session.
+      self.request.session['foo'] = 'bar'
+
+      # Get a list of flash messages.
+      flashes = self.request.session.get_flashes()
+
+      # Add a flash message.
+      self.request.session.add_flash('Hello, world!')
+
+      # Get a session from a different backend.
+      session = self.request.session_store.get_session(backend='memcache')
 
 - NEW: Auth is now part of tipfy core. [explain]
 
-- NEW: configuration now behaves much more like a dictionary, still
+- IMPROVED: redirect() (or self.redirect() in handlers) now accepts relative
+  URLs. If a relative URL is passed, it'll be joined to the current request
+  URL. THis is mostly useful to redirect to the result of url_for() without
+  needing to build a full URL::
+
+      # current URL is http://localhost/foo/bar
+
+      # redirects to http://localhost/baz
+      return redirect('/baz')
+
+  ...but it also allows curious results for relative paths:
+
+      # current URL is http://localhost/foo/bar
+
+      # redirects to http://localhost/foo/baz
+      return redirect('./baz')
+
+      # redirects to http://localhost/baz
+      return redirect('../baz')
+
+- IMPROVED: url_for() has a few more keywords with special meanings, all
+  prefixed with underscore. This is the full list of special keywords:
+
+  - **_full**: If True, builds an absolute URL.
+  - **_method**: Uses a rule defined to handle specific request
+    methods, if any are defined.
+  - **_scheme**: URL scheme, e.g., `http` or `https`. If defined,
+    an absolute URL is always returned.
+  - **_netloc**: Network location, e.g., `www.google.com`. If
+    defined, an absolute URL is always returned.
+  - **_anchor**: If set, appends an anchor to generated URL.
+
+- IMPROVED: configuration now behaves exactly like a dictionary, still
   auto-loading configuration values when needed and honoring required configs.
   For example, we always used this::
 
@@ -39,12 +107,20 @@ tipfy's core design. Here's an overview of what is new:
       # or...
       secret_key = self.app.config.get('tipfy.sessions').get('secret_key')
 
-  The previous get_config() method works as always; we just made config
-  behave more like a normal dict.
-
-- NEW: added a new rule converter, RegexConverter. [explain]
+  The previous get_config() method works as always.
 
 - REMOVED: make_wsgi_app() and run_wsgi_app(). [explain]
+
+- IMPROVED: Rule now accepts 'name' as keyword argument. It is an alias to
+  'endpoint'. This is just for semantic correctness in tipfy context and
+  'endpoint' will still work::
+
+      Rule('/', name='home', handler='handlers.HomeHandler')
+      # is the same as...
+      Rule('/', endpoint='home', handler='handlers.HomeHandler')
+
+- NEW: added a router object that centralizes URL matching, dispatching and
+  building. [explain]
 
 - CHANGED: URL rules are not automatically loaded from urls.py. Instead tipfy
   is instantiated passing the URL rules, like webapp. Later other rules can
@@ -93,5 +169,7 @@ tipfy's core design. Here's an overview of what is new:
       from urls import rules
 
       app = Tipfy(rules=rules)
+
+- NEW: added a new rule converter, RegexConverter. [explain]
 
 - ...

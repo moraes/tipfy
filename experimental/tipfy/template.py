@@ -86,6 +86,7 @@ import datetime
 import logging
 import os.path
 import re
+import zipfile
 
 import tipfy.utils as escape
 
@@ -191,6 +192,41 @@ class Loader(object):
             f = open(path, "r")
             self.templates[name] = Template(f.read(), name=name, loader=self)
             f.close()
+        return self.templates[name]
+
+
+class ZipLoader(object):
+    """A template loader that loads from a zip file and a root directory.
+
+    You must use a template loader to use template constructs like
+    {% extends %} and {% include %}. Loader caches all templates after
+    they are loaded the first time.
+    """
+    def __init__(self, zip_path, root_directory):
+        self.zipfile = zipfile.ZipFile(zip_path, 'r')
+        self.root = os.path.join(root_directory)
+        self.templates = {}
+
+    def reset(self):
+        self.templates = {}
+
+    def resolve_path(self, name, parent_path=None):
+        if parent_path and not parent_path.startswith("<") and \
+           not parent_path.startswith("/") and \
+           not name.startswith("/"):
+            current_path = os.path.join(self.root, parent_path)
+            file_dir = os.path.dirname(os.path.abspath(current_path))
+            relative_path = os.path.abspath(os.path.join(file_dir, name))
+            if relative_path.startswith(self.root):
+                name = relative_path[len(self.root) + 1:]
+        return name
+
+    def load(self, name, parent_path=None):
+        name = self.resolve_path(name, parent_path=parent_path)
+        if name not in self.templates:
+            path = os.path.join(self.root, name)
+            tpl = self.zipfile.read(path)
+            self.templates[name] = Template(tpl, name=name, loader=self)
         return self.templates[name]
 
 

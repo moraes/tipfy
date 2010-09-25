@@ -36,6 +36,9 @@ tipfy's core design. Here's an overview of what is new:
   WSGI middleware. See main.py in the project dir for a setup that also
   includes patching the dev server for better Jinja2 debugging.
 
+- IMPROVED: the debugger now works even if the libraries are zipped using
+  buildout.
+
 - NEW: Sessions is now part of tipfy core. It is available in the request
   object and lazily loaded when accessed. Request has now 'session' and
   'session_store' attributes:

@@ -71,7 +71,7 @@ def filter_templates(tpl):
     if os.path.basename(tpl).startswith('.'):
         return False
 
-    if os.path.basename(tpl).endswith(('.py', '.pyc')):
+    if os.path.basename(tpl).endswith(('.py', '.pyc', '.zip')):
         return False
 
     return True

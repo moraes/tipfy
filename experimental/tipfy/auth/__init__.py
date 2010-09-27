@@ -18,7 +18,7 @@ from werkzeug import cached_property, import_string
 #:
 #: user_model
 #:     A ``db.Model`` class used for authenticated users, as a string.
-#:     Default is `tipfy.auth.model.User`.
+#:     Default is `tipfy.auth.appengine.model.User`.
 #:
 #: secure_urls
 #:     True to use secure URLs for login, logout and sign up, False otherwise.
@@ -31,7 +31,7 @@ from werkzeug import cached_property, import_string
 #:     Interval in seconds before a user session id is renewed.
 #:     Default is 1 week.
 default_config = {
-    'user_model':      'tipfy.auth.model.User',
+    'user_model':      'tipfy.auth.appengine.model.User',
     'cookie_name':     'auth',
     'secure_urls':     False,
     'session_max_age': 86400 * 7,
@@ -145,6 +145,160 @@ class BaseAuthStore(object):
             _app.request.registry[_name] = cls(_app, _app.request, **kwargs)
 
         return _app.request.registry[_name]
+
+
+class SessionAuthStore(BaseAuthStore):
+    """Base store for auth stores tha use own session."""
+    def __init__(self, *args, **kwargs):
+        super(SessionAuthStore, self).__init__(*args, **kwargs)
+        self.loaded = False
+        self._session = None
+        self._user = None
+
+    @cached_property
+    def session(self):
+        """Returns the currently logged in user session."""
+        if self.loaded is False:
+            self._load_session_and_user()
+
+        return self._session
+
+    @cached_property
+    def user(self):
+        """Returns the currently logged in user entity or None.
+
+        :returns:
+            A :class:`User` entity, if the user for the current request is
+            logged in, or None.
+        """
+        if self.loaded is False:
+            self._load_session_and_user()
+
+        return self._user
+
+    def create_user(self, username, **kwargs):
+        auth_id = self._session_base.get('_auth', {}).get('id')
+        if not auth_id:
+            return
+
+        user = super(AppEngineMixedAuthStore, self).create_user(username,
+            auth_id, **kwargs)
+
+        if user:
+            self._set_session(auth_id, user)
+
+        return user
+
+    def logout(self):
+        """Logs out the current user. This deletes the authentication session.
+        """
+        self.loaded = True
+        self._session_base.pop('_auth', None)
+        self._user = None
+        self._session = None
+
+    def _load_session_and_user(self):
+        raise NotImplementedError()
+
+    def _set_session(self, auth_id, user=None, remember=False):
+        kwargs = self.app.get_config('tipfy.sessions', 'cookie_args').copy()
+
+        session = {'id': auth_id}
+        if user:
+            session['token'] = user.session_id
+
+        if remember:
+           kwargs['max_age'] = self.config.get('session_max_age')
+        else:
+           kwargs['max_age'] = None
+
+        self._session_base['_auth'] = self._session = session
+        self.request.session_store.set_session(self.config.get('cookie_name'),
+            self._session_base, **kwargs)
+
+
+class MultiAuthStore(SessionAuthStore):
+    """This RequestHandler mixin is used for custom or third party
+    authentication. It requires a `SessionMixin` to be used with the handler
+    as it depends on sessions to be set.
+    """
+    def login_with_form(self, username, password, remember=False):
+        """Authenticates the current user using data from a form.
+
+        :param username:
+            Username.
+        :param password:
+            Password.
+        :param remember:
+            True if authentication should be persisted even if user leaves the
+            current session (the "remember me" feature).
+        :returns:
+            True if login was succesfull, False otherwise.
+        """
+        self.loaded = True
+        user = self.get_user_entity(username=username)
+
+        if user is not None and user.check_password(password) is True:
+            # Successful login. Make the user available.
+            self._user = user
+            # Store the cookie.
+            self._set_session(user.auth_id, user, remember)
+            return True
+
+        # Authentication failed.
+        return False
+
+    def login_with_auth_id(self, auth_id, remember=False, **kwargs):
+        """Called to authenticate the user after a third party confirmed
+        authentication.
+
+        :param auth_id:
+            Authentication id, generally a combination of service name and
+            user identifier for the service, e.g.: 'twitter|john'.
+        :param remember:
+            True if authentication should be persisted even if user leaves the
+            current session (the "remember me" feature).
+        :returns:
+            None. This always authenticates the user.
+        """
+        self.loaded = True
+        self._user = self.get_user_entity(auth_id=auth_id)
+
+        if self._user:
+            # Set current user from datastore.
+            self._set_session(auth_id, self._user, remember)
+        else:
+            # Simply set a session; user will be created later if required.
+            self._set_session(auth_id, remember=remember)
+
+    def _load_session_and_user(self):
+        self.loaded = True
+        session = self._session_base.get('_auth', {})
+        auth_id = session.get('id')
+        session_token = session.get('token')
+
+        if auth_id is None or session_token is None:
+            # No session, no user.
+            return
+
+        # Fetch the user entity.
+        user = self.get_user_entity(auth_id=auth_id)
+
+        if user is None:
+            # Bad auth id or token, no fallback: must log in again.
+            return self.logout()
+
+        current_token = user.session_id
+        if not user.check_session(session_token):
+            # Token didn't match.
+            return self.logout()
+
+        if (current_token != user.session_id) or user.auth_remember:
+            # Token was updated or we need to renew session per request.
+            self._set_session(auth_id, user, user.auth_remember)
+
+        self._user = user
+
 
 
 class LoginRequiredMiddleware(object):

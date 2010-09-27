@@ -385,6 +385,9 @@ class Tipfy(object):
             except HTTPException, e:
                 response = e
             except:
+                # We only log unhandled exceptions. Users should take care
+                # of logging in custom error handlers.
+                logging.exception(e)
                 if self.debug:
                     cleanup = False
                     raise
@@ -442,11 +445,6 @@ class Tipfy(object):
             return self.router.dispatch(self, request, (rule, kwargs),
                 method='handle_exception')
         else:
-            if code >= 500:
-                # We only log unhandled exceptions with 500+ status code.
-                # Users should take care of logging in custom error handlers.
-                logging.exception(exception)
-
             raise
 
     def set_locals(self, request=None):

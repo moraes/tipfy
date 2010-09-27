@@ -4,7 +4,7 @@ import unittest
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
     ALLOWED_METHODS)
 from tipfy.auth.appengine import AppEngineAuthStore
-from tipfy.auth.model import User
+from tipfy.auth.appengine.model import User
 
 
 class LoginHandler(RequestHandler):

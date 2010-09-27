@@ -526,19 +526,6 @@ def check_password(pwhash, password):
 
         sha1$123456$118083bd04c79ab51944a9ef863efcd9c048dd9a
 
-    >>> check_password('plain$$default', 'default')
-    True
-    >>> check_password('sha1$$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'password')
-    True
-    >>> check_password('sha1$$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'wrong')
-    False
-    >>> check_password('md5$xyz$bcc27016b4fdceb2bd1b369d5dc46c3f', u'example')
-    True
-    >>> check_password('sha1$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'password')
-    False
-    >>> check_password('md42$xyz$bcc27016b4fdceb2bd1b369d5dc46c3f', 'example')
-    False
-
     This function is adapted from `Zine`.
 
     :param pwhash:

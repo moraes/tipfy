@@ -11,12 +11,11 @@
 from __future__ import absolute_import
 
 import datetime
-import hashlib
-import uuid
 
 from google.appengine.ext import db
 
 from tipfy import Tipfy
+from tipfy.auth import check_password, create_password_hash, create_session_id
 
 
 class User(db.Model):
@@ -75,14 +74,14 @@ class User(db.Model):
         kwargs['key_name'] = username
         kwargs['auth_id'] = auth_id
         # Generate an initial session id.
-        kwargs['session_id'] = uuid.uuid4().hex
+        kwargs['session_id'] = create_session_id()
 
         if 'password_hash' in kwargs:
             # Password is already hashed.
             kwargs['password'] = kwargs.pop('password_hash')
         elif 'password' in kwargs:
             # Password is not hashed: generate a hash.
-            kwargs['password'] = gen_pwhash(kwargs['password'])
+            kwargs['password'] = create_password_hash(kwargs['password'])
 
         def txn():
             if cls.get_by_username(username) is not None:
@@ -103,7 +102,7 @@ class User(db.Model):
         :returns:
             None.
         """
-        self.password = gen_pwhash(new_password)
+        self.password = create_password_hash(new_password)
 
     def check_password(self, password):
         """Checks if a password is valid. This is done with form login
@@ -152,7 +151,7 @@ class User(db.Model):
             force = (self.session_updated + expires < datetime.datetime.now())
 
         if force is True:
-            self.session_id = uuid.uuid4().hex
+            self.session_id = create_session_id()
             self.session_updated = datetime.datetime.now()
             self.put()
 
@@ -190,90 +189,3 @@ class User(db.Model):
             True if both entities don't have same key, False otherwise.
         """
         return not self.__eq__(obj)
-
-
-def gen_pwhash(password):
-    """Returns the password encrypted in sha1 format with a random salt.
-
-    This function is adapted from `Zine`.
-
-    :param password:
-        Password to e hashed and formatted.
-    :returns:
-        A hashed and formatted password.
-    """
-    if isinstance(password, unicode):
-        password = password.encode('utf-8')
-
-    salt = uuid.uuid4().hex
-    h = hashlib.sha1()
-    h.update(salt)
-    h.update(password)
-    return 'sha1$%s$%s' % (salt, h.hexdigest())
-
-
-def check_password(pwhash, password):
-    """Checks a password against a given hash value. Since  many systems save
-    md5 passwords with no salt and it's technically impossible to convert this
-    to a sha hash with a salt we use this to be able to check for legacy plain
-    or salted md5 passwords as well as salted sha passwords::
-
-        plain$$default
-
-    md5 passwords without salt::
-
-        md5$$c21f969b5f03d33d43e04f8f136e7682
-
-    md5 passwords with salt::
-
-        md5$123456$7faa731e3365037d264ae6c2e3c7697e
-
-    sha passwords::
-
-        sha1$123456$118083bd04c79ab51944a9ef863efcd9c048dd9a
-
-    >>> check_password('plain$$default', 'default')
-    True
-    >>> check_password('sha1$$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'password')
-    True
-    >>> check_password('sha1$$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'wrong')
-    False
-    >>> check_password('md5$xyz$bcc27016b4fdceb2bd1b369d5dc46c3f', u'example')
-    True
-    >>> check_password('sha1$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'password')
-    False
-    >>> check_password('md42$xyz$bcc27016b4fdceb2bd1b369d5dc46c3f', 'example')
-    False
-
-    This function is adapted from `Zine`.
-
-    :param pwhash:
-        Hash to be checked.
-    :param password:
-        Password to be checked.
-    :returns:
-        True if the password is valid, False otherwise.
-    """
-    if not pwhash or not password:
-        return False
-
-    if isinstance(password, unicode):
-        password = password.encode('utf-8')
-
-    if pwhash.count('$') < 2:
-        return False
-
-    method, salt, hashval = pwhash.split('$', 2)
-
-    if method == 'plain':
-        return hashval == password
-    elif method == 'md5':
-        h = hashlib.md5()
-    elif method == 'sha1':
-        h = hashlib.sha1()
-    else:
-        return False
-
-    h.update(salt)
-    h.update(password)
-    return h.hexdigest() == hashval

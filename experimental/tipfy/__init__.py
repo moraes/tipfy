@@ -123,7 +123,7 @@ class RequestHandler(object):
             # The response MUST include an Allow header containing a
             # list of valid methods for the requested resource.
             # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.6
-            self.abort(405, valid_methods=get_valid_methods(self))
+            self.abort(405, valid_methods=self.get_valid_methods())
 
         if not self.middleware:
             # No middleware are set: just execute the method.
@@ -212,6 +212,17 @@ class RequestHandler(object):
         .. seealso:: :meth:`Router.build`.
         """
         return self.app.router.build(self.request, _name, kwargs)
+
+    def get_valid_methods(self):
+        """Returns a list of methods supported by this handler. By default it
+        will look for HTTP methods thsi handler implements. For different
+        routing schemes, override this.
+
+        :returns:
+            A list of methods supported by this handler.
+        """
+        return [method for method in ALLOWED_METHODS if
+            getattr(self, method.lower().replace('-', '_'), None)]
 
 
 class Request(BaseRequest):
@@ -524,18 +535,6 @@ def get_config(module, key=None, default=REQUIRED_VALUE):
     .. seealso:: :meth:`Config.get`.
     """
     return Tipfy.app.get_config(module, key=key, default=default)
-
-
-def get_valid_methods(handler):
-    """Returns a list of HTTP methods supported by a handler.
-
-    :param handler:
-        A :class:`RequestHandler` instance.
-    :returns:
-        A list of HTTP methods supported by the handler.
-    """
-    return [method for method in ALLOWED_METHODS if
-        getattr(handler, method.lower().replace('-', '_'), None)]
 
 
 def url_for(_name, **kwargs):

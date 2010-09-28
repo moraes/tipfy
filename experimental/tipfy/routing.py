@@ -79,19 +79,28 @@ class Router(object):
             Handler method to be called. In cases like exception handling, a
             method can be forced instead of using the request method.
         """
-        method = method or request.method.lower().replace('-', '_')
         rule, kwargs = match
 
         if isinstance(rule.handler, basestring):
-            if rule.handler not in self.handlers:
+            parts = rule.handler.rsplit(':', 1)
+            handler = parts[0]
+
+            if handler not in self.handlers:
                 # Import handler set in matched rule. This can raise an
                 # ImportError or AttributeError if the handler is badly
                 # defined. The exception will be caught in the WSGI app.
-                self.handlers[rule.handler] = import_string(rule.handler)
+                self.handlers[handler] = import_string(handler)
 
-            rule.handler = self.handlers[rule.handler]
+            rule.handler = self.handlers[handler]
+            rule.handler_method = None if len(parts) == 1 else parts[1]
 
-        # Instantiate handler.
+        if not method:
+            if rule.handler_method:
+                method = rule.handler_method
+            else:
+                method = request.method.lower().replace('-', '_')
+
+        # Instantiate the handler.
         handler = rule.handler(app, request)
         try:
             # Dispatch the requested method.
@@ -202,6 +211,7 @@ class Rule(BaseRule):
     def __init__(self, path, handler=None, name=None, **kwargs):
         self.name = kwargs.pop('endpoint', name)
         self.handler = handler or self.name
+        self.handler_method = None
         super(Rule, self).__init__(path, endpoint=self.name, **kwargs)
 
     def empty(self):

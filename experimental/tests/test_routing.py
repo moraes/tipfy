@@ -75,3 +75,39 @@ class TestRouting(unittest.TestCase):
 
         response = client.get('/foo/bar/baz')
         self.assertEqual(response.data, 'foo/bar/baz')
+
+
+class TestAlternativeRouting(unittest.TestCase):
+    def tearDown(self):
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
+
+    #==========================================================================
+    # HandlerPrefix
+    #==========================================================================
+    def test_handler(self):
+        rules = [
+            HandlerPrefix('resources.alternative_routing.', [
+                Rule('/', name='home', handler='HomeHandler'),
+                Rule('/foo', name='home/foo', handler='HomeHandler:foo'),
+                Rule('/bar', name='home/bar', handler='HomeHandler:bar'),
+                Rule('/other/foo', name='other/foo', handler='OtherHandler:foo'),
+                Rule('/other/bar', name='other/bar', handler='OtherHandler:bar'),
+            ])
+        ]
+
+        app = Tipfy(rules)
+        client = app.get_test_client()
+
+        response = client.get('/')
+        self.assertEqual(response.data, 'home-get')
+        response = client.get('/foo')
+        self.assertEqual(response.data, 'home-foo')
+        response = client.get('/bar')
+        self.assertEqual(response.data, 'home-bar')
+        response = client.get('/other/foo')
+        self.assertEqual(response.data, 'other-foo')
+        response = client.get('/other/bar')
+        self.assertEqual(response.data, 'other-bar')

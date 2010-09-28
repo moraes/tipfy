@@ -153,26 +153,6 @@ class Router(object):
 
         return url
 
-    def get_server_name(self):
-        """Returns the server name used to bind the URL map. By default it
-        returns the configured server name. Extend this if you want to
-        calculate the server name dynamically (e.g., to match subdomains
-        from multiple domains).
-
-        :returns:
-            The server name used to build the URL adapter.
-        """
-        return self.app.get_config('tipfy', 'server_name')
-
-    def get_default_subdomain(self):
-        """Returns the default subdomain for rules without a subdomain
-        defined. By default it returns the configured default subdomain.
-
-        :returns:
-            The default subdomain to be used in the URL map.
-        """
-        return self.app.get_config('tipfy', 'default_subdomain')
-
     def get_map(self, rules=None):
         """Returns a ``werkzeug.routing.Map`` instance with the given
         :class:`Rule` definitions.
@@ -183,6 +163,26 @@ class Router(object):
             A ``werkzeug.routing.Map`` instance.
         """
         return Map(rules, default_subdomain=self.get_default_subdomain())
+
+    def get_default_subdomain(self):
+        """Returns the default subdomain for rules without a subdomain
+        defined. By default it returns the configured default subdomain.
+
+        :returns:
+            The default subdomain to be used in the URL map.
+        """
+        return self.app.get_config('tipfy', 'default_subdomain')
+
+    def get_server_name(self):
+        """Returns the server name used to bind the URL map. By default it
+        returns the configured server name. Extend this if you want to
+        calculate the server name dynamically (e.g., to match subdomains
+        from multiple domains).
+
+        :returns:
+            The server name used to build the URL adapter.
+        """
+        return self.app.get_config('tipfy', 'server_name')
 
 
 class Rule(BaseRule):
@@ -224,7 +224,8 @@ class HandlerPrefix(RuleFactory):
 
         rules = [
             Rule('/', name='index', handler='my_app.handlers.IndexHandler'),
-            Rule('/entry/<entry_slug>', name='show', handler='my_app.handlers.ShowHandler'),
+            Rule('/entry/<entry_slug>', name='show',
+                handler='my_app.handlers.ShowHandler'),
         ]
 
     You can wrap them by ``HandlerPrefix`` to define the handler module and
@@ -233,7 +234,8 @@ class HandlerPrefix(RuleFactory):
         rules = [
             HandlerPrefix('my_app.handlers.', [
                 Rule('/', name='index', handler='IndexHandler'),
-                Rule('/entry/<entry_slug>', name='show', handler='ShowHandler'),
+                Rule('/entry/<entry_slug>', name='show',
+                    handler='ShowHandler'),
             ]),
         ]
     """

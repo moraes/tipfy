@@ -5,7 +5,7 @@
 
     Implementation of OAuth authentication scheme.
 
-    Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
+    Ported from `tornado.auth`_.
 
     :copyright: 2009 Facebook.
     :copyright: 2010 tipfy.org.
@@ -264,7 +264,7 @@ def _oauth_signature(consumer_token, method, url, parameters={}, token=None):
     base_elems.append(normalized_url)
     base_elems.append('&'.join('%s=%s' % (k, _oauth_escape(str(v)))
                                for k, v in sorted(parameters.items())))
-    base_string =  '&'.join(_oauth_escape(e) for e in base_elems)
+    base_string = '&'.join(_oauth_escape(e) for e in base_elems)
 
     key_elems = [consumer_token['secret']]
     key_elems.append(token['secret'] if token else '')

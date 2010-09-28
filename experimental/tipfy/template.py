@@ -257,7 +257,6 @@ class _File(_Node):
         return (self.body,)
 
 
-
 class _ChunkList(_Node):
     def __init__(self, chunks):
         self.chunks = chunks
@@ -466,9 +465,14 @@ class _TemplateReader(object):
         if type(key) is slice:
             size = len(self)
             start, stop, step = key.indices(size)
-            if start is None: start = self.pos
-            else: start += self.pos
-            if stop is not None: stop += self.pos
+            if start is None:
+                start = self.pos
+            else:
+                start += self.pos
+
+            if stop is not None:
+                stop += self.pos
+
             return self.text[slice(start, stop, step)]
         elif key < 0:
             return self.text[key]
@@ -558,7 +562,8 @@ def _parse(reader, in_block=None):
                 raise ParseError("%s outside %s block" %
                             (operator, allowed_parents))
             if in_block not in allowed_parents:
-                raise ParseError("%s block cannot be attached to %s block" % (operator, in_block))
+                raise ParseError("%s block cannot be attached to %s block" % \
+                    (operator, in_block))
             body.chunks.append(_IntermediateControlBlock(contents))
             continue
 
@@ -574,16 +579,19 @@ def _parse(reader, in_block=None):
             if operator == "extends":
                 suffix = suffix.strip('"').strip("'")
                 if not suffix:
-                    raise ParseError("extends missing file path on line %d" % line)
+                    raise ParseError("extends missing file path on line %d" % \
+                        line)
                 block = _ExtendsBlock(suffix)
             elif operator == "import":
                 if not suffix:
-                    raise ParseError("import missing statement on line %d" % line)
+                    raise ParseError("import missing statement on line %d" % \
+                        line)
                 block = _Statement(contents)
             elif operator == "include":
                 suffix = suffix.strip('"').strip("'")
                 if not suffix:
-                    raise ParseError("include missing file path on line %d" % line)
+                    raise ParseError("include missing file path on line %d" % \
+                        line)
                 block = _IncludeBlock(suffix, reader)
             elif operator == "set":
                 if not suffix:
@@ -597,7 +605,8 @@ def _parse(reader, in_block=None):
             block_body = _parse(reader, operator)
             if operator == "apply":
                 if not suffix:
-                    raise ParseError("apply missing method name on line %d" % line)
+                    raise ParseError("apply missing method name on line %d" % \
+                        line)
                 block = _ApplyBlock(suffix, block_body)
             elif operator == "block":
                 if not suffix:

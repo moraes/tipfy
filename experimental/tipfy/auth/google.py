@@ -5,7 +5,7 @@
 
     Implementation of Google authentication scheme.
 
-    Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
+    Ported from `tornado.auth`_.
 
     :copyright: 2009 Facebook.
     :copyright: 2010 tipfy.org.
@@ -79,7 +79,8 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
             key=self._google_consumer_key,
             secret=self._google_consumer_secret)
 
-    def authorize_redirect(self, oauth_scope, callback_uri=None, ax_attrs=None):
+    def authorize_redirect(self, oauth_scope, callback_uri=None,
+        ax_attrs=None):
         """Authenticates and authorizes for the given Google resource.
 
         Some of the available resources are:
@@ -92,7 +93,7 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
         URLs with a space.
         """
         callback_uri = callback_uri or self.request.path
-        ax_attrs = ax_attrs or ['name','email','language','username']
+        ax_attrs = ax_attrs or ['name', 'email', 'language', 'username']
         args = self._openid_args(callback_uri, ax_attrs=ax_attrs,
                                  oauth_scope=oauth_scope)
         return redirect(self._OPENID_ENDPOINT + '?' + urllib.urlencode(args))

@@ -5,7 +5,7 @@
 
     Implementation of Twitter authentication scheme.
 
-    Ported from `tornado.auth <http://github.com/facebook/tornado/blob/master/tornado/auth.py>`_.
+    Ported from `tornado.auth`_.
 
     :copyright: 2009 Facebook.
     :copyright: 2010 tipfy.org.

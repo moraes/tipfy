@@ -211,9 +211,9 @@ class SessionAuthStore(BaseAuthStore):
             session['token'] = user.session_id
 
         if remember:
-           kwargs['max_age'] = self.config.get('session_max_age')
+            kwargs['max_age'] = self.config.get('session_max_age')
         else:
-           kwargs['max_age'] = None
+            kwargs['max_age'] = None
 
         self._session_base['_auth'] = self._session = session
         self.request.session_store.set_session(self.config.get('cookie_name'),
@@ -305,7 +305,6 @@ class MultiAuthStore(SessionAuthStore):
         self._user = user
 
 
-
 class LoginRequiredMiddleware(object):
     """A RequestHandler middleware to require user authentication. This
     acts as a `login_required` decorator but for handler classes. Example:
@@ -360,7 +359,8 @@ class UserRequiredIfAuthenticatedMiddleware(object):
            middleware = [UserRequiredIfAuthenticatedMiddleware]
 
            def get(self, **kwargs):
-               return 'Only non-logged in users or users with saved accounts can see this.'
+               return 'Only non-logged in users or users with saved '
+                   'accounts can see this.'
     """
     def before_dispatch(self, handler):
         return _user_required_if_authenticated(handler)
@@ -447,7 +447,8 @@ def user_required_if_authenticated(func):
        class MyHandler(RequestHandler):
            @user_required_if_authenticated
            def get(self, **kwargs):
-               return 'Only non-logged in users or users with saved accounts can see this.'
+               return 'Only non-logged in users or users with saved '
+                   'accounts can see this.'
 
     :param func:
         The handler method to be decorated.

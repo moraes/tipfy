@@ -107,9 +107,7 @@ def _convert_entity(m):
 
 
 def _build_unicode_map():
-    unicode_map = {}
-    for name, value in htmlentitydefs.name2codepoint.iteritems():
-        unicode_map[name] = unichr(value)
-    return unicode_map
+    return dict((name, unichr(value)) for \
+        name, value in htmlentitydefs.name2codepoint.iteritems())
 
 _HTML_UNICODE_MAP = _build_unicode_map()

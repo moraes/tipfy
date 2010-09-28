@@ -90,7 +90,7 @@ class RequestHandler(object):
     #:     Called after the requested method is executed. Must always return
     #:     a response. All *after_dispatch* middleware are always executed.
     #:
-    #: handle_exception(handler, exception, debug)
+    #: handle_exception(handler, exception)
     #:     Called if an exception occurs while executing the requested method.
     middleware = None
 
@@ -385,13 +385,13 @@ class Tipfy(object):
             except HTTPException, e:
                 response = e
             except:
-                # We only log unhandled exceptions. Users should take care
-                # of logging in custom error handlers.
-                logging.exception(e)
                 if self.debug:
                     cleanup = False
                     raise
 
+                # We only log unhandled non-HTTP exceptions. Users should
+                # take care of logging in custom error handlers.
+                logging.exception(e)
                 response = InternalServerError()
         finally:
             if cleanup:
@@ -407,6 +407,7 @@ class Tipfy(object):
 
             class Handle404(RequestHandler):
                 def handle_exception(self, exception):
+                    logging.exception(exception)
                     return Response('Oops! I could swear this page was here!',
                         status=404)
 
@@ -426,7 +427,8 @@ class Tipfy(object):
            of the method corresponding to the current request.
 
            Also, the error handler is responsible for setting the response
-           status code, as shown in the example above.
+           status code and logging the exception, as shown in the example
+           above.
 
         :param request:
             A :class:`Request` instance.

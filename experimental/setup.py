@@ -48,10 +48,14 @@ setup(
     packages = [
         'tipfy',
         'tipfy.auth',
+        'tipfy.auth.appengine',
         'tipfy.debugger',
+        'tipfy.sessions',
         'tipfyext',
         'tipfyext.appengine',
+        'tipfyext.appengine.db',
         'tipfyext.jinja2',
+        'tipfyext.wtforms',
     ],
     namespace_packages = [
         'tipfyext',

@@ -122,6 +122,21 @@ tipfy's core design. Here's an overview of what is new:
       # is the same as...
       Rule('/', endpoint='home', handler='handlers.HomeHandler')
 
+- NEW: rules can define the method that will be called from the handler. The
+  method is defined using a 'MyHandler:my_method' notation in the Rule
+  definition. Example:
+
+      class MyHandler(RequestHandler):
+          def my_method(self, **kwargs):
+              return Response('I am not coming from a get() method!')
+
+      app = Tipfy(rules=[
+          Rule('/', name='home', handler='MyHandler:my_method')
+      ])
+
+  In this example, the request method is ignored since the Rule defines which
+  handler method will handle all requests.
+
 - NEW: added a router object that centralizes URL matching, dispatching and
   building. [explain]
 

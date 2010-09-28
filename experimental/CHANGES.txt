@@ -190,4 +190,6 @@ tipfy's core design. Here's an overview of what is new:
 
 - NEW: added a new rule converter, RegexConverter. [explain]
 
+- NEW: KeyProperty model was added to the db extension.
+
 - ...

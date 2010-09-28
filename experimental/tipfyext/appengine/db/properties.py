@@ -88,7 +88,7 @@ class KeyProperty(db.Property):
             value = db.Key(value)
         elif isinstance(value, db.Model):
             if not value.has_key():
-                raise BadValueError('%s instance must have a complete key to '
+                raise db.BadValueError('%s instance must have a complete key to '
                     'be stored.' % value.__class__.kind())
 
             value = value.key()

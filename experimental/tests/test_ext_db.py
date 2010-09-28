@@ -6,6 +6,7 @@ import unittest
 import hashlib
 
 from google.appengine.ext import db
+from google.appengine.api import datastore_errors
 from gaetestbed import DataStoreTestCase
 
 from werkzeug.exceptions import NotFound
@@ -23,6 +24,7 @@ class FooModel(db.Model):
     slug2 = ext_db.SlugProperty(name2, default='some-default-value', max_length=20)
     etag = ext_db.EtagProperty(name)
     etag2 = ext_db.EtagProperty(name2)
+    somekey = ext_db.KeyProperty()
 
 
 class FooExpandoModel(db.Expando):
@@ -473,6 +475,44 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
     def test_timezone_property3(self):
         self.assertRaises(ext_db.pytz.UnknownTimeZoneError, TimezoneModel, key_name='foo', data='foo')
+
+    def test_key_property(self):
+        key = db.Key.from_path('Bar', 'bar-key')
+        entity_1 = FooModel(name='foo', key_name='foo', somekey=key)
+        entity_1.put()
+
+        entity_1 = FooModel.get_by_key_name('foo')
+        self.assertEqual(entity_1.somekey, key)
+
+    def test_key_property2(self):
+        key = db.Key.from_path('Bar', 'bar-key')
+        entity_1 = FooModel(name='foo', key_name='foo', somekey=str(key))
+        entity_1.put()
+
+        entity_1 = FooModel.get_by_key_name('foo')
+        self.assertEqual(entity_1.somekey, key)
+
+    def test_key_property3(self):
+        key = db.Key.from_path('Bar', 'bar-key')
+        entity_1 = FooModel(name='foo', key_name='foo', somekey=str(key))
+        entity_1.put()
+
+        entity_2 = FooModel(name='bar', key_name='bar', somekey=entity_1)
+        entity_2.put()
+
+        entity_2 = FooModel.get_by_key_name('bar')
+        self.assertEqual(entity_2.somekey, entity_1.key())
+
+    def test_key_property4(self):
+        key = db.Key.from_path('Bar', 'bar-key')
+        entity_1 = FooModel(name='foo', somekey=str(key))
+        self.assertRaises(db.BadValueError, FooModel, name='bar', key_name='bar', somekey=entity_1)
+
+    def test_key_property5(self):
+        self.assertRaises(TypeError, FooModel, name='foo', key_name='foo', somekey=['foo'])
+
+    def test_key_property6(self):
+        self.assertRaises(datastore_errors.BadKeyError, FooModel, name='foo', key_name='foo', somekey='foo')
 
     #===========================================================================
     # @ext_db.retry_on_timeout

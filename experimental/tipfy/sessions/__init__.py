@@ -103,7 +103,10 @@ class BaseSession(ModificationTrackingDict):
 
 class SecureCookieSession(BaseSession):
     @classmethod
-    def get_session(cls, store, name, **kwargs):
+    def get_session(cls, store, name=None, **kwargs):
+        if not name:
+            return cls(())
+
         return cls(store.get_secure_cookie(name) or ())
 
     def save_session(self, response, store, name, **kwargs):
@@ -277,25 +280,28 @@ class SessionStore(object):
         if key not in sessions:
             kwargs = self.get_cookie_args(**kwargs)
             value = self.backends[backend].get_session(self, key, **kwargs)
-            self._sessions[backend][key] = (value, kwargs)
+            sessions[key] = (value, kwargs)
 
-        return self._sessions[backend][key][0]
+        return sessions[key][0]
 
     def set_session(self, key, value, backend=None, **kwargs):
-        """Sets a session value.
+        """Sets a session value. If the session exists, it will be reset with
+        the new values.
 
         :param key:
             Cookie name. See :meth:`get_session`.
         :param value:
-            Session value.
+            Session value, a dictionary-like object.
         :param backend:
             Name of the session backend. See :meth:`get_session`.
         :param kwargs:
             Options to save the cookie. See :meth:`get_session`.
         """
         backend = backend or self.default_backend
-        kwargs = self.get_cookie_args(**kwargs)
-        self._sessions[backend][key] = (value, kwargs)
+        sessions = self._sessions.setdefault(backend, {})
+        session = self.backends[backend].get_session(self, **kwargs)
+        session.update(value)
+        sessions[key] = (session, kwargs)
 
     def get_secure_cookie(self, name, max_age=DEFAULT_VALUE):
         """Returns a secure cookie from the request.
@@ -499,7 +505,6 @@ class AllSessionMixins(CookieMixin, SecureCookieMixin, FlashMixin,
 
 if APPENGINE:
     from tipfy.sessions.appengine import DatastoreSession, MemcacheSession
-
     SessionStore.default_backends.update({
         'datastore': DatastoreSession,
         'memcache':  MemcacheSession,

@@ -237,7 +237,7 @@ class Request(BaseRequest):
     rule_args = None
 
     def __init__(self, environ):
-        """Initializes the request. This also sets a context attribute to
+        """Initializes the request. This also sets a context and registry to
         hold variables valid for a single request.
         """
         super(Request, self).__init__(environ)

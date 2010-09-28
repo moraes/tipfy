@@ -9,7 +9,7 @@ from tipfy.auth import (AdminRequiredMiddleware, LoginRequiredMiddleware,
     UserRequiredMiddleware, UserRequiredIfAuthenticatedMiddleware,
     admin_required, login_required, user_required,
     user_required_if_authenticated, check_password, create_password_hash,
-    create_session_id)
+    create_session_id, MultiAuthStore)
 from tipfy.auth.appengine import AppEngineAuthStore
 from tipfy.auth.appengine.model import User
 
@@ -655,3 +655,127 @@ class TestMiscelaneous(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(check_password('md5$xyz$bcc27016b4fdceb2bd1b369d5dc46c3f', u'example'), True)
         self.assertEqual(check_password('sha1$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'password'), False)
         self.assertEqual(check_password('md42$xyz$bcc27016b4fdceb2bd1b369d5dc46c3f', 'example'), False)
+
+
+class TestMultiAuthStore(DataStoreTestCase, unittest.TestCase):
+    def setUp(self):
+        DataStoreTestCase.setUp(self)
+
+    def tearDown(self):
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
+
+    def get_app(self):
+        app = Tipfy(config={'tipfy.sessions': {
+            'secret_key': 'secret',
+        }})
+        app.set_locals(Request.from_values('/'))
+        return app
+
+    def test_factory(self):
+        app = self.get_app()
+        store = MultiAuthStore.factory(app, 'auth_store')
+        self.assertEqual(isinstance(store, MultiAuthStore), True)
+
+    def test_login_with_form_invalid(self):
+        app = self.get_app()
+        store = MultiAuthStore(app, app.request)
+        res = store.login_with_form('foo', 'bar', remember=True)
+
+        self.assertEqual(res, False)
+
+    def test_login_with_form(self):
+        user = User.create('foo', 'foo_id', password='bar')
+        app = self.get_app()
+        store = MultiAuthStore(app, app.request)
+        res = store.login_with_form('foo', 'bar', remember=True)
+        self.assertEqual(res, True)
+
+        res = store.login_with_form('foo', 'bar', remember=False)
+        self.assertEqual(res, True)
+
+    def test_login_with_auth_id(self):
+        app = self.get_app()
+        store = MultiAuthStore(app, app.request)
+        store.login_with_auth_id('foo_id', remember=False)
+
+        user = User.create('foo', 'foo_id', password='bar')
+        app = self.get_app()
+        store.login_with_auth_id('foo_id', remember=True)
+
+    def test_real_login(self):
+        user = User.create('foo', 'foo_id', auth_remember=True)
+        app = self.get_app()
+        store = MultiAuthStore(app, app.request)
+        store.login_with_auth_id('foo_id', remember=False)
+
+        response = Response()
+        app.request.session_store.save(response)
+
+        request = Request.from_values('/', headers={
+            'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
+        })
+        app.set_locals(request)
+        store = MultiAuthStore(app, app.request)
+        self.assertNotEqual(store.user, None)
+        self.assertEqual(store.user.username, 'foo')
+        self.assertEqual(store.user.auth_id, 'foo_id')
+
+    def test_real_logout(self):
+        user = User.create('foo', 'foo_id', auth_remember=True)
+        app = self.get_app()
+        store = MultiAuthStore(app, app.request)
+        store.login_with_auth_id('foo_id', remember=False)
+
+        response = Response()
+        app.request.session_store.save(response)
+
+        request = Request.from_values('/', headers={
+            'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
+        })
+        app.set_locals(request)
+        store = MultiAuthStore(app, app.request)
+        self.assertNotEqual(store.user, None)
+        self.assertEqual(store.user.username, 'foo')
+        store.logout()
+
+        response = Response()
+        app.request.session_store.save(response)
+
+        request = Request.from_values('/', headers={
+            'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
+        })
+        app.set_locals(request)
+        store = MultiAuthStore(app, app.request)
+
+        #self.assertEqual(store.user, None)
+        self.assertEqual(store.session, None)
+
+    def test_real_login_no_user(self):
+        app = self.get_app()
+        store = MultiAuthStore(app, app.request)
+        user = store.create_user('foo', 'foo_id')
+        store.login_with_auth_id('foo_id', remember=False)
+
+        response = Response()
+        app.request.session_store.save(response)
+
+        user.delete()
+
+        request = Request.from_values('/', headers={
+            'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
+        })
+        app.set_locals(request)
+        store = MultiAuthStore(app, app.request)
+        self.assertEqual(store.session['id'], 'foo_id')
+        self.assertEqual(store.user, None)
+
+    def test_real_login_invalid(self):
+        app = self.get_app()
+        store = MultiAuthStore(app, app.request)
+        self.assertEqual(store.user, None)
+        self.assertEqual(store.session, None)
+
+

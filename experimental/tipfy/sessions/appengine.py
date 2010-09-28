@@ -115,7 +115,10 @@ class AppEngineBaseSession(BaseSession):
         return cls.__module__ + '.' + cls.__name__ + '.' + uuid.uuid4().hex
 
     @classmethod
-    def get_session(cls, store, name, **kwargs):
+    def get_session(cls, store, name=None, **kwargs):
+        if not name:
+            return cls((), cls._get_new_sid())
+
         cookie = store.get_secure_cookie(name) or {}
         return cls._get_by_sid(cookie.get('_sid'), **kwargs)
 

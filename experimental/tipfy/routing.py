@@ -84,6 +84,8 @@ class Router(object):
         if isinstance(rule.handler, basestring):
             parts = rule.handler.rsplit(':', 1)
             handler = parts[0]
+            if len(parts) > 1:
+                rule.handler_method = parts[1]
 
             if handler not in self.handlers:
                 # Import handler set in matched rule. This can raise an
@@ -92,7 +94,6 @@ class Router(object):
                 self.handlers[handler] = import_string(handler)
 
             rule.handler = self.handlers[handler]
-            rule.handler_method = None if len(parts) == 1 else parts[1]
 
         if not method:
             if rule.handler_method:

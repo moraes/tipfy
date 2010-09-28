@@ -155,8 +155,7 @@ class SessionAuthStore(BaseAuthStore):
     def __init__(self, *args, **kwargs):
         super(SessionAuthStore, self).__init__(*args, **kwargs)
         self.loaded = False
-        self._session = None
-        self._user = None
+        self._session = self._user = None
 
     @cached_property
     def session(self):
@@ -179,12 +178,8 @@ class SessionAuthStore(BaseAuthStore):
 
         return self._user
 
-    def create_user(self, username, **kwargs):
-        auth_id = self._session_base.get('_auth', {}).get('id')
-        if not auth_id:
-            return
-
-        user = super(AppEngineMixedAuthStore, self).create_user(username,
+    def create_user(self, username, auth_id, **kwargs):
+        user = super(SessionAuthStore, self).create_user(username,
             auth_id, **kwargs)
 
         if user:
@@ -197,15 +192,14 @@ class SessionAuthStore(BaseAuthStore):
         """
         self.loaded = True
         self._session_base.pop('_auth', None)
-        self._user = None
-        self._session = None
+        self._session = self._user = None
+        self._save_session_base()
 
     def _load_session_and_user(self):
         raise NotImplementedError()
 
     def _set_session(self, auth_id, user=None, remember=False):
-        kwargs = self.app.get_config('tipfy.sessions', 'cookie_args').copy()
-
+        kwargs = {}
         session = {'id': auth_id}
         if user:
             session['token'] = user.session_id
@@ -216,8 +210,13 @@ class SessionAuthStore(BaseAuthStore):
             kwargs['max_age'] = None
 
         self._session_base['_auth'] = self._session = session
+        self._save_session_base(**kwargs)
+
+    def _save_session_base(self, **kwargs):
+        _kwargs = self.app.get_config('tipfy.sessions', 'cookie_args').copy()
+        _kwargs.update(kwargs)
         self.request.session_store.set_session(self.config.get('cookie_name'),
-            self._session_base, **kwargs)
+            self._session_base, **_kwargs)
 
 
 class MultiAuthStore(SessionAuthStore):

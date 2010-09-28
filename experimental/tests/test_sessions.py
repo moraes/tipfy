@@ -1,11 +1,13 @@
+import os
 import unittest
 
 from gaetestbed import DataStoreTestCase, MemcacheTestCase
 
 from tipfy import Tipfy, Request, RequestHandler, Response, Rule
-from tipfy.sessions import (AllSessionMixins, DatastoreSession, SessionStore,
-    SecureCookieStore, SecureCookieSession, SessionMiddleware)
-from tipfy.sessions.appengine import SessionModel
+from tipfy.sessions import (AllSessionMixins, SecureCookieSession,
+    SecureCookieStore, SessionMiddleware, SessionStore)
+from tipfy.sessions.appengine import (DatastoreSession, MemcacheSession,
+    SessionModel)
 
 
 class BaseHandler(RequestHandler, AllSessionMixins):
@@ -116,6 +118,12 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
     def setUp(self):
         DataStoreTestCase.setUp(self)
         MemcacheTestCase.setUp(self)
+
+        SessionStore.default_backends.update({
+            'datastore':    DatastoreSession,
+            'memcache':     MemcacheSession,
+            'securecookie': SecureCookieSession,
+        })
 
     def tearDown(self):
         try:

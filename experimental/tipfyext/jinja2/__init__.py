@@ -31,10 +31,18 @@ except ImportError:
 #:
 #: force_use_compiled
 #:     Forces the use of compiled templates even in the development server.
+#:
+#: environment_kwargs
+#:     Keyword arguments used to instantiate the Jinja2 environment. By
+#:     default two extensions are set: 'jinja2.ext.autoescape' and
+#:     'jinja2.ext.with_'.
 default_config = {
     'templates_dir': 'templates',
     'templates_compiled_target': None,
     'force_use_compiled': False,
+    'environment_kwargs': {
+        'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_'],
+    },
 }
 
 
@@ -55,22 +63,24 @@ class Jinja2Mixin(object):
 
 
 class Jinja2(object):
-    def __init__(self, app, _globals=None, filters=None, extensions=()):
+    def __init__(self, app, _globals=None, filters=None):
         self.app = app
-
         cfg = app.get_config(__name__)
-        templates_compiled_target = cfg.get('templates_compiled_target')
-        use_compiled = not app.debug or cfg.get('force_use_compiled')
+        kwargs = cfg.get('environment_kwargs') or {}
 
-        if templates_compiled_target is not None and use_compiled:
-            # Use precompiled templates loaded from a module or zip.
-            loader = ModuleLoader(templates_compiled_target)
-        else:
-            # Parse templates for every new environment instances.
-            loader = FileSystemLoader(cfg.get('templates_dir'))
+        if not kwargs.get('loader'):
+            templates_compiled_target = cfg.get('templates_compiled_target')
+            use_compiled = not app.debug or cfg.get('force_use_compiled')
+
+            if templates_compiled_target is not None and use_compiled:
+                # Use precompiled templates loaded from a module or zip.
+                kwargs['loader'] = ModuleLoader(templates_compiled_target)
+            else:
+                # Parse templates for every new environment instances.
+                kwargs['loader'] = FileSystemLoader(cfg.get('templates_dir'))
 
         # Initialize the environment.
-        env = Environment(loader=loader, extensions=extensions)
+        env = Environment(**kwargs)
 
         if _globals:
             env.globals.update(_globals)
@@ -86,8 +96,7 @@ class Jinja2(object):
                 lambda s: trans().ugettext(s),
                 lambda s, p, n: trans().ungettext(s, p, n),
                 newstyle=True)
-
-            env.globals.update({
+            env.filters.update({
                 'format_date':     i18n.format_date,
                 'format_time':     i18n.format_time,
                 'format_datetime': i18n.format_datetime,

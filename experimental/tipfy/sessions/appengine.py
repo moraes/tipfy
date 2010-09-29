@@ -105,7 +105,7 @@ class AppEngineBaseSession(BaseSession):
     __slots__ = BaseSession.__slots__ + ('sid',)
 
     def __init__(self, data, sid):
-        BaseSession.__init__(self, data)
+        BaseSession.__init__(self, data or ())
         self.sid = sid
 
     @classmethod

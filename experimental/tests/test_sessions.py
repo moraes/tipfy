@@ -3,18 +3,20 @@ import unittest
 
 from gaetestbed import DataStoreTestCase, MemcacheTestCase
 
+from werkzeug import cached_property
+
 from tipfy import Tipfy, Request, RequestHandler, Response, Rule
-from tipfy.sessions import (AllSessionMixins, SecureCookieSession,
-    SecureCookieStore, SessionMiddleware, SessionStore)
+from tipfy.sessions import (SecureCookieSession, SecureCookieStore,
+    SessionMiddleware, SessionStore)
 from tipfy.sessions.appengine import (DatastoreSession, MemcacheSession,
     SessionModel)
 
 
-class BaseHandler(RequestHandler, AllSessionMixins):
+class BaseHandler(RequestHandler):
     middleware = [SessionMiddleware()]
 
 
-class TestSessionStore(unittest.TestCase):
+class TestSessionStoreBase(unittest.TestCase):
     def tearDown(self):
         try:
             Tipfy.app.clear_locals()
@@ -112,9 +114,7 @@ class TestSessionStore(unittest.TestCase):
         self.assertEqual(isinstance(SessionStore.factory(app, 'session_store'), SessionStore), True)
 
 
-class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
-    unittest.TestCase):
-
+class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def setUp(self):
         DataStoreTestCase.setUp(self)
         MemcacheTestCase.setUp(self)
@@ -140,7 +140,7 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
         app.set_locals(Request.from_values(*args, **kwargs))
         return app
 
-    def test_session(self):
+    def test_set_session(self):
         class MyHandler(BaseHandler):
             def get(self):
                 res = self.session.get('key')
@@ -148,7 +148,34 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
                     res = 'undefined'
                     session = SecureCookieSession()
                     session['key'] = 'a session value'
-                    self.set_session(self.session_store.config['cookie_name'], session)
+                    self.request.session_store.set_session(self.request.session_store.config['cookie_name'], session)
+
+                return Response(res)
+
+        rules = [Rule('/', name='test', handler=MyHandler)]
+
+        app = self._get_app('/')
+        app.router.add(rules)
+        client = app.get_test_client()
+
+        response = client.get('/')
+        self.assertEqual(response.data, 'undefined')
+
+        response = client.get('/', headers={
+            'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
+        })
+        self.assertEqual(response.data, 'a session value')
+
+    def test_set_session_datastore(self):
+        class MyHandler(BaseHandler):
+            def get(self):
+                session = self.request.session_store.get_session(backend='datastore')
+                res = session.get('key')
+                if not res:
+                    res = 'undefined'
+                    session = DatastoreSession(None, 'a_random_session_id')
+                    session['key'] = 'a session value'
+                    self.request.session_store.set_session(self.request.session_store.config['cookie_name'], session, backend='datastore')
 
                 return Response(res)
 
@@ -169,7 +196,7 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
     def test_get_memcache_session(self):
         class MyHandler(BaseHandler):
             def get(self):
-                session = self.get_session(backend='memcache')
+                session = self.request.session_store.get_session(backend='memcache')
                 res = session.get('test')
                 if not res:
                     res = 'undefined'
@@ -194,7 +221,7 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
     def test_get_datastore_session(self):
         class MyHandler(BaseHandler):
             def get(self):
-                session = self.get_session(backend='datastore')
+                session = self.request.session_store.get_session(backend='datastore')
                 res = session.get('test')
                 if not res:
                     res = 'undefined'
@@ -222,9 +249,9 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
                 res = self.request.cookies.get('test')
                 if not res:
                     res = 'undefined'
-                    self.set_cookie('test', 'a cookie value')
+                    self.request.session_store.set_cookie('test', 'a cookie value')
                 else:
-                    self.delete_cookie('test')
+                    self.request.session_store.delete_cookie('test')
 
                 return Response(res)
 
@@ -258,9 +285,9 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
                 res = self.request.cookies.get('test')
                 if not res:
                     res = 'undefined'
-                    self.set_cookie('test', 'a cookie value')
+                    self.request.session_store.set_cookie('test', 'a cookie value')
 
-                self.session_store.unset_cookie('test')
+                self.request.session_store.unset_cookie('test')
                 return Response(res)
 
         rules = [Rule('/', name='test', handler=MyHandler)]
@@ -282,11 +309,11 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
             def get(self):
                 response = Response()
 
-                cookie = self.get_secure_cookie('test') or {}
+                cookie = self.request.session_store.get_secure_cookie('test') or {}
                 res = cookie.get('test')
                 if not res:
                     res = 'undefined'
-                    self.session_store.set_secure_cookie(response, 'test', {'test': 'a secure cookie value'})
+                    self.request.session_store.set_secure_cookie(response, 'test', {'test': 'a secure cookie value'})
 
                 response.data = res
                 return response
@@ -308,10 +335,10 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
     def test_set_get_flashes(self):
         class MyHandler(BaseHandler):
             def get(self):
-                res = self.get_flashes()
+                res = [msg for msg, level in self.session.get_flashes()]
                 if not res:
                     res = [{'body': 'undefined'}]
-                    self.add_flash({'body': 'a flash value'})
+                    self.session.flash({'body': 'a flash value'})
 
                 return Response(res[0]['body'])
 
@@ -331,6 +358,40 @@ class TestSessionMixins(DataStoreTestCase, MemcacheTestCase,
 
     def test_set_get_messages(self):
         class MyHandler(BaseHandler):
+            @cached_property
+            def messages(self):
+                """A list of status messages to be displayed to the user."""
+                messages = []
+                flashes = self.session.get_flashes(key='_messages')
+                for msg, level in flashes:
+                    msg['level'] = level
+                    messages.append(msg)
+
+                return messages
+
+            def set_message(self, level, body, title=None, life=None, flash=False):
+                """Adds a status message.
+
+                :param level:
+                    Message level. Common values are "success", "error", "info" or
+                    "alert".
+                :param body:
+                    Message contents.
+                :param title:
+                    Optional message title.
+                :param life:
+                    Message life time in seconds. User interface can implement
+                    a mechanism to make the message disappear after the elapsed time.
+                    If not set, the message is permanent.
+                :returns:
+                    None.
+                """
+                message = {'title': title, 'body': body, 'life': life}
+                if flash is True:
+                    self.session.flash(message, level, '_messages')
+                else:
+                    self.messages.append(message)
+
             def get(self):
                 self.set_message('success', 'a normal message value')
                 self.set_message('success', 'a flash message value', flash=True)

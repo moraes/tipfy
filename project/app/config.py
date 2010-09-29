@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Configuration settings."""
+"""App configuration."""
 config = {}
 
 # Configurations for the 'tipfy' module.

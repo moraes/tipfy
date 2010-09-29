@@ -15,6 +15,10 @@ projects:
   Copyright: (c) 2010 by Armin Ronacher.
   License: BSD
 
+- `Tornado <http://www.tornadoweb.org/>`_
+  Copyright: (c) 2009 Facebook.
+  License: Apache Software License
+
 - `Werkzeug <http://werkzeug.pocoo.org/>`_
   Copyright (c) 2009 by the Werkzeug Team.
   License: BSD

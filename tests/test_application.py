@@ -2,7 +2,7 @@ import os
 import unittest
 
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
-    make_wsgi_app, run_wsgi_app, ALLOWED_METHODS)
+    ALLOWED_METHODS)
 
 
 class BrokenHandler(RequestHandler):
@@ -35,7 +35,10 @@ class Handle500(RequestHandler):
 
 class TestApp(unittest.TestCase):
     def tearDown(self):
-        Tipfy.app = Tipfy.request = None
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
 
     def test_200(self):
         class MyHandler(RequestHandler):
@@ -96,38 +99,54 @@ class TestApp(unittest.TestCase):
         response = client.open('/', method='CONNECT')
         self.assertEqual(response.status_code, 501)
 
-    def test_dev(self):
+    def test_make_response(self):
         app = Tipfy()
-        self.assertEqual(app.dev, False)
+        app.set_locals(Request.from_values('/'))
+        response = app.make_response()
 
-        os.environ['SERVER_SOFTWARE'] = 'Dev'
-        app = Tipfy()
-        self.assertEqual(app.dev, True)
-        os.environ.pop('SERVER_SOFTWARE')
+        self.assertEqual(isinstance(response, app.response_class), True)
+        self.assertEqual(response.data, '')
+        self.assertEqual(response.status_code, 200)
 
-    def test_app_id(self):
+    def test_make_response_from_response(self):
         app = Tipfy()
-        # 'my-app' is set in the running app.yaml.
-        self.assertEqual(app.app_id, 'my-app')
+        app.set_locals(Request.from_values('/'))
+        response = app.make_response(Response('hello, world!'))
 
-        os.environ['APPLICATION_ID'] = 'my-other-app'
-        app = Tipfy()
-        self.assertEqual(app.app_id, 'my-other-app')
-        os.environ.pop('APPLICATION_ID')
+        self.assertEqual(isinstance(response, app.response_class), True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, 'hello, world!')
 
-    def test_version_id(self):
+    def test_make_response_from_string(self):
         app = Tipfy()
-        self.assertEqual(app.version_id, '1')
+        app.set_locals(Request.from_values('/'))
+        response = app.make_response('hello, world!')
 
-        os.environ['CURRENT_VERSION_ID'] = 'testing'
+        self.assertEqual(isinstance(response, app.response_class), True)
+        self.assertEqual(response.data, 'hello, world!')
+        self.assertEqual(response.status_code, 200)
+
+    def test_make_response_from_tuple(self):
         app = Tipfy()
-        self.assertEqual(app.version_id, 'testing')
-        os.environ.pop('CURRENT_VERSION_ID')
+        app.set_locals(Request.from_values('/'))
+        response = app.make_response('hello, world!', 404)
+
+        self.assertEqual(isinstance(response, app.response_class), True)
+        self.assertEqual(response.data, 'hello, world!')
+        self.assertEqual(response.status_code, 404)
+
+    def test_make_response_from_none(self):
+        app = Tipfy()
+        app.set_locals(Request.from_values('/'))
+        self.assertRaises(ValueError, app.make_response, None)
 
 
 class TestHandleException(unittest.TestCase):
     def tearDown(self):
-        Tipfy.app = Tipfy.request = None
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
 
     def test_custom_error_handlers(self):
         class HomeHandler(RequestHandler):
@@ -157,105 +176,3 @@ class TestHandleException(unittest.TestCase):
         res = client.get('/broken')
         self.assertEqual(res.status_code, 500)
         self.assertEqual(res.data, '500 custom handler')
-
-class SillyTests(unittest.TestCase):
-    def tearDown(self):
-        Tipfy.app = Tipfy.request = None
-
-        from os import environ
-        for key in ['SERVER_NAME', 'SERVER_PORT', 'REQUEST_METHOD', 'SERVER_SOFTWARE']:
-            if key in environ:
-                del environ[key]
-
-    def test_make_wsgi_app(self):
-        app = make_wsgi_app(config={'tipfy': {
-        }})
-
-        assert isinstance(app, Tipfy)
-
-    def test_make_wsgi_app2(self):
-        app = make_wsgi_app(config={'tipfy': {
-            'foo': 'bar'
-        }})
-
-        assert isinstance(app, Tipfy)
-        assert app.config.get('tipfy', 'foo') == 'bar'
-
-    def test_make_wsgi_app_with_middleware(self):
-        def app_wrapper(environ, start_response):
-            pass
-
-        class AppMiddleware(object):
-            def post_make_app(self, app):
-                app.wsgi_app = app_wrapper
-
-        app = make_wsgi_app(config={'tipfy': {
-            'middleware': [AppMiddleware]
-        }})
-
-        self.assertEqual(app.wsgi_app, app_wrapper)
-
-    def test_run_wsgi_app(self):
-        """We aren't testing anything here."""
-        from os import environ
-
-        environ['SERVER_NAME'] = 'foo.com'
-        environ['SERVER_PORT'] = '80'
-        environ['REQUEST_METHOD'] = 'GET'
-
-        rules = [Rule('/', handler='resources.handlers.HomeHandler', name='home')]
-        app = make_wsgi_app(rules=rules, debug=True)
-        run_wsgi_app(app)
-
-    def test_run_wsgi_app_dev(self):
-        """We aren't testing anything here."""
-        from os import environ
-
-        environ['SERVER_NAME'] = 'foo.com'
-        environ['SERVER_PORT'] = '80'
-        environ['REQUEST_METHOD'] = 'GET'
-        environ['SERVER_SOFTWARE'] = 'Dev'
-
-        rules = [Rule('/', handler='resources.handlers.HomeHandler', name='home')]
-        app = make_wsgi_app(rules=rules, debug=True)
-        run_wsgi_app(app)
-
-    def test_run_wsgi_app_with_middleware(self):
-        class AppMiddleware_2(object):
-            pass
-
-        from os import environ
-
-        environ['SERVER_NAME'] = 'foo.com'
-        environ['SERVER_PORT'] = '80'
-        environ['REQUEST_METHOD'] = 'GET'
-
-        rules = [Rule('/', handler='resources.handlers.HomeHandler', name='home')]
-        app = make_wsgi_app(rules=rules, config={'tipfy': {
-            'middleware': [AppMiddleware_2]
-        }})
-
-        run_wsgi_app(app)
-
-    def test_ultimate_sys_path(self):
-        """Mostly here to not be marked as uncovered."""
-        from tipfy import _ULTIMATE_SYS_PATH, fix_sys_path
-        fix_sys_path()
-
-    def test_ultimate_sys_path2(self):
-        """Mostly here to not be marked as uncovered."""
-        from tipfy import _ULTIMATE_SYS_PATH, fix_sys_path
-        _ULTIMATE_SYS_PATH = []
-        fix_sys_path()
-
-    def test_ultimate_sys_path3(self):
-        """Mostly here to not be marked as uncovered."""
-        import sys
-        path = list(sys.path)
-        sys.path = []
-
-        from tipfy import _ULTIMATE_SYS_PATH, fix_sys_path
-        _ULTIMATE_SYS_PATH = []
-        fix_sys_path()
-
-        sys.path = path

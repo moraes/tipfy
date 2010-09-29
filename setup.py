@@ -1,6 +1,9 @@
 """
 Tipfy
 =====
+This is a tipfy experimental branch, which will be released as tipfy 0.7
+in the future.
+
 Tipfy is a small but powerful framework made specifically for
 `Google App Engine <http://code.google.com/appengine/>`_. It is a lot like
 `webapp <http://code.google.com/appengine/docs/python/tools/webapp/>`_::
@@ -31,7 +34,7 @@ Links
 from setuptools import setup
 
 setup(
-    name = 'tipfy',
+    name = 'tipfy-dev',
     version = '0.7',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
@@ -44,16 +47,33 @@ setup(
     platforms = 'any',
     packages = [
         'tipfy',
-        'tipfy.ext',
+        'tipfy.auth',
+        'tipfy.auth.appengine',
+        'tipfy.debugger',
+        'tipfy.sessions',
+        'tipfyext',
+        'tipfyext.appengine',
+        'tipfyext.appengine.db',
+        'tipfyext.jinja2',
+        'tipfyext.wtforms',
     ],
     namespace_packages = [
-        'tipfy',
-        'tipfy.ext',
+        'tipfyext',
     ],
     include_package_data = True,
     install_requires = [
         'werkzeug>=0.6.1',
+        'jinja2',
+        'babel',
+        'gaepytz',
+        'wtforms',
+        'setuptools',
     ],
+    entry_points = {
+        'console_scripts': [
+            'jinja2_compile = tipfyext.jinja2.scripts:compile_templates',
+        ],
+    },
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',

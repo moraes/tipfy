@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
@@ -6,14 +7,17 @@ from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
 
 class TestHandler(unittest.TestCase):
     def tearDown(self):
-        Tipfy.app = Tipfy.request = None
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
 
     def test_405(self):
         class HomeHandler(RequestHandler):
             pass
 
         app = Tipfy(rules=[
-            Rule('/', endpoint='home', handler=HomeHandler),
+            Rule('/', name='home', handler=HomeHandler),
         ])
 
         client = app.get_test_client()
@@ -27,7 +31,7 @@ class TestHandler(unittest.TestCase):
             pass
 
         app = Tipfy(rules=[
-            Rule('/', endpoint='home', handler=HomeHandler),
+            Rule('/', name='home', handler=HomeHandler),
         ], debug=True)
 
         client = app.get_test_client()
@@ -50,9 +54,9 @@ class TestHandler(unittest.TestCase):
                 self.abort(404)
 
         app = Tipfy(rules=[
-            Rule('/400', endpoint='400', handler=HandlerWith400),
-            Rule('/403', endpoint='403', handler=HandlerWith403),
-            Rule('/404', endpoint='404', handler=HandlerWith404),
+            Rule('/400', name='400', handler=HandlerWith400),
+            Rule('/403', name='403', handler=HandlerWith403),
+            Rule('/404', name='404', handler=HandlerWith404),
         ], debug=True)
 
         client = app.get_test_client()
@@ -82,8 +86,8 @@ class TestHandler(unittest.TestCase):
                 return Response('I fixed it!')
 
         app = Tipfy(rules=[
-            Rule('/value-error', endpoint='value-error', handler=HandlerWithValueError),
-            Rule('/not-implemented-error', endpoint='not-implemented-error', handler=HandlerWithNotImplementedError),
+            Rule('/value-error', name='value-error', handler=HandlerWithValueError),
+            Rule('/not-implemented-error', name='not-implemented-error', handler=HandlerWithNotImplementedError),
         ], debug=True)
 
         client = app.get_test_client()
@@ -104,8 +108,8 @@ class TestHandler(unittest.TestCase):
                 return self.redirect('/')
 
         app = Tipfy(rules=[
-            Rule('/', endpoint='home', handler=HomeHandler),
-            Rule('/redirect-me', endpoint='redirect', handler=HandlerWithRedirect),
+            Rule('/', name='home', handler=HomeHandler),
+            Rule('/redirect-me', name='redirect', handler=HandlerWithRedirect),
         ], debug=True)
 
         client = app.get_test_client()
@@ -122,8 +126,8 @@ class TestHandler(unittest.TestCase):
                 return self.redirect_to('home')
 
         app = Tipfy(rules=[
-            Rule('/', endpoint='home', handler=HomeHandler),
-            Rule('/redirect-me', endpoint='redirect', handler=HandlerWithRedirectTo),
+            Rule('/', name='home', handler=HomeHandler),
+            Rule('/redirect-me', name='redirect', handler=HandlerWithRedirectTo),
         ], debug=True)
 
         client = app.get_test_client()
@@ -132,10 +136,11 @@ class TestHandler(unittest.TestCase):
 
     def test_redirect_relative_uris(self):
         app = Tipfy()
+        request = Request.from_values('/foo/bar/')
+        app.set_locals(request)
         class Handler(RequestHandler):
             pass
 
-        request = Request.from_values('/foo/bar/')
         handler = Handler(app, request)
         response = handler.redirect('/baz')
         self.assertEqual(response.headers['Location'], 'http://localhost/baz')
@@ -146,8 +151,7 @@ class TestHandler(unittest.TestCase):
         response = handler.redirect('../baz')
         self.assertEqual(response.headers['Location'], 'http://localhost/foo/baz')
 
-        request = Request.from_values('/foo/bar')
-        handler = Handler(app, request)
+        app.set_locals(Request.from_values('/foo/bar'))
         response = handler.redirect('/baz')
         self.assertEqual(response.headers['Location'], 'http://localhost/baz')
 
@@ -158,4 +162,158 @@ class TestHandler(unittest.TestCase):
         self.assertEqual(response.headers['Location'], 'http://localhost/baz')
 
     def test_url_for(self):
-        pass
+        class Handler(RequestHandler):
+            pass
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler='handlers.Home'),
+            Rule('/about', name='about', handler='handlers.About'),
+            Rule('/contact', name='contact', handler='handlers.Contact'),
+        ])
+        request = Request.from_values('/')
+        app.set_locals(request)
+        app.router.match(request)
+
+        handler = Handler(app, request)
+
+        self.assertEqual(handler.url_for('home'), '/')
+        self.assertEqual(handler.url_for('about'), '/about')
+        self.assertEqual(handler.url_for('contact'), '/contact')
+
+        # Extras
+        self.assertEqual(handler.url_for('about', _anchor='history'), '/about#history')
+        self.assertEqual(handler.url_for('about', _scheme='https'), 'https://localhost/about')
+
+
+class TestHandlerMiddleware(unittest.TestCase):
+    def tearDown(self):
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
+
+    def test_before_dispatch(self):
+        res = 'Intercepted!'
+        class MyMiddleware(object):
+            def before_dispatch(self, handler):
+                return Response(res)
+
+        class MyHandler(RequestHandler):
+            middleware = [MyMiddleware()]
+
+            def get(self, **kwargs):
+                return Response('default')
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ])
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.data, res)
+
+    def test_after_dispatch(self):
+        res = 'Intercepted!'
+        class MyMiddleware(object):
+            def after_dispatch(self, handler, response):
+                response.data += res
+                return response
+
+        class MyHandler(RequestHandler):
+            middleware = [MyMiddleware()]
+
+            def get(self, **kwargs):
+                return Response('default')
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ])
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.data, 'default' + res)
+
+    def test_handle_exception(self):
+        res = 'Catched!'
+        class MyMiddleware(object):
+            def handle_exception(self, handler, exception):
+                return Response(res)
+
+        class MyHandler(RequestHandler):
+            middleware = [MyMiddleware()]
+
+            def get(self, **kwargs):
+                raise ValueError()
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ])
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.data, res)
+
+    def test_handle_exception2(self):
+        res = 'I fixed it!'
+        class MyMiddleware(object):
+            def handle_exception(self, handler, exception):
+                raise ValueError()
+
+        class MyHandler(RequestHandler):
+            middleware = [MyMiddleware()]
+
+            def get(self, **kwargs):
+                raise ValueError()
+
+        class ErrorHandler(RequestHandler):
+            def handle_exception(self, exception):
+                return Response(res)
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ], debug=False)
+        app.error_handlers[500] = ErrorHandler
+
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.data, res)
+
+    def test_handle_exception2(self):
+        class MyMiddleware(object):
+            def handle_exception(self, handler, exception):
+                raise ValueError()
+
+        class MyHandler(RequestHandler):
+            middleware = [MyMiddleware()]
+
+            def get(self, **kwargs):
+                raise ValueError()
+
+        class ErrorHandler(RequestHandler):
+            def handle_exception(self, exception):
+                raise ValueError()
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ], debug=False)
+        app.error_handlers[500] = ErrorHandler
+
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.status_code, 500)
+
+    def test_handle_exception3(self):
+        res = 'Catched!'
+        class MyMiddleware(object):
+            def handle_exception(self, handler, exception):
+                pass
+
+        class MyHandler(RequestHandler):
+            middleware = [MyMiddleware()]
+
+            def get(self, **kwargs):
+                raise ValueError()
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=MyHandler),
+        ])
+        client = app.get_test_client()
+        response = client.get('/')
+        self.assertEqual(response.status_code, 500)

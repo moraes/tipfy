@@ -3,12 +3,14 @@
     Tests for tipfy utils
 """
 import unittest
-from nose.tools import raises
 
 import werkzeug
 
 from tipfy import (RequestHandler, Response, Rule, Tipfy, redirect,
     redirect_to, render_json_response)
+
+from tipfy.utils import (xhtml_escape, xhtml_unescape, json_encode,
+    json_decode, url_escape, url_unescape, utf8, _unicode)
 
 
 class HomeHandler(RequestHandler):
@@ -46,19 +48,22 @@ class RedirectToInvalidCodeHandler(RequestHandler):
 
 def get_app():
     return Tipfy(rules=[
-        Rule('/', endpoint='home', handler=HomeHandler),
-        Rule('/people/<string:username>', endpoint='profile', handler=ProfileHandler),
-        Rule('/redirect_to/', endpoint='redirect_to', handler=RedirectToHandler),
-        Rule('/redirect_to/<string:username>', endpoint='redirect_to', handler=RedirectToHandler),
-        Rule('/redirect_to_301/', endpoint='redirect_to', handler=RedirectTo301Handler),
-        Rule('/redirect_to_301/<string:username>', endpoint='redirect_to', handler=RedirectTo301Handler),
-        Rule('/redirect_to_invalid', endpoint='redirect_to_invalid', handler=RedirectToInvalidCodeHandler),
+        Rule('/', name='home', handler=HomeHandler),
+        Rule('/people/<string:username>', name='profile', handler=ProfileHandler),
+        Rule('/redirect_to/', name='redirect_to', handler=RedirectToHandler),
+        Rule('/redirect_to/<string:username>', name='redirect_to', handler=RedirectToHandler),
+        Rule('/redirect_to_301/', name='redirect_to', handler=RedirectTo301Handler),
+        Rule('/redirect_to_301/<string:username>', name='redirect_to', handler=RedirectTo301Handler),
+        Rule('/redirect_to_invalid', name='redirect_to_invalid', handler=RedirectToInvalidCodeHandler),
     ])
 
 
-class TestUtils(unittest.TestCase):
+class TestRedirect(unittest.TestCase):
     def tearDown(self):
-        Tipfy.app = Tipfy.request = None
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
 
     #===========================================================================
     # redirect()
@@ -66,32 +71,31 @@ class TestUtils(unittest.TestCase):
     def test_redirect(self):
         response = redirect('http://www.google.com/')
 
-        assert response.headers['location'] == 'http://www.google.com/'
-        assert response.status_code == 302
+        self.assertEqual(response.headers['location'], 'http://www.google.com/')
+        self.assertEqual(response.status_code, 302)
 
     def test_redirect_301(self):
         response = redirect('http://www.google.com/', 301)
 
-        assert response.headers['location'] == 'http://www.google.com/'
-        assert response.status_code == 301
+        self.assertEqual(response.headers['location'], 'http://www.google.com/')
+        self.assertEqual(response.status_code, 301)
 
     def test_redirect_no_response(self):
         response = redirect('http://www.google.com/')
 
-        assert isinstance(response, werkzeug.BaseResponse)
-        assert response.headers['location'] == 'http://www.google.com/'
-        assert response.status_code == 302
+        self.assertEqual(isinstance(response, werkzeug.BaseResponse), True)
+        self.assertEqual(response.headers['location'], 'http://www.google.com/')
+        self.assertEqual(response.status_code, 302)
 
     def test_redirect_no_response_301(self):
         response = redirect('http://www.google.com/', 301)
 
-        assert isinstance(response, werkzeug.BaseResponse)
-        assert response.headers['location'] == 'http://www.google.com/'
-        assert response.status_code == 301
+        self.assertEqual(isinstance(response, werkzeug.BaseResponse), True)
+        self.assertEqual(response.headers['location'], 'http://www.google.com/')
+        self.assertEqual(response.status_code, 301)
 
-    @raises(AssertionError)
     def test_redirect_invalid_code(self):
-        redirect('http://www.google.com/', 404)
+        self.assertRaises(AssertionError, redirect, 'http://www.google.com/', 404)
 
     #===========================================================================
     # redirect_to()
@@ -101,8 +105,8 @@ class TestUtils(unittest.TestCase):
         client = app.get_test_client()
 
         response = client.get('/redirect_to/', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/'
-        assert response.status_code == 302
+        self.assertEqual(response.headers['location'], 'http://foo.com/')
+        self.assertEqual(response.status_code, 302)
 
 
     def test_redirect_to2(self):
@@ -110,39 +114,47 @@ class TestUtils(unittest.TestCase):
         client = app.get_test_client()
 
         response = client.get('/redirect_to/calvin', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/calvin'
-        assert response.status_code == 302
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/calvin')
+        self.assertEqual(response.status_code, 302)
 
         response = client.get('/redirect_to/hobbes', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/hobbes'
-        assert response.status_code == 302
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/hobbes')
+        self.assertEqual(response.status_code, 302)
 
         response = client.get('/redirect_to/moe', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/moe'
-        assert response.status_code == 302
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/moe')
+        self.assertEqual(response.status_code, 302)
 
     def test_redirect_to_301(self):
         app = get_app()
         client = app.get_test_client()
 
         response = client.get('/redirect_to_301/calvin', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/calvin'
-        assert response.status_code == 301
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/calvin')
+        self.assertEqual(response.status_code, 301)
 
         response = client.get('/redirect_to_301/hobbes', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/hobbes'
-        assert response.status_code == 301
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/hobbes')
+        self.assertEqual(response.status_code, 301)
 
         response = client.get('/redirect_to_301/moe', base_url='http://foo.com')
-        assert response.headers['location'] == 'http://foo.com/people/moe'
-        assert response.status_code == 301
+        self.assertEqual(response.headers['location'], 'http://foo.com/people/moe')
+        self.assertEqual(response.status_code, 301)
 
     def test_redirect_to_invalid_code(self):
         app = get_app()
         client = app.get_test_client()
 
         response = client.get('/redirect_to_invalid', base_url='http://foo.com')
-        assert response.status_code == 500
+        self.assertEqual(response.status_code, 500)
+
+
+class TestRenderJson(unittest.TestCase):
+    def tearDown(self):
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
 
     #===========================================================================
     # render_json_response()
@@ -150,6 +162,40 @@ class TestUtils(unittest.TestCase):
     def test_render_json_response(self):
         response = render_json_response({'foo': 'bar'})
 
-        assert isinstance(response, Response)
-        assert response.mimetype == 'application/json'
-        assert response.data == '{"foo": "bar"}'
+        self.assertEqual(isinstance(response, Response), True)
+        self.assertEqual(response.mimetype, 'application/json')
+        self.assertEqual(response.data, '{"foo": "bar"}')
+
+
+class TestUtils(unittest.TestCase):
+    def tearDown(self):
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
+
+    def test_xhtml_escape(self):
+        self.assertEqual(xhtml_escape('"foo"'), '&quot;foo&quot;')
+
+    def test_xhtml_unescape(self):
+        self.assertEqual(xhtml_unescape('&quot;foo&quot;'), '"foo"')
+
+    def test_json_encode(self):
+        self.assertEqual(json_encode('<script>alert("hello")</script>'), '"<script>alert(\\"hello\\")<\\/script>"')
+
+    def test_json_decode(self):
+        self.assertEqual(json_decode('"<script>alert(\\"hello\\")<\\/script>"'), '<script>alert("hello")</script>')
+
+    def test_url_escape(self):
+        self.assertEqual(url_escape('somewords&some more words'), 'somewords%26some+more+words')
+
+    def test_url_unescape(self):
+        self.assertEqual(url_unescape('somewords%26some+more+words'), 'somewords&some more words')
+
+    def test_utf8(self):
+        self.assertEqual(isinstance(utf8(u'ááá'), str), True)
+        self.assertEqual(isinstance(utf8('ááá'), str), True)
+
+    def test_unicode(self):
+        self.assertEqual(isinstance(_unicode(u'ááá'), unicode), True)
+        self.assertEqual(isinstance(_unicode('ááá'), unicode), True)

@@ -9,7 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 from tipfy import RequestHandler, Response
-from tipfy.ext.jinja2 import render_response
+from tipfyext.jinja2 import Jinja2Mixin
 
 
 class HelloWorldHandler(RequestHandler):
@@ -18,7 +18,10 @@ class HelloWorldHandler(RequestHandler):
         return Response('Hello, World!')
 
 
-class PrettyHelloWorldHandler(RequestHandler):
+class PrettyHelloWorldHandler(RequestHandler, Jinja2Mixin):
     def get(self):
         """Simply returns a rendered template with an enigmatic salutation."""
-        return render_response('hello_world.html', message='Hello, World!')
+        context = {
+            'message': 'Hello, World!',
+        }
+        return self.render_response('hello_world.html', **context)

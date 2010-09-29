@@ -160,6 +160,25 @@ class RequestHandler(object):
         # Done!
         return response
 
+    @cached_property
+    def auth(self):
+        """The auth store which provides access to the authenticated user and
+        auth related functions.
+
+        :returns:
+            An auth store instance.
+        """
+        return self.request.auth
+
+    @cached_property
+    def session(self):
+        """A session dictionary using the default session configuration.
+
+        :returns:
+            A dictionary-like object with the current session data.
+        """
+        return self.request.session_store.get_session()
+
     def abort(self, code, *args, **kwargs):
         """Raises an :class:`HTTPException`. This stops code execution,
         leaving the HTTP exception to be handled by an exception handler.

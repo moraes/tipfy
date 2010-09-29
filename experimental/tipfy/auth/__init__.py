@@ -566,7 +566,7 @@ def create_session_id():
 
 def _login_required(handler):
     """Implementation for login_required and LoginRequiredMiddleware."""
-    auth = handler.request.auth
+    auth = handler.auth
 
     if not auth.session:
         return handler.redirect(auth.login_url())
@@ -574,7 +574,7 @@ def _login_required(handler):
 
 def _user_required(handler):
     """Implementation for user_required and UserRequiredMiddleware."""
-    auth = handler.request.auth
+    auth = handler.auth
 
     if not auth.session:
         return handler.redirect(auth.login_url())
@@ -587,7 +587,7 @@ def _user_required_if_authenticated(handler):
     """Implementation for user_required_if_authenticated and
     UserRequiredIfAuthenticatedMiddleware.
     """
-    auth = handler.request.auth
+    auth = handler.auth
 
     if auth.session and not auth.user:
         return handler.redirect(auth.signup_url())
@@ -595,7 +595,7 @@ def _user_required_if_authenticated(handler):
 
 def _admin_required(handler):
     """Implementation for admin_required and AdminRequiredMiddleware."""
-    auth = handler.request.auth
+    auth = handler.auth
 
     if not auth.session:
         return handler.redirect(auth.login_url())

@@ -39,30 +39,61 @@ tipfy's core design. Here's an overview of what is new:
 - IMPROVED: the debugger now works even if the libraries are zipped using
   buildout.
 
-- NEW: Sessions is now part of tipfy core. It is available in the request
-  object and lazily loaded when accessed. Request has now 'session' and
-  'session_store' attributes:
+- NEW: Sessions are now part of tipfy core. The auth store is configured in
+  tipfy module and uses the shipped store by default::
 
-  - request.session is a shortcut to get a session using the configured
+      config['tipfy'] = {
+          'session_store_class': 'tipfy.sessions.SessionStore',
+      }
+
+  Then it is available through lazy loading in both Request and RequestHandler:
+
+  - Request.session provides access to the session using the configured
     backend and session key.
-  - request.session_store provides session related utilities such as getting
+  - Request.session_store provides session related utilities such as getting
     sessions from different backends and setting/deleting cookies.
+  - RequestHandler.session is a shortcut to Request.session.
 
-  Examples::
+  Example::
 
-      # Set a value in the current session.
-      self.request.session['foo'] = 'bar'
+      class MyHandler(RequestHandler):
+          def get(self, **kwargs):
+              # Set a value in the current session.
+              self.session['foo'] = 'bar'
 
-      # Get a list of flash messages.
-      flashes = self.request.session.get_flashes()
+              # Get a list of flash messages.
+              flashes = self.session.get_flashes()
 
-      # Add a flash message.
-      self.request.session.add_flash('Hello, world!')
+              # Add a flash message.
+              self.session.flash('Hello, world!')
 
-      # Get a session from a different backend.
-      session = self.request.session_store.get_session(backend='memcache')
+              # Get a session from a different backend.
+              session = self.request.session_store.get_session(backend='memcache')
 
-- NEW: Auth is now part of tipfy core. [explain]
+- NEW: Auth is now part of tipfy core. The auth store is configured in tipfy
+  module and uses an App Engine store by default::
+
+      config['tipfy'] = {
+          'auth_store_class': 'tipfy.auth.appengine.AppEngineAuthStore',
+      }
+
+  Then it is available through lazy loading in both Request and RequestHandler:
+
+  - Request.auth provides access to the configured auth store.
+  - RequestHandler.auth is a shortcut to Request.auth.
+
+  Example::
+
+      class MyHandler(RequestHandler):
+          def get(self, **kwargs):
+              # Get the current user, if any.
+              current_user = self.auth.user
+
+              # Generate a login URL.
+              login_url = self.auth.login_url()
+
+- NEW: added session and auth attributes to RequestHandler, to access the
+  current session and auth store.
 
 - IMPROVED: redirect() (or self.redirect() in handlers) now accepts relative
   URLs. If a relative URL is passed, it'll be joined to the current request

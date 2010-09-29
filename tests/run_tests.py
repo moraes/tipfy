@@ -18,7 +18,7 @@ import nose
 if __name__ == '__main__':
     base = os.path.abspath(os.path.dirname(__file__))
     tipfy = os.path.join(base, '..')
-    app   = os.path.join(base, 'project', 'app', 'distlib')
+    app   = os.path.join(base, 'project', 'app', 'lib', 'dist')
     sys.path[0:0] = [tipfy, app]
 
     argv = [__file__]

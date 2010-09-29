@@ -380,7 +380,6 @@ class Tipfy(object):
             A callable accepting a status code, a list of headers and an
             optional exception context to start the response.
         """
-        response = None
         cleanup = True
         try:
             request = self.request_class(environ)
@@ -395,7 +394,7 @@ class Tipfy(object):
             try:
                 response = self.handle_exception(request, e)
             except HTTPException, e:
-                response = e
+                response = self.make_response(e)
             except:
                 if self.debug:
                     cleanup = False
@@ -404,11 +403,8 @@ class Tipfy(object):
                 # We only log unhandled non-HTTP exceptions. Users should
                 # take care of logging in custom error handlers.
                 logging.exception(e)
-                response = InternalServerError()
+                response = self.make_response(InternalServerError())
         finally:
-            if response:
-                response = self.make_response(response)
-
             if cleanup:
                 self.clear_locals()
 
@@ -430,9 +426,9 @@ class Tipfy(object):
                 encoded to utf-8 as body.
               - a WSGI function: the function is called as WSGI application
                 and buffered as response object.
-              - None: a ValueError is raised.
-            - If multiple arguments are passed, a response is created with the
-              contents of the tuple as arguments.
+              - None: a ValueError exception is raised.
+            - If multiple arguments are passed, a response is created using
+              the arguments.
         :returns:
             A :attr:`response_class` instance.
         """

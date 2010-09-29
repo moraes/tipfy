@@ -32,17 +32,18 @@ except ImportError:
 #: force_use_compiled
 #:     Forces the use of compiled templates even in the development server.
 #:
-#: environment_kwargs
+#: environment_args
 #:     Keyword arguments used to instantiate the Jinja2 environment. By
-#:     default two extensions are set: 'jinja2.ext.autoescape' and
-#:     'jinja2.ext.with_'.
+#:     default autoescaping is enabled and two extensions are set:
+#:     'jinja2.ext.autoescape' and 'jinja2.ext.with_'.
 default_config = {
     'templates_dir': 'templates',
     'templates_compiled_target': None,
     'force_use_compiled': False,
-    'environment_kwargs': {
-        'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_'],
-    },
+    'environment_args': dict(
+        autoescape=True,
+        extensions=['jinja2.ext.autoescape', 'jinja2.ext.with_'],
+    ),
 }
 
 
@@ -66,7 +67,7 @@ class Jinja2(object):
     def __init__(self, app, _globals=None, filters=None):
         self.app = app
         cfg = app.get_config(__name__)
-        kwargs = cfg.get('environment_kwargs') or {}
+        kwargs = cfg.get('environment_args') or {}
 
         if not kwargs.get('loader'):
             templates_compiled_target = cfg.get('templates_compiled_target')

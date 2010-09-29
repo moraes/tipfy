@@ -410,47 +410,6 @@ class Tipfy(object):
 
         return response(environ, start_response)
 
-    def make_response(self, *rv):
-        """Converts the return value from a :class:`RequestHandler` to a real
-        response object that is an instance of :attr:`response_class`.
-
-        This function is borrowed from `Flask`_.
-
-        :param rv:
-            - If no arguments are passed, returns an empty response.
-            - If a single argument is passed, the returned value varies
-              according to its type:
-              - :attr:`response_class`: the response is returned unchanged.
-              - :class:`str`: a response is created with the string as body.
-              - :class:`unicode`: a response is created with the string
-                encoded to utf-8 as body.
-              - a WSGI function: the function is called as WSGI application
-                and buffered as response object.
-              - None: a ValueError exception is raised.
-            - If multiple arguments are passed, a response is created using
-              the arguments.
-        :returns:
-            A :attr:`response_class` instance.
-        """
-        if not rv:
-            return self.response_class()
-
-        if len(rv) == 1:
-            rv = rv[0]
-
-            if isinstance(rv, self.response_class):
-                return rv
-
-            if isinstance(rv, basestring):
-                return self.response_class(rv)
-
-            if rv is None:
-                raise ValueError('Handler did not return a response')
-
-            return self.response_class.force_type(rv, self.request.environ)
-
-        return self.response_class(*rv)
-
     def handle_exception(self, request, exception):
         """Handles an exception. To set app-wide error handlers, define them
         using the corresponent HTTP status code in the ``error_handlers``
@@ -500,6 +459,47 @@ class Tipfy(object):
                 method='handle_exception')
         else:
             raise
+
+    def make_response(self, *rv):
+        """Converts the return value from a :class:`RequestHandler` to a real
+        response object that is an instance of :attr:`response_class`.
+
+        This function is borrowed from `Flask`_.
+
+        :param rv:
+            - If no arguments are passed, returns an empty response.
+            - If a single argument is passed, the returned value varies
+              according to its type:
+              - :attr:`response_class`: the response is returned unchanged.
+              - :class:`str`: a response is created with the string as body.
+              - :class:`unicode`: a response is created with the string
+                encoded to utf-8 as body.
+              - a WSGI function: the function is called as WSGI application
+                and buffered as response object.
+              - None: a ValueError exception is raised.
+            - If multiple arguments are passed, a response is created using
+              the arguments.
+        :returns:
+            A :attr:`response_class` instance.
+        """
+        if not rv:
+            return self.response_class()
+
+        if len(rv) == 1:
+            rv = rv[0]
+
+            if isinstance(rv, self.response_class):
+                return rv
+
+            if isinstance(rv, basestring):
+                return self.response_class(rv)
+
+            if rv is None:
+                raise ValueError('Handler did not return a response')
+
+            return self.response_class.force_type(rv, self.request.environ)
+
+        return self.response_class(*rv)
 
     def set_locals(self, request=None):
         """Sets variables for a single request. Uses simple class attributes

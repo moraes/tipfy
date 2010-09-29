@@ -38,7 +38,7 @@ def get_loader():
 
 def get_template(filename):
     """Replaces ``werkzeug.debug.utils.get_template()``."""
-    get_loader().load(filename)
+    return get_loader().load(filename)
 
 
 def render_template(filename, **context):

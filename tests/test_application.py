@@ -1,169 +1,583 @@
-import os
+# -*- coding: utf-8 -*-
+"""
+    Tests for tipfy application
+"""
 import unittest
 
-from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
-    make_wsgi_app, run_wsgi_app, ALLOWED_METHODS)
+from nose.tools import assert_raises, raises
+
+from werkzeug import BaseResponse
+from werkzeug.test import create_environ, Client
+
+from tipfy import (Map, MethodNotAllowed, MiddlewareFactory, Request,
+    RequestHandler, Response, Rule, Tipfy, make_wsgi_app, run_wsgi_app)
 
 
-class BrokenHandler(RequestHandler):
+def get_url_rules():
+    # Fake get_rules() for testing.
+    rules = [
+        Rule('/', endpoint='home', handler='resources.handlers.HomeHandler'),
+        Rule('/test-redirect/', endpoint='test-redirect', handler='resources.handlers.HomeHandler'),
+        Rule('/test-redirect/leaf', endpoint='test-redirect/leaf', handler='resources.handlers.HomeHandler'),
+        Rule('/test-exception', endpoint='test-exception', handler='resources.handlers.HandlerWithException'),
+    ]
+
+    return rules
+
+
+def get_app():
+    return Tipfy(rules=get_url_rules(), debug=True)
+
+
+class Handler(RequestHandler):
     def get(self, **kwargs):
-        raise ValueError('booo!')
+        return Response('handler-get-' + kwargs['some_arg'])
+
+    def post(self, **kwargs):
+        return Response('handler-post-' + kwargs['some_arg'])
 
 
-class BrokenButFixedHandler(BrokenHandler):
-    def handle_exception(self, exception=None, debug=False):
-        # Let's fix it.
-        return Response('that was close!', status=200)
+class SomeObject(object):
+    pass
 
 
-class Handle404(RequestHandler):
-    def handle_exception(self, exception=None, debug=False):
-        return Response('404 custom handler', status=404)
+class AppWrapper(object):
+    def __init__(self, app):
+        pass
 
 
-class Handle405(RequestHandler):
-    def handle_exception(self, exception=None, debug=False):
-        response = Response('405 custom handler', status=405)
-        response.headers['Allow'] = 'GET'
-        return response
+class AppMiddleware(object):
+    def post_make_app(self, app):
+        return AppWrapper(app)
 
 
-class Handle500(RequestHandler):
-    def handle_exception(self, exception=None, debug=False):
-        return Response('500 custom handler', status=500)
+class AppMiddleware_2(object):
+    pass
 
 
-class TestApp(unittest.TestCase):
+class ExceptionHandler(object):
+    def handle_exception(self, e, handler=None):
+        return BaseResponse('Exception was handled!')
+
+
+class PreDispatchHandler(object):
+    def pre_dispatch_handler(self):
+        return BaseResponse('Handler dispatch was aborted!')
+
+
+class PostDispatchHandler(object):
+    def post_dispatch_handler(self, response):
+        return BaseResponse('I replaced the handler response!')
+
+
+class Middleware_1(object):
+    def post_make_app(self, app):
+        return app
+
+    def pre_dispatch_handler(self):
+        pass
+
+    def post_dispatch_handler(self, response):
+        pass
+
+    def pre_dispatch(self):
+        pass
+
+    def post_dispatch(self, response):
+        pass
+
+    def handle_exception(self, e, handler=None):
+        pass
+
+
+class Middleware_2(object):
+    def post_make_app(self, app):
+        return app
+
+
+class Middleware_3(object):
+    def post_dispatch_handler(self, response):
+        pass
+
+    def post_dispatch(self, response):
+        pass
+
+    def handle_exception(self, e, handler=None):
+        pass
+
+
+class Middleware_4(object):
+    def post_dispatch_handler(self, response):
+        pass
+
+    def post_dispatch(self, response):
+        pass
+
+    def handle_exception(self, e, handler=None):
+        pass
+
+
+class Middleware_5(object):
+    def post_dispatch_handler(self, response):
+        pass
+
+    def post_dispatch(self, response):
+        pass
+
+    def handle_exception(self, e, handler=None):
+        pass
+
+
+class TestRequestHandler(unittest.TestCase):
+    def tearDown(self):
+        Tipfy.app = Tipfy.request = None
+        Handler.middleware = []
+
+    def test_dispatch_without_middleware(self):
+        app = Tipfy()
+        request = Request.from_values()
+        handler = Handler(app, request)
+        assert handler('get', some_arg='foo').data == 'handler-get-foo'
+
+        handler = Handler(app, request)
+        assert handler('post', some_arg='bar').data == 'handler-post-bar'
+
+    @raises(MethodNotAllowed)
+    def test_dispatch_not_allowed(self):
+        app = Tipfy()
+        request = Request.from_values()
+        handler = Handler(app, request)
+        handler('put', some_arg='test')
+
+    @raises(MethodNotAllowed)
+    def test_method_not_allowed(self):
+        app = Tipfy()
+        request = Request.from_values()
+        handler = Handler(app, request)
+        handler('foo', some_arg='test')
+
+    #===========================================================================
+    # pre_dispatch()
+    #===========================================================================
+    def test_pre_dispatch_return_response(self):
+        app = Tipfy()
+        message = 'I got you.'
+
+        class MiddlewareThatReturns(object):
+            def pre_dispatch(self, handler):
+                return Response(message)
+
+        Handler.middleware = [MiddlewareThatReturns]
+
+        request = Request.from_values()
+        handler = Handler(app, request)
+        response = handler('get', some_arg='foo')
+        assert response.data == message
+
+        handler = Handler(app, request)
+        response = handler('post', some_arg='bar')
+        assert response.data == message
+
+    def test_pre_dispatch_set_attribute(self):
+        app = Tipfy()
+
+        class MiddlewareThatSetsAttribute(object):
+            def pre_dispatch(self, handler):
+                setattr(handler, 'foo', 'bar')
+
+        Handler.middleware = [MiddlewareThatSetsAttribute]
+
+        request = Request.from_values()
+        handler = Handler(app, request)
+
+        assert getattr(handler, 'foo', None) is None
+        handler('get', **{'some_arg': 'some_value'})
+        assert handler.foo == 'bar'
+
+    #===========================================================================
+    # handle_exception()
+    #===========================================================================
+    @raises(ValueError)
+    def test_handle_exception_do_nothing(self):
+        app = Tipfy()
+        message = 'I got you.'
+
+        class HandlerThatRaises(RequestHandler):
+            def get(self, **kwargs):
+                raise ValueError()
+
+        class MiddlewareThatReturns(object):
+            def handle_exception(self, e, handler=None):
+                pass
+
+        HandlerThatRaises.middleware = [MiddlewareThatReturns]
+
+        request = Request.from_values()
+        handler = HandlerThatRaises(app, request)
+        assert handler('get', some_arg='foo') == message
+
+    @raises(NotImplementedError)
+    def test_handle_exception_and_raises(self):
+        app = Tipfy()
+        message = 'I got you.'
+
+        class HandlerThatRaises(RequestHandler):
+            def get(self, **kwargs):
+                raise ValueError()
+
+        class MiddlewareThatReturns(object):
+            def handle_exception(self, e, handler=None):
+                raise NotImplementedError()
+
+        HandlerThatRaises.middleware = [MiddlewareThatReturns]
+
+        request = Request.from_values()
+        handler = HandlerThatRaises(app, request)
+        assert handler('get', some_arg='foo') == message
+
+    def test_handle_exception_return_response(self):
+        app = Tipfy()
+        message = 'I got you.'
+
+        class HandlerThatRaises(RequestHandler):
+            def get(self, **kwargs):
+                raise ValueError()
+
+        class MiddlewareThatReturns(object):
+            def handle_exception(self, e, handler=None):
+                return Response(message)
+
+        HandlerThatRaises.middleware = [MiddlewareThatReturns]
+
+        request = Request.from_values()
+        handler = HandlerThatRaises(app, request)
+        response = handler('get', some_arg='foo')
+        assert response.data == message
+
+    #===========================================================================
+    # post_dispatch()
+    #===========================================================================
+    def test_post_dispatch_return_response(self):
+        app = Tipfy()
+        message = 'I got you.'
+
+        class MiddlewareThatReturns(object):
+            def post_dispatch(self, handler, response):
+                return message
+
+        Handler.middleware = [MiddlewareThatReturns]
+
+        request = Request.from_values()
+        handler = Handler(app, request)
+        assert handler('get', some_arg='foo') == message
+
+        handler = Handler(app, request)
+        assert handler('post', some_arg='bar') == message
+
+    def test_post_dispatch_set_attribute(self):
+        app = Tipfy()
+
+        class MiddlewareThatSetsAttribute(object):
+            def post_dispatch(self, handler, response):
+                setattr(handler, 'foo', 'bar')
+                return response
+
+        Handler.middleware = [MiddlewareThatSetsAttribute]
+
+        request = Request.from_values()
+        handler = Handler(app, request)
+
+        assert getattr(handler, 'foo', None) is None
+        handler('get', some_arg='foo')
+        assert handler.foo == 'bar'
+
+
+class TestMiddlewareFactory(unittest.TestCase):
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
 
-    def test_200(self):
-        class MyHandler(RequestHandler):
-            def delete(self, **kwargs):
-                return Response('Method: %s' % self.request.method)
+    def test_get_middleware(self):
+        factory = MiddlewareFactory()
+        obj = SomeObject()
+        middleware = factory.get_middleware(obj, [Middleware_1, Middleware_2])
 
-            get = head = options = post = put = trace = delete
+        assert len(factory.obj_middleware) == 1
+        assert len(factory.instances) == 2
+        assert len(factory.methods) == 2
 
-        app = Tipfy(rules=[Rule('/', name='home', handler=MyHandler)])
-        client = app.get_test_client()
+        assert __name__ + '.SomeObject' in factory.obj_middleware
 
-        for method in ALLOWED_METHODS:
-            response = client.open('/', method=method)
-            self.assertEqual(response.status_code, 200, method)
-            if method == 'HEAD':
-                self.assertEqual(response.data, '')
-            else:
-                self.assertEqual(response.data, 'Method: %s' % method)
+        assert __name__ + '.Middleware_1' in factory.instances
+        assert __name__ + '.Middleware_2' in factory.instances
 
-    def test_404(self):
-        # No URL rules defined.
+        assert __name__ + '.Middleware_1' in factory.methods
+        assert __name__ + '.Middleware_2' in factory.methods
+
+        assert 'post_make_app' in middleware
+        assert 'pre_dispatch_handler' in middleware
+        assert 'post_dispatch_handler' in middleware
+        assert 'pre_dispatch' in middleware
+        assert 'post_dispatch' in middleware
+        assert 'handle_exception' in middleware
+
+        assert len(middleware['post_make_app']) == 2
+        assert len(middleware['pre_dispatch_handler']) == 1
+        assert len(middleware['post_dispatch_handler']) == 1
+        assert len(middleware['pre_dispatch']) == 1
+        assert len(middleware['post_dispatch']) == 1
+        assert len(middleware['handle_exception']) == 1
+
+        assert middleware['post_make_app'][0] == factory.instances[__name__ + '.Middleware_1'].post_make_app
+        assert middleware['post_make_app'][1] == factory.instances[__name__ + '.Middleware_2'].post_make_app
+        assert middleware['pre_dispatch_handler'][0] == factory.instances[__name__ + '.Middleware_1'].pre_dispatch_handler
+        assert middleware['post_dispatch_handler'][0] == factory.instances[__name__ + '.Middleware_1'].post_dispatch_handler
+        assert middleware['pre_dispatch'][0] == factory.instances[__name__ + '.Middleware_1'].pre_dispatch
+        assert middleware['post_dispatch'][0] == factory.instances[__name__ + '.Middleware_1'].post_dispatch
+        assert middleware['handle_exception'][0] == factory.instances[__name__ + '.Middleware_1'].handle_exception
+
+        assert len(factory.obj_middleware[__name__ + '.SomeObject']['post_make_app']) == 2
+        assert len(factory.obj_middleware[__name__ + '.SomeObject']['pre_dispatch_handler']) == 1
+        assert len(factory.obj_middleware[__name__ + '.SomeObject']['post_dispatch_handler']) == 1
+        assert len(factory.obj_middleware[__name__ + '.SomeObject']['pre_dispatch']) == 1
+        assert len(factory.obj_middleware[__name__ + '.SomeObject']['post_dispatch']) == 1
+        assert len(factory.obj_middleware[__name__ + '.SomeObject']['handle_exception']) == 1
+
+        assert factory.obj_middleware[__name__ + '.SomeObject']['post_make_app'][0] == factory.instances[__name__ + '.Middleware_1'].post_make_app
+        assert factory.obj_middleware[__name__ + '.SomeObject']['post_make_app'][1] == factory.instances[__name__ + '.Middleware_2'].post_make_app
+        assert factory.obj_middleware[__name__ + '.SomeObject']['pre_dispatch_handler'][0] == factory.instances[__name__ + '.Middleware_1'].pre_dispatch_handler
+        assert factory.obj_middleware[__name__ + '.SomeObject']['post_dispatch_handler'][0] == factory.instances[__name__ + '.Middleware_1'].post_dispatch_handler
+        assert factory.obj_middleware[__name__ + '.SomeObject']['pre_dispatch'][0] == factory.instances[__name__ + '.Middleware_1'].pre_dispatch
+        assert factory.obj_middleware[__name__ + '.SomeObject']['post_dispatch'][0] == factory.instances[__name__ + '.Middleware_1'].post_dispatch
+        assert factory.obj_middleware[__name__ + '.SomeObject']['handle_exception'][0] == factory.instances[__name__ + '.Middleware_1'].handle_exception
+
+    def test_load_middleware(self):
+        factory = MiddlewareFactory()
+        middleware = factory.load_middleware([Middleware_1, Middleware_2])
+        middleware_2 = factory.load_middleware([Middleware_1, Middleware_2])
+
+        assert len(factory.instances) == 2
+        assert len(factory.methods) == 2
+
+        assert __name__ + '.Middleware_1' in factory.instances
+        assert __name__ + '.Middleware_2' in factory.instances
+
+        assert __name__ + '.Middleware_1' in factory.methods
+        assert __name__ + '.Middleware_2' in factory.methods
+
+        assert 'post_make_app' in middleware
+        assert 'pre_dispatch_handler' in middleware
+        assert 'post_dispatch_handler' in middleware
+        assert 'pre_dispatch' in middleware
+        assert 'post_dispatch' in middleware
+        assert 'handle_exception' in middleware
+
+        assert len(middleware['post_make_app']) == 2
+        assert len(middleware['pre_dispatch_handler']) == 1
+        assert len(middleware['post_dispatch_handler']) == 1
+        assert len(middleware['pre_dispatch']) == 1
+        assert len(middleware['post_dispatch']) == 1
+        assert len(middleware['handle_exception']) == 1
+
+        assert middleware['post_make_app'][0] == factory.instances[__name__ + '.Middleware_1'].post_make_app
+        assert middleware['post_make_app'][1] == factory.instances[__name__ + '.Middleware_2'].post_make_app
+        assert middleware['pre_dispatch_handler'][0] == factory.instances[__name__ + '.Middleware_1'].pre_dispatch_handler
+        assert middleware['post_dispatch_handler'][0] == factory.instances[__name__ + '.Middleware_1'].post_dispatch_handler
+        assert middleware['pre_dispatch'][0] == factory.instances[__name__ + '.Middleware_1'].pre_dispatch
+        assert middleware['post_dispatch'][0] == factory.instances[__name__ + '.Middleware_1'].post_dispatch
+        assert middleware['handle_exception'][0] == factory.instances[__name__ + '.Middleware_1'].handle_exception
+
+        assert 'post_make_app' in middleware_2
+        assert 'pre_dispatch_handler' in middleware_2
+        assert 'post_dispatch_handler' in middleware_2
+        assert 'pre_dispatch' in middleware_2
+        assert 'post_dispatch' in middleware_2
+        assert 'handle_exception' in middleware_2
+
+        assert len(middleware_2['post_make_app']) == 2
+        assert len(middleware_2['pre_dispatch_handler']) == 1
+        assert len(middleware_2['post_dispatch_handler']) == 1
+        assert len(middleware_2['pre_dispatch']) == 1
+        assert len(middleware_2['post_dispatch']) == 1
+        assert len(middleware_2['handle_exception']) == 1
+
+        assert middleware_2['post_make_app'][0] == factory.instances[__name__ + '.Middleware_1'].post_make_app
+        assert middleware_2['post_make_app'][1] == factory.instances[__name__ + '.Middleware_2'].post_make_app
+        assert middleware_2['pre_dispatch_handler'][0] == factory.instances[__name__ + '.Middleware_1'].pre_dispatch_handler
+        assert middleware_2['post_dispatch_handler'][0] == factory.instances[__name__ + '.Middleware_1'].post_dispatch_handler
+        assert middleware_2['pre_dispatch'][0] == factory.instances[__name__ + '.Middleware_1'].pre_dispatch
+        assert middleware_2['post_dispatch'][0] == factory.instances[__name__ + '.Middleware_1'].post_dispatch
+        assert middleware_2['handle_exception'][0] == factory.instances[__name__ + '.Middleware_1'].handle_exception
+
+    def test_load_middleware_using_strings(self):
+        factory = MiddlewareFactory()
+        middleware = factory.load_middleware(['test_application.Middleware_1', 'test_application.Middleware_2'])
+        middleware_2 = factory.load_middleware(['test_application.Middleware_1', 'test_application.Middleware_2'])
+
+        assert len(factory.instances) == 2
+        assert len(factory.methods) == 2
+
+        assert 'test_application.Middleware_1' in factory.instances
+        assert 'test_application.Middleware_2' in factory.instances
+
+        assert 'test_application.Middleware_1' in factory.methods
+        assert 'test_application.Middleware_2' in factory.methods
+
+        assert 'post_make_app' in middleware
+        assert 'pre_dispatch_handler' in middleware
+        assert 'post_dispatch_handler' in middleware
+        assert 'pre_dispatch' in middleware
+        assert 'post_dispatch' in middleware
+        assert 'handle_exception' in middleware
+
+        assert len(middleware['post_make_app']) == 2
+        assert len(middleware['pre_dispatch_handler']) == 1
+        assert len(middleware['post_dispatch_handler']) == 1
+        assert len(middleware['pre_dispatch']) == 1
+        assert len(middleware['post_dispatch']) == 1
+        assert len(middleware['handle_exception']) == 1
+
+        assert middleware['post_make_app'][0] == factory.instances['test_application.Middleware_1'].post_make_app
+        assert middleware['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
+        assert middleware['pre_dispatch_handler'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch_handler
+        assert middleware['post_dispatch_handler'][0] == factory.instances['test_application.Middleware_1'].post_dispatch_handler
+        assert middleware['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
+        assert middleware['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
+        assert middleware['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
+
+        assert 'post_make_app' in middleware_2
+        assert 'pre_dispatch_handler' in middleware_2
+        assert 'post_dispatch_handler' in middleware_2
+        assert 'pre_dispatch' in middleware_2
+        assert 'post_dispatch' in middleware_2
+        assert 'handle_exception' in middleware_2
+
+        assert len(middleware_2['post_make_app']) == 2
+        assert len(middleware_2['pre_dispatch_handler']) == 1
+        assert len(middleware_2['post_dispatch_handler']) == 1
+        assert len(middleware_2['pre_dispatch']) == 1
+        assert len(middleware_2['post_dispatch']) == 1
+        assert len(middleware_2['handle_exception']) == 1
+
+        assert middleware_2['post_make_app'][0] == factory.instances['test_application.Middleware_1'].post_make_app
+        assert middleware_2['post_make_app'][1] == factory.instances['test_application.Middleware_2'].post_make_app
+        assert middleware_2['pre_dispatch_handler'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch_handler
+        assert middleware_2['post_dispatch_handler'][0] == factory.instances['test_application.Middleware_1'].post_dispatch_handler
+        assert middleware_2['pre_dispatch'][0] == factory.instances['test_application.Middleware_1'].pre_dispatch
+        assert middleware_2['post_dispatch'][0] == factory.instances['test_application.Middleware_1'].post_dispatch
+        assert middleware_2['handle_exception'][0] == factory.instances['test_application.Middleware_1'].handle_exception
+
+    def test_load_reversed_middleware(self):
+        factory = MiddlewareFactory()
+        middleware = factory.load_middleware([Middleware_3, Middleware_4, Middleware_5])
+
+        assert len(factory.instances) == 3
+        assert len(factory.methods) == 3
+
+        assert __name__ + '.Middleware_3' in factory.instances
+        assert __name__ + '.Middleware_4' in factory.instances
+        assert __name__ + '.Middleware_5' in factory.instances
+
+        assert __name__ + '.Middleware_3' in factory.methods
+        assert __name__ + '.Middleware_4' in factory.methods
+        assert __name__ + '.Middleware_5' in factory.methods
+
+        assert 'post_dispatch_handler' in middleware
+        assert 'post_dispatch' in middleware
+        assert 'handle_exception' in middleware
+
+        # Now, these method should be in reverse order...
+        assert middleware['post_dispatch_handler'][0] == factory.instances[__name__ + '.Middleware_5'].post_dispatch_handler
+        assert middleware['post_dispatch_handler'][1] == factory.instances[__name__ + '.Middleware_4'].post_dispatch_handler
+        assert middleware['post_dispatch_handler'][2] == factory.instances[__name__ + '.Middleware_3'].post_dispatch_handler
+
+        assert middleware['post_dispatch'][0] == factory.instances[__name__ + '.Middleware_5'].post_dispatch
+        assert middleware['post_dispatch'][1] == factory.instances[__name__ + '.Middleware_4'].post_dispatch
+        assert middleware['post_dispatch'][2] == factory.instances[__name__ + '.Middleware_3'].post_dispatch
+
+        assert middleware['handle_exception'][0] == factory.instances[__name__ + '.Middleware_5'].handle_exception
+        assert middleware['handle_exception'][1] == factory.instances[__name__ + '.Middleware_4'].handle_exception
+        assert middleware['handle_exception'][2] == factory.instances[__name__ + '.Middleware_3'].handle_exception
+
+
+class TestTipfy(unittest.TestCase):
+    def tearDown(self):
+        Tipfy.app = Tipfy.request = None
+
+    def test_hello_world(self):
+        app = get_app()
+        client = Client(app, response_wrapper=BaseResponse)
+        response = client.open(path='/')
+
+        assert response.data == 'Hello, World!'
+
+    def test_method_not_allowed(self):
         app = Tipfy()
-        client = app.get_test_client()
-        response = client.get('/')
-        self.assertEqual(response.status_code, 404)
+        client = Client(app, response_wrapper=BaseResponse)
 
-    def test_404_debug(self):
-        # No URL rules defined.
-        app = Tipfy(debug=True)
-        client = app.get_test_client()
-        response = client.get('/')
-        self.assertEqual(response.status_code, 404)
+        response = client.open(method='i_am_not_valid')
+        assert response.status_code == 501
 
-    def test_500(self):
-        # Handler import will fail.
-        app = Tipfy(rules=[Rule('/', name='home', handler='non.existent.handler')])
-        client = app.get_test_client()
-        response = client.get('/')
+    def test_request_redirect(self):
+        app = get_app()
+        client = Client(app, response_wrapper=BaseResponse)
+
+        response = client.open(path='/test-redirect')
+        self.assertEqual(response.status_code, 301)
+
+    def test_handle_exception(self):
+        app = Tipfy(rules=get_url_rules(), config={
+            'tipfy': {
+                'middleware': [ExceptionHandler],
+            },
+        }, debug=True)
+
+        client = Client(app, response_wrapper=BaseResponse)
+        response = client.open(path='/test-exception')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, 'Exception was handled!')
+
+    def test_pre_dispatch_handler(self):
+        app = Tipfy(rules=get_url_rules(), config={
+            'tipfy': {
+                'middleware': [PreDispatchHandler],
+            },
+        }, debug=True)
+
+        client = Client(app, response_wrapper=BaseResponse)
+        response = client.open(path='/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, 'Handler dispatch was aborted!')
+
+    def test_post_dispatch_handler(self):
+        app = Tipfy(rules=get_url_rules(), config={
+            'tipfy': {
+                'middleware': [PostDispatchHandler],
+            },
+        }, debug=True)
+
+        client = Client(app, response_wrapper=BaseResponse)
+        response = client.open(path='/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, 'I replaced the handler response!')
+
+    def test_handler_internal_server_error(self):
+        app = Tipfy(rules=get_url_rules(), debug=False)
+
+        client = Client(app, response_wrapper=BaseResponse)
+        response = client.open(path='/test-exception')
         self.assertEqual(response.status_code, 500)
 
-    def test_500_debug(self):
-        # Handler import will fail.
-        app = Tipfy(rules=[Rule('/', name='home', handler='non.existent.handler')], debug=True)
-        client = app.get_test_client()
-        self.assertRaises(ImportError, client.get, '/')
-
-    def test_501(self):
-        # Method is not in ALLOWED_METHODS.
+    def test_get_test_client(self):
         app = Tipfy()
-        client = app.get_test_client()
-        response = client.open('/', method='CONNECT')
-        self.assertEqual(response.status_code, 501)
-
-    def test_501_debug(self):
-        # Method is not in ALLOWED_METHODS.
-        app = Tipfy(debug=True)
-        client = app.get_test_client()
-        response = client.open('/', method='CONNECT')
-        self.assertEqual(response.status_code, 501)
-
-    def test_dev(self):
-        app = Tipfy()
-        self.assertEqual(app.dev, False)
-
-        os.environ['SERVER_SOFTWARE'] = 'Dev'
-        app = Tipfy()
-        self.assertEqual(app.dev, True)
-        os.environ.pop('SERVER_SOFTWARE')
-
-    def test_app_id(self):
-        app = Tipfy()
-        # 'my-app' is set in the running app.yaml.
-        self.assertEqual(app.app_id, 'my-app')
-
-        os.environ['APPLICATION_ID'] = 'my-other-app'
-        app = Tipfy()
-        self.assertEqual(app.app_id, 'my-other-app')
-        os.environ.pop('APPLICATION_ID')
-
-    def test_version_id(self):
-        app = Tipfy()
-        self.assertEqual(app.version_id, '1')
-
-        os.environ['CURRENT_VERSION_ID'] = 'testing'
-        app = Tipfy()
-        self.assertEqual(app.version_id, 'testing')
-        os.environ.pop('CURRENT_VERSION_ID')
+        assert isinstance(app.get_test_client(), Client)
 
 
-class TestHandleException(unittest.TestCase):
-    def tearDown(self):
-        Tipfy.app = Tipfy.request = None
-
-    def test_custom_error_handlers(self):
-        class HomeHandler(RequestHandler):
-            def get(self):
-                return Response('')
-
-        app = Tipfy([
-            Rule('/', handler=HomeHandler, name='home'),
-            Rule('/broken', handler=BrokenHandler, name='broken'),
-        ], debug=False)
-        app.error_handlers = {
-            404: Handle404,
-            405: Handle405,
-            500: Handle500,
-        }
-        client = app.get_test_client()
-
-        res = client.get('/nowhere')
-        self.assertEqual(res.status_code, 404)
-        self.assertEqual(res.data, '404 custom handler')
-
-        res = client.put('/')
-        self.assertEqual(res.status_code, 405)
-        self.assertEqual(res.data, '405 custom handler')
-        self.assertEqual(res.headers.get('Allow'), 'GET')
-
-        res = client.get('/broken')
-        self.assertEqual(res.status_code, 500)
-        self.assertEqual(res.data, '500 custom handler')
-
-class SillyTests(unittest.TestCase):
+class TestMiscelaneous(unittest.TestCase):
     def tearDown(self):
         Tipfy.app = Tipfy.request = None
 
         from os import environ
-        for key in ['SERVER_NAME', 'SERVER_PORT', 'REQUEST_METHOD', 'SERVER_SOFTWARE']:
+        for key in ['SERVER_NAME', 'SERVER_PORT', 'REQUEST_METHOD']:
             if key in environ:
                 del environ[key]
 
@@ -182,18 +596,11 @@ class SillyTests(unittest.TestCase):
         assert app.config.get('tipfy', 'foo') == 'bar'
 
     def test_make_wsgi_app_with_middleware(self):
-        def app_wrapper(environ, start_response):
-            pass
-
-        class AppMiddleware(object):
-            def post_make_app(self, app):
-                app.wsgi_app = app_wrapper
-
         app = make_wsgi_app(config={'tipfy': {
             'middleware': [AppMiddleware]
         }})
 
-        self.assertEqual(app.wsgi_app, app_wrapper)
+        assert isinstance(app, AppWrapper)
 
     def test_run_wsgi_app(self):
         """We aren't testing anything here."""
@@ -203,35 +610,17 @@ class SillyTests(unittest.TestCase):
         environ['SERVER_PORT'] = '80'
         environ['REQUEST_METHOD'] = 'GET'
 
-        rules = [Rule('/', handler='resources.handlers.HomeHandler', name='home')]
-        app = make_wsgi_app(rules=rules, debug=True)
-        run_wsgi_app(app)
-
-    def test_run_wsgi_app_dev(self):
-        """We aren't testing anything here."""
-        from os import environ
-
-        environ['SERVER_NAME'] = 'foo.com'
-        environ['SERVER_PORT'] = '80'
-        environ['REQUEST_METHOD'] = 'GET'
-        environ['SERVER_SOFTWARE'] = 'Dev'
-
-        rules = [Rule('/', handler='resources.handlers.HomeHandler', name='home')]
-        app = make_wsgi_app(rules=rules, debug=True)
+        app = make_wsgi_app(rules=get_url_rules(), debug=True)
         run_wsgi_app(app)
 
     def test_run_wsgi_app_with_middleware(self):
-        class AppMiddleware_2(object):
-            pass
-
         from os import environ
 
         environ['SERVER_NAME'] = 'foo.com'
         environ['SERVER_PORT'] = '80'
         environ['REQUEST_METHOD'] = 'GET'
 
-        rules = [Rule('/', handler='resources.handlers.HomeHandler', name='home')]
-        app = make_wsgi_app(rules=rules, config={'tipfy': {
+        app = make_wsgi_app(rules=get_url_rules(), config={'tipfy': {
             'middleware': [AppMiddleware_2]
         }})
 

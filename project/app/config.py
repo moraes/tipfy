@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Configuration settings."""
+"""
+    config
+    ~~~~~~
+
+    Configuration settings.
+
+    :copyright: 2009 by tipfy.org.
+    :license: BSD, see LICENSE for more details.
+"""
 config = {}
 
 # Configurations for the 'tipfy' module.
@@ -10,6 +18,6 @@ config['tipfy'] = {
     ],
     # Enable the Hello, World! app example.
     'apps_installed': [
-        'hello_world',
+        'apps.hello_world',
     ],
 }

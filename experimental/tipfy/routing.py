@@ -112,7 +112,7 @@ class Router(object):
                 raise
 
             # If the handler implements exception handling, let it handle it.
-            return handler.handle_exception(exception=e)
+            return app.make_response(handler.handle_exception(exception=e))
 
     def build(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place

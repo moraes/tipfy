@@ -99,6 +99,47 @@ class TestApp(unittest.TestCase):
         response = client.open('/', method='CONNECT')
         self.assertEqual(response.status_code, 501)
 
+    def test_make_response(self):
+        app = Tipfy()
+        app.set_locals(Request.from_values('/'))
+        response = app.make_response()
+
+        self.assertEqual(isinstance(response, app.response_class), True)
+        self.assertEqual(response.data, '')
+        self.assertEqual(response.status_code, 200)
+
+    def test_make_response_from_response(self):
+        app = Tipfy()
+        app.set_locals(Request.from_values('/'))
+        response = app.make_response(Response('hello, world!'))
+
+        self.assertEqual(isinstance(response, app.response_class), True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, 'hello, world!')
+
+    def test_make_response_from_string(self):
+        app = Tipfy()
+        app.set_locals(Request.from_values('/'))
+        response = app.make_response('hello, world!')
+
+        self.assertEqual(isinstance(response, app.response_class), True)
+        self.assertEqual(response.data, 'hello, world!')
+        self.assertEqual(response.status_code, 200)
+
+    def test_make_response_from_tuple(self):
+        app = Tipfy()
+        app.set_locals(Request.from_values('/'))
+        response = app.make_response('hello, world!', 404)
+
+        self.assertEqual(isinstance(response, app.response_class), True)
+        self.assertEqual(response.data, 'hello, world!')
+        self.assertEqual(response.status_code, 404)
+
+    def test_make_response_from_none(self):
+        app = Tipfy()
+        app.set_locals(Request.from_values('/'))
+        self.assertRaises(ValueError, app.make_response, None)
+
 
 class TestHandleException(unittest.TestCase):
     def tearDown(self):

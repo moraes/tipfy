@@ -18,15 +18,27 @@ import zipfile
 
 from tipfy.template import Loader, ZipLoader
 
+_LOADER = None
+TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'templates')
+ZIP_PATH = os.path.join('lib', 'dist.zip')
+
+
+def get_loader():
+    global _LOADER
+    if _LOADER is None:
+        if os.path.exists(TEMPLATE_PATH):
+            _LOADER = Loader(TEMPLATE_PATH)
+        elif os.path.exists(ZIP_PATH):
+            _LOADER = ZipLoader(ZIP_PATH, 'tipfy/debugger/templates')
+        else:
+            raise RunTimeError('Could not find debugger templates.')
+
+    return _LOADER
+
 
 def get_template(filename):
     """Replaces ``werkzeug.debug.utils.get_template()``."""
-    try:
-        loader = Loader(os.path.join(os.path.dirname(__file__), 'templates'))
-        return loader.load(filename)
-    except IOError, e:
-        loader = ZipLoader('lib/dist.zip', 'tipfy/debugger/templates')
-        return loader.load(filename)
+    get_loader().load(filename)
 
 
 def render_template(filename, **context):
@@ -46,7 +58,7 @@ class DebuggedApplication(DebuggedApplicationBase):
         """Return a static resource from the shared folder."""
         response = super(DebuggedApplication, self).get_resource(request,
             filename)
-        if response.status_code != 404:
+        if response.status_code != 404 or not os.path.exists(ZIP_PATH):
             return response
 
         mimetype = mimetypes.guess_type(filename)[0] or \
@@ -54,7 +66,7 @@ class DebuggedApplication(DebuggedApplicationBase):
 
         try:
             filepath = os.path.join('werkzeug', 'debug', 'shared', filename)
-            f = zipfile.ZipFile('lib/dist.zip', 'r')
+            f = zipfile.ZipFile(ZIP_PATH, 'r')
             response = Response(f.read(filepath), mimetype=mimetype)
             f.close()
             return response

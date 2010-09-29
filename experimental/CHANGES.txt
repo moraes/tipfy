@@ -188,6 +188,24 @@ tipfy's core design. Here's an overview of what is new:
 
       app = Tipfy(rules=rules)
 
+- NEW: Added Tipfy.make_response(). With this, handler methods are not
+  required to always return a response. If a string or unicode is returned,
+  it is converted to a response. Other possibility is to return a tuple to
+  build a response. HTTPExceptions are also converted to a proper response
+  when returned. Example:
+
+      class MyHandler(RequestHandler):
+          def get(self, **kwargs):
+              # Returns a simple string.
+              return 'Hello, World'
+
+              # Returns a tuple of values to create a response.
+              return 'Not Found', 404
+
+              # Return an HTTPException which will be converted to a response.
+              return MethodNotAllowed()
+
+
 - NEW: added a new rule converter, RegexConverter. [explain]
 
 - NEW: KeyProperty model was added to the db extension.

@@ -127,7 +127,7 @@ class RequestHandler(object):
 
         if not self.middleware:
             # No middleware are set: just execute the method.
-            return method(*args, **kwargs)
+            return self.app.make_response(method(*args, **kwargs))
 
         # Execute before_dispatch middleware.
         for obj in self.middleware:
@@ -138,7 +138,7 @@ class RequestHandler(object):
                     break
         else:
             try:
-                response = method(*args, **kwargs)
+                response = self.app.make_response(method(*args, **kwargs))
             except Exception, e:
                 # Execute handle_exception middleware.
                 for obj in reversed(self.middleware):
@@ -380,6 +380,7 @@ class Tipfy(object):
             A callable accepting a status code, a list of headers and an
             optional exception context to start the response.
         """
+        response = None
         cleanup = True
         try:
             request = self.request_class(environ)
@@ -405,10 +406,54 @@ class Tipfy(object):
                 logging.exception(e)
                 response = InternalServerError()
         finally:
+            if response:
+                response = self.make_response(response)
+
             if cleanup:
                 self.clear_locals()
 
         return response(environ, start_response)
+
+    def make_response(self, *rv):
+        """Converts the return value from a :class:`RequestHandler` to a real
+        response object that is an instance of :attr:`response_class`.
+
+        This function is borrowed from `Flask`_.
+
+        :param rv:
+            - If no arguments are passed, returns an empty response.
+            - If a single argument is passed, the returned value varies
+              according to its type:
+              - :attr:`response_class`: the response is returned unchanged.
+              - :class:`str`: a response is created with the string as body.
+              - :class:`unicode`: a response is created with the string
+                encoded to utf-8 as body.
+              - a WSGI function: the function is called as WSGI application
+                and buffered as response object.
+              - None: a ValueError is raised.
+            - If multiple arguments are passed, a response is created with the
+              contents of the tuple as arguments.
+        :returns:
+            A :attr:`response_class` instance.
+        """
+        if not rv:
+            return self.response_class()
+
+        if len(rv) == 1:
+            rv = rv[0]
+
+            if isinstance(rv, self.response_class):
+                return rv
+
+            if isinstance(rv, basestring):
+                return self.response_class(rv)
+
+            if rv is None:
+                raise ValueError('Handler did not return a response')
+
+            return self.response_class.force_type(rv, self.request.environ)
+
+        return self.response_class(*rv)
 
     def handle_exception(self, request, exception):
         """Handles an exception. To set app-wide error handlers, define them

@@ -20,15 +20,8 @@ tipfy's core design. Here's an overview of what is new:
   will use the best simplejson module for the environment and apply correct
   escaping.
 
-- NEW: added a simple template engine (from Tornado). This eliminates
-  dependency on Jinja2 for the debugger.
-
-- NEW: AppEngineMixedAuthStore, which allows login using App Engine Auth
-  across subdomains. It mixes App Engine auth with own sessions to achieve
-  this.
-
-- NEW: secure cookie has a faster and easier to use implementation. See
-  tipfy.sessions.SecureCookieStore.
+- NEW: added a simple template engine (from Tornado), mainly to remove
+  debugger dependency from Jinja2.
 
 - NEW: Debugger is now part of tipfy core, without extra-dependencies.
   Previously the debugger was dependent on Jinja2, but now it uses the built-in
@@ -38,6 +31,13 @@ tipfy's core design. Here's an overview of what is new:
 
 - IMPROVED: the debugger now works even if the libraries are zipped using
   buildout.
+
+- NEW: AppEngineMixedAuthStore, which allows login using App Engine Auth
+  across subdomains. It mixes App Engine auth with own sessions to achieve
+  this.
+
+- NEW: secure cookie has a faster and easier to use implementation. See
+  tipfy.sessions.SecureCookieStore.
 
 - NEW: Sessions are now part of tipfy core. The auth store is configured in
   tipfy module and uses the shipped store by default::
@@ -91,9 +91,6 @@ tipfy's core design. Here's an overview of what is new:
 
               # Generate a login URL.
               login_url = self.auth.login_url()
-
-- NEW: added session and auth attributes to RequestHandler, to access the
-  current session and auth store.
 
 - IMPROVED: redirect() (or self.redirect() in handlers) now accepts relative
   URLs. If a relative URL is passed, it'll be joined to the current request
@@ -154,15 +151,19 @@ tipfy's core design. Here's an overview of what is new:
       Rule('/', endpoint='home', handler='handlers.HomeHandler')
 
 - NEW: rules can define the method that will be called from the handler. The
-  method is defined using a 'MyHandler:my_method' notation in the Rule
+  method is defined using a 'Handler:method' notation in the Rule
   definition. Example:
+
+      # handlers.py
 
       class MyHandler(RequestHandler):
           def my_method(self, **kwargs):
               return Response('I am not coming from a get() method!')
 
+      # main.py
+
       app = Tipfy(rules=[
-          Rule('/', name='home', handler='MyHandler:my_method')
+          Rule('/', name='home', handler='handlers.MyHandler:my_method')
       ])
 
   In this example, the request method is ignored since the Rule defines which
@@ -239,6 +240,6 @@ tipfy's core design. Here's an overview of what is new:
 
 - NEW: added a new rule converter, RegexConverter. [explain]
 
-- NEW: KeyProperty model was added to the db extension.
+- NEW: KeyProperty model was added to the db extension. [explain]
 
-- ...
+- IMPROVED: Exception handling [explain]

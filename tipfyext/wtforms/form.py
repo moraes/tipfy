@@ -18,7 +18,7 @@ from tipfyext.wtforms.fields import FileField, CsrfTokenField
 from tipfyext.wtforms.validators import CsrfToken
 
 try:
-    from tipfyext import i18n
+    from tipfy import i18n
 except ImportError, e:
     i18n = None
 

@@ -6,12 +6,6 @@ from tipfy.sessions import SessionStore, SecureCookieStore, SecureCookieSession
 
 
 class TestSecureCookie(unittest.TestCase):
-    def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
-
     def _get_app(self):
         return Tipfy(config={
             'tipfy.sessions': {

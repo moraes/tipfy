@@ -18,12 +18,6 @@ import tipfy.i18n as i18n
 # I18nMiddleware
 #==============================================================================
 class TestI18nMiddleware(unittest.TestCase):
-    def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
-
     def test_middleware_multiple_changes(self):
         class MyHandler(RequestHandler):
             middleware = [i18n.I18nMiddleware()]
@@ -70,18 +64,13 @@ class TestGettext(unittest.TestCase):
         app.set_locals(Request.from_values('/'))
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        Tipfy.app.clear_locals()
 
+    '''
     def test_translations_not_set(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        Tipfy.app.clear_locals()
         self.assertRaises(AttributeError, i18n.gettext, 'foo')
-
+    '''
     def test_gettext(self):
         self.assertEqual(i18n.gettext('foo'), u'foo')
 
@@ -116,10 +105,7 @@ class TestLocaleForRequest(unittest.TestCase):
         app.set_locals(Request.from_values('/'))
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        Tipfy.app.clear_locals()
 
     def test_set_locale_for_request(self):
         Tipfy.app.config['tipfy.i18n']['locale'] = 'jp_JP'
@@ -148,7 +134,7 @@ class TestLocaleForRequest(unittest.TestCase):
         Tipfy.app.set_locals(Request.from_values(headers=[('Cookie', 'language="es_ES"; Path=/')]))
         self.assertEqual(Tipfy.request.i18n_store.locale, 'es_ES')
 
-    def test_set_translations_from_rule_args(self):
+    def test_set_locale_from_rule_args(self):
         Tipfy.app.config['tipfy.i18n']['locale_request_lookup'] = [('rule_args', 'locale'),]
         request = Request.from_values('/')
         request.rule_args = {'locale': 'es_ES'}
@@ -171,10 +157,7 @@ class TestDates(unittest.TestCase):
         app.set_locals(Request.from_values('/'))
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        Tipfy.app.clear_locals()
 
     def test_format_date(self):
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -274,18 +257,32 @@ class TestDates(unittest.TestCase):
 
         self.assertEqual(i18n.format_time(value, format='short', timezone='America/Chicago'), u'10:36')
 
-    """
     def test_parse_date(self):
-       self.assertEqual(parse_date('4/1/04', locale='en_US'), datetime.date(2004, 4, 1))
-       self.assertEqual(parse_date('01.04.2004', locale='de_DE'), datetime.date(2004, 4, 1))
+       self.assertEqual(i18n.parse_date('4/1/04', locale='en_US'), datetime.date(2004, 4, 1))
+       self.assertEqual(i18n.parse_date('01.04.2004', locale='de_DE'), datetime.date(2004, 4, 1))
 
     def test_parse_datetime(self):
-       self.assertRaises(NotImplementedError, parse_datetime, '4/1/04 16:08:09', locale='en_US')
+       self.assertRaises(NotImplementedError, i18n.parse_datetime, '4/1/04 16:08:09', locale='en_US')
 
     def test_parse_time(self):
-        self.assertEqual(parse_time('18:08:09', locale='en_US'), datetime.time(18, 8, 9))
-        self.assertEqual(parse_time('18:08:09', locale='de_DE'), datetime.time(18, 8, 9))
-    """
+        self.assertEqual(i18n.parse_time('18:08:09', locale='en_US'), datetime.time(18, 8, 9))
+        self.assertEqual(i18n.parse_time('18:08:09', locale='de_DE'), datetime.time(18, 8, 9))
+
+    def test_format_timedelta(self):
+        if not getattr(i18n, 'format_timedelta', None):
+            return
+
+        self.assertEqual(i18n.format_timedelta(datetime.timedelta(weeks=12), locale='en_US'), u'3 months')
+        self.assertEqual(i18n.format_timedelta(datetime.timedelta(seconds=1), locale='es'), u'1 segundo')
+
+        self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=3), granularity='day', locale='en_US'), u'1 day')
+
+        self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=23), threshold=0.9, locale='en_US'), u'1 day')
+
+        self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=23), threshold=1.1, locale='en_US'), u'23 hours')
+
+        self.assertEqual(i18n.format_timedelta(datetime.datetime.now() - datetime.timedelta(days=5), threshold=1.1, locale='en_US'), u'5 days')
+
 
 #==============================================================================
 # Timezones
@@ -303,10 +300,7 @@ class TestTimezones(unittest.TestCase):
         app.set_locals(Request.from_values('/'))
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        Tipfy.app.clear_locals()
 
     def test_set_timezone(self):
         Tipfy.request.i18n_store.set_timezone('UTC')
@@ -353,9 +347,131 @@ class TestTimezones(unittest.TestCase):
         result = localtime.strftime(format)
         self.assertEqual(result, '2002-10-27 11:00:00')
 
-    """
     def test_get_timezone_location(self):
-        self.assertEqual(get_timezone_location(get_timezone('America/St_Johns'), locale='de_DE'), u'Kanada (St. John\'s)')
-        self.assertEqual(get_timezone_location(get_timezone('America/Mexico_City'), locale='de_DE'), u'Mexiko (Mexiko-Stadt)')
-        self.assertEqual(get_timezone_location(get_timezone('Europe/Berlin'), locale='de_DE'), u'Deutschland')
-    """
+        self.assertEqual(i18n.get_timezone_location(pytz.timezone('America/St_Johns'), locale='de_DE'), u'Kanada (St. John\'s)')
+        self.assertEqual(i18n.get_timezone_location(pytz.timezone('America/Mexico_City'), locale='de_DE'), u'Mexiko (Mexiko-Stadt)')
+        self.assertEqual(i18n.get_timezone_location(pytz.timezone('Europe/Berlin'), locale='de_DE'), u'Deutschland')
+
+
+#==============================================================================
+# Number formatting
+#==============================================================================
+class TestNumberFormatting(unittest.TestCase):
+    def setUp(self):
+        app = Tipfy(config={
+            'tipfy.sessions': {
+                'secret_key': 'secret',
+            },
+            'tipfy.i18n': {
+                'timezone': 'UTC'
+            },
+        })
+        app.set_locals(Request.from_values('/'))
+
+    def tearDown(self):
+        Tipfy.app.clear_locals()
+
+    def test_format_number(self):
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.format_number(1099), u'1,099')
+
+    def test_format_decimal(self):
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.format_decimal(1.2345), u'1.234')
+        self.assertEqual(i18n.format_decimal(1.2346), u'1.235')
+        self.assertEqual(i18n.format_decimal(-1.2346), u'-1.235')
+        self.assertEqual(i18n.format_decimal(12345.5), u'12,345.5')
+
+        i18n.set_locale('sv_SE')
+        self.assertEqual(i18n.format_decimal(1.2345), u'1,234')
+
+        i18n.set_locale('de')
+        self.assertEqual(i18n.format_decimal(12345), u'12.345')
+
+    def test_format_currency(self):
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.format_currency(1099.98, 'USD'), u'$1,099.98')
+        self.assertEqual(i18n.format_currency(1099.98, 'EUR', u'\xa4\xa4 #,##0.00'), u'EUR 1,099.98')
+
+        i18n.set_locale('es_CO')
+        self.assertEqual(i18n.format_currency(1099.98, 'USD'), u'US$\xa01.099,98')
+
+        i18n.set_locale('de_DE')
+        self.assertEqual(i18n.format_currency(1099.98, 'EUR'), u'1.099,98\xa0\u20ac')
+
+    def test_format_percent(self):
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.format_percent(0.34), u'34%')
+        self.assertEqual(i18n.format_percent(25.1234), u'2,512%')
+        self.assertEqual(i18n.format_percent(25.1234, u'#,##0\u2030'), u'25,123\u2030')
+
+        i18n.set_locale('sv_SE')
+        self.assertEqual(i18n.format_percent(25.1234), u'2\xa0512\xa0%')
+
+    def test_format_scientific(self):
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.format_scientific(10000), u'1E4')
+        self.assertEqual(i18n.format_scientific(1234567, u'##0E00'), u'1.23E06')
+
+    def test_parse_number(self):
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.parse_number('1,099'), 1099L)
+
+        i18n.set_locale('de_DE')
+        self.assertEqual(i18n.parse_number('1.099'), 1099L)
+
+    def test_parse_number2(self):
+        i18n.set_locale('de')
+        self.assertRaises(NumberFormatError, i18n.parse_number, '1.099,98')
+
+    def test_parse_decimal(self):
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.parse_decimal('1,099.98'), 1099.98)
+
+        i18n.set_locale('de')
+        self.assertEqual(i18n.parse_decimal('1.099,98'), 1099.98)
+
+    def test_parse_decimal_error(self):
+        i18n.set_locale('de')
+        self.assertRaises(NumberFormatError, i18n.parse_decimal, '2,109,998')
+
+
+#============================================================================
+# Miscelaneous
+#============================================================================
+class TestMiscelaneous(unittest.TestCase):
+    def setUp(self):
+        app = Tipfy(config={
+            'tipfy.sessions': {
+                'secret_key': 'secret',
+            },
+            'tipfy.i18n': {
+                'timezone': 'UTC'
+            },
+        })
+        app.set_locals(Request.from_values('/'))
+
+    def tearDown(self):
+        Tipfy.app.clear_locals()
+
+    def test_list_translations(self):
+        cwd = os.getcwd()
+        os.chdir(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'resources'))
+
+        translations = i18n.list_translations()
+
+        self.assertEqual(len(translations), 2)
+        self.assertEqual(translations[0].language, 'en')
+        self.assertEqual(translations[0].territory, 'US')
+        self.assertEqual(translations[1].language, 'pt')
+        self.assertEqual(translations[1].territory, 'BR')
+
+        os.chdir(cwd)
+
+    def test_list_translations_no_locale_dir(self):
+        cwd = os.getcwd()
+        os.chdir(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'resources', 'locale'))
+
+        self.assertEqual(i18n.list_translations(), [])
+
+        os.chdir(cwd)

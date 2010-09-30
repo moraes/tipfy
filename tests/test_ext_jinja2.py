@@ -8,7 +8,7 @@ import unittest
 
 from jinja2 import FileSystemLoader, Environment
 
-from tipfy import RequestHandler, Response, Tipfy
+from tipfy import RequestHandler, Request, Response, Tipfy
 from tipfyext.jinja2 import Jinja2, Jinja2Mixin
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -17,18 +17,12 @@ templates_compiled_target = os.path.join(current_dir, 'resources', 'templates_co
 
 
 class TestJinja2(unittest.TestCase):
-    def setUp(self):
-        Tipfy.request = Tipfy.request_class.from_values()
-
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        Tipfy.app.clear_locals()
 
     def test_render_template(self):
         app = Tipfy(config={'tipfyext.jinja2': {'templates_dir': templates_dir}})
-        app.set_locals()
+        app.set_locals(Request.from_values())
         jinja2 = Jinja2(app)
 
         message = 'Hello, World!'
@@ -37,7 +31,7 @@ class TestJinja2(unittest.TestCase):
 
     def test_render_response(self):
         app = Tipfy(config={'tipfyext.jinja2': {'templates_dir': templates_dir}})
-        app.set_locals()
+        app.set_locals(Request.from_values())
         jinja2 = Jinja2(app)
 
         message = 'Hello, World!'
@@ -51,7 +45,7 @@ class TestJinja2(unittest.TestCase):
             'templates_compiled_target': templates_compiled_target,
             'force_use_compiled': True,
         }})
-        app.set_locals()
+        app.set_locals(Request.from_values())
         jinja2 = Jinja2(app)
 
         message = 'Hello, World!'
@@ -68,7 +62,7 @@ class TestJinja2(unittest.TestCase):
                 self.context = {}
 
         app = Tipfy(config={'tipfyext.jinja2': {'templates_dir': templates_dir}})
-        app.set_locals()
+        app.set_locals(Request.from_values())
         jinja2 = Jinja2(app)
         message = 'Hello, World!'
 
@@ -84,7 +78,7 @@ class TestJinja2(unittest.TestCase):
                 self.context = {}
 
         app = Tipfy(config={'tipfyext.jinja2': {'templates_dir': templates_dir}})
-        app.set_locals()
+        app.set_locals(Request.from_values())
         jinja2 = Jinja2(app)
         message = 'Hello, World!'
 
@@ -96,7 +90,7 @@ class TestJinja2(unittest.TestCase):
 
     def test_get_template_attribute(self):
         app = Tipfy(config={'tipfyext.jinja2': {'templates_dir': templates_dir}})
-        app.set_locals()
+        app.set_locals(Request.from_values())
         jinja2 = Jinja2(app)
 
         hello = jinja2.get_template_attribute('hello.html', 'hello')
@@ -111,12 +105,11 @@ class TestJinja2(unittest.TestCase):
 
             return Environment(loader=loader)
 
-
         app = Tipfy(config={'tipfyext.jinja2': {
             'templates_dir': templates_dir,
             'engine_factory': get_jinja2_env,
         }})
-        app.set_locals()
+        app.set_locals(Request.from_values())
         jinja2 = Jinja2(app)
 
         message = 'Hello, World!'
@@ -131,7 +124,7 @@ class TestJinja2(unittest.TestCase):
             'templates_dir': templates_dir,
             'engine_factory': 'resources.get_jinja2_env',
         }})
-        app.set_locals()
+        app.set_locals(Request.from_values())
         jinja2 = Jinja2(app)
 
         message = 'Hello, World!'
@@ -142,7 +135,7 @@ class TestJinja2(unittest.TestCase):
 
     def test_engine_factory3(self):
         app = Tipfy()
-        app.set_locals()
+        app.set_locals(Request.from_values())
         _globals = {'message': 'Hey there!'}
         filters = {'ho': lambda e: e + ' Ho!'}
         jinja2 = Jinja2(app, _globals=_globals, filters=filters)

@@ -14,11 +14,6 @@ from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from werkzeug import cached_property
 
-try:
-    from tipfyext import i18n
-except ImportError:
-    i18n = None
-
 #: Default configuration values for this module. Keys are:
 #:
 #: templates_dir
@@ -66,19 +61,21 @@ class Jinja2Mixin(object):
 class Jinja2(object):
     def __init__(self, app, _globals=None, filters=None):
         self.app = app
-        cfg = app.get_config(__name__)
-        kwargs = cfg.get('environment_args') or {}
+        config = app.get_config(__name__)
+        kwargs = config.get('environment_args') or {}
+        enable_i18n = 'jinja2.ext.i18n' in kwargs.get('extensions', [])
 
         if not kwargs.get('loader'):
-            templates_compiled_target = cfg.get('templates_compiled_target')
-            use_compiled = not app.debug or cfg.get('force_use_compiled')
+            templates_compiled_target = config.get('templates_compiled_target')
+            use_compiled = not app.debug or config.get('force_use_compiled')
 
             if templates_compiled_target is not None and use_compiled:
                 # Use precompiled templates loaded from a module or zip.
                 kwargs['loader'] = ModuleLoader(templates_compiled_target)
             else:
                 # Parse templates for every new environment instances.
-                kwargs['loader'] = FileSystemLoader(cfg.get('templates_dir'))
+                kwargs['loader'] = FileSystemLoader(
+                    config.get('templates_dir'))
 
         # Initialize the environment.
         env = Environment(**kwargs)
@@ -89,13 +86,12 @@ class Jinja2(object):
         if filters:
             env.filters.update(filters)
 
-        if i18n:
+        if enable_i18n:
             # Install i18n.
-            env.add_extension('jinja2.ext.i18n')
-            trans = i18n.get_translations
+            import tipfy.i18n as i18n
             env.install_gettext_callables(
-                lambda s: trans().ugettext(s),
-                lambda s, p, n: trans().ungettext(s, p, n),
+                lambda s: i18n.gettext(s),
+                lambda s, p, n: i18n.ngettext(s, p, n),
                 newstyle=True)
             env.filters.update({
                 'format_date':     i18n.format_date,

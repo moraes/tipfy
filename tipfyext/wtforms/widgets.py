@@ -18,7 +18,7 @@ from wtforms.widgets import *
 
 #from tipfy import get_config
 #try:
-#    from tipfyext.i18n import _
+#    from tipfy.i18n import _
 #except ImportError, e:
 #    _ = lambda string: string
 

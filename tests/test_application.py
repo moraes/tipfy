@@ -34,12 +34,6 @@ class Handle500(RequestHandler):
 
 
 class TestApp(unittest.TestCase):
-    def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
-
     def test_200(self):
         class MyHandler(RequestHandler):
             def delete(self, **kwargs):
@@ -101,7 +95,6 @@ class TestApp(unittest.TestCase):
 
     def test_make_response(self):
         app = Tipfy()
-        app.set_locals(Request.from_values('/'))
         response = app.make_response()
 
         self.assertEqual(isinstance(response, app.response_class), True)
@@ -110,7 +103,6 @@ class TestApp(unittest.TestCase):
 
     def test_make_response_from_response(self):
         app = Tipfy()
-        app.set_locals(Request.from_values('/'))
         response = app.make_response(Response('hello, world!'))
 
         self.assertEqual(isinstance(response, app.response_class), True)
@@ -119,7 +111,6 @@ class TestApp(unittest.TestCase):
 
     def test_make_response_from_string(self):
         app = Tipfy()
-        app.set_locals(Request.from_values('/'))
         response = app.make_response('hello, world!')
 
         self.assertEqual(isinstance(response, app.response_class), True)
@@ -128,7 +119,6 @@ class TestApp(unittest.TestCase):
 
     def test_make_response_from_tuple(self):
         app = Tipfy()
-        app.set_locals(Request.from_values('/'))
         response = app.make_response('hello, world!', 404)
 
         self.assertEqual(isinstance(response, app.response_class), True)
@@ -137,17 +127,10 @@ class TestApp(unittest.TestCase):
 
     def test_make_response_from_none(self):
         app = Tipfy()
-        app.set_locals(Request.from_values('/'))
         self.assertRaises(ValueError, app.make_response, None)
 
 
 class TestHandleException(unittest.TestCase):
-    def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
-
     def test_custom_error_handlers(self):
         class HomeHandler(RequestHandler):
             def get(self):

@@ -99,7 +99,7 @@ class Config(dict):
         """Sets a configuration for a module, requiring it to be a dictionary.
 
         :param module:
-            A module name for the configuration, e.g.: `tipfyext.i18n`.
+            A module name for the configuration, e.g.: `tipfy.i18n`.
         :param values:
             A dictionary of configurations for the module.
         """
@@ -127,7 +127,7 @@ class Config(dict):
         """Sets a default configuration dictionary for a module.
 
         :param module:
-            The module to set default configuration, e.g.: `tipfyext.i18n`.
+            The module to set default configuration, e.g.: `tipfy.i18n`.
         :param values:
             A dictionary of configurations for the module.
         :returns:
@@ -148,7 +148,7 @@ class Config(dict):
         """Updates the configuration dictionary for a module.
 
         :param module:
-            The module to update the configuration, e.g.: `tipfyext.i18n`.
+            The module to update the configuration, e.g.: `tipfy.i18n`.
         :param values:
             A dictionary of configurations for the module.
         """

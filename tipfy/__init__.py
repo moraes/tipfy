@@ -34,6 +34,10 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #:     The default auth store class to use in :class:`tipfy.Request`.
 #:     Default is `tipfy.auth.appengine.AppEngineAuthStore`.
 #:
+#: i18n_store_class
+#:     The default internationalization store class.
+#:     Default is `tipfy.i18n.I18nStore`.
+#:
 #: session_store_class
 #:     The default session store class to use in :class:`tipfy.Request`.
 #:     Default is `tipfy.sessions.SessionStore`.
@@ -172,6 +176,16 @@ class RequestHandler(object):
         return self.request.auth_store
 
     @cached_property
+    def i18n(self):
+        """The internationalization store which provides access to several
+        translation and localization utilities.
+
+        :returns:
+            An i18n store instance.
+        """
+        return self.request.i18n_store
+
+    @cached_property
     def session(self):
         """A session dictionary using the default session configuration.
 
@@ -291,7 +305,11 @@ class Request(BaseRequest):
 
     @cached_property
     def i18n_store(self):
-        """
+        """The internationalization store which provides access to several
+        translation and localization utilities.
+
+        :returns:
+            An i18n store instance.
         """
         i18n = Tipfy.app.i18n_store
         i18n.set_locale_for_request(self)

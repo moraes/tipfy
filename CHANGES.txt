@@ -93,7 +93,7 @@ tipfy's core design. Here's an overview of what is new:
 
 - IMPROVED: redirect() (or self.redirect() in handlers) now accepts relative
   URLs. If a relative URL is passed, it'll be joined to the current request
-  URL. THis is mostly useful to redirect to the result of url_for() without
+  URL. This is mostly useful to redirect to the result of url_for() without
   needing to build a full URL::
 
       # current URL is http://localhost/foo/bar
@@ -171,6 +171,16 @@ tipfy's core design. Here's an overview of what is new:
 - NEW: added a router object that centralizes URL matching, dispatching and
   building. [explain]
 
+- Added a Router class which is responsible for matching, dispatching and
+  building URLs. It makes it more flexible to implement alternative routing
+  schemes. Some implications:
+  - Moved methods from Tipfy that are now part of the router functionality:
+    get_url_map(), add_url_rule(), match_url(), pre_dispatch(), dispatch() and
+    post_dispatch(). If you extended them in some way, you must now extend
+    the router.
+  - URL building is centralized in the router, so url_for() methods
+    (from RequestHandler or Tipfy) call router.build().
+
 - CHANGED: URL rules are not automatically loaded from urls.py. Instead tipfy
   is instantiated passing the URL rules, like webapp. Later other rules can
   be added to the router. For example:
@@ -236,7 +246,17 @@ tipfy's core design. Here's an overview of what is new:
               # Return an HTTPException which will be converted to a response.
               return MethodNotAllowed()
 
-- NEW: added a new rule converter, RegexConverter. [explain]
+- NEW: added a new rule converter, RegexConverter, which can be usefull
+  specially to match subdomains excluding some default ones (e.g., 'www').
+  For example, here we define a rule for the root URL of all non-www
+  subdomains, and a different one for www::
+
+      rules = [
+          Rule('/', endpoint='index', handler='IndexHandler'),
+          Subdomain(r'<regex("(?!www\\b)\\w+"):namespace>', [
+              Rule('/', endpoint='index', handler='SubdomainIndexHandler'),
+          ]),
+      ]
 
 - NEW: KeyProperty model was added to the db extension. [explain]
 
@@ -246,50 +266,21 @@ tipfy's core design. Here's an overview of what is new:
   mimetype is 'application/json', the decoded request data is available in
   request.json.
 
+- Removed 3 configuration keys, and added 4 properties to the Tipfy instance:
+  - Tipfy.dev: True is the app is using the dev server, False otherwise.
+  - Tipfy.appengine: True is the app is running on App Engine, False otherwise.
+  - Tipfy.application_id: the application ID as defined in *app.yaml*.
+  - Tipfy.current_version_id: the deployed version ID. Always '1' when using
+    the dev server.
 
-0.6.?
-=====
-- RequestHandler.redirect() now also accepts relative URIs. Passing a path
-  will result in a redirection to the path joined to the current URL.
+- NEW: app has now a debug attribute, set when it is initialized with
+  debug=True.
 
-- App has now a debug attribute, set when it is initialized with debug=True.
+- IMPROVED: simplified buildout project structure to remove cruft:
+  - 'etc/' is removed and its contents go to 'var/'.
+  - 'distlib/' is now placed in 'lib/dist/'.
 
-- Rules can now receive a 'name' argument, which is equivalent to 'endpoint'.
-  This is just a better name for what it does (it is the name used to build
-  URLs). 'endpoint' will still work, but we will start to use 'name' for docs.
-
-- Added a RegexConverter, which can be usefull specially to match subdomains
-  except 'www'. For example, here we define a rule for the root URL of all
-  non-www sundomains, and a different one for www::
-
-      rules = [
-          Rule('/', endpoint='index', handler='IndexHandler'),
-          Subdomain(r'<regex("(?!www\\b)\\w+"):namespace>', [
-              Rule('/', endpoint='index', handler='SubdomainIndexHandler'),
-          ]),
-      ]
-
-- Removed 3 configuration keys, which are now available as properties of the
-  WSGI app instance:
-  - dev: True is the app is using the dev server, False otherwise.
-  - app_id: the application ID as defined in *app.yaml*.
-  - version_id: the deployed version ID. Always '1' when using the dev server.
-
-- Removed make_response(). It is unneeded magic that adds many ways to to the
-  same basic thing: build a Response object. If you rely on automatic wrapping
-  returned values from handlers into Response objects, you need to explicitly
-  return a Response object now.
-
-- Added a Router class which is responsible for matching, dispatching and
-  building URLs. The main reason was to implement better exception handling,
-  but it adds other flexibility points. Some implications:
-  - Moved methods from Tipfy that are now part of the router functionality:
-    get_url_map(), add_url_rule(), match_url(), pre_dispatch(), dispatch() and
-    post_dispatch(). If you extended them in some way, you must now extend
-    the router.
-  - URL building is centralized in the router, so url_for() methods
-    (from Request, RequestHandler or Tipfy) call router.build(). They remain
-    backwards compatible, just the internals changed.
+- ...
 
 
 Version 0.6.3 - August 24, 2010

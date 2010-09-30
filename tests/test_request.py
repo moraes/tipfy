@@ -57,5 +57,5 @@ class TestRequest(unittest.TestCase):
         request = Request.from_values('/')
         app.set_locals(request)
 
-        self.assertEqual(isinstance(request.auth, AppEngineAuthStore), True)
+        self.assertEqual(isinstance(request.auth_store, AppEngineAuthStore), True)
 

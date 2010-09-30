@@ -8,7 +8,6 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from tipfy import Tipfy
 from werkzeug import ETagResponseMixin
 
 
@@ -23,6 +22,6 @@ class ETagMiddleware(object):
         response.add_etag()
 
         if handler.request.if_none_match.contains_raw(response.get_etag()[0]):
-            return Tipfy.response_class(status=304)
+            return handler.app.response_class(status=304)
 
         return response

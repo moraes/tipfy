@@ -96,10 +96,10 @@ class Router(object):
             rule.handler = self.handlers[handler]
 
         if not method:
-            if rule.handler_method:
-                method = rule.handler_method
-            else:
+            if rule.handler_method is None:
                 method = request.method.lower().replace('-', '_')
+            else:
+                method = rule.handler_method
 
         # Instantiate the handler.
         handler = rule.handler(app, request)

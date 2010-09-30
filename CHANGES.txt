@@ -280,6 +280,8 @@ tipfy's core design. Here's an overview of what is new:
   - 'etc/' is removed and its contents go to 'var/'.
   - 'distlib/' is now placed in 'lib/dist/'.
 
+- NEW: ETagMiddleware [explain]
+
 - ...
 
 

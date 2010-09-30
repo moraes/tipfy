@@ -47,6 +47,7 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #:     This only need to be defined to map URLs to subdomains. Default is ''.
 default_config = {
     'auth_store_class':    'tipfy.auth.appengine.AppEngineAuthStore',
+    'i18n_store_class':    'tipfy.i18n.I18nStore',
     'session_store_class': 'tipfy.sessions.SessionStore',
     'server_name':         None,
     'default_subdomain':   '',
@@ -168,7 +169,7 @@ class RequestHandler(object):
         :returns:
             An auth store instance.
         """
-        return self.request.auth
+        return self.request.auth_store
 
     @cached_property
     def session(self):
@@ -279,7 +280,7 @@ class Request(BaseRequest):
             return json_decode(self.data)
 
     @cached_property
-    def auth(self):
+    def auth_store(self):
         """The auth store which provides access to the authenticated user and
         auth related functions.
 
@@ -287,6 +288,14 @@ class Request(BaseRequest):
             An auth store instance.
         """
         return Tipfy.app.auth_store_class(Tipfy.app, self)
+
+    @cached_property
+    def i18n_store(self):
+        """
+        """
+        i18n = Tipfy.app.i18n_store
+        i18n.set_locale_for_request(self)
+        return i18n
 
     @cached_property
     def session_store(self):
@@ -354,24 +363,6 @@ class Tipfy(object):
 
         if debug:
             logging.getLogger().setLevel(logging.DEBUG)
-
-    @cached_property
-    def auth_store_class(self):
-        """Returns the configured auth store class.
-
-        :returns:
-            An auth store class.
-        """
-        return import_string(self.get_config('tipfy', 'auth_store_class'))
-
-    @cached_property
-    def session_store_class(self):
-        """Returns the configured session store class.
-
-        :returns:
-            A session store class.
-        """
-        return import_string(self.get_config('tipfy', 'session_store_class'))
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""
@@ -587,6 +578,34 @@ class Tipfy(object):
             fix_sys_path()
 
         CGIHandler().run(self)
+
+    @cached_property
+    def auth_store_class(self):
+        """Returns the configured auth store class.
+
+        :returns:
+            An auth store class.
+        """
+        return import_string(self.get_config('tipfy', 'auth_store_class'))
+
+    @cached_property
+    def session_store_class(self):
+        """Returns the configured session store class.
+
+        :returns:
+            A session store class.
+        """
+        return import_string(self.get_config('tipfy', 'session_store_class'))
+
+    @cached_property
+    def i18n_store(self):
+        """Returns the configured auth store class.
+
+        :returns:
+            An auth store class.
+        """
+        cls = import_string(self.get_config('tipfy', 'i18n_store_class'))
+        return cls(self)
 
 
 def get_config(module, key=None, default=REQUIRED_VALUE):

@@ -17,8 +17,7 @@ tipfy's core design. Here's an overview of what is new:
       from tipfy import app, request
 
 - NEW: tipfy.utils provides the functions json_decode and json_encode, which
-  will use the best simplejson module for the environment and apply correct
-  escaping.
+  will use the best simplejson module available and apply correct escaping.
 
 - NEW: added a simple template engine (from Tornado), mainly to remove
   debugger dependency from Jinja2.
@@ -29,8 +28,8 @@ tipfy's core design. Here's an overview of what is new:
   WSGI middleware. See main.py in the project dir for a setup that also
   includes patching the dev server for better Jinja2 debugging.
 
-- IMPROVED: the debugger now works even if the libraries are zipped using
-  buildout.
+- IMPROVED: the debugger now works even if the libraries are imported using
+  zipimport.
 
 - NEW: AppEngineMixedAuthStore, which allows login using App Engine Auth
   across subdomains. It mixes App Engine auth with own sessions to achieve
@@ -237,15 +236,19 @@ tipfy's core design. Here's an overview of what is new:
               # Return an HTTPException which will be converted to a response.
               return MethodNotAllowed()
 
-
 - NEW: added a new rule converter, RegexConverter. [explain]
 
 - NEW: KeyProperty model was added to the db extension. [explain]
 
 - IMPROVED: Exception handling [explain]
 
-Development version
-===================
+- NEW: Request can now automatically decode JSON requests. If the request
+  mimetype is 'application/json', the decoded request data is available in
+  request.json.
+
+
+0.6.?
+=====
 - RequestHandler.redirect() now also accepts relative URIs. Passing a path
   will result in a redirection to the path joined to the current URL.
 
@@ -287,9 +290,6 @@ Development version
   - URL building is centralized in the router, so url_for() methods
     (from Request, RequestHandler or Tipfy) call router.build(). They remain
     backwards compatible, just the internals changed.
-
-- New, easier and improved exception handling scheme:
-  XXX explain it
 
 
 Version 0.6.3 - August 24, 2010

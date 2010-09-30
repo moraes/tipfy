@@ -234,7 +234,7 @@ class RequestHandler(object):
 
     def get_valid_methods(self):
         """Returns a list of methods supported by this handler. By default it
-        will look for HTTP methods thsi handler implements. For different
+        will look for HTTP methods this handler implements. For different
         routing schemes, override this.
 
         :returns:

@@ -63,7 +63,7 @@ setup(
     include_package_data = True,
     install_requires = [
         'werkzeug>=0.6.1',
-        'jinja2',
+        'jinja2>=2.5.1',
         'babel',
         'gaepytz',
         'wtforms',

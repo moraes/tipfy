@@ -8,7 +8,7 @@ from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
 from tipfy.auth import (AdminRequiredMiddleware, LoginRequiredMiddleware,
     UserRequiredMiddleware, UserRequiredIfAuthenticatedMiddleware,
     admin_required, login_required, user_required,
-    user_required_if_authenticated, check_password, create_password_hash,
+    user_required_if_authenticated, check_password_hash, generate_password_hash,
     create_session_id, MultiAuthStore)
 from tipfy.auth.appengine import AppEngineAuthStore
 from tipfy.auth.appengine.model import User
@@ -632,29 +632,6 @@ class TestMiscelaneous(DataStoreTestCase, unittest.TestCase):
 
     def test_create_session_id(self):
         self.assertEqual(len(create_session_id()), 32)
-
-    def test_create_password_hash(self):
-        res = create_password_hash('foo')
-        parts = res.split('$')
-
-        self.assertEqual(parts[0], 'sha1')
-        self.assertEqual(len(parts[1]), 32)
-        self.assertEqual(len(parts[2]), 40)
-
-        res = create_password_hash(u'bar')
-        parts = res.split('$')
-
-        self.assertEqual(parts[0], 'sha1')
-        self.assertEqual(len(parts[1]), 32)
-        self.assertEqual(len(parts[2]), 40)
-
-    def test_check_password(self):
-        self.assertEqual(check_password('plain$$default', 'default'), True)
-        self.assertEqual(check_password('sha1$$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'password'), True)
-        self.assertEqual(check_password('sha1$$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'wrong'), False)
-        self.assertEqual(check_password('md5$xyz$bcc27016b4fdceb2bd1b369d5dc46c3f', u'example'), True)
-        self.assertEqual(check_password('sha1$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'password'), False)
-        self.assertEqual(check_password('md42$xyz$bcc27016b4fdceb2bd1b369d5dc46c3f', 'example'), False)
 
 
 class TestMultiAuthStore(DataStoreTestCase, unittest.TestCase):

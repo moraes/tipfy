@@ -14,8 +14,10 @@ import datetime
 
 from google.appengine.ext import db
 
+from werkzeug import check_password_hash, generate_password_hash
+
 from tipfy import Tipfy
-from tipfy.auth import check_password, create_password_hash, create_session_id
+from tipfy.auth import create_session_id
 
 
 class User(db.Model):
@@ -81,7 +83,7 @@ class User(db.Model):
             kwargs['password'] = kwargs.pop('password_hash')
         elif 'password' in kwargs:
             # Password is not hashed: generate a hash.
-            kwargs['password'] = create_password_hash(kwargs['password'])
+            kwargs['password'] = generate_password_hash(kwargs['password'])
 
         def txn():
             if cls.get_by_username(username) is not None:
@@ -102,7 +104,7 @@ class User(db.Model):
         :returns:
             None.
         """
-        self.password = create_password_hash(new_password)
+        self.password = generate_password_hash(new_password)
 
     def check_password(self, password):
         """Checks if a password is valid. This is done with form login
@@ -112,7 +114,7 @@ class User(db.Model):
         :returns:
             True is the password is valid, False otherwise.
         """
-        if not check_password(self.password, password):
+        if not check_password_hash(self.password, password):
             return False
 
         # Check if session id needs to be renewed.

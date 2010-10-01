@@ -10,12 +10,12 @@
 """
 from __future__ import absolute_import
 
-import hashlib
 import uuid
 
 from tipfy import abort, APPENGINE
 
-from werkzeug import cached_property, import_string
+from werkzeug import (cached_property, check_password_hash,
+    generate_password_hash, import_string)
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -484,80 +484,6 @@ def admin_required(func):
         return _admin_required(self) or func(self, *args, **kwargs)
 
     return decorated
-
-
-def create_password_hash(password):
-    """Returns the password encrypted in sha1 format with a random salt.
-
-    This function is adapted from `Zine`.
-
-    :param password:
-        Password to e hashed and formatted.
-    :returns:
-        A hashed and formatted password.
-    """
-    if isinstance(password, unicode):
-        password = password.encode('utf-8')
-
-    salt = uuid.uuid4().hex
-    h = hashlib.sha1()
-    h.update(salt)
-    h.update(password)
-    return 'sha1$%s$%s' % (salt, h.hexdigest())
-
-
-def check_password(pwhash, password):
-    """Checks a password against a given hash value. Since  many systems save
-    md5 passwords with no salt and it's technically impossible to convert this
-    to a sha hash with a salt we use this to be able to check for legacy plain
-    or salted md5 passwords as well as salted sha passwords::
-
-        plain$$default
-
-    md5 passwords without salt::
-
-        md5$$c21f969b5f03d33d43e04f8f136e7682
-
-    md5 passwords with salt::
-
-        md5$123456$7faa731e3365037d264ae6c2e3c7697e
-
-    sha passwords::
-
-        sha1$123456$118083bd04c79ab51944a9ef863efcd9c048dd9a
-
-    This function is adapted from `Zine`.
-
-    :param pwhash:
-        Hash to be checked.
-    :param password:
-        Password to be checked.
-    :returns:
-        True if the password is valid, False otherwise.
-    """
-    if not pwhash or not password:
-        return False
-
-    if isinstance(password, unicode):
-        password = password.encode('utf-8')
-
-    if pwhash.count('$') < 2:
-        return False
-
-    method, salt, hashval = pwhash.split('$', 2)
-
-    if method == 'plain':
-        return hashval == password
-    elif method == 'md5':
-        h = hashlib.md5()
-    elif method == 'sha1':
-        h = hashlib.sha1()
-    else:
-        return False
-
-    h.update(salt)
-    h.update(password)
-    return h.hexdigest() == hashval
 
 
 def create_session_id():

@@ -138,10 +138,9 @@ class I18nStore(object):
     #: Current tzinfo.
     tzinfo = None
 
-    def __init__(self, app, loaded_translations=None, locale=None,
-        timezone=None):
+    def __init__(self, app, loaded_translations, locale=None, timezone=None):
         self.app = app
-        self.loaded_translations = loaded_translations or {}
+        self.loaded_translations = loaded_translations
         self.config = app.config[__name__]
         self.set_locale(locale or self.config['locale'])
         self.set_timezone(timezone or self.config['timezone'])
@@ -699,7 +698,8 @@ class I18nStore(object):
         locale = locale or self.locale
         return dates.get_timezone_name(dt_or_tzinfo, locale=locale)
 
-    def get_store_for_request(self, request):
+    @classmethod
+    def get_store_for_request(cls, app, request):
         """Returns a I18nStore bound to a given request.
 
         :param request:
@@ -708,42 +708,14 @@ class I18nStore(object):
             A new :class:`I18nStore` instance with locale and timezone set
             for the request.
         """
-        locale = self.get_value_for_request(request,
-            self.config['locale_request_lookup'], self.config['locale'])
-        timezone = self.get_value_for_request(request,
-            self.config['timezone_request_lookup'], self.config['timezone'])
+        config = app.config[__name__]
+        translations = app.registry.setdefault('i18n.translations', {})
+        locale = _get_request_value(request,
+            config['locale_request_lookup'], config['locale'])
+        timezone = _get_request_value(request,
+            config['timezone_request_lookup'], config['timezone'])
 
-        return self.__class__(self.app, self.loaded_translations, locale,
-            timezone)
-
-    def get_value_for_request(self, request, lookup_list, default=None):
-        """Returns a locale code or timezone for the current request.
-
-        It will use the configuration for ``locale_request_lookup`` or
-        ``timezone_request_lookup`` to search for a key in ``GET``, ``POST``,
-        session, cookie or keywords in the current URL rule. If no value is
-        found, returns the default value.
-
-        :param request:
-            A :class:`tipfy.Request` instance.
-        :param lookup_list:
-            A list of `(attribute, key)` tuples to search in request, e.g.,
-            ``[('args', 'lang'), ('session', 'locale')]``.
-        :default:
-            Default value to return in case none is found.
-        :returns:
-            A locale code or timezone setting.
-        """
-        value = None
-        for method, key in lookup_list:
-            # Get locale from GET, POST, session, cookies or rule_args.
-            value = getattr(request, method).get(key, None)
-            if value is not None:
-                break
-        else:
-            value = default
-
-        return value
+        return cls(app, translations, locale, timezone)
 
 
 def set_locale(locale):
@@ -904,6 +876,36 @@ def lazy_ngettext(singular, plural, n, **variables):
         the string.
     """
     return support.LazyProxy(ngettext, singular, plural, n, **variables)
+
+
+def _get_request_value(request, lookup_list, default=None):
+    """Returns a locale code or timezone for the current request.
+
+    It will use the configuration for ``locale_request_lookup`` or
+    ``timezone_request_lookup`` to search for a key in ``GET``, ``POST``,
+    session, cookie or keywords in the current URL rule. If no value is
+    found, returns the default value.
+
+    :param request:
+        A :class:`tipfy.Request` instance.
+    :param lookup_list:
+        A list of `(attribute, key)` tuples to search in request, e.g.,
+        ``[('args', 'lang'), ('session', 'locale')]``.
+    :default:
+        Default value to return in case none is found.
+    :returns:
+        A locale code or timezone setting.
+    """
+    value = None
+    for method, key in lookup_list:
+        # Get locale from GET, POST, session, cookies or rule_args.
+        value = getattr(request, method).get(key, None)
+        if value is not None:
+            break
+    else:
+        value = default
+
+    return value
 
 
 # Alias to gettext.

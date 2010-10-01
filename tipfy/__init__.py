@@ -63,7 +63,7 @@ ALLOWED_METHODS = frozenset(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT',
 
 # App Engine flags.
 SERVER_SOFTWARE = os.environ.get('SERVER_SOFTWARE', '')
-#: The application ID as defined in *app.yaml*."""
+#: The application ID as defined in *app.yaml*.
 APPLICATION_ID = os.environ.get('APPLICATION_ID')
 #: The deployed version ID. Always '1' when using the dev server.
 CURRENT_VERSION_ID = os.environ.get('CURRENT_VERSION_ID', '1')
@@ -310,7 +310,8 @@ class Request(BaseRequest):
         :returns:
             An i18n store instance.
         """
-        return Tipfy.app.i18n_store.get_store_for_request(self)
+        return Tipfy.app.i18n_store_class.get_store_for_request(Tipfy.app,
+            self)
 
     @cached_property
     def session_store(self):
@@ -596,6 +597,15 @@ class Tipfy(object):
         return import_string(self.get_config('tipfy', 'auth_store_class'))
 
     @cached_property
+    def i18n_store_class(self):
+        """Returns the configured auth store class.
+
+        :returns:
+            An auth store class.
+        """
+        return import_string(self.get_config('tipfy', 'i18n_store_class'))
+
+    @cached_property
     def session_store_class(self):
         """Returns the configured session store class.
 
@@ -603,16 +613,6 @@ class Tipfy(object):
             A session store class.
         """
         return import_string(self.get_config('tipfy', 'session_store_class'))
-
-    @cached_property
-    def i18n_store(self):
-        """Returns the configured auth store class.
-
-        :returns:
-            An auth store class.
-        """
-        cls = import_string(self.get_config('tipfy', 'i18n_store_class'))
-        return cls(self)
 
 
 def get_config(module, key=None, default=REQUIRED_VALUE):

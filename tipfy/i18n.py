@@ -138,9 +138,10 @@ class I18nStore(object):
     #: Current tzinfo.
     tzinfo = None
 
-    def __init__(self, app, loaded_translations, locale=None, timezone=None):
+    def __init__(self, app, loaded_translations=None, locale=None,
+        timezone=None):
         self.app = app
-        self.loaded_translations = loaded_translations
+        self.loaded_translations = loaded_translations or {}
         self.config = app.config[__name__]
         self.set_locale(locale or self.config['locale'])
         self.set_timezone(timezone or self.config['timezone'])

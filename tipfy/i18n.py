@@ -44,32 +44,40 @@ from tipfy import Tipfy
 #:     The application default timezone according to the Olson
 #:     database. Default is ``America/Chicago``.
 #:
-#: session_key
-#:     Session key used to save requested locale, in case sessions are used.
+#: locale_session_key
+#:     Session key used to save requested locale, if sessions are used.
+#:
+#: timezone_session_key
+#:     Session key used to save requested timezone, if sessions are used.
 #:
 #: locale_request_lookup
 #:     A list of tuples (method, key) to search
 #:     for the locale to be loaded for the current request. The methods are
 #:     searched in order until a locale is found. Available methods are:
 #:
-#:     - args: gets the locale code from ``GET`` arguments.#:
+#:     - args: gets the locale code from ``GET`` arguments.
 #:     - form: gets the locale code from ``POST`` arguments.
+#:     - session: gets the locale code from the current session.
 #:     - cookies: gets the locale code from a cookie.
 #:     - rule_args: gets the locale code from the keywords in the current
 #:       URL rule.
 #:
 #:     If none of the methods find a locale code, uses the default locale.
-#:     Default is ``[('args', 'lang'), ('session', '_locale')]``: gets
-#:     the locale from a ``lang`` parameter set in ``GET``, and if not set
-#:     tries to get it from the session key ``_locale``.
+#:     Default is ``[('session', '_locale')]``: gets the locale from the
+#:     session key ``_locale``.
+#:
+#: timezone_request_lookup
+#:     Same as `locale_request_lookup`, but for the timezone.
 #:
 #: date_formats
 #:     Default date formats for datetime, date and time.
 default_config = {
-    'locale':                'en_US',
-    'timezone':              'America/Chicago',
-    'session_key':           '_locale',
-    'locale_request_lookup': [('args', 'lang'), ('session', '_locale')],
+    'locale':                  'en_US',
+    'timezone':                'America/Chicago',
+    'locale_session_key':      '_locale',
+    'timezone_session_key':    '_timezone',
+    'locale_request_lookup':   [('session', '_locale')],
+    'timezone_request_lookup': [('session', '_timezone')],
     'date_formats': {
         'time':             'medium',
         'date':             'medium',
@@ -99,17 +107,21 @@ class I18nMiddleware(object):
         """Saves the current locale in the session.
 
         :param handler:
-            The current ``tipfy.RequestHandler`` instance.
+            A :class:`tipfy.RequestHandler` instance.
         :param response:
-            The current ``tipfy.Response`` instance.
+            A :class:`tipfy.Response` instance.
         """
         session = handler.request.session
         i18n = handler.request.i18n_store
-        session_key = i18n.config['session_key']
+        locale_session_key = i18n.config['locale_session_key']
+        timezone_session_key = i18n.config['timezone_session_key']
 
-        if i18n.locale != session.get(session_key):
-            # Only save if it differs from original session value.
-            session[session_key] = i18n.locale
+        # Only save if it differs from original session value.
+        if i18n.locale != session.get(locale_session_key):
+            session[locale_session_key] = i18n.locale
+
+        if i18n.timezone != session.get(timezone_session_key):
+            session[timezone_session_key] = i18n.timezone
 
         return response
 
@@ -117,28 +129,22 @@ class I18nMiddleware(object):
 class I18nStore(object):
     #: Loaded translations.
     loaded_translations = None
-    #: Current translation.
-    translations = None
     #: Current locale.
     locale = None
+    #: Current translations.
+    translations = None
     #: Current timezone.
     timezone = None
     #: Current tzinfo.
     tzinfo = None
 
-    def __init__(self, app):
+    def __init__(self, app, loaded_translations=None, locale=None,
+        timezone=None):
         self.app = app
-        self.loaded_translations = {}
-
-        config = app.config[__name__]
-        self.default_locale = config['locale']
-        self.default_timezone = config['timezone']
-        self.date_formats = config['date_formats']
-        self.config = config
-
-        # Initialize using default config values.
-        self.set_locale(self.default_locale)
-        self.set_timezone(self.default_timezone)
+        self.loaded_translations = loaded_translations or {}
+        self.config = app.config[__name__]
+        self.set_locale(locale or self.config['locale'])
+        self.set_timezone(timezone or self.config['timezone'])
 
     def set_locale(self, locale):
         """Sets the current locale and translations.
@@ -149,8 +155,8 @@ class I18nStore(object):
         self.locale = locale
         if locale not in self.loaded_translations:
             locales = [locale]
-            if locale != self.default_locale:
-                locales.append(self.default_locale)
+            if locale != self.config['locale']:
+                locales.append(self.config['locale'])
 
             self.loaded_translations[locale] = self.load_translations(locales)
 
@@ -165,30 +171,6 @@ class I18nStore(object):
         """
         self.timezone = timezone
         self.tzinfo = pytz.timezone(timezone)
-
-    def set_locale_for_request(self, request):
-        """Sets a translations object for the current request.
-
-        It will use the configuration for ``locale_request_lookup`` to search
-        for a key in ``GET``, ``POST``, session, cookie or keywords in the
-        current URL rule. The configuration defines the search order. If no
-        locale is set in any of these, uses the default locale set in config.
-
-        By default it gets the locale from a ``lang`` GET parameter, and if
-        not set tries to get it from a cookie. This is represented by the
-        default configuration value ``[('args', 'lang'), ('cookies',
-        'tipfy.locale')]``.
-        """
-        locale = None
-        for method, key in self.config['locale_request_lookup']:
-            # Get locale from GET, POST, session, cookies or rule_args.
-            locale = getattr(request, method).get(key, None)
-            if locale is not None:
-                break
-        else:
-            locale = self.default_locale
-
-        self.set_locale(locale)
 
     def load_translations(self, locales, dirname='locale', domain='messages'):
         return support.Translations.load(dirname, locales, domain)
@@ -223,29 +205,6 @@ class I18nStore(object):
         """
         return self.translations.ungettext(singular, plural, n) % variables
 
-    def _get_format(self, key, format):
-        """A helper for the datetime formatting functions. Returns a format
-        name or pattern to be used by Babel date format functions.
-
-        :param key:
-            A format key to be get from config. Valid values are "date",
-            "datetime" or "time".
-        :param format:
-            The format to be returned. Valid values are "short", "medium",
-            "long", "full" or a custom date/time pattern.
-        :returns:
-            A format name or pattern to be used by Babel date format functions.
-        """
-        if format is None:
-            format = self.date_formats.get(key)
-
-        if format in ('short', 'medium', 'full', 'long'):
-            rv = self.date_formats.get('%s.%s' % (key, format))
-            if rv is not None:
-                format = rv
-
-        return format
-
     def to_local_timezone(self, datetime):
         """Returns a datetime object converted to the local timezone.
 
@@ -271,6 +230,29 @@ class I18nStore(object):
             datetime = self.tzinfo.localize(datetime)
 
         return datetime.astimezone(pytz.UTC).replace(tzinfo=None)
+
+    def _get_format(self, key, format):
+        """A helper for the datetime formatting functions. Returns a format
+        name or pattern to be used by Babel date format functions.
+
+        :param key:
+            A format key to be get from config. Valid values are "date",
+            "datetime" or "time".
+        :param format:
+            The format to be returned. Valid values are "short", "medium",
+            "long", "full" or a custom date/time pattern.
+        :returns:
+            A format name or pattern to be used by Babel date format functions.
+        """
+        if format is None:
+            format = self.config['date_formats'].get(key)
+
+        if format in ('short', 'medium', 'full', 'long'):
+            rv = self.config['date_formats'].get('%s.%s' % (key, format))
+            if rv is not None:
+                format = rv
+
+        return format
 
     def format_date(self, date=None, format=None, locale=None, rebase=True):
         """Returns a date formatted according to the given pattern and
@@ -716,6 +698,52 @@ class I18nStore(object):
         """
         locale = locale or self.locale
         return dates.get_timezone_name(dt_or_tzinfo, locale=locale)
+
+    def get_store_for_request(self, request):
+        """Returns a I18nStore bound to a given request.
+
+        :param request:
+            A :class:`tipfy.Request` instance.
+        :returns:
+            A new :class:`I18nStore` instance with locale and timezone set
+            for the request.
+        """
+        locale = self.get_value_for_request(request,
+            self.config['locale_request_lookup'], self.config['locale'])
+        timezone = self.get_value_for_request(request,
+            self.config['timezone_request_lookup'], self.config['timezone'])
+
+        return self.__class__(self.app, self.loaded_translations, locale,
+            timezone)
+
+    def get_value_for_request(self, request, lookup_list, default=None):
+        """Returns a locale code or timezone for the current request.
+
+        It will use the configuration for ``locale_request_lookup`` or
+        ``timezone_request_lookup`` to search for a key in ``GET``, ``POST``,
+        session, cookie or keywords in the current URL rule. If no value is
+        found, returns the default value.
+
+        :param request:
+            A :class:`tipfy.Request` instance.
+        :param lookup_list:
+            A list of `(attribute, key)` tuples to search in request, e.g.,
+            ``[('args', 'lang'), ('session', 'locale')]``.
+        :default:
+            Default value to return in case none is found.
+        :returns:
+            A locale code or timezone setting.
+        """
+        value = None
+        for method, key in lookup_list:
+            # Get locale from GET, POST, session, cookies or rule_args.
+            value = getattr(request, method).get(key, None)
+            if value is not None:
+                break
+        else:
+            value = default
+
+        return value
 
 
 def set_locale(locale):

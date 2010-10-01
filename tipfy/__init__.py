@@ -311,9 +311,7 @@ class Request(BaseRequest):
         :returns:
             An i18n store instance.
         """
-        i18n = Tipfy.app.i18n_store
-        i18n.set_locale_for_request(self)
-        return i18n
+        return Tipfy.app.i18n_store.get_store_for_request(self)
 
     @cached_property
     def session_store(self):

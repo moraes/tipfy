@@ -29,6 +29,26 @@ class TestJinja2(unittest.TestCase):
         res = jinja2.render_template('template1.html', message=message)
         self.assertEqual(res, message)
 
+    def test_render_template_with_i18n(self):
+        app = Tipfy(config={
+            'tipfyext.jinja2': {
+                'templates_dir': templates_dir,
+                'environment_args': dict(
+                    autoescape=True,
+                    extensions=['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.i18n'],
+                ),
+            },
+            'tipfy.sessions': {
+                'secret_key': 'secret',
+            },
+        })
+        app.set_locals(Request.from_values())
+        jinja2 = Jinja2(app)
+
+        message = 'Hello, i18n World!'
+        res = jinja2.render_template('template2.html', message=message)
+        self.assertEqual(res, message)
+
     def test_render_response(self):
         app = Tipfy(config={'tipfyext.jinja2': {'templates_dir': templates_dir}})
         app.set_locals(Request.from_values())

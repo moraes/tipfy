@@ -13,6 +13,8 @@ from pytz.gae import pytz
 
 from tipfy import Tipfy, RequestHandler, Request, Response, Rule
 import tipfy.i18n as i18n
+from tipfy.sessions import SessionMiddleware
+
 
 #==============================================================================
 # I18nMiddleware
@@ -20,7 +22,7 @@ import tipfy.i18n as i18n
 class TestI18nMiddleware(unittest.TestCase):
     def test_middleware_multiple_changes(self):
         class MyHandler(RequestHandler):
-            middleware = [i18n.I18nMiddleware()]
+            middleware = [SessionMiddleware(), i18n.I18nMiddleware()]
 
             def get(self, **kwargs):
                 locale = self.request.i18n_store.locale
@@ -32,21 +34,27 @@ class TestI18nMiddleware(unittest.TestCase):
             'tipfy.sessions': {
                 'secret_key': 'secret',
             },
+            'tipfy.i18n': {
+                'locale_request_lookup': [('args', 'lang'), ('session', '_locale')],
+            }
         })
 
         client = app.get_test_client()
         response = client.get('/')
         self.assertEqual(response.data, 'en_US')
 
-        response = client.get('/?lang=pt_BR', headers={
-            'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
-        })
+        response = client.get('/?lang=pt_BR')
         self.assertEqual(response.data, 'pt_BR')
 
-        response = client.get('/?lang=en_US', headers={
-            'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
-        })
+        response = client.get('/')
+        self.assertEqual(response.data, 'pt_BR')
+
+        response = client.get('/?lang=en_US')
         self.assertEqual(response.data, 'en_US')
+
+        response = client.get('/')
+        self.assertEqual(response.data, 'en_US')
+
 
 #==============================================================================
 # _(), gettext(), ngettext(), lazy_gettext(), lazy_ngettext()
@@ -64,13 +72,15 @@ class TestGettext(unittest.TestCase):
         app.set_locals(Request.from_values('/'))
 
     def tearDown(self):
-        Tipfy.app.clear_locals()
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
 
-    '''
     def test_translations_not_set(self):
         Tipfy.app.clear_locals()
-        self.assertRaises(AttributeError, i18n.gettext, 'foo')
-    '''
+        self.assertRaises(RuntimeError, i18n.gettext, 'foo')
+
     def test_gettext(self):
         self.assertEqual(i18n.gettext('foo'), u'foo')
 
@@ -90,9 +100,9 @@ class TestGettext(unittest.TestCase):
 
 
 #==============================================================================
-# I18nStore.set_locale_for_request()
+# I18nStore.get_store_for_request()
 #==============================================================================
-class TestLocaleForRequest(unittest.TestCase):
+class TestStoreForRequest(unittest.TestCase):
     def setUp(self):
         app = Tipfy(config={
             'tipfy.sessions': {
@@ -107,26 +117,26 @@ class TestLocaleForRequest(unittest.TestCase):
     def tearDown(self):
         Tipfy.app.clear_locals()
 
-    def test_set_locale_for_request(self):
+    def test_get_store_for_request(self):
         Tipfy.app.config['tipfy.i18n']['locale'] = 'jp_JP'
         self.assertEqual(Tipfy.request.i18n_store.locale, 'jp_JP')
 
-    def test_set_locale_for_request_args(self):
+    def test_get_store_for_request_args(self):
         Tipfy.app.config['tipfy.i18n']['locale_request_lookup'] = [('args', 'language')]
         Tipfy.app.set_locals(Request.from_values(query_string={'language': 'es_ES'}))
         self.assertEqual(Tipfy.request.i18n_store.locale, 'es_ES')
 
-    def test_set_locale_for_request_form(self):
+    def test_get_store_for_request_form(self):
         Tipfy.app.config['tipfy.i18n']['locale_request_lookup'] = [('form', 'language')]
         Tipfy.app.set_locals(Request.from_values(data={'language': 'es_ES'}, method='POST'))
         self.assertEqual(Tipfy.request.i18n_store.locale, 'es_ES')
 
-    def test_set_locale_for_request_cookies(self):
+    def test_get_store_for_request_cookies(self):
         Tipfy.app.config['tipfy.i18n']['locale_request_lookup'] = [('cookies', 'language')]
         Tipfy.app.set_locals(Request.from_values(headers=[('Cookie', 'language="es_ES"; Path=/')]))
         self.assertEqual(Tipfy.request.i18n_store.locale, 'es_ES')
 
-    def test_set_locale_for_request_args_cookies(self):
+    def test_get_store_for_request_args_cookies(self):
         Tipfy.app.config['tipfy.i18n']['locale_request_lookup'] = [
             ('args', 'foo'),
             ('cookies', 'language')
@@ -134,12 +144,13 @@ class TestLocaleForRequest(unittest.TestCase):
         Tipfy.app.set_locals(Request.from_values(headers=[('Cookie', 'language="es_ES"; Path=/')]))
         self.assertEqual(Tipfy.request.i18n_store.locale, 'es_ES')
 
-    def test_set_locale_from_rule_args(self):
+    def test_get_store_for_request_rule_args(self):
         Tipfy.app.config['tipfy.i18n']['locale_request_lookup'] = [('rule_args', 'locale'),]
         request = Request.from_values('/')
         request.rule_args = {'locale': 'es_ES'}
         Tipfy.app.set_locals(request)
         self.assertEqual(Tipfy.request.i18n_store.locale, 'es_ES')
+
 
 #==============================================================================
 # Date formatting
@@ -269,6 +280,7 @@ class TestDates(unittest.TestCase):
         self.assertEqual(i18n.parse_time('18:08:09', locale='de_DE'), datetime.time(18, 8, 9))
 
     def test_format_timedelta(self):
+        # This is only present in Babel dev, so skip if not available.
         if not getattr(i18n, 'format_timedelta', None):
             return
 
@@ -281,7 +293,7 @@ class TestDates(unittest.TestCase):
 
         self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=23), threshold=1.1, locale='en_US'), u'23 hours')
 
-        self.assertEqual(i18n.format_timedelta(datetime.datetime.now() - datetime.timedelta(days=5), threshold=1.1, locale='en_US'), u'5 days')
+        self.assertEqual(i18n.format_timedelta(datetime.datetime.now() - datetime.timedelta(days=5), locale='en_US'), u'5 days')
 
 
 #==============================================================================
@@ -436,9 +448,9 @@ class TestNumberFormatting(unittest.TestCase):
         self.assertRaises(NumberFormatError, i18n.parse_decimal, '2,109,998')
 
 
-#============================================================================
+#==============================================================================
 # Miscelaneous
-#============================================================================
+#==============================================================================
 class TestMiscelaneous(unittest.TestCase):
     def setUp(self):
         app = Tipfy(config={

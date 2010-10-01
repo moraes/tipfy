@@ -61,21 +61,20 @@ class Jinja2Mixin(object):
 class Jinja2(object):
     def __init__(self, app, _globals=None, filters=None):
         self.app = app
-        config = app.get_config(__name__)
-        kwargs = config.get('environment_args') or {}
+        config = app.config[__name__]
+        kwargs = config['environment_args'] or {}
         enable_i18n = 'jinja2.ext.i18n' in kwargs.get('extensions', [])
 
         if not kwargs.get('loader'):
-            templates_compiled_target = config.get('templates_compiled_target')
-            use_compiled = not app.debug or config.get('force_use_compiled')
+            templates_compiled_target = config['templates_compiled_target']
+            use_compiled = not app.debug or config['force_use_compiled']
 
             if templates_compiled_target is not None and use_compiled:
                 # Use precompiled templates loaded from a module or zip.
                 kwargs['loader'] = ModuleLoader(templates_compiled_target)
             else:
                 # Parse templates for every new environment instances.
-                kwargs['loader'] = FileSystemLoader(
-                    config.get('templates_dir'))
+                kwargs['loader'] = FileSystemLoader(config['templates_dir'])
 
         # Initialize the environment.
         env = Environment(**kwargs)

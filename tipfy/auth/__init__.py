@@ -12,7 +12,7 @@ from __future__ import absolute_import
 
 import uuid
 
-from tipfy import abort, APPENGINE, DEV_APPSERVER_APPSERVER_APPSERVER
+from tipfy import abort, APPENGINE, DEV_APPSERVER
 
 from werkzeug import (cached_property, check_password_hash,
     generate_password_hash, import_string)
@@ -45,7 +45,7 @@ class BaseAuthStore(object):
     def __init__(self, app, request):
         self.app = app
         self.request = request
-        self.config = app.get_config(__name__)
+        self.config = app.config[__name__]
 
     @cached_property
     def user_model(self):
@@ -57,18 +57,18 @@ class BaseAuthStore(object):
         registry = self.app.registry
         key = 'auth.user_model'
         if key not in registry:
-            registry[key] = import_string(self.config.get('user_model'))
+            registry[key] = import_string(self.config['user_model'])
 
         return registry[key]
 
     @cached_property
     def _session_base(self):
-        cookie_name = self.config.get('cookie_name')
+        cookie_name = self.config['cookie_name']
         return self.request.session_store.get_session(cookie_name)
 
     def _url(self, _name, **kwargs):
         kwargs.setdefault('redirect', self.request.path)
-        if not DEV_APPSERVER_APPSERVER_APPSERVER and self.config.get('secure_urls'):
+        if not DEV_APPSERVER and self.config['secure_urls']:
             kwargs['_scheme'] = 'https'
 
         return self.app.url_for(_name, **kwargs)
@@ -205,7 +205,7 @@ class SessionAuthStore(BaseAuthStore):
             session['token'] = user.session_id
 
         if remember:
-            kwargs['max_age'] = self.config.get('session_max_age')
+            kwargs['max_age'] = self.config['session_max_age']
         else:
             kwargs['max_age'] = None
 
@@ -213,9 +213,9 @@ class SessionAuthStore(BaseAuthStore):
         self._save_session_base(**kwargs)
 
     def _save_session_base(self, **kwargs):
-        _kwargs = self.app.get_config('tipfy.sessions', 'cookie_args').copy()
+        _kwargs = self.app.config['tipfy.sessions']['cookie_args'].copy()
         _kwargs.update(kwargs)
-        self.request.session_store.set_session(self.config.get('cookie_name'),
+        self.request.session_store.set_session(self.config['cookie_name'],
             self._session_base, **_kwargs)
 
 

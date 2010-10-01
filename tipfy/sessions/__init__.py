@@ -234,11 +234,11 @@ class SessionStore(object):
         self.app = app
         self.request = request
         # Base configuration.
-        self.config = app.get_config(__name__)
+        self.config = app.config[__name__]
         # A dictionary of support backend classes.
         self.backends = backends or self.default_backends
         # The default backend to use when none is provided.
-        self.default_backend = self.config.get('default_backend')
+        self.default_backend = self.config['default_backend']
         # Tracked sessions.
         self._sessions = {}
         # Tracked cookies.
@@ -247,7 +247,7 @@ class SessionStore(object):
     @cached_property
     def secure_cookie_store(self):
         """Factory for secure cookies."""
-        return SecureCookieStore(self.config.get('secret_key'))
+        return SecureCookieStore(self.config['secret_key'])
 
     def get_cookie_args(self, **kwargs):
         """Returns a copy of the default cookie configuration updated with the

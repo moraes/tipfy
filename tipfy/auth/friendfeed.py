@@ -90,11 +90,11 @@ class FriendFeedMixin(OAuthMixin):
 
     @property
     def _friendfeed_consumer_key(self):
-        return self.app.get_config(__name__, 'consumer_key')
+        return self.app.config[__name__]['consumer_key']
 
     @property
     def _friendfeed_consumer_secret(self):
-        return self.app.get_config(__name__, 'consumer_secret')
+        return self.app.config[__name__]['consumer_secret']
 
     def _oauth_consumer_token(self):
         return dict(

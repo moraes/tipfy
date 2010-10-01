@@ -92,10 +92,10 @@ class TwitterMixin(OAuthMixin):
     _OAUTH_NO_CALLBACKS = True
 
     def _twitter_consumer_key(self):
-        return self.app.get_config(__name__, 'consumer_key')
+        return self.app.config[__name__]['consumer_key']
 
     def _twitter_consumer_secret(self):
-        return self.app.get_config(__name__, 'consumer_secret')
+        return self.app.config[__name__]['consumer_secret']
 
     def _oauth_consumer_token(self):
         return dict(

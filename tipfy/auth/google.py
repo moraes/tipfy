@@ -68,11 +68,11 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
 
     @property
     def _google_consumer_key(self):
-        return self.app.get_config(__name__, 'google_consumer_key')
+        return self.app.config[__name__]['google_consumer_key']
 
     @property
     def _google_consumer_secret(self):
-        return self.app.get_config(__name__, 'google_consumer_secret')
+        return self.app.config[__name__]['google_consumer_secret']
 
     def _oauth_consumer_token(self):
         return dict(

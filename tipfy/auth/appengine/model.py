@@ -147,7 +147,7 @@ class User(db.Model):
         """
         if force is False:
             # Only renew the session id if it is too old.
-            max_age = Tipfy.app.get_config('tipfy.auth', 'session_max_age')
+            max_age = Tipfy.app.config['tipfy.auth']['session_max_age']
             expires = datetime.timedelta(seconds=max_age)
 
             force = (self.session_updated + expires < datetime.datetime.now())

@@ -80,11 +80,11 @@ class FacebookMixin(object):
     """
     @property
     def _facebook_api_key(self):
-        return self.app.get_config(__name__, 'api_key')
+        return self.app.config[__name__]['api_key']
 
     @property
     def _facebook_secret(self):
-        return self.app.get_config(__name__, 'app_secret')
+        return self.app.config[__name__]['app_secret']
 
     def authenticate_redirect(self, callback_uri=None, cancel_uri=None,
                               extended_permissions=None):

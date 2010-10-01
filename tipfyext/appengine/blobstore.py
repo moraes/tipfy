@@ -282,7 +282,7 @@ class BlobstoreUploadMixin(object):
         return results
 
 
-def parse_blob_info(file_storage, field_name):
+def parse_blob_info(file_storage, field_name=None):
     """Parse a BlobInfo record from file upload field_storage.
 
     :param file_storage:
@@ -297,7 +297,7 @@ def parse_blob_info(file_storage, field_name):
     if file_storage is None:
         return None
 
-    field_name = file_storage.name
+    field_name = field_name or file_storage.name
 
     def get_value(dict, name):
         value = dict.get(name, None)

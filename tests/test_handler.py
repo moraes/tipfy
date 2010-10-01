@@ -4,6 +4,10 @@ import unittest
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
     ALLOWED_METHODS)
 
+from tipfy.sessions import SecureCookieSession
+from tipfy.i18n import I18nStore
+from tipfy.auth.appengine import AppEngineAuthStore
+
 
 class TestHandler(unittest.TestCase):
     def tearDown(self):
@@ -184,6 +188,22 @@ class TestHandler(unittest.TestCase):
         self.assertEqual(handler.url_for('about', _anchor='history'), '/about#history')
         self.assertEqual(handler.url_for('about', _scheme='https'), 'https://localhost/about')
 
+    def test_attributes(self):
+        class Handler(RequestHandler):
+            pass
+
+        app = Tipfy(config={
+            'tipfy.sessions': {
+                'secret_key': 'secret',
+            },
+        })
+        request = Request.from_values('/')
+        app.set_locals(request)
+
+        handler = Handler(app, request)
+        self.assertEqual(isinstance(handler.session, SecureCookieSession), True)
+        self.assertEqual(isinstance(handler.auth, AppEngineAuthStore), True)
+        self.assertEqual(isinstance(handler.i18n, I18nStore), True)
 
 class TestHandlerMiddleware(unittest.TestCase):
     def tearDown(self):

@@ -1,8 +1,16 @@
 import os
+import sys
 import unittest
 
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
-    ALLOWED_METHODS)
+    ALLOWED_METHODS, local)
+
+
+class AllMethodsHandler(RequestHandler):
+    def get(self, **kwargs):
+        return Response('Method: %s' % self.request.method)
+
+    delete = head = options = post = put = trace = get
 
 
 class BrokenHandler(RequestHandler):
@@ -35,13 +43,7 @@ class Handle500(RequestHandler):
 
 class TestApp(unittest.TestCase):
     def test_200(self):
-        class MyHandler(RequestHandler):
-            def delete(self, **kwargs):
-                return Response('Method: %s' % self.request.method)
-
-            get = head = options = post = put = trace = delete
-
-        app = Tipfy(rules=[Rule('/', name='home', handler=MyHandler)])
+        app = Tipfy(rules=[Rule('/', name='home', handler=AllMethodsHandler)])
         client = app.get_test_client()
 
         for method in ALLOWED_METHODS:
@@ -51,6 +53,22 @@ class TestApp(unittest.TestCase):
                 self.assertEqual(response.data, '')
             else:
                 self.assertEqual(response.data, 'Method: %s' % method)
+
+    def test_200_appengine(self):
+        Tipfy.appengine = True
+        Tipfy.app = None
+        Tipfy.request = None
+
+        app = Tipfy(rules=[Rule('/', name='home', handler=AllMethodsHandler)])
+        client = app.get_test_client()
+
+        response = client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, 'Method: GET')
+
+        Tipfy.appengine = False
+        Tipfy.app = local('app')
+        Tipfy.request = local('request')
 
     def test_404(self):
         # No URL rules defined.
@@ -159,3 +177,32 @@ class TestHandleException(unittest.TestCase):
         res = client.get('/broken')
         self.assertEqual(res.status_code, 500)
         self.assertEqual(res.data, '500 custom handler')
+
+
+class TestMiscelaneous(unittest.TestCase):
+    def tearDown(self):
+        try:
+            Tipfy.app.clear_locals()
+        except:
+            pass
+
+    def test_dev_run(self):
+        import tipfy
+
+        os.environ['APPLICATION_ID'] = 'my-app'
+        os.environ['SERVER_SOFTWARE'] = 'Development'
+        os.environ['SERVER_NAME'] = 'localhost'
+        os.environ['SERVER_PORT'] = '8080'
+        os.environ['REQUEST_METHOD'] = 'GET'
+
+        class HomeHandler(tipfy.RequestHandler):
+            def get(self, **kwargs):
+                return tipfy.Response('Hello, World!')
+
+        app = tipfy.Tipfy(rules=[
+            tipfy.Rule('/', name='home', handler=HomeHandler),
+        ], debug=True)
+        app.dev = True
+
+        app.run()
+        self.assertEqual(sys.stdout.getvalue(), 'Status: 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 13\r\n\r\nHello, World!')

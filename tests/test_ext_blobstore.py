@@ -4,11 +4,17 @@
 """
 import datetime
 import decimal
+import email
+import StringIO
 import time
 import unittest
 
+from google.appengine.ext import blobstore
+
 from tipfyext.appengine.blobstore import (CreationFormatError, parse_blob_info,
     parse_creation)
+
+from werkzeug import FileStorage
 
 
 class TestParseCreation(unittest.TestCase):
@@ -40,3 +46,51 @@ class TestParseCreation(unittest.TestCase):
 class TestParseBlobInfo(unittest.TestCase):
     def test_none(self):
         self.assertEqual(parse_blob_info(None, 'my_field_name'), None)
+
+    def test_file(self):
+        stream = StringIO.StringIO()
+        stream.write("""\
+Content-Type: application/octet-stream
+Content-Length: 1
+X-AppEngine-Upload-Creation: 2010-10-01 05:34:00.000000
+""")
+        stream.seek(0)
+        #self.assertEqual(email.message_from_file(stream).get('content-type'), None)
+
+        headers = {}
+        headers['Content-Type'] = 'image/png; blob-key=foo'
+
+        f = FileStorage(stream=stream, headers=headers)
+        self.assertNotEqual(parse_blob_info(f, 'my_field_name'), None)
+
+    def test_invalid_size(self):
+        stream = StringIO.StringIO()
+        stream.write("""\
+Content-Type: application/octet-stream
+Content-Length: zzz
+X-AppEngine-Upload-Creation: 2010-10-01 05:34:00.000000
+""")
+        stream.seek(0)
+        #self.assertEqual(email.message_from_file(stream).get('content-type'), None)
+
+        headers = {}
+        headers['Content-Type'] = 'image/png; blob-key=foo'
+
+        f = FileStorage(stream=stream, headers=headers)
+        self.assertRaises(blobstore.BlobInfoParseError, parse_blob_info,f, 'my_field_name')
+
+    def test_invalid_CREATION(self):
+        stream = StringIO.StringIO()
+        stream.write("""\
+Content-Type: application/octet-stream
+Content-Length: 1
+X-AppEngine-Upload-Creation: XXX
+""")
+        stream.seek(0)
+        #self.assertEqual(email.message_from_file(stream).get('content-type'), None)
+
+        headers = {}
+        headers['Content-Type'] = 'image/png; blob-key=foo'
+
+        f = FileStorage(stream=stream, headers=headers)
+        self.assertRaises(blobstore.BlobInfoParseError, parse_blob_info,f, 'my_field_name')

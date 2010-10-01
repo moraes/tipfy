@@ -22,6 +22,80 @@ tipfy's core design. Here's an overview of what is new:
 - NEW: added a simple template engine (from Tornado), mainly to remove
   debugger dependency from Jinja2.
 
+- NEW: KeyProperty model was added to the db extension. [explain]
+
+- NEW: ETagMiddleware [explain]
+
+- REMOVED: 3 configuration keys, and added 4 properties to the Tipfy instance:
+  - Tipfy.dev: True is the app is using the dev server, False otherwise.
+  - Tipfy.appengine: True is the app is running on App Engine, False otherwise.
+  - Tipfy.application_id: the application ID as defined in *app.yaml*.
+  - Tipfy.current_version_id: the deployed version ID. Always '1' when using
+    the dev server.
+
+- NEW: auth, debugger, i18n and sessions are now part of tipfy core. They are
+  all optional, lazily loaded, default and overridable implementations.
+
+
+Auth
+----
+- NEW: Auth is now part of tipfy core. The auth store is configured in tipfy
+  module and uses an App Engine store by default::
+
+      config['tipfy'] = {
+          'auth_store_class': 'tipfy.auth.appengine.AppEngineAuthStore',
+      }
+
+  Then it is available through lazy loading in both Request and RequestHandler:
+
+  - Request.auth_store provides access to the configured auth store.
+  - RequestHandler.auth is a shortcut to Request.auth_store.
+
+  Example::
+
+      class MyHandler(RequestHandler):
+          def get(self, **kwargs):
+              # Get the current user, if any.
+              current_user = self.auth.user
+
+              # Generate a login URL.
+              login_url = self.auth.login_url()
+
+- NEW: AppEngineMixedAuthStore, which allows login using App Engine Auth
+  across subdomains. It mixes App Engine auth with own sessions to achieve
+  this.
+
+
+I18n
+----
+- NEW: i18n is now part of tipfy core. The i18n store is configured in
+  tipfy module and uses the shipped store by default::
+
+      config['tipfy'] = {
+          'i18n_store_class': 'tipfy.i18n.I18nStore',
+      }
+
+  Then it is available through lazy loading in both Request and RequestHandler:
+
+  - Request.i18n_store provides access to the configured i18n store.
+  - RequestHandler.i18n is a shortcut to Request.i18n_store.
+
+  Example::
+
+      class MyHandler(RequestHandler):
+          def get(self, **kwargs):
+              # Get a translated string.
+              message = self.i18n.gettext('Translate me')
+
+  Global i18n functions are still available in tipfy.i18n.
+
+- NEW: AppEngineMixedAuthStore, which allows login using App Engine Auth
+  across subdomains. It mixes App Engine auth with own sessions to achieve
+  this.
+
+
+Debugger
+--------
 - NEW: Debugger is now part of tipfy core, without extra-dependencies.
   Previously the debugger was dependent on Jinja2, but now it uses the built-in
   template engine. The debugger is enabled directly in main.py as a normal
@@ -31,13 +105,9 @@ tipfy's core design. Here's an overview of what is new:
 - IMPROVED: the debugger now works even if the libraries are imported using
   zipimport.
 
-- NEW: AppEngineMixedAuthStore, which allows login using App Engine Auth
-  across subdomains. It mixes App Engine auth with own sessions to achieve
-  this.
 
-- NEW: secure cookie has a faster and easier to use implementation. See
-  tipfy.sessions.SecureCookieStore.
-
+Sessions
+--------
 - NEW: Sessions are now part of tipfy core. The auth store is configured in
   tipfy module and uses the shipped store by default::
 
@@ -69,85 +139,36 @@ tipfy's core design. Here's an overview of what is new:
               # Get a session from a different backend.
               session = self.request.session_store.get_session(backend='memcache')
 
-- NEW: Auth is now part of tipfy core. The auth store is configured in tipfy
-  module and uses an App Engine store by default::
+- NEW: secure cookie has a faster and easier to use implementation. See
+  tipfy.sessions.SecureCookieStore.
 
-      config['tipfy'] = {
-          'auth_store_class': 'tipfy.auth.appengine.AppEngineAuthStore',
-      }
+- NEW: flash messages now have a category and configurable key [explain]
 
-  Then it is available through lazy loading in both Request and RequestHandler:
 
-  - Request.auth provides access to the configured auth store.
-  - RequestHandler.auth is a shortcut to Request.auth.
+Routing
+-------
+- NEW: added a router object that centralizes URL matching, dispatching and
+  building URLs. It makes it more flexible to implement alternative routing
+  schemes. Some implications:
 
-  Example::
+  - Moved methods from Tipfy that are now part of the router functionality:
+    get_url_map(), add_url_rule(), match_url(), pre_dispatch(), dispatch() and
+    post_dispatch(). If you extended them in some way, you must now extend
+    the router.
+  - URL building is centralized in the router, so url_for() methods
+    (from RequestHandler or Tipfy) call router.build().
 
-      class MyHandler(RequestHandler):
-          def get(self, **kwargs):
-              # Get the current user, if any.
-              current_user = self.auth.user
+- NEW: added a new rule converter, RegexConverter, which can be usefull
+  specially to match subdomains excluding some default ones (e.g., 'www').
+  For example, here we define a rule for the root URL of all non-www
+  subdomains, and a different one for www::
 
-              # Generate a login URL.
-              login_url = self.auth.login_url()
-
-- IMPROVED: redirect() (or self.redirect() in handlers) now accepts relative
-  URLs. If a relative URL is passed, it'll be joined to the current request
-  URL. This is mostly useful to redirect to the result of url_for() without
-  needing to build a full URL::
-
-      # current URL is http://localhost/foo/bar
-
-      # redirects to http://localhost/baz
-      return redirect('/baz')
-
-  ...but it also allows curious results for relative paths:
-
-      # current URL is http://localhost/foo/bar
-
-      # redirects to http://localhost/foo/baz
-      return redirect('./baz')
-
-      # redirects to http://localhost/baz
-      return redirect('../baz')
-
-- IMPROVED: url_for() has a few more keywords with special meanings, all
-  prefixed with underscore. This is the full list of special keywords:
-
-  - **_full**: If True, builds an absolute URL.
-  - **_method**: Uses a rule defined to handle specific request
-    methods, if any are defined.
-  - **_scheme**: URL scheme, e.g., `http` or `https`. If defined,
-    an absolute URL is always returned.
-  - **_netloc**: Network location, e.g., `www.google.com`. If
-    defined, an absolute URL is always returned.
-  - **_anchor**: If set, appends an anchor to generated URL.
-
-- IMPROVED: configuration now behaves exactly like a dictionary, still
-  auto-loading configuration values when needed and honoring required configs.
-  For example, we always used this::
-
-      secret_key = self.app.get_config('tipfy.sessions', 'secret_key')
-
-  Now it is also possible to use direct access and dict methods::
-
-      secret_key = self.app.config['tipfy.sessions']['secret_key']
-      # or...
-      secret_key = self.app.config['tipfy.sessions'].get('secret_key')
-      # or...
-      secret_key = self.app.config.get('tipfy.sessions').get('secret_key')
-
-  The previous get_config() method works as always.
-
-- REMOVED: make_wsgi_app() and run_wsgi_app(). [explain]
-
-- IMPROVED: Rule now accepts 'name' as keyword argument. It is an alias to
-  'endpoint'. This is just for semantic correctness in tipfy context and
-  'endpoint' will still work::
-
-      Rule('/', name='home', handler='handlers.HomeHandler')
-      # is the same as...
-      Rule('/', endpoint='home', handler='handlers.HomeHandler')
+      rules = [
+          Rule('/', endpoint='index', handler='IndexHandler'),
+          Subdomain(r'<regex("(?!www\\b)\\w+"):namespace>', [
+              Rule('/', endpoint='index', handler='SubdomainIndexHandler'),
+          ]),
+      ]
 
 - NEW: rules can define the method that will be called from the handler. The
   method is defined using a 'Handler:method' notation in the Rule
@@ -168,18 +189,25 @@ tipfy's core design. Here's an overview of what is new:
   In this example, the request method is ignored since the Rule defines which
   handler method will handle all requests.
 
-- NEW: added a router object that centralizes URL matching, dispatching and
-  building. [explain]
+- IMPROVED: url_for() has a few more keywords with special meanings, all
+  prefixed with underscore. This is the full list of special keywords:
 
-- Added a Router class which is responsible for matching, dispatching and
-  building URLs. It makes it more flexible to implement alternative routing
-  schemes. Some implications:
-  - Moved methods from Tipfy that are now part of the router functionality:
-    get_url_map(), add_url_rule(), match_url(), pre_dispatch(), dispatch() and
-    post_dispatch(). If you extended them in some way, you must now extend
-    the router.
-  - URL building is centralized in the router, so url_for() methods
-    (from RequestHandler or Tipfy) call router.build().
+  - **_full**: If True, builds an absolute URL.
+  - **_method**: Uses a rule defined to handle specific request
+    methods, if any are defined.
+  - **_scheme**: URL scheme, e.g., `http` or `https`. If defined,
+    an absolute URL is always returned.
+  - **_netloc**: Network location, e.g., `www.google.com`. If
+    defined, an absolute URL is always returned.
+  - **_anchor**: If set, appends an anchor to generated URL.
+
+- IMPROVED: Rule now accepts 'name' as keyword argument. It is an alias to
+  'endpoint'. This is just for semantic correctness in tipfy context and
+  'endpoint' will still work::
+
+      Rule('/', name='home', handler='handlers.HomeHandler')
+      # is the same as...
+      Rule('/', endpoint='home', handler='handlers.HomeHandler')
 
 - CHANGED: URL rules are not automatically loaded from urls.py. Instead tipfy
   is instantiated passing the URL rules, like webapp. Later other rules can
@@ -229,6 +257,50 @@ tipfy's core design. Here's an overview of what is new:
 
       app = Tipfy(rules=rules)
 
+- IMPROVED: redirect() (or self.redirect() in handlers) now accepts relative
+  URLs. If a relative URL is passed, it'll be joined to the current request
+  URL. This is mostly useful to redirect to the result of url_for() without
+  needing to build a full URL::
+
+      # current URL is http://localhost/foo/bar
+
+      # redirects to http://localhost/baz
+      return redirect('/baz')
+
+  ...but it also allows curious results for relative paths:
+
+      # current URL is http://localhost/foo/bar
+
+      # redirects to http://localhost/foo/baz
+      return redirect('./baz')
+
+      # redirects to http://localhost/baz
+      return redirect('../baz')
+
+
+Config
+------
+- IMPROVED: configuration now behaves exactly like a dictionary, still
+  auto-loading configuration values when needed and honoring required configs.
+  For example, we always used this::
+
+      secret_key = self.app.get_config('tipfy.sessions', 'secret_key')
+
+  Now it is also possible to use direct access and dict methods::
+
+      secret_key = self.app.config['tipfy.sessions']['secret_key']
+      # or...
+      secret_key = self.app.config['tipfy.sessions'].get('secret_key')
+      # or...
+      secret_key = self.app.config.get('tipfy.sessions').get('secret_key')
+
+  The previous get_config() method works as always.
+
+
+WSGI App
+--------
+- REMOVED: make_wsgi_app() and run_wsgi_app(). [explain]
+
 - NEW: Added Tipfy.make_response(). With this, handler methods are not
   required to always return a response. If a string or unicode is returned,
   it is converted to a response. Other possibility is to return a tuple to
@@ -246,41 +318,24 @@ tipfy's core design. Here's an overview of what is new:
               # Return an HTTPException which will be converted to a response.
               return MethodNotAllowed()
 
-- NEW: added a new rule converter, RegexConverter, which can be usefull
-  specially to match subdomains excluding some default ones (e.g., 'www').
-  For example, here we define a rule for the root URL of all non-www
-  subdomains, and a different one for www::
-
-      rules = [
-          Rule('/', endpoint='index', handler='IndexHandler'),
-          Subdomain(r'<regex("(?!www\\b)\\w+"):namespace>', [
-              Rule('/', endpoint='index', handler='SubdomainIndexHandler'),
-          ]),
-      ]
-
-- NEW: KeyProperty model was added to the db extension. [explain]
+- NEW: app has now a debug attribute, set when it is initialized with
+  debug=True.
 
 - IMPROVED: Exception handling [explain]
 
+
+Request
+-------
 - NEW: Request can now automatically decode JSON requests. If the request
   mimetype is 'application/json', the decoded request data is available in
   request.json.
 
-- Removed 3 configuration keys, and added 4 properties to the Tipfy instance:
-  - Tipfy.dev: True is the app is using the dev server, False otherwise.
-  - Tipfy.appengine: True is the app is running on App Engine, False otherwise.
-  - Tipfy.application_id: the application ID as defined in *app.yaml*.
-  - Tipfy.current_version_id: the deployed version ID. Always '1' when using
-    the dev server.
 
-- NEW: app has now a debug attribute, set when it is initialized with
-  debug=True.
-
+Buildout
+--------
 - IMPROVED: simplified buildout project structure to remove cruft:
   - 'etc/' is removed and its contents go to 'var/'.
   - 'distlib/' is now placed in 'lib/dist/'.
-
-- NEW: ETagMiddleware [explain]
 
 - ...
 
@@ -339,7 +394,7 @@ Version 0.6.1 - August 19, 2010
 - Moved the logic from Tipfy.get_config() to the new method
   Config.get_or_load().
 
-- Removed app_id argument from Tipfy.__init__(). Not really needed or used.
+- REMOVED: app_id argument from Tipfy.__init__(). Not really needed or used.
 
 - Exceptions caused when importing a badly configured middleware class are now
   caught and a warning is emitted.
@@ -421,17 +476,17 @@ Version 0.6 - July 25, 2010
 
 Backwards compatibility warnings
 --------------------------------
-- Removed 'url_rules', 'url_map' and 'url_map_kwargs' config keys, now
+- REMOVED: 'url_rules', 'url_map' and 'url_map_kwargs' config keys, now
   redundant with the possibility to override get_url_map() or instantiate
   the WSGI app passing URL rules.
 
-- REMOVED local, request and app. Replacements for these are:
+- REMOVED: local, request and app. Replacements for these are:
   * request, local.request: Tipfy.request, a class attribute in the WSGI app.
   * app, local.app: Tipfy.app, a class attribute in the WSGI app.
   * local: request.context and request.registry, dictionaries set for a
     request.
 
-- REMOVED old aliases: WSGIApplication (Tipfy) and REQUIRED_CONFIG
+- REMOVED: old aliases: WSGIApplication (Tipfy) and REQUIRED_CONFIG
   (REQUIRED_VALUE)
 
 
@@ -675,7 +730,7 @@ Version 0.5.2 - May 06, 2010
 - Fixed ext.blobstore, broken since SDK 1.3.3 which made some previously
   public blobstore functions protected.
 
-- Removed tipfy.application.PatchedCGIHandler. The CGIHandler bug was fixed in
+- REMOVED: tipfy.application.PatchedCGIHandler. The CGIHandler bug was fixed in
   the 1.3.2 SDK.
 
 

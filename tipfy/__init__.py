@@ -68,9 +68,9 @@ APPLICATION_ID = os.environ.get('APPLICATION_ID')
 #: The deployed version ID. Always '1' when using the dev server.
 CURRENT_VERSION_ID = os.environ.get('CURRENT_VERSION_ID', '1')
 #: True if the app is using App Engine dev server, False otherwise.
-DEV = SERVER_SOFTWARE.startswith('Development')
+DEV_APPSERVER_APPSERVER_APPSERVER = SERVER_SOFTWARE.startswith('Development')
 #: True if the app is running on App Engine, False otherwise.
-APPENGINE = (APPLICATION_ID is not None and (DEV or
+APPENGINE = (APPLICATION_ID is not None and (DEV_APPSERVER_APPSERVER_APPSERVER or
     SERVER_SOFTWARE.startswith('Google App Engine')))
 
 
@@ -580,7 +580,7 @@ class Tipfy(object):
             if __name__ == '__main__':
                 main()
         """
-        if DEV and APPENGINE:
+        if DEV_APPSERVER_APPSERVER_APPSERVER and APPENGINE:
             # Fix issue #772.
             from tipfy.dev import fix_sys_path
             fix_sys_path()

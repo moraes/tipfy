@@ -90,7 +90,7 @@ class BaseSession(ModificationTrackingDict):
 
         return self.pop(key, [])
 
-    def flash(self, value, level=None, key='_flash'):
+    def add_flash(self, value, level=None, key='_flash'):
         """Adds a flash message. Flash messages are deleted when first read.
 
         :param value:
@@ -101,6 +101,9 @@ class BaseSession(ModificationTrackingDict):
             Name of the flash key stored in the session. Default is '_flash'.
         """
         self.setdefault(key, []).append((value, level))
+
+    #: Alias, Flask-like interface.
+    flash = add_flash
 
 
 class SecureCookieSession(BaseSession):

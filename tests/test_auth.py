@@ -72,10 +72,10 @@ class TestAppEngineAuthStore(unittest.TestCase):
         store = AppEngineAuthStore(app, request)
         self.assertEqual(store.login_url(), app.url_for('auth/login', redirect='/'))
 
-        tipfy.auth.DEV = False
+        tipfy.auth.DEV_APPSERVER_APPSERVER = False
         store.config['secure_urls'] = True
         self.assertEqual(store.login_url(), app.url_for('auth/login', redirect='/', _scheme='https'))
-        tipfy.auth.DEV = True
+        tipfy.auth.DEV_APPSERVER_APPSERVER = True
 
     def test_logout_url(self):
         app = get_app()

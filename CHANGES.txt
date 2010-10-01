@@ -29,7 +29,7 @@ tipfy's core design. Here's an overview of what is new:
 - REMOVED: 3 configuration keys. [explain]
 
 - NEW added 4 App Engine related flags to Tipfy:
-  - DEV: True is the app is using the dev server, False otherwise.
+  - DEV_APPSERVER: True is the app is using the dev server, False otherwise.
   - APPENGINE: True is the app is running on App Engine, False otherwise.
   - APPLICATION_ID: the application ID as defined in *app.yaml*.
   - CURRENT_VERSION_ID: the deployed version ID. Always '1' when using

@@ -9,7 +9,8 @@
     :license: BSD, see LICENSE.txt for more details.
 """
 from werkzeug import import_string, url_quote
-from werkzeug.routing import BaseConverter, Map, Rule as BaseRule, RuleFactory
+from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
+    Rule as BaseRule, RuleFactory)
 
 
 class Router(object):
@@ -277,3 +278,5 @@ class RegexConverter(BaseConverter):
 # Add regex converter to the list of converters.
 Map.default_converters = dict(Map.default_converters)
 Map.default_converters['regex'] = RegexConverter
+# Alias only because we prefer "name" instead of "endpoint" in rules.
+NamePrefix = EndpointPrefix

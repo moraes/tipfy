@@ -55,8 +55,6 @@ Content-Length: 1
 X-AppEngine-Upload-Creation: 2010-10-01 05:34:00.000000
 """)
         stream.seek(0)
-        #self.assertEqual(email.message_from_file(stream).get('content-type'), None)
-
         headers = {}
         headers['Content-Type'] = 'image/png; blob-key=foo'
 
@@ -71,8 +69,6 @@ Content-Length: zzz
 X-AppEngine-Upload-Creation: 2010-10-01 05:34:00.000000
 """)
         stream.seek(0)
-        #self.assertEqual(email.message_from_file(stream).get('content-type'), None)
-
         headers = {}
         headers['Content-Type'] = 'image/png; blob-key=foo'
 
@@ -87,8 +83,6 @@ Content-Length: 1
 X-AppEngine-Upload-Creation: XXX
 """)
         stream.seek(0)
-        #self.assertEqual(email.message_from_file(stream).get('content-type'), None)
-
         headers = {}
         headers['Content-Type'] = 'image/png; blob-key=foo'
 

@@ -8,8 +8,6 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from __future__ import absolute_import
-
 from google.appengine.api import users
 
 from werkzeug import cached_property

@@ -2,6 +2,7 @@ import os
 import sys
 import unittest
 
+import tipfy
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
     ALLOWED_METHODS, local)
 
@@ -55,7 +56,7 @@ class TestApp(unittest.TestCase):
                 self.assertEqual(response.data, 'Method: %s' % method)
 
     def test_200_appengine(self):
-        Tipfy.appengine = True
+        tipfy.APPENGINE = True
         Tipfy.app = None
         Tipfy.request = None
 
@@ -66,7 +67,7 @@ class TestApp(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, 'Method: GET')
 
-        Tipfy.appengine = False
+        tipfy.APPENGINE = False
         Tipfy.app = local('app')
         Tipfy.request = local('request')
 
@@ -187,7 +188,8 @@ class TestMiscelaneous(unittest.TestCase):
             pass
 
     def test_dev_run(self):
-        import tipfy
+        tipfy.APPENGINE = True
+        tipfy.DEV_APPSERVER = True
 
         os.environ['APPLICATION_ID'] = 'my-app'
         os.environ['SERVER_SOFTWARE'] = 'Development'
@@ -202,7 +204,11 @@ class TestMiscelaneous(unittest.TestCase):
         app = tipfy.Tipfy(rules=[
             tipfy.Rule('/', name='home', handler=HomeHandler),
         ], debug=True)
-        app.dev = True
 
         app.run()
         self.assertEqual(sys.stdout.getvalue(), 'Status: 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 13\r\n\r\nHello, World!')
+
+        tipfy.APPENGINE = False
+        tipfy.DEV_APPSERVER = False
+        Tipfy.app = local('app')
+        Tipfy.request = local('request')

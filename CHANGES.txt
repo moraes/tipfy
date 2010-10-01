@@ -1,6 +1,6 @@
-Version 0.7
-===========
-*This document is a work in progress*
+Version 0.7 - Not yet released
+==============================
+*This change log is a work in progress*
 
 Tipfy 0.7 is a huge step with several additional features and improvements in
 tipfy's core design. Here's an overview of what is new:
@@ -24,13 +24,15 @@ tipfy's core design. Here's an overview of what is new:
 
 - NEW: KeyProperty model was added to the db extension. [explain]
 
-- NEW: ETagMiddleware [explain]
+- NEW: ETagMiddleware. [explain]
 
-- REMOVED: 3 configuration keys, and added 4 properties to the Tipfy instance:
-  - Tipfy.dev: True is the app is using the dev server, False otherwise.
-  - Tipfy.appengine: True is the app is running on App Engine, False otherwise.
-  - Tipfy.application_id: the application ID as defined in *app.yaml*.
-  - Tipfy.current_version_id: the deployed version ID. Always '1' when using
+- REMOVED: 3 configuration keys. [explain]
+
+- NEW added 4 App Engine related flags to Tipfy:
+  - DEV: True is the app is using the dev server, False otherwise.
+  - APPENGINE: True is the app is running on App Engine, False otherwise.
+  - APPLICATION_ID: the application ID as defined in *app.yaml*.
+  - CURRENT_VERSION_ID: the deployed version ID. Always '1' when using
     the dev server.
 
 - NEW: auth, debugger, i18n and sessions are now part of tipfy core. They are
@@ -65,6 +67,10 @@ Auth
   across subdomains. It mixes App Engine auth with own sessions to achieve
   this.
 
+- NEW: UserRequiredIfAuthenticatedMiddleware and user_required_if_authenticated
+  decorator. They allow non-logged in users to access a page, but require an
+  user to be created if they are logged in.
+
 
 I18n
 ----
@@ -88,10 +94,6 @@ I18n
               message = self.i18n.gettext('Translate me')
 
   Global i18n functions are still available in tipfy.i18n.
-
-- NEW: AppEngineMixedAuthStore, which allows login using App Engine Auth
-  across subdomains. It mixes App Engine auth with own sessions to achieve
-  this.
 
 
 Debugger

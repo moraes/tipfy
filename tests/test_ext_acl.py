@@ -8,7 +8,7 @@ from gaetestbed import DataStoreTestCase, MemcacheTestCase
 
 from google.appengine.api import memcache
 
-from tipfy import Tipfy
+from tipfy import Tipfy, CURRENT_VERSION_ID
 from tipfyext.appengine.acl import Acl, AclRules, _rules_map, AclMixin
 
 
@@ -22,7 +22,7 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         self.app.set_locals()
 
         Acl.roles_map = {}
-        Acl.roles_lock = self.app.current_version_id
+        Acl.roles_lock = CURRENT_VERSION_ID
         _rules_map.clear()
 
     def tearDown(self):
@@ -33,7 +33,7 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         self.app.config['tipfy']['dev'] = True
 
         Acl.roles_map = {}
-        Acl.roles_lock = self.app.current_version_id
+        Acl.roles_lock = CURRENT_VERSION_ID
         _rules_map.clear()
 
     def test_test_insert_or_update(self):
@@ -150,7 +150,7 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         Acl.roles_lock = None
         acl2 = Acl('foo', 'foo')
 
-        self.assertEqual(acl2.roles_lock, self.app.current_version_id)
+        self.assertEqual(acl2.roles_lock, CURRENT_VERSION_ID)
 
     def test_set_invalid_rules(self):
         rules = {}

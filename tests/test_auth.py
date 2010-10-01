@@ -5,6 +5,7 @@ from gaetestbed import DataStoreTestCase
 
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
     ALLOWED_METHODS)
+import tipfy.auth
 from tipfy.auth import (AdminRequiredMiddleware, LoginRequiredMiddleware,
     UserRequiredMiddleware, UserRequiredIfAuthenticatedMiddleware,
     admin_required, login_required, user_required,
@@ -71,14 +72,10 @@ class TestAppEngineAuthStore(unittest.TestCase):
         store = AppEngineAuthStore(app, request)
         self.assertEqual(store.login_url(), app.url_for('auth/login', redirect='/'))
 
-        dev = app.dev
-        app.dev = False
+        tipfy.auth.DEV = False
         store.config['secure_urls'] = True
-
         self.assertEqual(store.login_url(), app.url_for('auth/login', redirect='/', _scheme='https'))
-
-        app.dev = dev
-        store.config['secure_urls'] = False
+        tipfy.auth.DEV = True
 
     def test_logout_url(self):
         app = get_app()

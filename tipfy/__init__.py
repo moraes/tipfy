@@ -63,16 +63,15 @@ ALLOWED_METHODS = frozenset(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT',
 
 # App Engine flags.
 SERVER_SOFTWARE = os.environ.get('SERVER_SOFTWARE', '')
-APPLICATION_ID = os.environ.get('APPLICATION_ID', None)
+#: The application ID as defined in *app.yaml*."""
+APPLICATION_ID = os.environ.get('APPLICATION_ID')
+#: The deployed version ID. Always '1' when using the dev server.
 CURRENT_VERSION_ID = os.environ.get('CURRENT_VERSION_ID', '1')
+#: True if the app is using App Engine dev server, False otherwise.
 DEV = SERVER_SOFTWARE.startswith('Development')
-
-try:
-    import google.appengine
-    APPENGINE = (APPLICATION_ID is not None and (DEV or
-        SERVER_SOFTWARE.startswith('Google App Engine')))
-except ImportError:
-    APPENGINE = False
+#: True if the app is running on App Engine, False otherwise.
+APPENGINE = (APPLICATION_ID is not None and (DEV or
+    SERVER_SOFTWARE.startswith('Google App Engine')))
 
 
 class RequestHandler(object):
@@ -339,14 +338,6 @@ class Response(BaseResponse):
 
 class Tipfy(object):
     """The WSGI application."""
-    #: The application ID as defined in *app.yaml*."""
-    application_id = APPLICATION_ID
-    #: The deployed version ID. Always '1' when using the dev server.
-    current_version_id = CURRENT_VERSION_ID
-    #: True if the app is running on App Engine, False otherwise.
-    appengine = APPENGINE
-    #: True if the app is using App Engine dev server, False otherwise.
-    dev = DEV
     #: Default class for requests.
     request_class = Request
     #: Default class for responses.
@@ -534,7 +525,7 @@ class Tipfy(object):
         :param request:
             A :class:`Request` instance, if any.
         """
-        if self.appengine:
+        if APPENGINE:
             Tipfy.app = self
             Tipfy.request = request
         else:
@@ -543,7 +534,7 @@ class Tipfy(object):
 
     def clear_locals(self):
         """Clears the variables set for a single request."""
-        if self.appengine:
+        if APPENGINE:
             Tipfy.app = Tipfy.request = None
         else:
             local.__release_local__()
@@ -588,7 +579,7 @@ class Tipfy(object):
             if __name__ == '__main__':
                 main()
         """
-        if self.dev:
+        if DEV and APPENGINE:
             # Fix issue #772.
             from tipfy.dev import fix_sys_path
             fix_sys_path()

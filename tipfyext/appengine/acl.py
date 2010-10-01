@@ -66,7 +66,7 @@ from google.appengine.api import memcache
 
 from werkzeug import cached_property
 
-from tipfy import Tipfy
+from tipfy import Tipfy, CURRENT_VERSION_ID
 from tipfyext.appengine.db import PickleProperty
 
 #: Cache for loaded rules.
@@ -319,7 +319,7 @@ class Acl(object):
             self.roles_lock = roles_lock
         elif self.roles_lock is None:
             # Set roles_lock default.
-            self.roles_lock = Tipfy.app.current_version_id
+            self.roles_lock = CURRENT_VERSION_ID
 
         if area and user:
             self._roles, self._rules = AclRules.get_roles_and_rules(area, user,

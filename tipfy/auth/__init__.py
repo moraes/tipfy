@@ -12,7 +12,7 @@ from __future__ import absolute_import
 
 import uuid
 
-from tipfy import abort, APPENGINE
+from tipfy import abort, APPENGINE, DEV
 
 from werkzeug import (cached_property, check_password_hash,
     generate_password_hash, import_string)
@@ -68,7 +68,7 @@ class BaseAuthStore(object):
 
     def _url(self, _name, **kwargs):
         kwargs.setdefault('redirect', self.request.path)
-        if not self.app.dev and self.config.get('secure_urls'):
+        if not DEV and self.config.get('secure_urls'):
             kwargs['_scheme'] = 'https'
 
         return self.app.url_for(_name, **kwargs)

@@ -186,23 +186,14 @@ class SubConfig(dict):
         self.module = module
 
     def __getitem__(self, key):
-        try:
-            value = dict.__getitem__(self, key)
-        except KeyError:
+        if key not in self:
             raise KeyError('Module %r does not have the config key %r' %
                 (self.module, key))
 
-        if value is REQUIRED_VALUE:
-            raise KeyError('Module %r requires the config key %r to be '
-                'set.' % (self.module, key))
-
-        return value
+        return self.get(key)
 
     def get(self, key, default=None):
-        if key not in self:
-            value = default
-        else:
-            value = dict.__getitem__(self, key)
+        value = dict.get(self, key, default)
 
         if value is REQUIRED_VALUE:
             raise KeyError('Module %r requires the config key %r to be '

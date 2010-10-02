@@ -22,7 +22,8 @@ from werkzeug import (Local, LocalProxy, Request as BaseRequest,
 from werkzeug.exceptions import HTTPException, InternalServerError, abort
 
 from tipfy.config import Config, DEFAULT_VALUE, REQUIRED_VALUE
-from tipfy.routing import HandlerPrefix, RegexConverter, Router, Rule
+from tipfy.routing import (HandlerPrefix, NamePrefix, RegexConverter, Router,
+    Rule)
 from tipfy.utils import json_decode, json_encode
 
 __version__ = '0.7'

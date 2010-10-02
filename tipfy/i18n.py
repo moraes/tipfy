@@ -254,13 +254,13 @@ class I18nStore(object):
 
         return format
 
-    def format_date(self, date=None, format=None, locale=None, rebase=True):
+    def format_date(self, date=None, format=None, rebase=True):
         """Returns a date formatted according to the given pattern and
         following the current locale.
 
         :param date:
-            A ``date`` or ``datetime`` object. If None, the current date in UTC
-            is used.
+            A ``date`` or ``datetime`` object. If None, the current date in
+            UTC is used.
         :param format:
             The format to be returned. Valid values are "short", "medium",
             "long", "full" or a custom date/time pattern. Example outputs:
@@ -270,25 +270,21 @@ class I18nStore(object):
             - long:   November 10, 2009
             - full:   Tuesday, November 10, 2009
 
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :param rebase:
             If True, converts the date to the current :attr:`timezone`.
         :returns:
             A formatted date in unicode.
         """
         format = self._get_format('date', format)
-        locale = locale or self.locale
 
         if rebase and isinstance(date, datetime):
             date = self.to_local_timezone(date)
 
-        return dates.format_date(date, format, locale=locale)
+        return dates.format_date(date, format, locale=self.locale)
 
-    def format_datetime(self, datetime=None, format=None, locale=None,
-        timezone=None, rebase=True):
-        """Returns a date and time formatted according to the given pattern and
-        following the current locale and timezone.
+    def format_datetime(self, datetime=None, format=None, rebase=True):
+        """Returns a date and time formatted according to the given pattern
+        and following the current locale and timezone.
 
         :param datetime:
             A ``datetime`` object. If None, the current date and time in UTC
@@ -302,30 +298,21 @@ class I18nStore(object):
             - long:   November 10, 2009 4:36:05 PM +0000
             - full:   Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time
 
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
-        :param timezone:
-            The timezone name from the Olson database, e.g.:
-            'America/Chicago'. If not set, uses the current timezone.
         :param rebase:
             If True, converts the datetime to the current :attr:`timezone`.
         :returns:
             A formatted date and time in unicode.
         """
         format = self._get_format('datetime', format)
-        locale = locale or self.locale
 
         kwargs = {}
         if rebase:
-            if timezone:
-                kwargs['tzinfo'] = pytz.timezone(timezone)
-            else:
-                kwargs['tzinfo'] = self.tzinfo
+            kwargs['tzinfo'] = self.tzinfo
 
-        return dates.format_datetime(datetime, format, locale=locale, **kwargs)
+        return dates.format_datetime(datetime, format, locale=self.locale,
+            **kwargs)
 
-    def format_time(self, time=None, format=None, locale=None, timezone=None,
-        rebase=True):
+    def format_time(self, time=None, format=None, rebase=True):
         """Returns a time formatted according to the given pattern and
         following the current locale and timezone.
 
@@ -341,30 +328,21 @@ class I18nStore(object):
             - long:   4:36:05 PM +0000
             - full:   4:36:05 PM World (GMT) Time
 
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
-        :param timezone:
-            The timezone name from the Olson database, e.g.:
-            ``America/Chicago``. If not set, uses the current timezone.
         :param rebase:
             If True, converts the time to the current :attr:`timezone`.
         :returns:
             A formatted time in unicode.
         """
         format = self._get_format('time', format)
-        locale = locale or self.locale
 
         kwargs = {}
         if rebase:
-            if timezone:
-                kwargs['tzinfo'] = pytz.timezone(timezone)
-            else:
-                kwargs['tzinfo'] = self.tzinfo
+            kwargs['tzinfo'] = self.tzinfo
 
-        return dates.format_time(time, format, locale=locale, **kwargs)
+        return dates.format_time(time, format, locale=self.locale, **kwargs)
 
     def format_timedelta(self, datetime_or_timedelta, granularity='second',
-        threshold=.85, locale=None):
+        threshold=.85):
         """Formats the elapsed time from the given date to now or the given
         timedelta. This currently requires an unreleased development version
         of Babel.
@@ -379,20 +357,17 @@ class I18nStore(object):
         :param threshold:
             Factor that determines at which point the presentation switches to
             the next higher unit.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             A string with the elapsed time.
         """
-        locale = locale or self.locale
         if isinstance(datetime_or_timedelta, datetime):
             datetime_or_timedelta = datetime.utcnow() - datetime_or_timedelta
 
         return dates.format_timedelta(datetime_or_timedelta, granularity,
-            threshold=threshold, locale=locale)
+            threshold=threshold, locale=self.locale)
 
-    def format_number(self, number, locale=None):
-        """Returns the given number formatted for a specific locale.
+    def format_number(self, number):
+        """Returns the given number formatted for the current locale.
 
         .. code-block:: python
 
@@ -401,16 +376,13 @@ class I18nStore(object):
 
         :param number:
             The number to format.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             The formatted number.
         """
-        locale = locale or self.locale
-        return numbers.format_number(number, locale=locale)
+        return numbers.format_number(number, locale=self.locale)
 
-    def format_decimal(self, number, format=None, locale=None):
-        """Returns the given decimal number formatted for a specific locale.
+    def format_decimal(self, number, format=None):
+        """Returns the given decimal number formatted for the current locale.
 
         .. code-block:: python
 
@@ -437,15 +409,13 @@ class I18nStore(object):
             The number to format.
         :param format:
             Notation format.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             The formatted decimal number.
         """
-        locale = locale or self.locale
-        return numbers.format_decimal(number, format=format, locale=locale)
+        return numbers.format_decimal(number, format=format,
+            locale=self.locale)
 
-    def format_currency(self, number, currency, format=None, locale=None):
+    def format_currency(self, number, currency, format=None):
         """Returns a formatted currency value.
 
         .. code-block:: python
@@ -470,17 +440,14 @@ class I18nStore(object):
             The currency code.
         :param format:
             Notation format.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             The formatted currency value.
         """
-        locale = locale or self.locale
         return numbers.format_currency(number, currency, format=format,
-            locale=locale)
+            locale=self.locale)
 
-    def format_percent(self, number, format=None, locale=None):
-        """Returns formatted percent value for a specific locale.
+    def format_percent(self, number, format=None):
+        """Returns formatted percent value for the current locale.
 
         .. code-block:: python
 
@@ -502,16 +469,14 @@ class I18nStore(object):
             The percent number to format
         :param format:
             Notation format.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             The formatted percent number.
         """
-        locale = locale or self.locale
-        return numbers.format_percent(number, format=format, locale=locale)
+        return numbers.format_percent(number, format=format,
+            locale=self.locale)
 
-    def format_scientific(self, number, format=None, locale=None):
-        """Returns value formatted in scientific notation for a specific
+    def format_scientific(self, number, format=None):
+        """Returns value formatted in scientific notation for the current
         locale.
 
         .. code-block:: python
@@ -530,15 +495,13 @@ class I18nStore(object):
             The number to format.
         :param format:
             Notation format.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             Value formatted in scientific notation.
         """
-        locale = locale or self.locale
-        return numbers.format_scientific(number, format=format, locale=locale)
+        return numbers.format_scientific(number, format=format,
+            locale=self.locale)
 
-    def parse_date(self, string, locale=None):
+    def parse_date(self, string):
         """Parses a date from a string.
 
         This function uses the date format for the locale as a hint to
@@ -553,15 +516,12 @@ class I18nStore(object):
 
         :param string:
             The string containing the date.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             The parsed date object.
         """
-        locale = locale or self.locale
-        return dates.parse_date(string, locale=locale)
+        return dates.parse_date(string, locale=self.locale)
 
-    def parse_datetime(self, string, locale=None):
+    def parse_datetime(self, string):
         """Parses a date and time from a string.
 
         This function uses the date and time formats for the locale as a hint
@@ -569,15 +529,12 @@ class I18nStore(object):
 
         :param string:
             The string containing the date and time.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             The parsed datetime object.
         """
-        locale = locale or self.locale
-        return dates.parse_datetime(string, locale=locale)
+        return dates.parse_datetime(string, locale=self.locale)
 
-    def parse_time(self, string, locale=None):
+    def parse_time(self, string):
         """Parses a time from a string.
 
         This function uses the time format for the locale as a hint to
@@ -590,15 +547,12 @@ class I18nStore(object):
 
         :param string:
             The string containing the time.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             The parsed time object.
         """
-        locale = locale or self.locale
-        return dates.parse_time(string, locale=locale)
+        return dates.parse_time(string, locale=self.locale)
 
-    def parse_number(self, string, locale=None):
+    def parse_number(self, string):
         """Parses localized number string into a long integer.
 
         .. code-block:: python
@@ -619,18 +573,15 @@ class I18nStore(object):
 
         :param string:
             The string to parse.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             The parsed number.
         :raises:
             ``NumberFormatError`` if the string can not be converted to a
             number.
         """
-        locale = locale or self.locale
-        return numbers.parse_number(string, locale=locale)
+        return numbers.parse_number(string, locale=self.locale)
 
-    def parse_decimal(self, string, locale=None):
+    def parse_decimal(self, string):
         """Parses localized decimal string into a float.
 
         .. code-block:: python
@@ -651,18 +602,15 @@ class I18nStore(object):
 
         :param string:
             The string to parse.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             The parsed decimal number.
         :raises:
             ``NumberFormatError`` if the string can not be converted to a
             decimal number.
         """
-        locale = locale or self.locale
-        return numbers.parse_decimal(string, locale=locale)
+        return numbers.parse_decimal(string, locale=self.locale)
 
-    def get_timezone_location(self, dt_or_tzinfo, locale=None):
+    def get_timezone_location(self, dt_or_tzinfo):
         """Returns a representation of the given timezone using "location
         format".
 
@@ -691,13 +639,10 @@ class I18nStore(object):
         :param dt_or_tzinfo:
             The ``datetime`` or ``tzinfo`` object that determines
             the timezone; if None, the current date and time in UTC is assumed.
-        :param locale:
-            A locale code. If not set, uses the current :attr:`locale`.
         :returns:
             The localized timezone name using location format.
         """
-        locale = locale or self.locale
-        return dates.get_timezone_name(dt_or_tzinfo, locale=locale)
+        return dates.get_timezone_name(dt_or_tzinfo, locale=self.locale)
 
     @classmethod
     def get_store_for_request(cls, app, request):
@@ -724,6 +669,11 @@ def set_locale(locale):
     return Tipfy.request.i18n_store.set_locale(locale)
 
 
+def set_timezone(timezone):
+    """See :meth:`I18nStore.set_timezone`."""
+    return Tipfy.request.i18n_store.set_timezone(timezone)
+
+
 def gettext(string, **variables):
     """See :meth:`I18nStore.gettext`."""
     return Tipfy.request.i18n_store.gettext(string, **variables)
@@ -744,86 +694,81 @@ def to_utc(datetime):
     return Tipfy.request.i18n_store.to_utc(datetime)
 
 
-def format_date(date=None, format=None, locale=None, rebase=True):
+def format_date(date=None, format=None, rebase=True):
     """See :meth:`I18nStore.format_date`."""
-    return Tipfy.request.i18n_store.format_date(date, format, locale, rebase)
+    return Tipfy.request.i18n_store.format_date(date, format, rebase)
 
 
-def format_datetime(datetime=None, format=None, locale=None, timezone=None,
-    rebase=True):
+def format_datetime(datetime=None, format=None, rebase=True):
     """See :meth:`I18nStore.format_datetime`."""
-    return Tipfy.request.i18n_store.format_datetime(datetime, format, locale,
-        timezone, rebase)
+    return Tipfy.request.i18n_store.format_datetime(datetime, format, rebase)
 
 
-def format_time(time=None, format=None, locale=None, timezone=None,
-    rebase=True):
+def format_time(time=None, format=None, rebase=True):
     """See :meth:`I18nStore.format_time`."""
-    return Tipfy.request.i18n_store.format_time(time, format, locale, timezone,
-        rebase)
+    return Tipfy.request.i18n_store.format_time(time, format, rebase)
 
 
 def format_timedelta(datetime_or_timedelta, granularity='second',
-    threshold=.85, locale=None):
+    threshold=.85):
     """See :meth:`I18nStore.format_timedelta`."""
     return Tipfy.request.i18n_store.format_timedelta(datetime_or_timedelta,
-        granularity, threshold, locale)
+        granularity, threshold)
 
 
-def format_number(number, locale=None):
+def format_number(number):
     """See :meth:`I18nStore.format_number`."""
-    return Tipfy.request.i18n_store.format_number(number, locale)
+    return Tipfy.request.i18n_store.format_number(number)
 
 
-def format_decimal(number, format=None, locale=None):
+def format_decimal(number, format=None):
     """See :meth:`I18nStore.format_decimal`."""
-    return Tipfy.request.i18n_store.format_decimal(number, format, locale)
+    return Tipfy.request.i18n_store.format_decimal(number, format)
 
 
-def format_currency(number, currency, format=None, locale=None):
+def format_currency(number, currency, format=None):
     """See :meth:`I18nStore.format_currency`."""
-    return Tipfy.request.i18n_store.format_currency(number, currency, format,
-        locale)
+    return Tipfy.request.i18n_store.format_currency(number, currency, format)
 
 
-def format_percent(number, format=None, locale=None):
+def format_percent(number, format=None):
     """See :meth:`I18nStore.format_percent`."""
-    return Tipfy.request.i18n_store.format_percent(number, format, locale)
+    return Tipfy.request.i18n_store.format_percent(number, format)
 
 
-def format_scientific(number, format=None, locale=None):
+def format_scientific(number, format=None):
     """See :meth:`I18nStore.format_scientific`."""
-    return Tipfy.request.i18n_store.format_scientific(number, format, locale)
+    return Tipfy.request.i18n_store.format_scientific(number, format)
 
 
-def parse_date(string, locale=None):
+def parse_date(string):
     """See :meth:`I18nStore.parse_date`"""
-    return Tipfy.request.i18n_store.parse_date(string, locale)
+    return Tipfy.request.i18n_store.parse_date(string)
 
 
-def parse_datetime(string, locale=None):
+def parse_datetime(string):
     """See :meth:`I18nStore.parse_datetime`."""
-    return Tipfy.request.i18n_store.parse_datetime(string, locale)
+    return Tipfy.request.i18n_store.parse_datetime(string)
 
 
-def parse_time(string, locale=None):
+def parse_time(string):
     """See :meth:`I18nStore.parse_time`."""
-    return Tipfy.request.i18n_store.parse_time(string, locale)
+    return Tipfy.request.i18n_store.parse_time(string)
 
 
-def parse_number(string, locale=None):
+def parse_number(string):
     """See :meth:`I18nStore.parse_number`."""
-    return Tipfy.request.i18n_store.parse_number(string, locale)
+    return Tipfy.request.i18n_store.parse_number(string)
 
 
-def parse_decimal(string, locale=None):
+def parse_decimal(string):
     """See :meth:`I18nStore.parse_decimal`."""
-    return Tipfy.request.i18n_store.parse_decimal(string, locale)
+    return Tipfy.request.i18n_store.parse_decimal(string)
 
 
-def get_timezone_location(dt_or_tzinfo, locale=None):
+def get_timezone_location(dt_or_tzinfo):
     """See :meth:`I18nStore.get_timezone_location`"""
-    return Tipfy.request.i18n_store.get_timezone_location(dt_or_tzinfo, locale)
+    return Tipfy.request.i18n_store.get_timezone_location(dt_or_tzinfo)
 
 
 def list_translations(dirname='locale'):

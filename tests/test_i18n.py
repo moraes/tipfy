@@ -230,7 +230,8 @@ class TestDates(unittest.TestCase):
         self.assertEqual(i18n.format_datetime(value, format='long'), u'November 10, 2009 4:36:05 PM +0000')
         self.assertEqual(i18n.format_datetime(value, format='full'), u'Tuesday, November 10, 2009 4:36:05 PM World (GMT) Time')
 
-        self.assertEqual(i18n.format_datetime(value, format='short', timezone='America/Chicago'), u'11/10/09 10:36 AM')
+        i18n.set_timezone('America/Chicago')
+        self.assertEqual(i18n.format_datetime(value, format='short'), u'11/10/09 10:36 AM')
 
     def test_format_datetime_no_format(self):
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
@@ -266,34 +267,39 @@ class TestDates(unittest.TestCase):
         self.assertEqual(i18n.format_time(value, format='long'), u'16:36:05 +0000')
         self.assertEqual(i18n.format_time(value, format='full'), u'16h36min05s Horário Mundo (GMT)')
 
-        self.assertEqual(i18n.format_time(value, format='short', timezone='America/Chicago'), u'10:36')
+        i18n.set_timezone('America/Chicago')
+        self.assertEqual(i18n.format_time(value, format='short'), u'10:36')
 
     def test_parse_date(self):
-       self.assertEqual(i18n.parse_date('4/1/04', locale='en_US'), datetime.date(2004, 4, 1))
-       self.assertEqual(i18n.parse_date('01.04.2004', locale='de_DE'), datetime.date(2004, 4, 1))
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.parse_date('4/1/04'), datetime.date(2004, 4, 1))
+        i18n.set_locale('de_DE')
+        self.assertEqual(i18n.parse_date('01.04.2004'), datetime.date(2004, 4, 1))
 
     def test_parse_datetime(self):
-       self.assertRaises(NotImplementedError, i18n.parse_datetime, '4/1/04 16:08:09', locale='en_US')
+        i18n.set_locale('en_US')
+        self.assertRaises(NotImplementedError, i18n.parse_datetime, '4/1/04 16:08:09')
 
     def test_parse_time(self):
-        self.assertEqual(i18n.parse_time('18:08:09', locale='en_US'), datetime.time(18, 8, 9))
-        self.assertEqual(i18n.parse_time('18:08:09', locale='de_DE'), datetime.time(18, 8, 9))
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.parse_time('18:08:09'), datetime.time(18, 8, 9))
+        i18n.set_locale('de_DE')
+        self.assertEqual(i18n.parse_time('18:08:09'), datetime.time(18, 8, 9))
 
     def test_format_timedelta(self):
         # This is only present in Babel dev, so skip if not available.
         if not getattr(i18n, 'format_timedelta', None):
             return
 
-        self.assertEqual(i18n.format_timedelta(datetime.timedelta(weeks=12), locale='en_US'), u'3 months')
-        self.assertEqual(i18n.format_timedelta(datetime.timedelta(seconds=1), locale='es'), u'1 segundo')
-
-        self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=3), granularity='day', locale='en_US'), u'1 day')
-
-        self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=23), threshold=0.9, locale='en_US'), u'1 day')
-
-        self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=23), threshold=1.1, locale='en_US'), u'23 hours')
-
-        self.assertEqual(i18n.format_timedelta(datetime.datetime.now() - datetime.timedelta(days=5), locale='en_US'), u'5 days')
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.format_timedelta(datetime.timedelta(weeks=12)), u'3 months')
+        i18n.set_locale('es')
+        self.assertEqual(i18n.format_timedelta(datetime.timedelta(seconds=1)), u'1 segundo')
+        i18n.set_locale('en_US')
+        self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=3), granularity='day'), u'1 day')
+        self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=23), threshold=0.9), u'1 day')
+        self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=23), threshold=1.1), u'23 hours')
+        self.assertEqual(i18n.format_timedelta(datetime.datetime.now() - datetime.timedelta(days=5)), u'5 days')
 
 
 #==============================================================================
@@ -360,9 +366,12 @@ class TestTimezones(unittest.TestCase):
         self.assertEqual(result, '2002-10-27 11:00:00')
 
     def test_get_timezone_location(self):
-        self.assertEqual(i18n.get_timezone_location(pytz.timezone('America/St_Johns'), locale='de_DE'), u'Kanada (St. John\'s)')
-        self.assertEqual(i18n.get_timezone_location(pytz.timezone('America/Mexico_City'), locale='de_DE'), u'Mexiko (Mexiko-Stadt)')
-        self.assertEqual(i18n.get_timezone_location(pytz.timezone('Europe/Berlin'), locale='de_DE'), u'Deutschland')
+        i18n.set_locale('de_DE')
+        self.assertEqual(i18n.get_timezone_location(pytz.timezone('America/St_Johns')), u'Kanada (St. John\'s)')
+        i18n.set_locale('de_DE')
+        self.assertEqual(i18n.get_timezone_location(pytz.timezone('America/Mexico_City')), u'Mexiko (Mexiko-Stadt)')
+        i18n.set_locale('de_DE')
+        self.assertEqual(i18n.get_timezone_location(pytz.timezone('Europe/Berlin')), u'Deutschland')
 
 
 #==============================================================================

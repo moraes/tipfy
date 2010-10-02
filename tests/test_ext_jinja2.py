@@ -61,10 +61,12 @@ class TestJinja2(unittest.TestCase):
         self.assertEqual(response.data, message)
 
     def test_render_response_force_compiled(self):
-        app = Tipfy(config={'tipfyext.jinja2': {
-            'templates_compiled_target': templates_compiled_target,
-            'force_use_compiled': True,
-        }})
+        app = Tipfy(config={
+            'tipfyext.jinja2': {
+                'templates_compiled_target': templates_compiled_target,
+                'force_use_compiled': True,
+            }
+        }, debug=False)
         app.set_locals(Request.from_values())
         jinja2 = Jinja2(app)
 

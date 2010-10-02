@@ -14,6 +14,8 @@ from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from werkzeug import cached_property
 
+from tipfy import APPENGINE, DEV_APPSERVER
+
 #: Default configuration values for this module. Keys are:
 #:
 #: templates_dir
@@ -62,19 +64,23 @@ class Jinja2(object):
     def __init__(self, app, _globals=None, filters=None):
         self.app = app
         config = app.config[__name__]
-        kwargs = config['environment_args'] or {}
+        kwargs = config['environment_args'].copy()
         enable_i18n = 'jinja2.ext.i18n' in kwargs.get('extensions', [])
 
         if not kwargs.get('loader'):
             templates_compiled_target = config['templates_compiled_target']
             use_compiled = not app.debug or config['force_use_compiled']
 
-            if templates_compiled_target is not None and use_compiled:
+            if templates_compiled_target and use_compiled:
                 # Use precompiled templates loaded from a module or zip.
                 kwargs['loader'] = ModuleLoader(templates_compiled_target)
             else:
                 # Parse templates for every new environment instances.
                 kwargs['loader'] = FileSystemLoader(config['templates_dir'])
+
+        #if APPENGINE and not DEV_APPSERVER:
+        #    # We don't need to check if templates changed in production.
+        #    kwargs['auto_reload'] = False
 
         # Initialize the environment.
         env = Environment(**kwargs)

@@ -149,6 +149,43 @@ Sessions
 
 Routing
 -------
+- NEW: rules can define the method that will be called from the handler. The
+  method is defined using a 'Handler:method' notation in the Rule
+  definition. Example:
+
+      # handlers.py
+
+      class MyHandler(RequestHandler):
+          def my_method(self, **kwargs):
+              return Response('I am not coming from a get() method!')
+
+      # main.py
+
+      app = Tipfy(rules=[
+          Rule('/', name='home', handler='handlers.MyHandler:my_method')
+      ])
+
+  This opens a whole new set of possibilities for routing and handler
+  definitions, as you can match the HTTP method scheme and custom method
+  scheme for the same handler, requiring less class definitions. For example,
+  a single class can handle listing, viewing, inserting, editting and
+  deleting::
+
+      rules = [
+          HandlerPrefix('handlers.ImageHandler', [
+              # List images is handled by ImageHandler.index()
+              Rule('/images/', name='images/index', handler=':index'),
+              # Adding an image is handled by ImageHandler.new()
+              Rule('/images/new', name='images/edit', handler=':new'),
+              # Displaying an image is handled by ImageHandler.get()
+              Rule('/image/<key>', name='images/view', handler=''),
+              # Editting an image is handled by ImageHandler.edit()
+              Rule('/images/<key>/edit', name='images/edit', handler=':edit'),
+              # Deleting an image is handled by ImageHandler.delete()
+              Rule('/images/<key>/delete', name='images/delete', handler=':delete'),
+          ],
+      ]
+
 - NEW: added a router object that centralizes URL matching, dispatching and
   building URLs. It makes it more flexible to implement alternative routing
   schemes. Some implications:
@@ -171,22 +208,6 @@ Routing
               Rule('/', endpoint='index', handler='SubdomainIndexHandler'),
           ]),
       ]
-
-- NEW: rules can define the method that will be called from the handler. The
-  method is defined using a 'Handler:method' notation in the Rule
-  definition. Example:
-
-      # handlers.py
-
-      class MyHandler(RequestHandler):
-          def my_method(self, **kwargs):
-              return Response('I am not coming from a get() method!')
-
-      # main.py
-
-      app = Tipfy(rules=[
-          Rule('/', name='home', handler='handlers.MyHandler:my_method')
-      ])
 
   In this example, the request method is ignored since the Rule defines which
   handler method will handle all requests.

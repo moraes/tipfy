@@ -28,14 +28,15 @@ from werkzeug import (cached_property, check_password_hash,
 #:     Default is False.
 #:
 #: cookie_name
-#:     Name of the autentication cookie. Default is `auth`.
+#:     Name of the autentication cookie. Default is `session`, which stores
+#:     the data in the default session.
 #:
 #: session_max_age
 #:     Interval in seconds before a user session id is renewed.
 #:     Default is 1 week.
 default_config = {
     'user_model':      'tipfy.auth.appengine.model.User',
-    'cookie_name':     'auth',
+    'cookie_name':     'session',
     'secure_urls':     False,
     'session_max_age': 86400 * 7,
 }

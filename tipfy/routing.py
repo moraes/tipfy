@@ -12,6 +12,8 @@ from werkzeug import import_string, url_quote
 from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
     Rule as BaseRule, RuleFactory)
 
+from tipfy import local
+
 
 class Router(object):
     def __init__(self, app, rules=None):
@@ -103,17 +105,18 @@ class Router(object):
                 method = rule.handler_method
 
         # Instantiate the handler.
-        handler = rule.handler(app, request)
+        local.handler = rule.handler(app, request)
         try:
             # Dispatch the requested method.
-            return handler(method, **kwargs)
+            return local.handler(method, **kwargs)
         except Exception, e:
             if method == 'handle_exception':
                 # We are already handling an exception.
                 raise
 
             # If the handler implements exception handling, let it handle it.
-            return app.make_response(handler.handle_exception(exception=e))
+            response = local.handler.handle_exception(exception=e)
+            return app.make_response(request, response)
 
     def build(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place

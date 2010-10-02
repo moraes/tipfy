@@ -10,12 +10,6 @@ from tipfy.auth.appengine import AppEngineAuthStore
 
 
 class TestHandler(unittest.TestCase):
-    def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
-
     def test_405(self):
         class HomeHandler(RequestHandler):
             pass
@@ -139,30 +133,32 @@ class TestHandler(unittest.TestCase):
         self.assertEqual(response.data, 'Home sweet home!')
 
     def test_redirect_relative_uris(self):
-        app = Tipfy()
-        request = Request.from_values('/foo/bar/')
-        app.set_locals(request)
-        class Handler(RequestHandler):
-            pass
+        class MyHandler(RequestHandler):
+            def get(self):
+                return self.redirect(self.request.args.get('redirect'))
 
-        handler = Handler(app, request)
-        response = handler.redirect('/baz')
+        app = Tipfy(rules=[
+            Rule('/foo/bar', name='test1', handler=MyHandler),
+            Rule('/foo/bar/', name='test2', handler=MyHandler),
+        ])
+        client = app.get_test_client()
+
+        response = client.get('/foo/bar/', query_string={'redirect': '/baz'})
         self.assertEqual(response.headers['Location'], 'http://localhost/baz')
 
-        response = handler.redirect('./baz')
+        response = client.get('/foo/bar/', query_string={'redirect': './baz'})
         self.assertEqual(response.headers['Location'], 'http://localhost/foo/bar/baz')
 
-        response = handler.redirect('../baz')
+        response = client.get('/foo/bar/', query_string={'redirect': '../baz'})
         self.assertEqual(response.headers['Location'], 'http://localhost/foo/baz')
 
-        app.set_locals(Request.from_values('/foo/bar'))
-        response = handler.redirect('/baz')
+        response = client.get('/foo/bar', query_string={'redirect': '/baz'})
         self.assertEqual(response.headers['Location'], 'http://localhost/baz')
 
-        response = handler.redirect('./baz')
+        response = client.get('/foo/bar', query_string={'redirect': './baz'})
         self.assertEqual(response.headers['Location'], 'http://localhost/foo/baz')
 
-        response = handler.redirect('../baz')
+        response = client.get('/foo/bar', query_string={'redirect': '../baz'})
         self.assertEqual(response.headers['Location'], 'http://localhost/baz')
 
     def test_url_for(self):
@@ -175,7 +171,6 @@ class TestHandler(unittest.TestCase):
             Rule('/contact', name='contact', handler='handlers.Contact'),
         ])
         request = Request.from_values('/')
-        app.set_locals(request)
         app.router.match(request)
 
         handler = Handler(app, request)
@@ -198,20 +193,13 @@ class TestHandler(unittest.TestCase):
             },
         })
         request = Request.from_values('/')
-        app.set_locals(request)
 
         handler = Handler(app, request)
         self.assertEqual(isinstance(handler.session, SecureCookieSession), True)
-        self.assertEqual(isinstance(handler.auth, AppEngineAuthStore), True)
-        self.assertEqual(isinstance(handler.i18n, I18nStore), True)
+        self.assertEqual(isinstance(handler.auth_store, AppEngineAuthStore), True)
+        self.assertEqual(isinstance(handler.i18n_store, I18nStore), True)
 
 class TestHandlerMiddleware(unittest.TestCase):
-    def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
-
     def test_before_dispatch(self):
         res = 'Intercepted!'
         class MyMiddleware(object):

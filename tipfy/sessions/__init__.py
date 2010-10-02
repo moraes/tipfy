@@ -230,11 +230,11 @@ class SessionStore(object):
         'securecookie': SecureCookieSession,
     }
 
-    def __init__(self, app, request, backends=None):
-        self.app = app
-        self.request = request
+    def __init__(self, handler, backends=None):
+        self.app = handler.app
+        self.request = handler.request
         # Base configuration.
-        self.config = app.config[__name__]
+        self.config = self.app.config[__name__]
         # A dictionary of support backend classes.
         self.backends = backends or self.default_backends
         # The default backend to use when none is provided.
@@ -390,13 +390,6 @@ class SessionStore(object):
             for sessions in self._sessions.values():
                 for key, (value, kwargs) in sessions.iteritems():
                     value.save_session(response, self, key, **kwargs)
-
-    @classmethod
-    def factory(cls, _app, _name, **kwargs):
-        if _name not in _app.request.registry:
-            _app.request.registry[_name] = cls(_app, _app.request, **kwargs)
-
-        return _app.request.registry[_name]
 
 
 class SessionMiddleware(object):

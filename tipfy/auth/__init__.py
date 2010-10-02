@@ -43,10 +43,10 @@ default_config = {
 
 
 class BaseAuthStore(object):
-    def __init__(self, app, request):
-        self.app = app
-        self.request = request
-        self.config = app.config[__name__]
+    def __init__(self, handler):
+        self.app = handler.app
+        self.request = handler.request
+        self.config = handler.app.config[__name__]
 
     @cached_property
     def user_model(self):
@@ -142,13 +142,6 @@ class BaseAuthStore(object):
     def user(self):
         """The user entity."""
         raise NotImplementedError()
-
-    @classmethod
-    def factory(cls, _app, _name, **kwargs):
-        if _name not in _app.request.registry:
-            _app.request.registry[_name] = cls(_app, _app.request, **kwargs)
-
-        return _app.request.registry[_name]
 
 
 class SessionAuthStore(BaseAuthStore):

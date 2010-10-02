@@ -16,10 +16,13 @@ from wsgiref.handlers import CGIHandler
 # Werkzeug Swiss knife.
 # Need to import werkzeug first otherwise py_zipimport fails.
 import werkzeug
-from werkzeug import (Local, LocalProxy, Request as BaseRequest,
-    Response as BaseResponse, cached_property, import_string,
-    redirect as base_redirect)
+from werkzeug import (Local, Request as BaseRequest, Response as BaseResponse,
+    cached_property, import_string, redirect as base_redirect)
 from werkzeug.exceptions import HTTPException, InternalServerError, abort
+
+# Thread local variables.
+local = Local()
+current_handler = local('current_handler')
 
 from tipfy.config import Config, DEFAULT_VALUE, REQUIRED_VALUE
 from tipfy.routing import (HandlerPrefix, NamePrefix, RegexConverter, Router,
@@ -132,7 +135,7 @@ class RequestHandler(object):
 
         if not self.middleware:
             # No middleware are set: just execute the method.
-            return self.app.make_response(method(*args, **kwargs))
+            return self.make_response(method(*args, **kwargs))
 
         # Execute before_dispatch middleware.
         for obj in self.middleware:
@@ -143,7 +146,7 @@ class RequestHandler(object):
                     break
         else:
             try:
-                response = self.app.make_response(method(*args, **kwargs))
+                response = self.make_response(method(*args, **kwargs))
             except Exception, e:
                 # Execute handle_exception middleware.
                 for obj in reversed(self.middleware):
@@ -166,24 +169,33 @@ class RequestHandler(object):
         return response
 
     @cached_property
-    def auth(self):
+    def auth_store(self):
         """The auth store which provides access to the authenticated user and
         auth related functions.
 
         :returns:
             An auth store instance.
         """
-        return self.request.auth_store
+        return self.app.auth_store_class(self)
 
     @cached_property
-    def i18n(self):
+    def i18n_store(self):
         """The internationalization store which provides access to several
         translation and localization utilities.
 
         :returns:
             An i18n store instance.
         """
-        return self.request.i18n_store
+        return self.app.i18n_store_class.get_store_for_request(self)
+
+    @cached_property
+    def session_store(self):
+        """The session store, responsible for managing sessions and flashes.
+
+        :returns:
+            A session store instance.
+        """
+        return self.app.session_store_class(self)
 
     @cached_property
     def session(self):
@@ -192,7 +204,7 @@ class RequestHandler(object):
         :returns:
             A dictionary-like object with the current session data.
         """
-        return self.request.session_store.get_session()
+        return self.session_store.get_session()
 
     def abort(self, code, *args, **kwargs):
         """Raises an :class:`HTTPException`. This stops code execution,
@@ -210,9 +222,9 @@ class RequestHandler(object):
     def get_config(self, module, key=None, default=REQUIRED_VALUE):
         """Returns a configuration value for a module.
 
-        .. seealso:: :meth:`Config.get`.
+        .. seealso:: :meth:`Config.get_config`.
         """
-        return self.app.get_config(module, key=key, default=default)
+        return self.app.config.get_config(module, key=key, default=default)
 
     def handle_exception(self, exception=None):
         """Handles an exception. The default behavior is to reraise the
@@ -225,11 +237,23 @@ class RequestHandler(object):
 
     def redirect(self, location, code=302):
         """Returns a response object with headers set for redirection to the
-        given URI.
+        given URI. This won't stop code execution, so you must return when
+        calling this method::
 
-        .. seealso:: :func:`redirect`.
+            return redirect('/some-path')
+
+        :param location:
+            A relative or absolute URI (e.g., '../contacts').
+        :param code:
+            The HTTP status code for the redirect.
+        :returns:
+            A :class:`Response` object with headers set for redirection.
         """
-        return redirect(location, code)
+        if not location.startswith('http'):
+            # Make it absolute.
+            location = urlparse.urljoin(self.request.url, location)
+
+        return base_redirect(location, code)
 
     def redirect_to(self, _name, _code=302, **kwargs):
         """Convenience method mixing :meth:`redirect` and :methd:`url_for`:
@@ -258,6 +282,14 @@ class RequestHandler(object):
         return [method for method in ALLOWED_METHODS if
             getattr(self, method.lower().replace('-', '_'), None)]
 
+    def make_response(self, *rv):
+        """Converts the return value from a :class:`RequestHandler` to a real
+        response object that is an instance of :attr:`response_class`.
+
+
+        """
+        return self.app.make_response(self.request, *rv)
+
 
 class Request(BaseRequest):
     """The :class:`Request` object contains all environment variables for the
@@ -269,16 +301,6 @@ class Request(BaseRequest):
     rule = None
     #: Keyword arguments from the matched URL rule.
     rule_args = None
-
-    def __init__(self, environ):
-        """Initializes the request. This also sets a context and registry to
-        hold variables valid for a single request.
-        """
-        super(Request, self).__init__(environ)
-        # A registry for objects in use during a request.
-        self.registry = {}
-        # A context for template variables.
-        self.context = {}
 
     @cached_property
     def json(self):
@@ -292,45 +314,6 @@ class Request(BaseRequest):
         """
         if self.mimetype == 'application/json':
             return json_decode(self.data)
-
-    @cached_property
-    def auth_store(self):
-        """The auth store which provides access to the authenticated user and
-        auth related functions.
-
-        :returns:
-            An auth store instance.
-        """
-        return Tipfy.app.auth_store_class(Tipfy.app, self)
-
-    @cached_property
-    def i18n_store(self):
-        """The internationalization store which provides access to several
-        translation and localization utilities.
-
-        :returns:
-            An i18n store instance.
-        """
-        return Tipfy.app.i18n_store_class.get_store_for_request(Tipfy.app,
-            self)
-
-    @cached_property
-    def session_store(self):
-        """The session store, responsible for managing sessions and flashes.
-
-        :returns:
-            A session store instance.
-        """
-        return Tipfy.app.session_store_class(Tipfy.app, self)
-
-    @cached_property
-    def session(self):
-        """A session dictionary using the default session configuration.
-
-        :returns:
-            A dictionary-like object with the current session data.
-        """
-        return self.session_store.get_session()
 
 
 class Response(BaseResponse):
@@ -348,10 +331,8 @@ class Tipfy(object):
     config_class = Config
     #: Default class for the configuration object.
     router_class = Router
-    #: The active :class:`Tipfy` instance.
-    app = None
-    #: The active :class:`Request` instance.
-    request = None
+    #: The active :class:`RequestHandler` instance.
+    current_handler = None
 
     def __init__(self, rules=None, config=None, debug=False):
         """Initializes the application.
@@ -363,7 +344,6 @@ class Tipfy(object):
         :param debug:
             True if this is debug mode, False otherwise.
         """
-        self.set_locals()
         self.debug = debug
         self.registry = {}
         self.error_handlers = {}
@@ -402,7 +382,6 @@ class Tipfy(object):
         cleanup = True
         try:
             request = self.request_class(environ)
-            self.set_locals(request)
 
             if request.method not in ALLOWED_METHODS:
                 abort(501)
@@ -413,7 +392,7 @@ class Tipfy(object):
             try:
                 response = self.handle_exception(request, e)
             except HTTPException, e:
-                response = self.make_response(e)
+                response = self.make_response(request, e)
             except:
                 if self.debug:
                     cleanup = False
@@ -422,10 +401,10 @@ class Tipfy(object):
                 # We only log unhandled non-HTTP exceptions. Users should
                 # take care of logging in custom error handlers.
                 logging.exception(e)
-                response = self.make_response(InternalServerError())
+                response = self.make_response(request, InternalServerError())
         finally:
             if cleanup:
-                self.clear_locals()
+                local.__release_local__()
 
         return response(environ, start_response)
 
@@ -479,7 +458,7 @@ class Tipfy(object):
         else:
             raise
 
-    def make_response(self, *rv):
+    def make_response(self, request, *rv):
         """Converts the return value from a :class:`RequestHandler` to a real
         response object that is an instance of :attr:`response_class`.
 
@@ -516,44 +495,9 @@ class Tipfy(object):
             if rv is None:
                 raise ValueError('Handler did not return a response')
 
-            return self.response_class.force_type(rv, self.request.environ)
+            return self.response_class.force_type(rv, request.environ)
 
         return self.response_class(*rv)
-
-    def set_locals(self, request=None):
-        """Sets variables for a single request. Uses simple class attributes
-        when running on App Engine and thread locals outside.
-
-        :param request:
-            A :class:`Request` instance, if any.
-        """
-        if APPENGINE:
-            Tipfy.app = self
-            Tipfy.request = request
-        else:
-            local.app = self
-            local.request = request
-
-    def clear_locals(self):
-        """Clears the variables set for a single request."""
-        if APPENGINE:
-            Tipfy.app = Tipfy.request = None
-        else:
-            local.__release_local__()
-
-    def get_config(self, module, key=None, default=REQUIRED_VALUE):
-        """Returns a configuration value for a module.
-
-        .. seealso:: :meth:`Config.get`.
-        """
-        return self.config.get_config(module, key=key, default=default)
-
-    def url_for(self, _name, **kwargs):
-        """Returns a URL for a named :class:`Rule`.
-
-        .. seealso:: :meth:`Router.build`.
-        """
-        return self.router.build(self.request, _name, kwargs)
 
     def get_test_client(self):
         """Creates a test client for this application.
@@ -632,44 +576,6 @@ def url_for(_name, **kwargs):
     return Tipfy.app.url_for(_name, **kwargs)
 
 
-def redirect(location, code=302):
-    """Returns a response object with headers set for redirection to the
-    given URI. This won't stop code execution, so you must return when
-    calling this method::
-
-        return redirect('/some-path')
-
-    :param location:
-        A relative or absolute URI (e.g., '../contacts').
-    :param code:
-        The HTTP status code for the redirect.
-    :returns:
-        A :class:`Response` object with headers set for redirection.
-    """
-    if not location.startswith('http'):
-        # Make it absolute.
-        location = urlparse.urljoin(Tipfy.request.url, location)
-
-    return base_redirect(location, code)
-
-
-def redirect_to(_name, _code=302, **kwargs):
-    """Convenience method mixing ``werkzeug.redirect`` and :func:`url_for`:
-    returns a response object with headers set for redirection to a URL
-    built using a named :class:`Rule`.
-
-    :param _name:
-        The rule name.
-    :param _code:
-        The HTTP status code for the redirect.
-    :param kwargs:
-        Keyword arguments to build the URL.
-    :returns:
-        A :class:`Response` object with headers set for redirection.
-    """
-    return redirect(url_for(_name, **kwargs), code=_code)
-
-
 def render_json_response(*args, **kwargs):
     """Renders a JSON response.
 
@@ -688,13 +594,3 @@ def render_json_response(*args, **kwargs):
 # Short aliases.
 App = Tipfy
 Handler = RequestHandler
-
-# Locals.
-if APPENGINE:
-    local = None
-    app = LocalProxy(lambda: Tipfy.app)
-    request = LocalProxy(lambda: Tipfy.request)
-else:
-    local = Local()
-    Tipfy.app = app = local('app')
-    Tipfy.request = request = local('request')

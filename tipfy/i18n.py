@@ -614,7 +614,7 @@ class I18nStore(object):
         return dates.get_timezone_name(dt_or_tzinfo, locale=self.locale)
 
     @classmethod
-    def get_store_for_request(cls, app, request):
+    def get_store_for_request(cls, handler):
         """Returns a I18nStore bound to a given request.
 
         :param request:
@@ -623,11 +623,12 @@ class I18nStore(object):
             A new :class:`I18nStore` instance with locale and timezone set
             for the request.
         """
+        app = handler.app
         config = app.config[__name__]
         translations = app.registry.setdefault('i18n.translations', {})
-        locale = _get_request_value(request,
+        locale = _get_request_value(handler,
             config['locale_request_lookup'], config['locale'])
-        timezone = _get_request_value(request,
+        timezone = _get_request_value(handler,
             config['timezone_request_lookup'], config['timezone'])
 
         return cls(app, translations, locale, timezone)
@@ -793,7 +794,7 @@ def lazy_ngettext(singular, plural, n, **variables):
     return support.LazyProxy(ngettext, singular, plural, n, **variables)
 
 
-def _get_request_value(request, lookup_list, default=None):
+def _get_request_value(handler, lookup_list, default=None):
     """Returns a locale code or timezone for the current request.
 
     It will use the configuration for ``locale_request_lookup`` or
@@ -812,9 +813,14 @@ def _get_request_value(request, lookup_list, default=None):
         A locale code or timezone setting.
     """
     value = None
+    request = handler.request
     for method, key in lookup_list:
-        # Get locale from GET, POST, session, cookies or rule_args.
-        value = getattr(request, method).get(key, None)
+        if method == 'session':
+            value = handler.session.get(key, None)
+        else:
+            # Get locale from GET, POST, session, cookies or rule_args.
+            value = getattr(request, method).get(key, None)
+
         if value is not None:
             break
     else:

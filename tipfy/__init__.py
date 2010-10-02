@@ -286,7 +286,7 @@ class RequestHandler(object):
         """Converts the return value from a :class:`RequestHandler` to a real
         response object that is an instance of :attr:`response_class`.
 
-
+        .. seealso:: :meth:`Tipfy.make_response`.
         """
         return self.app.make_response(self.request, *rv)
 

@@ -12,12 +12,12 @@
 """
 from google.appengine.api import urlfetch
 
-#from werkzeug import url_encode
+from werkzeug import url_encode
 
 from wtforms.validators import *
 from wtforms.validators import ValidationError
 
-#from tipfy import Tipfy, get_config
+from tipfy import current_handler, get_config
 
 
 RECAPTCHA_VERIFY_SERVER = 'http://api-verify.recaptcha.net/verify'
@@ -63,7 +63,7 @@ class Recaptcha(object):
         self.message = message
 
     def __call__(self, form, field):
-        request = Tipfy.request
+        request = current_handler.request
         challenge = request.form.get('recaptcha_challenge_field', '')
         response = request.form.get('recaptcha_response_field', '')
         remote_ip = request.remote_addr

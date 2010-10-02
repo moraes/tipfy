@@ -42,35 +42,31 @@ class FacebookMixin(object):
 
     To authenticate with Facebook, register your application with
     Facebook at http://www.facebook.com/developers/apps.php. Then
-    copy your API Key and Application Secret to config.py:
+    copy your API Key and Application Secret to config.py::
 
-    .. code-block:: python
-
-       config['tipfyext.auth.twitter'] = {
-           'api_key':    'XXXXXXXXXXXXXXX',
-           'app_secret': 'XXXXXXXXXXXXXXX',
-       }
+        config['tipfyext.auth.twitter'] = {
+            'api_key':    'XXXXXXXXXXXXXXX',
+            'app_secret': 'XXXXXXXXXXXXXXX',
+        }
 
     When your application is set up, you can use the FacebookMixin like this
-    to authenticate the user with Facebook:
+    to authenticate the user with Facebook::
 
-    .. code-block:: python
+        from tipfy import RequestHandler, abort
+        from tipfyext.auth.facebook import FacebookMixin
 
-       from tipfy import RequestHandler, abort
-       from tipfyext.auth.facebook import FacebookMixin
+        class FacebookHandler(RequestHandler, FacebookMixin):
+            def get(self):
+                if self.request.args.get('session', None):
+                    return self.get_authenticated_user(self._on_auth)
 
-       class FacebookHandler(RequestHandler, FacebookMixin):
-           def get(self):
-               if self.request.args.get('session', None):
-                   return self.get_authenticated_user(self._on_auth)
+                return self.authenticate_redirect()
 
-               return self.authenticate_redirect()
+            def _on_auth(self, user):
+                if not user:
+                    abort(403)
 
-           def _on_auth(self, user):
-               if not user:
-                   abort(403)
-
-               # Set the user in the session.
+                # Set the user in the session.
 
     The user object returned by get_authenticated_user() includes the
     attributes 'facebook_uid' and 'name' in addition to session attributes
@@ -158,27 +154,25 @@ class FacebookMixin(object):
         The available Facebook methods are documented here:
         http://wiki.developers.facebook.com/index.php/API
 
-        Here is an example for the stream.get() method:
+        Here is an example for the stream.get() method::
 
-        .. code-block:: python
+            from tipfy import RequestHandler, redirect
+            from tipfyext.auth.facebook import FacebookMixin
+            from tipfyext.jinja2 import Jinja2Mixin
 
-           from tipfy import RequestHandler, redirect
-           from tipfyext.auth.facebook import FacebookMixin
-           from tipfyext.jinja2 import Jinja2Mixin
+            class MainHandler(RequestHandler, Jinja2Mixin, FacebookMixin):
+                def get(self):
+                    self.facebook_request(
+                        method='stream.get',
+                        callback=self._on_stream,
+                        session_key=self.current_user['session_key'])
 
-           class MainHandler(RequestHandler, Jinja2Mixin, FacebookMixin):
-               def get(self):
-                   self.facebook_request(
-                       method='stream.get',
-                       callback=self._on_stream,
-                       session_key=self.current_user['session_key'])
+                def _on_stream(self, stream):
+                    if stream is None:
+                       # Not authorized to read the stream yet?
+                       return redirect(self.authorize_redirect('read_stream'))
 
-               def _on_stream(self, stream):
-                   if stream is None:
-                      # Not authorized to read the stream yet?
-                      return redirect(self.authorize_redirect('read_stream'))
-
-                   return self.render_response('stream.html', stream=stream)
+                    return self.render_response('stream.html', stream=stream)
         """
         if not method.startswith('facebook.'):
             method = 'facebook.' + method

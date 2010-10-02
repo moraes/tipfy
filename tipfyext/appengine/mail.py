@@ -17,16 +17,14 @@ from tipfy import RequestHandler
 
 
 class InboundMailHandler(RequestHandler):
-    """Base class for inbound mail handlers. Example:
+    """Base class for inbound mail handlers. Example::
 
-    .. code-block:: python
+        # Sub-class overrides receive method.
+        class HelloReceiver(InboundMailHandler):
 
-       # Sub-class overrides receive method.
-       class HelloReceiver(InboundMailHandler):
-
-           def receive(self, mail_message):
-               logging.info('Received greeting from %s: %s' % (
-                   mail_message.sender, mail_message.body))
+            def receive(self, mail_message):
+                logging.info('Received greeting from %s: %s' % (
+                    mail_message.sender, mail_message.body))
     """
     def post(self, **kwargs):
         """Transforms body to email request.

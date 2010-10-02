@@ -41,41 +41,37 @@ class FriendFeedMixin(OAuthMixin):
 
     To authenticate with FriendFeed, register your application with
     FriendFeed at http://friendfeed.com/api/applications. Then
-    copy your Consumer Key and Consumer Secret to config.py:
+    copy your Consumer Key and Consumer Secret to config.py::
 
-    .. code-block:: python
-
-       config['tipfyext.auth.friendfeed'] = {
-           'consumer_key':    'XXXXXXXXXXXXXXX',
-           'consumer_secret': 'XXXXXXXXXXXXXXX',
-       }
+        config['tipfyext.auth.friendfeed'] = {
+            'consumer_key':    'XXXXXXXXXXXXXXX',
+            'consumer_secret': 'XXXXXXXXXXXXXXX',
+        }
 
     When your application is set up, you can use the FriendFeedMixin to
     authenticate the user with FriendFeed and get access to their stream.
     You must use the mixin on the handler for the URL you registered as your
-    application's Callback URL. For example:
+    application's Callback URL. For example::
 
-    .. code-block:: python
+        from tipfy import RequestHandler, abort
+        from tipfyext.auth.friendfeed import FriendFeedMixin
+        from tipfyext.session import CookieMixin, SessionMiddleware
 
-       from tipfy import RequestHandler, abort
-       from tipfyext.auth.friendfeed import FriendFeedMixin
-       from tipfyext.session import CookieMixin, SessionMiddleware
+        class FriendFeedHandler(RequestHandler, CookieMixin, FriendFeedMixin):
+            middleware = [SessionMiddleware]
 
-       class FriendFeedHandler(RequestHandler, CookieMixin, FriendFeedMixin):
-           middleware = [SessionMiddleware]
+            def get(self):
+                if self.request.args.get('oauth_token', None):
+                    return self.get_authenticated_user(self._on_auth)
 
-           def get(self):
-               if self.request.args.get('oauth_token', None):
-                   return self.get_authenticated_user(self._on_auth)
+                return self.authorize_redirect()
 
-               return self.authorize_redirect()
+            def _on_auth(self, user):
+                if not user:
+                    abort(403)
 
-           def _on_auth(self, user):
-               if not user:
-                   abort(403)
-
-               # Set the user in the session.
-               # ...
+                # Set the user in the session.
+                # ...
 
     The user object returned by get_authenticated_user() includes the
     attributes 'username', 'name', and 'description' in addition to
@@ -115,29 +111,27 @@ class FriendFeedMixin(OAuthMixin):
         through authorize_redirect() and get_authenticated_user(). The
         user returned through that process includes an 'access_token'
         attribute that can be used to make authenticated requests via
-        this method. Example usage:
+        this method. Example usage::
 
-        .. code-block:: python
+            from tipfy import RequestHandler, Response
+            from tipfyext.auth.friendfeed import FriendFeedMixin
+            from tipfyext.session import CookieMixin, SessionMiddleware
 
-           from tipfy import RequestHandler, Response
-           from tipfyext.auth.friendfeed import FriendFeedMixin
-           from tipfyext.session import CookieMixin, SessionMiddleware
+            class MainHandler(RequestHandler, FriendFeedMixin):
+                middleware = [SessionMiddleware]
 
-           class MainHandler(RequestHandler, FriendFeedMixin):
-               middleware = [SessionMiddleware]
+                def get(self):
+                    return self.friendfeed_request('/entry',
+                        post_args={'body': 'Testing Tornado Web Server'},
+                        access_token=self.current_user['access_token'],
+                        callback=self._on_post)
 
-               def get(self):
-                   return self.friendfeed_request('/entry',
-                       post_args={'body': 'Testing Tornado Web Server'},
-                       access_token=self.current_user['access_token'],
-                       callback=self._on_post)
+                def _on_post(self, new_entry):
+                    if not new_entry:
+                        # Call failed; perhaps missing permission?
+                        return self.authorize_redirect()
 
-               def _on_post(self, new_entry):
-                   if not new_entry:
-                       # Call failed; perhaps missing permission?
-                       return self.authorize_redirect()
-
-                   return Response('Posted a message!')
+                    return Response('Posted a message!')
         """
         # Add the OAuth resource request signature if we have credentials
         url = 'http://friendfeed-api.com/v2' + path

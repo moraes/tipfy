@@ -307,18 +307,16 @@ class MultiAuthStore(SessionAuthStore):
 
 class LoginRequiredMiddleware(object):
     """A RequestHandler middleware to require user authentication. This
-    acts as a `login_required` decorator but for handler classes. Example:
+    acts as a `login_required` decorator but for handler classes. Example::
 
-    .. code-block:: python
+        from tipfy import RequestHandler
+        from tipfy.auth import LoginRequiredMiddleware
 
-       from tipfy import RequestHandler
-       from tipfy.auth import LoginRequiredMiddleware
+        class MyHandler(RequestHandler):
+            middleware = [LoginRequiredMiddleware]
 
-       class MyHandler(RequestHandler):
-           middleware = [LoginRequiredMiddleware]
-
-           def get(self, **kwargs):
-               return 'Only logged in users can see this.'
+            def get(self, **kwargs):
+                return 'Only logged in users can see this.'
     """
     def before_dispatch(self, handler):
         return _login_required(handler)
@@ -327,18 +325,16 @@ class LoginRequiredMiddleware(object):
 class UserRequiredMiddleware(object):
     """A RequestHandler middleware to require the current user to have an
     account saved in datastore. This acts as a `user_required` decorator but
-    for handler classes. Example:
+    for handler classes. Example::
 
-    .. code-block:: python
+        from tipfy import RequestHandler
+        from tipfy.auth import UserRequiredMiddleware
 
-       from tipfy import RequestHandler
-       from tipfy.auth import UserRequiredMiddleware
+        class MyHandler(RequestHandler):
+            middleware = [UserRequiredMiddleware]
 
-       class MyHandler(RequestHandler):
-           middleware = [UserRequiredMiddleware]
-
-           def get(self, **kwargs):
-               return 'Only users can see this.'
+            def get(self, **kwargs):
+                return 'Only users can see this.'
     """
     def before_dispatch(self, handler):
         return _user_required(handler)
@@ -348,19 +344,17 @@ class UserRequiredIfAuthenticatedMiddleware(object):
     """A RequestHandler middleware to require the current user to have an
     account saved in datastore, but only if he is logged in. This acts as a
     `user_required_if_authenticated` decorator but for handler classes.
-    Example:
+    Example::
 
-    .. code-block:: python
+        from tipfy import RequestHandler
+        from tipfy.auth import UserRequiredIfAuthenticatedMiddleware
 
-       from tipfy import RequestHandler
-       from tipfy.auth import UserRequiredIfAuthenticatedMiddleware
+        class MyHandler(RequestHandler):
+            middleware = [UserRequiredIfAuthenticatedMiddleware]
 
-       class MyHandler(RequestHandler):
-           middleware = [UserRequiredIfAuthenticatedMiddleware]
-
-           def get(self, **kwargs):
-               return 'Only non-logged in users or users with saved '
-                   'accounts can see this.'
+            def get(self, **kwargs):
+                return 'Only non-logged in users or users with saved '
+                    'accounts can see this.'
     """
     def before_dispatch(self, handler):
         return _user_required_if_authenticated(handler)
@@ -368,18 +362,17 @@ class UserRequiredIfAuthenticatedMiddleware(object):
 
 class AdminRequiredMiddleware(object):
     """A RequestHandler middleware to require the current user to be admin.
-    This acts as a `admin_required` decorator but for handler classes. Example:
+    This acts as a `admin_required` decorator but for handler classes.
+    Example::
 
-    .. code-block:: python
+        from tipfy import RequestHandler
+        from tipfy.auth import AdminRequiredMiddleware
 
-       from tipfy import RequestHandler
-       from tipfy.auth import AdminRequiredMiddleware
+        class MyHandler(RequestHandler):
+            middleware = [AdminRequiredMiddleware]
 
-       class MyHandler(RequestHandler):
-           middleware = [AdminRequiredMiddleware]
-
-           def get(self, **kwargs):
-               return 'Only admins can see this.'
+            def get(self, **kwargs):
+                return 'Only admins can see this.'
     """
     def before_dispatch(self, handler):
         return _admin_required(handler)
@@ -387,17 +380,15 @@ class AdminRequiredMiddleware(object):
 
 def login_required(func):
     """A RequestHandler method decorator to require user authentication.
-    Normally :func:`user_required` is used instead. Example:
+    Normally :func:`user_required` is used instead. Example::
 
-    .. code-block:: python
+        from tipfy import RequestHandler
+        from tipfy.auth import login_required
 
-       from tipfy import RequestHandler
-       from tipfy.auth import login_required
-
-       class MyHandler(RequestHandler):
-           @login_required
-           def get(self, **kwargs):
-               return 'Only logged in users can see this.'
+        class MyHandler(RequestHandler):
+            @login_required
+            def get(self, **kwargs):
+                return 'Only logged in users can see this.'
 
     :param func:
         The handler method to be decorated.
@@ -412,17 +403,15 @@ def login_required(func):
 
 def user_required(func):
     """A RequestHandler method decorator to require the current user to
-    have an account saved in datastore. Example:
+    have an account saved in datastore. Example::
 
-    .. code-block:: python
+        from tipfy import RequestHandler
+        from tipfy.auth import user_required
 
-       from tipfy import RequestHandler
-       from tipfy.auth import user_required
-
-       class MyHandler(RequestHandler):
-           @user_required
-           def get(self, **kwargs):
-               return 'Only users can see this.'
+        class MyHandler(RequestHandler):
+            @user_required
+            def get(self, **kwargs):
+                return 'Only users can see this.'
 
     :param func:
         The handler method to be decorated.
@@ -437,18 +426,16 @@ def user_required(func):
 
 def user_required_if_authenticated(func):
     """A RequestHandler method decorator to require the current user to
-    have an account saved in datastore, but only if he is logged in. Example:
+    have an account saved in datastore, but only if he is logged in. Example::
 
-    .. code-block:: python
+        from tipfy import RequestHandler
+        from tipfy.auth import user_required_if_authenticated
 
-       from tipfy import RequestHandler
-       from tipfy.auth import user_required_if_authenticated
-
-       class MyHandler(RequestHandler):
-           @user_required_if_authenticated
-           def get(self, **kwargs):
-               return 'Only non-logged in users or users with saved '
-                   'accounts can see this.'
+        class MyHandler(RequestHandler):
+            @user_required_if_authenticated
+            def get(self, **kwargs):
+                return 'Only non-logged in users or users with saved '
+                    'accounts can see this.'
 
     :param func:
         The handler method to be decorated.
@@ -464,17 +451,15 @@ def user_required_if_authenticated(func):
 
 def admin_required(func):
     """A RequestHandler method decorator to require the current user to be
-    admin. Example:
+    admin. Example::
 
-    .. code-block:: python
+        from tipfy import RequestHandler
+        from tipfy.auth import admin_required
 
-       from tipfy import RequestHandler
-       from tipfy.auth import admin_required
-
-       class MyHandler(RequestHandler):
-           @admin_required
-           def get(self, **kwargs):
-               return 'Only admins can see this.'
+        class MyHandler(RequestHandler):
+            @admin_required
+            def get(self, **kwargs):
+                return 'Only admins can see this.'
 
     :param func:
         The handler method to be decorated.

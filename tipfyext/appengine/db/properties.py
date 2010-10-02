@@ -28,17 +28,14 @@ class EtagProperty(db.Property):
     """Automatically creates an ETag based on the value of another property.
 
     Note: the ETag is only set or updated after the entity is saved.
+    Example::
 
-    Example usage:
+        from google.appengine.ext import db
+        from tipfyext.appengine.db import EtagProperty
 
-    .. code-block:: python
-
-       from google.appengine.ext import db
-       from tipfyext.appengine.db import EtagProperty
-
-       class StaticContent(db.Model):
-           data = db.BlobProperty()
-           etag = EtagProperty(data)
+        class StaticContent(db.Model):
+            data = db.BlobProperty()
+            etag = EtagProperty(data)
 
     This class derives from `aetycoon <http://github.com/Arachnid/aetycoon>`_.
     """
@@ -103,23 +100,19 @@ class KeyProperty(db.Property):
 
 class JsonProperty(db.Property):
     """Stores a value automatically encoding to JSON on set and decoding
-    on get.
+    on get. Example::
 
-    Example usage:
-
-    .. code-block:: python
-
-       >>> class JsonModel(db.Model):
-       ... data = JsonProperty()
-       >>> model = PickleModel()
-       >>> model.data = {"foo": "bar"}
-       >>> model.data
-       {'foo': 'bar'}
-       >>> model.put() # doctest: +ELLIPSIS
-       datastore_types.Key.from_path(u'PickleModel', ...)
-       >>> model2 = PickleModel.all().get()
-       >>> model2.data
-       {'foo': 'bar'}
+        >>> class JsonModel(db.Model):
+        ... data = JsonProperty()
+        >>> model = PickleModel()
+        >>> model.data = {"foo": "bar"}
+        >>> model.data
+        {'foo': 'bar'}
+        >>> model.put() # doctest: +ELLIPSIS
+        datastore_types.Key.from_path(u'PickleModel', ...)
+        >>> model2 = PickleModel.all().get()
+        >>> model2.data
+        {'foo': 'bar'}
     """
     data_type = db.Text
 
@@ -145,22 +138,19 @@ class JsonProperty(db.Property):
 
 class PickleProperty(db.Property):
     """A property for storing complex objects in the datastore in pickled form.
+    Example::
 
-    Example usage:
-
-    .. code-block:: python
-
-       >>> class PickleModel(db.Model):
-       ... data = PickleProperty()
-       >>> model = PickleModel()
-       >>> model.data = {"foo": "bar"}
-       >>> model.data
-       {'foo': 'bar'}
-       >>> model.put() # doctest: +ELLIPSIS
-       datastore_types.Key.from_path(u'PickleModel', ...)
-       >>> model2 = PickleModel.all().get()
-       >>> model2.data
-       {'foo': 'bar'}
+        >>> class PickleModel(db.Model):
+        ... data = PickleProperty()
+        >>> model = PickleModel()
+        >>> model.data = {"foo": "bar"}
+        >>> model.data
+        {'foo': 'bar'}
+        >>> model.put() # doctest: +ELLIPSIS
+        datastore_types.Key.from_path(u'PickleModel', ...)
+        >>> model2 = PickleModel.all().get()
+        >>> model2.data
+        {'foo': 'bar'}
 
     This class derives from `aetycoon <http://github.com/Arachnid/aetycoon>`_.
     """
@@ -182,18 +172,14 @@ class SlugProperty(db.Property):
     """Automatically creates a slug (a lowercase string with words separated by
     dashes) based on the value of another property.
 
-    Note: the slug is only set or updated after the entity is saved.
+    Note: the slug is only set or updated after the entity is saved. Example::
 
-    Example usage:
+        from google.appengine.ext import db
+        from tipfyext.appengine.db import SlugProperty
 
-    .. code-block:: python
-
-       from google.appengine.ext import db
-       from tipfyext.appengine.db import SlugProperty
-
-       class BlogPost(db.Model):
-           title = db.StringProperty()
-           slug = SlugProperty(title)
+        class BlogPost(db.Model):
+            title = db.StringProperty()
+            slug = SlugProperty(title)
 
     This class derives from `aetycoon <http://github.com/Arachnid/aetycoon>`_.
     """

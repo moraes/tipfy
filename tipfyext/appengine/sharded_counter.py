@@ -78,24 +78,22 @@ class Counter(object):
     memcache before a successful datastore shard put or there's a
     failure/error in memcache.
 
-    Example usage:
+    Example::
 
-    .. code-block:: python
-
-       # Build a new counter that uses the unique key name 'hits'.
-       hits = Counter('hits')
-       # Increment by 1.
-       hits.increment()
-       # Increment by 10.
-       hits.increment(10)
-       # Decrement by 3.
-       hits.increment(-3)
-       # This is the current count.
-       my_hits = hits.count
-       # Forces fetching a non-cached count of all shards.
-       hits.get_count(nocache=True)
-       # Set the counter to an arbitrary value.
-       hits.count = 6
+        # Build a new counter that uses the unique key name 'hits'.
+        hits = Counter('hits')
+        # Increment by 1.
+        hits.increment()
+        # Increment by 10.
+        hits.increment(10)
+        # Decrement by 3.
+        hits.increment(-3)
+        # This is the current count.
+        my_hits = hits.count
+        # Forces fetching a non-cached count of all shards.
+        hits.get_count(nocache=True)
+        # Set the counter to an arbitrary value.
+        hits.count = 6
     """
     #: Number of shards to use.
     shards = None

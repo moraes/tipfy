@@ -43,25 +43,23 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
     Google, redirect with authenticate_redirect(). On return, parse the
     response with get_authenticated_user(). We send a dict containing the
     values for the user, including 'email', 'name', and 'locale'.
-    Example usage:
+    Example usage::
 
-    .. code-block:: python
+        from tipfy import RequestHandler, abort
+        from tipfyext.auth.google import GoogleMixin
 
-       from tipfy import RequestHandler, abort
-       from tipfyext.auth.google import GoogleMixin
+        class GoogleHandler(RequestHandler, GoogleMixin):
+            def get(self):
+                if self.request.args.get('openid.mode', None):
+                    return self.get_authenticated_user(self._on_auth)
 
-       class GoogleHandler(RequestHandler, GoogleMixin):
-           def get(self):
-               if self.request.args.get('openid.mode', None):
-                   return self.get_authenticated_user(self._on_auth)
+                return self.authenticate_redirect()
 
-               return self.authenticate_redirect()
+            def _on_auth(self, user):
+                if not user:
+                    abort(403)
 
-           def _on_auth(self, user):
-               if not user:
-                   abort(403)
-
-               # Set the user in the session.
+                # Set the user in the session.
     """
     _OPENID_ENDPOINT = 'https://www.google.com/accounts/o8/ud'
     _OAUTH_ACCESS_TOKEN_URL = 'https://www.google.com/accounts/OAuthGetAccessToken'

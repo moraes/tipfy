@@ -32,12 +32,10 @@ class DeferredHandler(RequestHandler):
          script: main.py
          login: admin
 
-    The URL rule for urls.py is:
+    The URL rule for urls.py is::
 
-    .. code-block:: python
-
-       Rule('/_ah/queue/deferred', name='tasks/deferred',
-            handler='tipfyext.taskqueue.DeferredHandler')
+        Rule('/_ah/queue/deferred', name='tasks/deferred',
+             handler='tipfyext.taskqueue.DeferredHandler')
     """
     def post(self):
         headers = ['%s:%s' % (k, v) for k, v in self.request.headers.items()
@@ -57,22 +55,20 @@ class Mapper(object):
     the task queue. On each request, a batch of entities is processed and a new
     task is added to process the next batch.
 
-    For example, to delete all ``MyModel`` records:
+    For example, to delete all ``MyModel`` records::
 
-    .. code-block:: python
+        from tipfyext.taskqueue import Mapper
+        from mymodels import myModel
 
-       from tipfyext.taskqueue import Mapper
-       from mymodels import myModel
+        class MyModelMapper(Mapper):
+            model = MyModel
 
-       class MyModelMapper(Mapper):
-           model = MyModel
+            def map(self, entity):
+                # Add the entity to the list of entities to be deleted.
+                return ([], [entity])
 
-           def map(self, entity):
-               # Add the entity to the list of entities to be deleted.
-               return ([], [entity])
-
-       mapper = MyModelMapper()
-       deferred.defer(mapper.run)
+        mapper = MyModelMapper()
+        deferred.defer(mapper.run)
 
     The setup for app.yaml is:
 
@@ -82,12 +78,10 @@ class Mapper(object):
          script: main.py
          login: admin
 
-    The URL rule for urls.py is:
+    The URL rule for urls.py is::
 
-    .. code-block:: python
-
-       Rule('/_ah/queue/deferred', name='tasks/deferred',
-           handler='tipfyext.tasks.DeferredHandler')
+        Rule('/_ah/queue/deferred', name='tasks/deferred',
+            handler='tipfyext.tasks.DeferredHandler')
 
     This class derives from `deffered article <http://code.google.com/appengine/articles/deferred.html>`_.
     """

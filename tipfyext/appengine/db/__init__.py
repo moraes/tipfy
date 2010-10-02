@@ -25,21 +25,18 @@ def get_protobuf_from_entity(entities):
     crashes when unpickling (when, for example, the entity class is moved to a
     different module).
 
-    Cached protobufs can be de-serialized using :func:`get_entity_from_protobuf`.
+    Cached protobufs can be de-serialized using
+    :func:`get_entity_from_protobuf`. Example::
 
-    Example usage:
+        from google.appengine.api import memcache
+        from tipfyext.appengine.db import get_protobuf_from_entity
 
-    .. code-block:: python
+        # Inside a handler, given that a MyModel model is defined.
+        entity = MyModel(key_name='foo')
+        entity.put()
 
-       from google.appengine.api import memcache
-       from tipfyext.appengine.db import get_protobuf_from_entity
-
-       # Inside a handler, given that a MyModel model is defined.
-       entity = MyModel(key_name='foo')
-       entity.put()
-
-       # Cache the protobuf.
-       memcache.set('my-cache-key', get_protobuf_from_entity(entity))
+        # Cache the protobuf.
+        memcache.set('my-cache-key', get_protobuf_from_entity(entity))
 
     This function derives from `Nick's Blog <http://blog.notdot.net/2009/9/Efficient-model-memcaching>`_.
 
@@ -66,18 +63,15 @@ def get_entity_from_protobuf(data):
     This is used to de-serialize entities previously serialized using
     :func:`get_protobuf_from_entity`. After retrieving an entity protobuf
     from memcache, this converts it back to a ``db.Model`` instance.
+    Example::
 
-    Example usage:
+        from google.appengine.api import memcache
+        from tipfyext.appengine.db import get_entity_from_protobuf
 
-    .. code-block:: python
-
-       from google.appengine.api import memcache
-       from tipfyext.appengine.db import get_entity_from_protobuf
-
-       # Get the protobuf from cache and de-serialize it.
-       protobuf = memcache.get('my-cache-key')
-       if protobuf:
-           entity = get_entity_from_protobuf(protobuf)
+        # Get the protobuf from cache and de-serialize it.
+        protobuf = memcache.get('my-cache-key')
+        if protobuf:
+            entity = get_entity_from_protobuf(protobuf)
 
     This function derives from `Nick's Blog <http://blog.notdot.net/2009/9/Efficient-model-memcaching>`_.
 
@@ -100,33 +94,29 @@ def get_entity_from_protobuf(data):
 
 def get_reference_key(entity, prop_name):
     """Returns a encoded key from a ``db.ReferenceProperty`` without fetching
-    the referenced entity.
+    the referenced entity. Example::
 
-    Example usage:
+        from google.appengine.ext import db
+        from tipfyext.appengine.db import get_reference_key
 
-    .. code-block:: python
+        # Set a book entity with an author reference.
+        class Author(db.Model):
+            name = db.StringProperty()
 
-       from google.appengine.ext import db
-       from tipfyext.appengine.db import get_reference_key
+        class Book(db.Model):
+            title = db.StringProperty()
+            author = db.ReferenceProperty(Author)
 
-       # Set a book entity with an author reference.
-       class Author(db.Model):
-           name = db.StringProperty()
+        author = Author(name='Stephen King')
+        author.put()
 
-       class Book(db.Model):
-           title = db.StringProperty()
-           author = db.ReferenceProperty(Author)
+        book = Book(key_name='the-shining', title='The Shining', author=author)
+        book.put()
 
-       author = Author(name='Stephen King')
-       author.put()
-
-       book = Book(key_name='the-shining', title='The Shining', author=author)
-       book.put()
-
-       # Now let's fetch the book and get the author key without fetching it.
-       fetched_book = Book.get_by_key_name('the-shining')
-       assert str(author.key()) == str(get_reference_key(fetched_book,
-           'author'))
+        # Now let's fetch the book and get the author key without fetching it.
+        fetched_book = Book.get_by_key_name('the-shining')
+        assert str(author.key()) == str(get_reference_key(fetched_book,
+            'author'))
 
     :param entity:
         A ``db.Model`` instance.
@@ -140,29 +130,25 @@ def get_reference_key(entity, prop_name):
 
 def populate_entity(entity, **kwargs):
     """Sets a batch of property values in an entity. This is useful to set
-    multiple properties coming from a form or set in a dictionary.
+    multiple properties coming from a form or set in a dictionary. Example::
 
-    Example usage:
+        from google.appengine.ext import db
+        from tipfyext.appengine.db import populate_entity
 
-    .. code-block:: python
+        class Author(db.Model):
+            name = db.StringProperty(required=True)
+            city = db.StringProperty()
+            state = db.StringProperty()
+            country = db.StringProperty()
 
-       from google.appengine.ext import db
-       from tipfyext.appengine.db import populate_entity
+        # Save an author entity.
+        author = Author(key_name='stephen-king', name='Stephen King')
+        author.put()
 
-       class Author(db.Model):
-           name = db.StringProperty(required=True)
-           city = db.StringProperty()
-           state = db.StringProperty()
-           country = db.StringProperty()
-
-       # Save an author entity.
-       author = Author(key_name='stephen-king', name='Stephen King')
-       author.put()
-
-       # Now let's update the record.
-       author = Author.get_by_key_name('stephen-king')
-       populate_entity(author, city='Lovell', state='Maine', country='USA')
-       author.put()
+        # Now let's update the record.
+        author = Author.get_by_key_name('stephen-king')
+        populate_entity(author, city='Lovell', state='Maine', country='USA')
+        author.put()
 
     :param entity:
         A ``db.Model`` instance.
@@ -216,20 +202,16 @@ def get_or_insert_with_flag(model, key_name, **kwargs):
 
     This is the same as ``db.Model.get_or_insert()``, but it returns a tuple
     ``(entity, flag)`` to indicate if the entity was inserted. If the entity
-    is inserted, the flag is True, otherwise it is False.
+    is inserted, the flag is True, otherwise it is False. Example::
 
-    Example usage:
+        from google.appengine.ext import db
+        from tipfyext.appengine.db import get_or_insert_with_flag
 
-    .. code-block:: python
+        class Author(db.Model):
+            name = db.StringProperty()
 
-       from google.appengine.ext import db
-       from tipfyext.appengine.db import get_or_insert_with_flag
-
-       class Author(db.Model):
-           name = db.StringProperty()
-
-       author, is_new = get_or_insert_with_flag(Author, 'stephen-king',
-           name='Stephen King')
+        author, is_new = get_or_insert_with_flag(Author, 'stephen-king',
+            name='Stephen King')
 
     :param model:
         A ``db.Model`` class to fetch or create an entity.
@@ -256,20 +238,17 @@ def get_or_insert_with_flag(model, key_name, **kwargs):
 
 def get_or_404(key):
     """Returns a model instance fetched by key or raises a 404 Not Found error.
+    Example:
 
-    Example usage:
+        from tipfy import RequestHandler
+        from tipfyext.appengine.db import get_or_404
+        from mymodels import Contact
 
-    .. code-block:: python
+        class EditContactHandler(RequestHandler):
+            def get(self, **kwargs):
+                contact = get_or_404(Contact, kwargs['contact_key'])
 
-       from tipfy import RequestHandler
-       from tipfyext.appengine.db import get_or_404
-       from mymodels import Contact
-
-       class EditContactHandler(RequestHandler):
-           def get(self, **kwargs):
-               contact = get_or_404(Contact, kwargs['contact_key'])
-
-               # ... continue processing contact ...
+                # ... continue processing contact ...
 
     This function derives from `Kay <http://code.google.com/p/kay-framework/>`_.
 
@@ -291,20 +270,17 @@ def get_or_404(key):
 
 def get_by_id_or_404(model, id, parent=None):
     """Returns a model instance fetched by id or raises a 404 Not Found error.
+    Example::
 
-    Example usage:
+        from tipfy import RequestHandler
+        from tipfyext.appengine.db import get_by_id_or_404
+        from mymodels import Contact
 
-    .. code-block:: python
+        class EditContactHandler(RequestHandler):
+            def get(self, **kwargs):
+                contact = get_by_id_or_404(Contact, kwargs['contact_id'])
 
-       from tipfy import RequestHandler
-       from tipfyext.appengine.db import get_by_id_or_404
-       from mymodels import Contact
-
-       class EditContactHandler(RequestHandler):
-           def get(self, **kwargs):
-               contact = get_by_id_or_404(Contact, kwargs['contact_id'])
-
-               # ... continue processing contact ...
+                # ... continue processing contact ...
 
     This function derives from `Kay <http://code.google.com/p/kay-framework/>`_.
 
@@ -328,22 +304,18 @@ def get_by_id_or_404(model, id, parent=None):
 
 def get_by_key_name_or_404(model, key_name, parent=None):
     """Returns a model instance fetched by key name or raises a 404 Not Found
-    error.
+    error. Example::
 
-    Example usage:
+        from tipfy import RequestHandler
+        from tipfyext.appengine.db import get_by_key_name_or_404
+        from mymodels import Contact
 
-    .. code-block:: python
+        class EditContactHandler(RequestHandler):
+            def get(self, **kwargs):
+                contact = get_by_key_name_or_404(Contact,
+                    kwargs['contact_key_name'])
 
-       from tipfy import RequestHandler
-       from tipfyext.appengine.db import get_by_key_name_or_404
-       from mymodels import Contact
-
-       class EditContactHandler(RequestHandler):
-           def get(self, **kwargs):
-               contact = get_by_key_name_or_404(Contact,
-                   kwargs['contact_key_name'])
-
-               # ... continue processing contact ...
+                # ... continue processing contact ...
 
     This function derives from `Kay <http://code.google.com/p/kay-framework/>`_.
 
@@ -390,29 +362,25 @@ def run_in_namespace(namespace, function, *args, **kwargs):
 # Decorators.
 def retry_on_timeout(retries=3, interval=1.0, exponent=2.0):
     """A decorator to retry a function that performs db operations in case a
-    ``db.Timeout`` exception is raised.
+    ``db.Timeout`` exception is raised. Example::
 
-    Example usage:
+        from tipfy import RequestHandler
+        from tipfyext.appengine.db import retry_on_timeout
+        from mymodels import Contact
 
-    .. code-block:: python
+        class EditContactHandler(RequestHandler):
+            def get(self, **kwargs):
+                # ... do the get stuff ...
+                # ...
+                pass
 
-       from tipfy import RequestHandler
-       from tipfyext.appengine.db import retry_on_timeout
-       from mymodels import Contact
+            @retry_on_timeout()
+            def post(self, **kwargs):
+                # ... load entity and process form data ...
+                # ...
 
-       class EditContactHandler(RequestHandler):
-           def get(self, **kwargs):
-               # ... do the get stuff ...
-               # ...
-               pass
-
-           @retry_on_timeout()
-           def post(self, **kwargs):
-               # ... load entity and process form data ...
-               # ...
-
-               # Save the entity. This will be retried in case of timeouts.
-               entity.put()
+                # Save the entity. This will be retried in case of timeouts.
+                entity.put()
 
     This function derives from `Kay <http://code.google.com/p/kay-framework/>`_.
 
@@ -453,28 +421,24 @@ def retry_on_timeout(retries=3, interval=1.0, exponent=2.0):
 def load_entity(model, kwarg_old, kwarg_new=None, fetch_mode=None):
     """A decorator that takes an entity key, key name or id from the request
     handler keyword arguments, load an entity and add it to the arguments.
-    If not found, a ``NotFound`` exception is raised.
+    If not found, a ``NotFound`` exception is raised. Example::
 
-    Example usage:
+        from tipfy import RequestHandler
+        from tipfyext.appengine.db import load_entity
+        from mymodels import Contact
 
-    .. code-block:: python
+        class EditContactHandler(RequestHandler):
+            @load_entity(Contact, 'contact_id', 'contact', 'id')
+            def get(self, **kwargs):
+                # kwargs['contact_id'] is used to load a Contact entity using
+                # get_by_id(). The entity is then added to kwargs['contact'].
+                pass
 
-       from tipfy import RequestHandler
-       from tipfyext.appengine.db import load_entity
-       from mymodels import Contact
-
-       class EditContactHandler(RequestHandler):
-           @load_entity(Contact, 'contact_id', 'contact', 'id')
-           def get(self, **kwargs):
-               # kwargs['contact_id'] is used to load a Contact entity using
-               # get_by_id(). The entity is then added to kwargs['contact'].
-               pass
-
-           @load_entity(Contact, 'contact_id', 'contact', 'id')
-           def post(self, **kwargs):
-               # kwargs['contact_id'] is used to load a Contact entity using
-               # get_by_id(). The entity is then added to kwargs['contact'].
-               pass
+            @load_entity(Contact, 'contact_id', 'contact', 'id')
+            def post(self, **kwargs):
+                # kwargs['contact_id'] is used to load a Contact entity using
+                # get_by_id(). The entity is then added to kwargs['contact'].
+                pass
 
     :param model:
         A ``db.Model`` class to fetch an entity from.
@@ -531,31 +495,29 @@ def load_entity(model, kwarg_old, kwarg_new=None, fetch_mode=None):
 
 class ModelMixin(object):
     """A base class for db.Model mixins. This allows to mix db properties
-    from several base classes in a single model. For example:
+    from several base classes in a single model. For example::
 
-    .. code-block:: python
+        from google.appengine.ext import db
 
-       from google.appengine.ext import db
+        from tipfyext.appengine.db import ModelMixin
 
-       from tipfyext.appengine.db import ModelMixin
+        class DateMixin(ModelMixin):
+            created = db.DateTimeProperty(auto_now_add=True)
+            updated = db.DateTimeProperty(auto_now=True)
 
-       class DateMixin(ModelMixin):
-           created = db.DateTimeProperty(auto_now_add=True)
-           updated = db.DateTimeProperty(auto_now=True)
+        class AuditMixin(ModelMixin):
+            created_by = db.UserProperty()
+            updated_by = db.UserProperty()
 
-       class AuditMixin(ModelMixin):
-           created_by = db.UserProperty()
-           updated_by = db.UserProperty()
+        class Account(db.Model, DateMixin, AuditMixin):
+            name = db.StringProperty()
 
-       class Account(db.Model, DateMixin, AuditMixin):
-           name = db.StringProperty()
+        class SupportTicket(db.Model, DateMixin, AuditMixin):
+            title = db.StringProperty()
 
-       class SupportTicket(db.Model, DateMixin, AuditMixin):
-           title = db.StringProperty()
-
-       class Item(db.Model, DateMixin):
-           name = db.StringProperty()
-           description = db.StringProperty()
+        class Item(db.Model, DateMixin):
+            name = db.StringProperty()
+            description = db.StringProperty()
 
     Read more about it in the
     `tutorial <http://www.tipfy.org/wiki/cookbook/reusing-models-with-modelmixin/>`_.

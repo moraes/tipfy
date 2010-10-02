@@ -367,12 +367,10 @@ class I18nStore(object):
             threshold=threshold, locale=self.locale)
 
     def format_number(self, number):
-        """Returns the given number formatted for the current locale.
+        """Returns the given number formatted for the current locale. Example::
 
-        .. code-block:: python
-
-           >>> format_number(1099, locale='en_US')
-           u'1,099'
+            >>> format_number(1099, locale='en_US')
+            u'1,099'
 
         :param number:
             The number to format.
@@ -383,27 +381,24 @@ class I18nStore(object):
 
     def format_decimal(self, number, format=None):
         """Returns the given decimal number formatted for the current locale.
+        Example::
 
-        .. code-block:: python
-
-           >>> format_decimal(1.2345, locale='en_US')
-           u'1.234'
-           >>> format_decimal(1.2346, locale='en_US')
-           u'1.235'
-           >>> format_decimal(-1.2346, locale='en_US')
-           u'-1.235'
-           >>> format_decimal(1.2345, locale='sv_SE')
-           u'1,234'
-           >>> format_decimal(12345, locale='de')
-           u'12.345'
+            >>> format_decimal(1.2345, locale='en_US')
+            u'1.234'
+            >>> format_decimal(1.2346, locale='en_US')
+            u'1.235'
+            >>> format_decimal(-1.2346, locale='en_US')
+            u'-1.235'
+            >>> format_decimal(1.2345, locale='sv_SE')
+            u'1,234'
+            >>> format_decimal(12345, locale='de')
+            u'12.345'
 
         The appropriate thousands grouping and the decimal separator are used
-        for each locale:
+        for each locale::
 
-        .. code-block:: python
-
-           >>> format_decimal(12345.5, locale='en_US')
-           u'12,345.5'
+            >>> format_decimal(12345.5, locale='en_US')
+            u'12,345.5'
 
         :param number:
             The number to format.
@@ -416,23 +411,19 @@ class I18nStore(object):
             locale=self.locale)
 
     def format_currency(self, number, currency, format=None):
-        """Returns a formatted currency value.
+        """Returns a formatted currency value. Example::
 
-        .. code-block:: python
+            >>> format_currency(1099.98, 'USD', locale='en_US')
+            u'$1,099.98'
+            >>> format_currency(1099.98, 'USD', locale='es_CO')
+            u'US$\\xa01.099,98'
+            >>> format_currency(1099.98, 'EUR', locale='de_DE')
+            u'1.099,98\\xa0\\u20ac'
 
-           >>> format_currency(1099.98, 'USD', locale='en_US')
-           u'$1,099.98'
-           >>> format_currency(1099.98, 'USD', locale='es_CO')
-           u'US$\\xa01.099,98'
-           >>> format_currency(1099.98, 'EUR', locale='de_DE')
-           u'1.099,98\\xa0\\u20ac'
+        The pattern can also be specified explicitly::
 
-        The pattern can also be specified explicitly:
-
-        .. code-block:: python
-
-           >>> format_currency(1099.98, 'EUR', u'\\xa4\\xa4 #,##0.00', locale='en_US')
-           u'EUR 1,099.98'
+            >>> format_currency(1099.98, 'EUR', u'\\xa4\\xa4 #,##0.00', locale='en_US')
+            u'EUR 1,099.98'
 
         :param number:
             The number to format.
@@ -447,23 +438,19 @@ class I18nStore(object):
             locale=self.locale)
 
     def format_percent(self, number, format=None):
-        """Returns formatted percent value for the current locale.
+        """Returns formatted percent value for the current locale. Example::
 
-        .. code-block:: python
+            >>> format_percent(0.34, locale='en_US')
+            u'34%'
+            >>> format_percent(25.1234, locale='en_US')
+            u'2,512%'
+            >>> format_percent(25.1234, locale='sv_SE')
+            u'2\\xa0512\\xa0%'
 
-           >>> format_percent(0.34, locale='en_US')
-           u'34%'
-           >>> format_percent(25.1234, locale='en_US')
-           u'2,512%'
-           >>> format_percent(25.1234, locale='sv_SE')
-           u'2\\xa0512\\xa0%'
+        The format pattern can also be specified explicitly::
 
-        The format pattern can also be specified explicitly:
-
-        .. code-block:: python
-
-           >>> format_percent(25.1234, u'#,##0\u2030', locale='en_US')
-           u'25,123\u2030'
+            >>> format_percent(25.1234, u'#,##0\u2030', locale='en_US')
+            u'25,123\u2030'
 
         :param number:
             The percent number to format
@@ -477,19 +464,15 @@ class I18nStore(object):
 
     def format_scientific(self, number, format=None):
         """Returns value formatted in scientific notation for the current
-        locale.
+        locale. Example::
 
-        .. code-block:: python
+            >>> format_scientific(10000, locale='en_US')
+            u'1E4'
 
-           >>> format_scientific(10000, locale='en_US')
-           u'1E4'
+        The format pattern can also be specified explicitly::
 
-        The format pattern can also be specified explicitly:
-
-        .. code-block:: python
-
-           >>> format_scientific(1234567, u'##0E00', locale='en_US')
-           u'1.23E06'
+            >>> format_scientific(1234567, u'##0E00', locale='en_US')
+            u'1.23E06'
 
         :param number:
             The number to format.
@@ -506,13 +489,12 @@ class I18nStore(object):
 
         This function uses the date format for the locale as a hint to
         determine the order in which the date fields appear in the string.
+        Example::
 
-        .. code-block:: python
-
-           >>> parse_date('4/1/04', locale='en_US')
-           datetime.date(2004, 4, 1)
-           >>> parse_date('01.04.2004', locale='de_DE')
-           datetime.date(2004, 4, 1)
+            >>> parse_date('4/1/04', locale='en_US')
+            datetime.date(2004, 4, 1)
+            >>> parse_date('01.04.2004', locale='de_DE')
+            datetime.date(2004, 4, 1)
 
         :param string:
             The string containing the date.
@@ -539,11 +521,10 @@ class I18nStore(object):
 
         This function uses the time format for the locale as a hint to
         determine the order in which the time fields appear in the string.
+        Example::
 
-        .. code-block:: python
-
-           >>> parse_time('15:30:00', locale='en_US')
-           datetime.time(15, 30)
+            >>> parse_time('15:30:00', locale='en_US')
+            datetime.time(15, 30)
 
         :param string:
             The string containing the time.
@@ -553,23 +534,19 @@ class I18nStore(object):
         return dates.parse_time(string, locale=self.locale)
 
     def parse_number(self, string):
-        """Parses localized number string into a long integer.
+        """Parses localized number string into a long integer. Example::
 
-        .. code-block:: python
+            >>> parse_number('1,099', locale='en_US')
+            1099L
+            >>> parse_number('1.099', locale='de_DE')
+            1099L
 
-           >>> parse_number('1,099', locale='en_US')
-           1099L
-           >>> parse_number('1.099', locale='de_DE')
-           1099L
+        When the given string cannot be parsed, an exception is raised::
 
-        When the given string cannot be parsed, an exception is raised:
-
-        .. code-block:: python
-
-           >>> parse_number('1.099,98', locale='de')
-           Traceback (most recent call last):
+            >>> parse_number('1.099,98', locale='de')
+            Traceback (most recent call last):
                ...
-           NumberFormatError: '1.099,98' is not a valid number
+            NumberFormatError: '1.099,98' is not a valid number
 
         :param string:
             The string to parse.
@@ -582,23 +559,19 @@ class I18nStore(object):
         return numbers.parse_number(string, locale=self.locale)
 
     def parse_decimal(self, string):
-        """Parses localized decimal string into a float.
+        """Parses localized decimal string into a float. Example::
 
-        .. code-block:: python
+            >>> parse_decimal('1,099.98', locale='en_US')
+            1099.98
+            >>> parse_decimal('1.099,98', locale='de')
+            1099.98
 
-           >>> parse_decimal('1,099.98', locale='en_US')
-           1099.98
-           >>> parse_decimal('1.099,98', locale='de')
-           1099.98
+        When the given string cannot be parsed, an exception is raised::
 
-        When the given string cannot be parsed, an exception is raised:
-
-        .. code-block:: python
-
-           >>> parse_decimal('2,109,998', locale='de')
-           Traceback (most recent call last):
+            >>> parse_decimal('2,109,998', locale='de')
+            Traceback (most recent call last):
                ...
-           NumberFormatError: '2,109,998' is not a valid decimal number
+            NumberFormatError: '2,109,998' is not a valid decimal number
 
         :param string:
             The string to parse.
@@ -615,26 +588,22 @@ class I18nStore(object):
         format".
 
         The result depends on both the local display name of the country and
-        the city assocaited with the time zone:
+        the city assocaited with the time zone::
 
-        .. code-block:: python
-
-           >>> from pytz import timezone
-           >>> tz = timezone('America/St_Johns')
-           >>> get_timezone_location(tz, locale='de_DE')
-           u"Kanada (St. John's)"
-           >>> tz = timezone('America/Mexico_City')
-           >>> get_timezone_location(tz, locale='de_DE')
-           u'Mexiko (Mexiko-Stadt)'
+            >>> from pytz import timezone
+            >>> tz = timezone('America/St_Johns')
+            >>> get_timezone_location(tz, locale='de_DE')
+            u"Kanada (St. John's)"
+            >>> tz = timezone('America/Mexico_City')
+            >>> get_timezone_location(tz, locale='de_DE')
+            u'Mexiko (Mexiko-Stadt)'
 
         If the timezone is associated with a country that uses only a single
-        timezone, just the localized country name is returned:
+        timezone, just the localized country name is returned::
 
-        .. code-block:: python
-
-           >>> tz = timezone('Europe/Berlin')
-           >>> get_timezone_name(tz, locale='de_DE')
-           u'Deutschland'
+            >>> tz = timezone('Europe/Berlin')
+            >>> get_timezone_name(tz, locale='de_DE')
+            u'Deutschland'
 
         :param dt_or_tzinfo:
             The ``datetime`` or ``tzinfo`` object that determines
@@ -767,7 +736,7 @@ def parse_decimal(string):
 
 
 def get_timezone_location(dt_or_tzinfo):
-    """See :meth:`I18nStore.get_timezone_location`"""
+    """See :meth:`I18nStore.get_timezone_location`."""
     return Tipfy.request.i18n_store.get_timezone_location(dt_or_tzinfo)
 
 

@@ -20,37 +20,35 @@
        class. The strategy to load roles is open to the implementation; for
        best performance, define them statically in a module.
 
-    Usage example:
+    Usage example::
 
-    .. code-block:: python
+        # Set a dict of roles with an 'admin' role that has full access and
+        # assign users to it. Each role maps to a list of rules. Each rule is a
+        # tuple (topic, name, flag), where flag is as bool to allow or disallow
+        # access. Wildcard '*' can be used to match all topics and/or names.
+        Acl.roles_map = {
+            'admin': [
+                ('*', '*', True),
+            ],
+        }
 
-       # Set a dict of roles with an 'admin' role that has full access and
-       # assign users to it. Each role maps to a list of rules. Each rule is a
-       # tuple (topic, name, flag), where flag is as bool to allow or disallow
-       # access. Wildcard '*' can be used to match all topics and/or names.
-       Acl.roles_map = {
-           'admin': [
-               ('*', '*', True),
-           ],
-       }
+        # Assign users 'user_1' and 'user_2' to the 'admin' role.
+        AclRules.insert_or_update(area='my_area', user='user_1',
+            roles=['admin'])
+        AclRules.insert_or_update(area='my_area', user='user_2',
+            roles=['admin'])
 
-       # Assign users 'user_1' and 'user_2' to the 'admin' role.
-       AclRules.insert_or_update(area='my_area', user='user_1',
-           roles=['admin'])
-       AclRules.insert_or_update(area='my_area', user='user_2',
-           roles=['admin'])
+        # Restrict 'user_2' from accessing a specific resource, adding a new
+        # rule with flag set to False. Now this user has access to everything
+        # except this resource.
+        user_acl = AclRules.get_by_area_and_user('my_area', 'user_2')
+        user_acl.rules.append(('UserAdmin', '*', False))
+        user_acl.put()
 
-       # Restrict 'user_2' from accessing a specific resource, adding a new
-       # rule with flag set to False. Now this user has access to everything
-       # except this resource.
-       user_acl = AclRules.get_by_area_and_user('my_area', 'user_2')
-       user_acl.rules.append(('UserAdmin', '*', False))
-       user_acl.put()
-
-       # Check that 'user_2' permissions are correct.
-       acl = Acl(area='my_area', user='user_2')
-       assert acl.has_access(topic='UserAdmin', name='save') is False
-       assert acl.has_access(topic='AnythingElse', name='put') is True
+        # Check that 'user_2' permissions are correct.
+        acl = Acl(area='my_area', user='user_2')
+        assert acl.has_access(topic='UserAdmin', name='save') is False
+        assert acl.has_access(topic='AnythingElse', name='put') is True
 
     The Acl object should be created once after a user is loaded, so that
     it becomes available for the app to do all necessary permissions checkings.
@@ -277,20 +275,18 @@ class AclRules(db.Model):
 class Acl(object):
     """Loads access rules and roles for a given user in a given area and
     provides a centralized interface to check permissions. Each Acl object
-    checks the permissions for a single user. For example:
+    checks the permissions for a single user. For example::
 
-    .. code-block:: python
+        from tipfyext.appengine.acl import Acl
 
-       from tipfyext.appengine.acl import Acl
+        # Build an Acl object for user 'John' in the 'code-reviews' area.
+        acl = Acl('code-reviews', 'John')
 
-       # Build an Acl object for user 'John' in the 'code-reviews' area.
-       acl = Acl('code-reviews', 'John')
+        # Check if 'John' is 'admin' in the 'code-reviews' area.
+        is_admin = acl.is_one('admin')
 
-       # Check if 'John' is 'admin' in the 'code-reviews' area.
-       is_admin = acl.is_one('admin')
-
-       # Check if 'John' can approve new reviews.
-       can_edit = acl.has_access('EditReview', 'approve')
+        # Check if 'John' can approve new reviews.
+        can_edit = acl.has_access('EditReview', 'approve')
     """
     #: Dictionary of available role names mapping to list of rules.
     roles_map = {}

@@ -199,9 +199,7 @@ class Router(object):
 class Rule(BaseRule):
     """Extends Werkzeug routing to support handler and name definitions for
     each Rule. Handler is a :class:`tipfy.RequestHandler` class and name is a
-    friendly name used to build URL's. For example:
-
-    .. code-block:: python
+    friendly name used to build URL's. For example::
 
         Rule('/users', name='user-list', handler='my_app:UsersHandler')
 

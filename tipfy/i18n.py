@@ -33,7 +33,7 @@ except ImportError:
     except ImportError:
         raise RuntimeError('gaepytz or pytz are required.')
 
-from tipfy import Tipfy
+from tipfy import current_handler
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -636,109 +636,109 @@ class I18nStore(object):
 
 def set_locale(locale):
     """See :meth:`I18nStore.set_locale`."""
-    return Tipfy.request.i18n_store.set_locale(locale)
+    return current_handler.i18n_store.set_locale(locale)
 
 
 def set_timezone(timezone):
     """See :meth:`I18nStore.set_timezone`."""
-    return Tipfy.request.i18n_store.set_timezone(timezone)
+    return current_handler.i18n_store.set_timezone(timezone)
 
 
 def gettext(string, **variables):
     """See :meth:`I18nStore.gettext`."""
-    return Tipfy.request.i18n_store.gettext(string, **variables)
+    return current_handler.i18n_store.gettext(string, **variables)
 
 
 def ngettext(singular, plural, n, **variables):
     """See :meth:`I18nStore.ngettext`."""
-    return Tipfy.request.i18n_store.ngettext(singular, plural, n, **variables)
+    return current_handler.i18n_store.ngettext(singular, plural, n, **variables)
 
 
 def to_local_timezone(datetime):
     """See :meth:`I18nStore.to_local_timezone`."""
-    return Tipfy.request.i18n_store.to_local_timezone(datetime)
+    return current_handler.i18n_store.to_local_timezone(datetime)
 
 
 def to_utc(datetime):
     """See :meth:`I18nStore.to_utc`."""
-    return Tipfy.request.i18n_store.to_utc(datetime)
+    return current_handler.i18n_store.to_utc(datetime)
 
 
 def format_date(date=None, format=None, rebase=True):
     """See :meth:`I18nStore.format_date`."""
-    return Tipfy.request.i18n_store.format_date(date, format, rebase)
+    return current_handler.i18n_store.format_date(date, format, rebase)
 
 
 def format_datetime(datetime=None, format=None, rebase=True):
     """See :meth:`I18nStore.format_datetime`."""
-    return Tipfy.request.i18n_store.format_datetime(datetime, format, rebase)
+    return current_handler.i18n_store.format_datetime(datetime, format, rebase)
 
 
 def format_time(time=None, format=None, rebase=True):
     """See :meth:`I18nStore.format_time`."""
-    return Tipfy.request.i18n_store.format_time(time, format, rebase)
+    return current_handler.i18n_store.format_time(time, format, rebase)
 
 
 def format_timedelta(datetime_or_timedelta, granularity='second',
     threshold=.85):
     """See :meth:`I18nStore.format_timedelta`."""
-    return Tipfy.request.i18n_store.format_timedelta(datetime_or_timedelta,
+    return current_handler.i18n_store.format_timedelta(datetime_or_timedelta,
         granularity, threshold)
 
 
 def format_number(number):
     """See :meth:`I18nStore.format_number`."""
-    return Tipfy.request.i18n_store.format_number(number)
+    return current_handler.i18n_store.format_number(number)
 
 
 def format_decimal(number, format=None):
     """See :meth:`I18nStore.format_decimal`."""
-    return Tipfy.request.i18n_store.format_decimal(number, format)
+    return current_handler.i18n_store.format_decimal(number, format)
 
 
 def format_currency(number, currency, format=None):
     """See :meth:`I18nStore.format_currency`."""
-    return Tipfy.request.i18n_store.format_currency(number, currency, format)
+    return current_handler.i18n_store.format_currency(number, currency, format)
 
 
 def format_percent(number, format=None):
     """See :meth:`I18nStore.format_percent`."""
-    return Tipfy.request.i18n_store.format_percent(number, format)
+    return current_handler.i18n_store.format_percent(number, format)
 
 
 def format_scientific(number, format=None):
     """See :meth:`I18nStore.format_scientific`."""
-    return Tipfy.request.i18n_store.format_scientific(number, format)
+    return current_handler.i18n_store.format_scientific(number, format)
 
 
 def parse_date(string):
     """See :meth:`I18nStore.parse_date`"""
-    return Tipfy.request.i18n_store.parse_date(string)
+    return current_handler.i18n_store.parse_date(string)
 
 
 def parse_datetime(string):
     """See :meth:`I18nStore.parse_datetime`."""
-    return Tipfy.request.i18n_store.parse_datetime(string)
+    return current_handler.i18n_store.parse_datetime(string)
 
 
 def parse_time(string):
     """See :meth:`I18nStore.parse_time`."""
-    return Tipfy.request.i18n_store.parse_time(string)
+    return current_handler.i18n_store.parse_time(string)
 
 
 def parse_number(string):
     """See :meth:`I18nStore.parse_number`."""
-    return Tipfy.request.i18n_store.parse_number(string)
+    return current_handler.i18n_store.parse_number(string)
 
 
 def parse_decimal(string):
     """See :meth:`I18nStore.parse_decimal`."""
-    return Tipfy.request.i18n_store.parse_decimal(string)
+    return current_handler.i18n_store.parse_decimal(string)
 
 
 def get_timezone_location(dt_or_tzinfo):
     """See :meth:`I18nStore.get_timezone_location`."""
-    return Tipfy.request.i18n_store.get_timezone_location(dt_or_tzinfo)
+    return current_handler.i18n_store.get_timezone_location(dt_or_tzinfo)
 
 
 def list_translations(dirname='locale'):

@@ -121,9 +121,8 @@ class Router(object):
     def build(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place
         to build URLs for an app. It is used by :meth:`RequestHandler.url_for`,
-        :meth:`Tipfy.url_for and the standalone function :func:`url_for`.
-        Those functions conveniently pass the current request object so you
-        don't have to.
+        and the standalone function :func:`url_for`. Those functions
+        conveniently pass the current request object so you don't have to.
 
         :param request:
             The current request object.

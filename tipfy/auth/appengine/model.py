@@ -16,7 +16,7 @@ from google.appengine.ext import db
 
 from werkzeug import check_password_hash, generate_password_hash
 
-from tipfy import Tipfy
+from tipfy import current_handler
 from tipfy.auth import create_session_id
 
 
@@ -147,7 +147,8 @@ class User(db.Model):
         """
         if force is False:
             # Only renew the session id if it is too old.
-            max_age = Tipfy.app.config['tipfy.auth']['session_max_age']
+            config = current_handler.app.config
+            max_age = config['tipfy.auth']['session_max_age']
             expires = datetime.timedelta(seconds=max_age)
 
             force = (self.session_updated + expires < datetime.datetime.now())

@@ -331,8 +331,6 @@ class Tipfy(object):
     config_class = Config
     #: Default class for the configuration object.
     router_class = Router
-    #: The active :class:`RequestHandler` instance.
-    current_handler = None
 
     def __init__(self, rules=None, config=None, debug=False):
         """Initializes the application.
@@ -565,7 +563,7 @@ def get_config(module, key=None, default=REQUIRED_VALUE):
 
     .. seealso:: :meth:`Config.get`.
     """
-    return Tipfy.app.get_config(module, key=key, default=default)
+    return current_handler.get_config(module, key, default)
 
 
 def url_for(_name, **kwargs):
@@ -573,7 +571,7 @@ def url_for(_name, **kwargs):
 
     .. seealso:: :meth:`Router.build`.
     """
-    return Tipfy.app.url_for(_name, **kwargs)
+    return current_handler.url_for(_name, **kwargs)
 
 
 def render_json_response(*args, **kwargs):
@@ -587,7 +585,7 @@ def render_json_response(*args, **kwargs):
         A :class:`Response` object with a JSON string in the body and
         mimetype set to ``application/json``.
     """
-    return Tipfy.response_class(json_encode(*args, **kwargs),
+    return current_handler.app.response_class(json_encode(*args, **kwargs),
         mimetype='application/json')
 
 

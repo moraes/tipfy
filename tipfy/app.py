@@ -36,7 +36,6 @@ __all__ = [
     'RequestHandler',
     'Response',
     'Tipfy',
-    'abort',
     'current_handler',
     'APPENGINE',
     'APPLICATION_ID',

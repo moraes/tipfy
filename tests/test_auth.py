@@ -12,7 +12,7 @@ from tipfy.auth import (AdminRequiredMiddleware, LoginRequiredMiddleware,
     admin_required, login_required, user_required,
     user_required_if_authenticated, check_password_hash, generate_password_hash,
     create_session_id, MultiAuthStore)
-from tipfy.auth.appengine import AppEngineAuthStore
+from tipfy.auth.appengine import AppEngineAuthStore, AppEngineMixedAuthStore
 from tipfy.auth.appengine.model import User
 
 

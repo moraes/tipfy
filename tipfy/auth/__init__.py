@@ -12,7 +12,7 @@ from __future__ import absolute_import
 
 import uuid
 
-from tipfy import abort, APPENGINE, DEV_APPSERVER
+from tipfy import abort, DEV_APPSERVER
 
 from werkzeug import (cached_property, check_password_hash,
     generate_password_hash, import_string)
@@ -508,8 +508,3 @@ def _admin_required(handler):
 
     if not auth.user or not auth.user.is_admin:
         abort(403)
-
-
-if APPENGINE:
-    from tipfy.auth.appengine import (AppEngineAuthStore,
-        AppEngineMixedAuthStore)

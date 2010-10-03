@@ -520,8 +520,8 @@ class Tipfy(object):
     @cached_property
     def _debugged_wsgi_app(self):
         """Returns the WSGI app wrapped by an interactive debugger."""
-        from tipfy.debugger import debugger_wsgi_middleware
-        return debugger_wsgi_middleware(self.wsgi_app)
+        from tipfy.debugger import DebuggedApplication
+        return DebuggedApplication(self.wsgi_app, evalex=True)
 
     @cached_property
     def auth_store_class(self):

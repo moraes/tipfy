@@ -195,7 +195,7 @@ class Loader(object):
         return self.templates[name]
 
 
-class ZipLoader(object):
+class ZipLoader(Loader):
     """A template loader that loads from a zip file and a root directory.
 
     You must use a template loader to use template constructs like
@@ -206,20 +206,6 @@ class ZipLoader(object):
         self.zipfile = zipfile.ZipFile(zip_path, 'r')
         self.root = os.path.join(root_directory)
         self.templates = {}
-
-    def reset(self):
-        self.templates = {}
-
-    def resolve_path(self, name, parent_path=None):
-        if parent_path and not parent_path.startswith("<") and \
-           not parent_path.startswith("/") and \
-           not name.startswith("/"):
-            current_path = os.path.join(self.root, parent_path)
-            file_dir = os.path.dirname(os.path.abspath(current_path))
-            relative_path = os.path.abspath(os.path.join(file_dir, name))
-            if relative_path.startswith(self.root):
-                name = relative_path[len(self.root) + 1:]
-        return name
 
     def load(self, name, parent_path=None):
         name = self.resolve_path(name, parent_path=parent_path)

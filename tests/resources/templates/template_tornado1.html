@@ -1,0 +1,5 @@
+{% for student in students %}
+    {% block student %}
+        {{ escape(student) }}
+    {% end %}
+{% end %}

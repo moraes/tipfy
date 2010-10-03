@@ -337,6 +337,9 @@ class Tipfy(object):
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""
+        if self.debug:
+            return self._debugged_wsgi_app(environ, start_response)
+
         return self.wsgi_app(environ, start_response)
 
     def wsgi_app(self, environ, start_response):
@@ -513,6 +516,12 @@ class Tipfy(object):
             fix_sys_path()
 
         CGIHandler().run(self)
+
+    @cached_property
+    def _debugged_wsgi_app(self):
+        """Returns the WSGI app wrapped by an interactive debugger."""
+        from tipfy.debugger import debugger_wsgi_middleware
+        return debugger_wsgi_middleware(self.wsgi_app)
 
     @cached_property
     def auth_store_class(self):

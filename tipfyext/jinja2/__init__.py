@@ -15,7 +15,7 @@ from jinja2 import Environment, FileSystemLoader, ModuleLoader
 from werkzeug import cached_property
 
 from tipfy import current_handler, APPENGINE, DEV_APPSERVER
-from tipfy.utils import _url_for
+from tipfy.utils import url_for
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -105,7 +105,7 @@ class Jinja2(object):
                 'format_datetime': i18n.format_datetime,
             })
 
-        env.globals['url_for'] = _url_for
+        env.globals['url_for'] = url_for
         self.environment = env
 
     def render(self, _filename, **context):

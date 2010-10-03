@@ -28,15 +28,14 @@ try:
     import simplejson
 except ImportError:
     try:
-        # Google App Engine.
-        from django.utils import simplejson
-    except ImportError:
+        # Standard library module in Python 2.6.
+        import json as simplejson
+        assert hasattr(simplejson, 'loads') and hasattr(simplejson, 'dumps')
+    except (ImportError, AssertionError):
         try:
-            # Standard library module in Python 2.6.
-            import json as simplejson
-            assert hasattr(simplejson, 'loads') and hasattr(simplejson,
-                'dumps')
-        except (ImportError, AssertionError):
+            # Google App Engine.
+            from django.utils import simplejson
+        except ImportError:
             raise RuntimeError('A JSON parser is required, e.g., '
                 'simplejson at http://pypi.python.org/pypi/simplejson/')
 
@@ -128,7 +127,7 @@ def _build_unicode_map():
         name, value in htmlentitydefs.name2codepoint.iteritems())
 
 
-def _url_for(_name, **kwargs):
+def url_for(_name, **kwargs):
     """A proxy for :meth:`RequestHandler.url_for`. For internal use only.
 
     .. seealso:: :meth:`Router.build`.

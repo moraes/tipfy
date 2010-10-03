@@ -22,7 +22,7 @@ def enable_appstats(app):
     app.wsgi_app = appstats_wsgi_middleware(app.wsgi_app)
 
 
-def enable_debugger(app):
+def enable_jinja2_debugging():
     """Enables debugger middleware."""
     if not debug:
         return
@@ -31,10 +31,6 @@ def enable_debugger(app):
     from google.appengine.tools.dev_appserver import HardenedModulesHook
     HardenedModulesHook._WHITE_LIST_C_MODULES += ['_ctypes', 'gestalt']
 
-    # This enables the pretty interactive debugger.
-    from tipfy.debugger import debugger_wsgi_middleware
-    app.wsgi_app = debugger_wsgi_middleware(app.wsgi_app)
-
 
 # Is this the development server?
 debug = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
@@ -42,7 +38,7 @@ debug = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 # Instantiate the application.
 app = Tipfy(rules=rules, config=config, debug=debug)
 enable_appstats(app)
-enable_debugger(app)
+enable_jinja2_debugging()
 
 
 def main():

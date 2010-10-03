@@ -10,10 +10,13 @@
 """
 from werkzeug import import_string
 
-# Value used for missing default values.
-DEFAULT_VALUE = object()
+__all__ = [
+    'DEFAULT_VALUE', 'REQUIRED_VALUE',
+]
 
-# Value used for required values.
+#: Value used for missing default values.
+DEFAULT_VALUE = object()
+#: Value used for required values.
 REQUIRED_VALUE = object()
 
 

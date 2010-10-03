@@ -41,5 +41,5 @@ default_config = {
 }
 
 from tipfy.app import *
-from tipfy.config import DEFAULT_VALUE, REQUIRED_VALUE
-from tipfy.routing import HandlerPrefix, NamePrefix, RegexConverter, Rule
+from tipfy.config import *
+from tipfy.routing import *

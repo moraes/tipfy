@@ -109,7 +109,7 @@ class Router(object):
                 method = rule.handler_method
 
         # Instantiate the handler.
-        local.handler = handler = rule.handler(app, request)
+        local.current_handler = handler = rule.handler(app, request)
         try:
             # Dispatch the requested method.
             return handler(method, **kwargs)

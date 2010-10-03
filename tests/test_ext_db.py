@@ -74,8 +74,8 @@ def test_timeout_3(**kwargs):
 
 
 class TestModel(DataStoreTestCase, unittest.TestCase):
-    def tearDown(self):
-        pass
+    def setUp(self):
+        DataStoreTestCase.setUp(self)
 
     def test_no_protobuf_from_entity(self):
         res_1 = ext_db.get_entity_from_protobuf([])

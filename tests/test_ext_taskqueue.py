@@ -19,9 +19,9 @@ def get_rules():
     # Fake get_rules() for testing.
     return [
         Rule('/_tasks/process-mymodel/', name='tasks/process-mymodel',
-            handler='%s.FooModelEntityTaskHandler' % __name__),
+            handler='%s.TaskTestModelEntityTaskHandler' % __name__),
         Rule('/_tasks/process-mymodel/<string:key>', name='tasks/process-mymodel',
-            handler='%s.FooModelEntityTaskHandler' % __name__),
+            handler='%s.TaskTestModelEntityTaskHandler' % __name__),
     ]
 
 
@@ -42,14 +42,14 @@ def get_app():
     }, rules=get_url_rules())
 
 
-class FooModel(db.Model):
+class TaskTestModel(db.Model):
     number = db.IntegerProperty()
 
 
 def save_entities(numbers):
     entities = []
     for number in numbers:
-        entities.append(FooModel(key_name=str(number), number=number))
+        entities.append(TaskTestModel(key_name=str(number), number=number))
 
     res = db.put(entities)
 
@@ -64,7 +64,7 @@ class TestDeferredHandler(DataStoreTestCase, TaskQueueTestCase, unittest.TestCas
 
     def test_simple_deferred(self):
         numbers = [1234, 1577, 988]
-        keys = [db.Key.from_path('FooModel', str(number)) for number in numbers]
+        keys = [db.Key.from_path('TaskTestModel', str(number)) for number in numbers]
         entities = db.get(keys)
         self.assertEqual(entities, [None, None, None])
 

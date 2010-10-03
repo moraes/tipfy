@@ -20,14 +20,15 @@ from werkzeug import (Local, Request as BaseRequest, Response as BaseResponse,
     cached_property, import_string, redirect as base_redirect)
 from werkzeug.exceptions import HTTPException, InternalServerError, abort
 
-# Thread local variables.
+#: Context-local.
 local = Local()
+#: Currently active handler.
 current_handler = local('current_handler')
 
 from tipfy.config import Config, DEFAULT_VALUE, REQUIRED_VALUE
 from tipfy.routing import (HandlerPrefix, NamePrefix, RegexConverter, Router,
     Rule)
-from tipfy.utils import json_decode, json_encode
+from tipfy.utils import json_decode, render_json_response
 
 __version__ = '0.7'
 __version_info__ = tuple(int(n) for n in __version__.split('.'))
@@ -112,6 +113,8 @@ class RequestHandler(object):
         """
         self.app = app
         self.request = request
+        # A context for shared data, e.g., template variables.
+        self.context = {}
 
     def __call__(self, _method, *args, **kwargs):
         """Executes a handler method. This is called by :class:`Tipfy` and
@@ -169,7 +172,7 @@ class RequestHandler(object):
         return response
 
     @cached_property
-    def auth_store(self):
+    def auth(self):
         """The auth store which provides access to the authenticated user and
         auth related functions.
 
@@ -179,7 +182,7 @@ class RequestHandler(object):
         return self.app.auth_store_class(self)
 
     @cached_property
-    def i18n_store(self):
+    def i18n(self):
         """The internationalization store which provides access to several
         translation and localization utilities.
 
@@ -189,15 +192,6 @@ class RequestHandler(object):
         return self.app.i18n_store_class.get_store_for_request(self)
 
     @cached_property
-    def session_store(self):
-        """The session store, responsible for managing sessions and flashes.
-
-        :returns:
-            A session store instance.
-        """
-        return self.app.session_store_class(self)
-
-    @cached_property
     def session(self):
         """A session dictionary using the default session configuration.
 
@@ -205,6 +199,15 @@ class RequestHandler(object):
             A dictionary-like object with the current session data.
         """
         return self.session_store.get_session()
+
+    @cached_property
+    def session_store(self):
+        """The session store, responsible for managing sessions and flashes.
+
+        :returns:
+            A session store instance.
+        """
+        return self.app.session_store_class(self)
 
     def abort(self, code, *args, **kwargs):
         """Raises an :class:`HTTPException`. This stops code execution,
@@ -226,6 +229,17 @@ class RequestHandler(object):
         """
         return self.app.config.get_config(module, key=key, default=default)
 
+    def get_valid_methods(self):
+        """Returns a list of methods supported by this handler. By default it
+        will look for HTTP methods this handler implements. For different
+        routing schemes, override this.
+
+        :returns:
+            A list of methods supported by this handler.
+        """
+        return [method for method in ALLOWED_METHODS if
+            getattr(self, method.lower().replace('-', '_'), None)]
+
     def handle_exception(self, exception=None):
         """Handles an exception. The default behavior is to reraise the
         exception (no exception handling is implemented).
@@ -234,6 +248,14 @@ class RequestHandler(object):
             The exception that was raised.
         """
         raise
+
+    def make_response(self, *rv):
+        """Converts the return value from a :class:`RequestHandler` to a real
+        response object that is an instance of :attr:`response_class`.
+
+        .. seealso:: :meth:`Tipfy.make_response`.
+        """
+        return self.app.make_response(self.request, *rv)
 
     def redirect(self, location, code=302):
         """Returns a response object with headers set for redirection to the
@@ -270,25 +292,6 @@ class RequestHandler(object):
         .. seealso:: :meth:`Router.build`.
         """
         return self.app.router.build(self.request, _name, kwargs)
-
-    def get_valid_methods(self):
-        """Returns a list of methods supported by this handler. By default it
-        will look for HTTP methods this handler implements. For different
-        routing schemes, override this.
-
-        :returns:
-            A list of methods supported by this handler.
-        """
-        return [method for method in ALLOWED_METHODS if
-            getattr(self, method.lower().replace('-', '_'), None)]
-
-    def make_response(self, *rv):
-        """Converts the return value from a :class:`RequestHandler` to a real
-        response object that is an instance of :attr:`response_class`.
-
-        .. seealso:: :meth:`Tipfy.make_response`.
-        """
-        return self.app.make_response(self.request, *rv)
 
 
 class Request(BaseRequest):
@@ -558,35 +561,12 @@ class Tipfy(object):
         return import_string(self.config[__name__]['session_store_class'])
 
 
-def get_config(module, key=None, default=REQUIRED_VALUE):
-    """Returns a configuration value for a module.
-
-    .. seealso:: :meth:`Config.get`.
-    """
-    return current_handler.get_config(module, key, default)
-
-
-def url_for(_name, **kwargs):
-    """Returns a URL for a named :class:`Rule`.
+def _url_for(_name, **kwargs):
+    """A proxy for :meth:`RequestHandler.url_for`. For internal use only.
 
     .. seealso:: :meth:`Router.build`.
     """
     return current_handler.url_for(_name, **kwargs)
-
-
-def render_json_response(*args, **kwargs):
-    """Renders a JSON response.
-
-    :param args:
-        Arguments to be passed to json_encode().
-    :param kwargs:
-        Keyword arguments to be passed to json_encode().
-    :returns:
-        A :class:`Response` object with a JSON string in the body and
-        mimetype set to ``application/json``.
-    """
-    return current_handler.app.response_class(json_encode(*args, **kwargs),
-        mimetype='application/json')
 
 
 # Short aliases.

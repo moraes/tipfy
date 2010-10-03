@@ -21,6 +21,8 @@ import re
 import xml.sax.saxutils
 import urllib
 
+from tipfy import current_handler
+
 try:
     # Preference for installed library with updated fixes.
     import simplejson
@@ -63,6 +65,21 @@ def json_encode(value, *args, **kwargs):
 def json_decode(value, *args, **kwargs):
     """Returns Python objects for the given JSON string."""
     return simplejson.loads(_unicode(value), *args, **kwargs)
+
+
+def render_json_response(*args, **kwargs):
+    """Renders a JSON response.
+
+    :param args:
+        Arguments to be passed to json_encode().
+    :param kwargs:
+        Keyword arguments to be passed to json_encode().
+    :returns:
+        A :class:`Response` object with a JSON string in the body and
+        mimetype set to ``application/json``.
+    """
+    return current_handler.app.response_class(json_encode(*args, **kwargs),
+        mimetype='application/json')
 
 
 def squeeze(value):

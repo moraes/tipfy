@@ -121,8 +121,7 @@ class Router(object):
     def build(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place
         to build URLs for an app. It is used by :meth:`RequestHandler.url_for`,
-        and the standalone function :func:`url_for`. Those functions
-        conveniently pass the current request object so you don't have to.
+        which conveniently pass the request object so you don't have to.
 
         :param request:
             The current request object.
@@ -206,9 +205,10 @@ class Rule(BaseRule):
         Rule('/users', name='user-list', handler='my_app:UsersHandler')
 
     Access to the URL ``/users`` loads ``UsersHandler`` class from
-    ``my_app`` module. To generate a URL to that page, use :func:`url_for`::
+    ``my_app`` module. To generate a URL to that page, use
+    :meth:`RequestHandler.url_for` inside a handler::
 
-        url = url_for('user-list')
+        url = self.url_for('user-list')
     """
     def __init__(self, path, handler=None, name=None, **kwargs):
         self.name = kwargs.pop('endpoint', name)

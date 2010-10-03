@@ -44,6 +44,7 @@ default_config = {
 
 class BaseAuthStore(object):
     def __init__(self, handler):
+        self.handler = handler
         self.app = handler.app
         self.request = handler.request
         self.config = handler.app.config[__name__]
@@ -72,7 +73,7 @@ class BaseAuthStore(object):
         if not DEV_APPSERVER and self.config['secure_urls']:
             kwargs['_scheme'] = 'https'
 
-        return self.app.url_for(_name, **kwargs)
+        return self.handler.url_for(_name, **kwargs)
 
     def login_url(self, **kwargs):
         """Returns a URL that, when visited, prompts the user to sign in.

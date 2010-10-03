@@ -31,15 +31,8 @@ from tipfy.routing import Router, Rule
 from tipfy.utils import json_decode
 
 __all__ = [
-    'HTTPException',
-    'Request',
-    'RequestHandler',
-    'Response',
-    'Tipfy',
-    'current_handler',
-    'APPENGINE',
-    'APPLICATION_ID',
-    'CURRENT_VERSION_ID',
+    'HTTPException', 'Request', 'RequestHandler', 'Response', 'Tipfy',
+    'current_handler', 'APPENGINE', 'APPLICATION_ID', 'CURRENT_VERSION_ID',
     'DEV_APPSERVER',
 ]
 
@@ -547,11 +540,3 @@ class Tipfy(object):
             A session store class.
         """
         return import_string(self.config['tipfy']['session_store_class'])
-
-
-def _url_for(_name, **kwargs):
-    """A proxy for :meth:`RequestHandler.url_for`. For internal use only.
-
-    .. seealso:: :meth:`Router.build`.
-    """
-    return current_handler.url_for(_name, **kwargs)

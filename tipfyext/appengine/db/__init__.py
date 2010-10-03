@@ -14,7 +14,7 @@ import time
 from google.appengine.api.namespace_manager import namespace_manager
 from google.appengine.ext import db
 
-from tipfy import abort
+from werkzeug import abort
 
 
 def get_protobuf_from_entity(entities):

@@ -127,4 +127,13 @@ def _build_unicode_map():
     return dict((name, unichr(value)) for \
         name, value in htmlentitydefs.name2codepoint.iteritems())
 
+
+def _url_for(_name, **kwargs):
+    """A proxy for :meth:`RequestHandler.url_for`. For internal use only.
+
+    .. seealso:: :meth:`Router.build`.
+    """
+    return current_handler.url_for(_name, **kwargs)
+
+
 _HTML_UNICODE_MAP = _build_unicode_map()

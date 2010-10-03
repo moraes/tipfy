@@ -12,7 +12,9 @@ from __future__ import absolute_import
 
 import uuid
 
-from tipfy import abort, DEV_APPSERVER
+from werkzeug import abort
+
+from tipfy import DEV_APPSERVER
 
 from werkzeug import (cached_property, check_password_hash,
     generate_password_hash, import_string)

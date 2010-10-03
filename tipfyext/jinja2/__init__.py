@@ -15,7 +15,7 @@ from jinja2 import Environment, FileSystemLoader, ModuleLoader
 from werkzeug import cached_property
 
 from tipfy import current_handler, APPENGINE, DEV_APPSERVER
-from tipfy.app import _url_for
+from tipfy.utils import _url_for
 
 #: Default configuration values for this module. Keys are:
 #:

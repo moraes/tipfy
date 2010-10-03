@@ -186,8 +186,8 @@ class TestMiscelaneous(unittest.TestCase):
         local.__release_local__()
 
     def test_dev_run(self):
-        tipfy.APPENGINE = True
-        tipfy.DEV_APPSERVER = True
+        tipfy.app.APPENGINE = True
+        tipfy.app.DEV_APPSERVER = True
 
         os.environ['APPLICATION_ID'] = 'my-app'
         os.environ['SERVER_SOFTWARE'] = 'Development'
@@ -206,5 +206,5 @@ class TestMiscelaneous(unittest.TestCase):
         app.run()
         self.assertEqual(sys.stdout.getvalue(), 'Status: 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 13\r\n\r\nHello, World!')
 
-        tipfy.APPENGINE = False
-        tipfy.DEV_APPSERVER = False
+        tipfy.app.APPENGINE = False
+        tipfy.app.DEV_APPSERVER = False

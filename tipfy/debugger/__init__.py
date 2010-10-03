@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.debugger.app
-    ~~~~~~~~~~~~~~~~~~
+    tipfy.debugger
+    ~~~~~~~~~~~~~~
 
     Patched DebuggedApplication to work on App Engine and using zipimport.
 

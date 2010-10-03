@@ -26,9 +26,23 @@ local = Local()
 current_handler = local('current_handler')
 
 from tipfy import default_config
-from tipfy.config import Config, DEFAULT_VALUE, REQUIRED_VALUE
+from tipfy.config import Config, REQUIRED_VALUE
 from tipfy.routing import Router, Rule
 from tipfy.utils import json_decode
+
+__all__ = [
+    'HTTPException',
+    'Request',
+    'RequestHandler',
+    'Response',
+    'Tipfy',
+    'abort',
+    'current_handler',
+    'APPENGINE',
+    'APPLICATION_ID',
+    'CURRENT_VERSION_ID',
+    'DEV_APPSERVER',
+]
 
 # Allowed request methods.
 ALLOWED_METHODS = frozenset(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT',
@@ -45,22 +59,6 @@ DEV_APPSERVER = SERVER_SOFTWARE.startswith('Development')
 #: True if the app is running on App Engine, False otherwise.
 APPENGINE = (APPLICATION_ID is not None and (DEV_APPSERVER or
     SERVER_SOFTWARE.startswith('Google App Engine')))
-
-__all__ = [
-    'App',
-    'Handler',
-    'HTTPException',
-    'Request',
-    'RequestHandler',
-    'Response',
-    'Tipfy',
-    'abort',
-    'current_handler',
-    'APPENGINE',
-    'APPLICATION_ID',
-    'CURRENT_VERSION_ID',
-    'DEV_APPSERVER',
-]
 
 
 class RequestHandler(object):
@@ -558,8 +556,3 @@ def _url_for(_name, **kwargs):
     .. seealso:: :meth:`Router.build`.
     """
     return current_handler.url_for(_name, **kwargs)
-
-
-# Short aliases.
-App = Tipfy
-Handler = RequestHandler

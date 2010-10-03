@@ -16,7 +16,7 @@ from google.appengine.api import memcache
 from google.appengine.ext import db
 from google.appengine.runtime import apiproxy_errors
 
-from tipfy import get_config
+from tipfy import current_handler
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -105,7 +105,7 @@ class Counter(object):
 
     @property
     def number_of_shards(self):
-        return self.shards or get_config(__name__, 'shards')
+        return self.shards or current_handler.app.config[__name__]['shards']
 
     def delete(self):
         q = db.Query(CounterShard).filter('name =', self.name)

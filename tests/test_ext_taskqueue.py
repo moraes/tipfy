@@ -11,7 +11,8 @@ from google.appengine.api.labs import taskqueue
 from google.appengine.ext import db
 from gaetestbed import DataStoreTestCase, TaskQueueTestCase
 
-from tipfy import Rule, Tipfy, url_for
+from tipfy import Rule, Tipfy
+from tipfy.app import local
 
 
 def get_rules():
@@ -59,10 +60,7 @@ def save_entities(numbers):
 class TestDeferredHandler(DataStoreTestCase, TaskQueueTestCase, unittest.TestCase):
     """TODO"""
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_simple_deferred(self):
         numbers = [1234, 1577, 988]
@@ -76,7 +74,4 @@ class TestDeferredHandler(DataStoreTestCase, TaskQueueTestCase, unittest.TestCas
 class TestTasks(DataStoreTestCase, TaskQueueTestCase, unittest.TestCase):
     """TODO"""
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()

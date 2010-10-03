@@ -3,8 +3,9 @@ import unittest
 
 from gaetestbed import DataStoreTestCase
 
-from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
-    ALLOWED_METHODS)
+from tipfy import Request, RequestHandler, Response, Rule, Tipfy
+from tipfy.app import local
+
 import tipfy.auth
 from tipfy.auth import (AdminRequiredMiddleware, LoginRequiredMiddleware,
     UserRequiredMiddleware, UserRequiredIfAuthenticatedMiddleware,
@@ -46,19 +47,16 @@ def get_app():
 
 class TestAppEngineAuthStore(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_user_model(self):
         app = get_app()
         app.router.add(Rule('/', name='home', handler=HomeHandler))
 
         request = Request.from_values('/')
-        app.set_locals(request)
+        local.current_handler = RequestHandler(app, request)
 
-        store = AppEngineAuthStore(app, request)
+        store = AppEngineAuthStore(local.current_handler)
         self.assertEqual(store.user_model, User)
 
     def test_login_url(self):
@@ -66,15 +64,15 @@ class TestAppEngineAuthStore(unittest.TestCase):
         app.router.add(Rule('/', name='home', handler=HomeHandler))
 
         request = Request.from_values('/')
-        app.set_locals(request)
+        local.current_handler = RequestHandler(app, request)
         app.router.match(request)
 
-        store = AppEngineAuthStore(app, request)
-        self.assertEqual(store.login_url(), app.url_for('auth/login', redirect='/'))
+        store = AppEngineAuthStore(local.current_handler)
+        self.assertEqual(store.login_url(), local.current_handler.url_for('auth/login', redirect='/'))
 
         tipfy.auth.DEV_APPSERVER_APPSERVER = False
         store.config['secure_urls'] = True
-        self.assertEqual(store.login_url(), app.url_for('auth/login', redirect='/', _scheme='https'))
+        self.assertEqual(store.login_url(), local.current_handler.url_for('auth/login', redirect='/', _scheme='https'))
         tipfy.auth.DEV_APPSERVER_APPSERVER = True
 
     def test_logout_url(self):
@@ -82,22 +80,22 @@ class TestAppEngineAuthStore(unittest.TestCase):
         app.router.add(Rule('/', name='home', handler=HomeHandler))
 
         request = Request.from_values('/')
-        app.set_locals(request)
+        local.current_handler = RequestHandler(app, request)
         app.router.match(request)
 
-        store = AppEngineAuthStore(app, request)
-        self.assertEqual(store.logout_url(), app.url_for('auth/logout', redirect='/'))
+        store = AppEngineAuthStore(local.current_handler)
+        self.assertEqual(store.logout_url(), local.current_handler.url_for('auth/logout', redirect='/'))
 
     def test_signup_url(self):
         app = get_app()
         app.router.add(Rule('/', name='home', handler=HomeHandler))
 
         request = Request.from_values('/')
-        app.set_locals(request)
+        local.current_handler = RequestHandler(app, request)
         app.router.match(request)
 
-        store = AppEngineAuthStore(app, request)
-        self.assertEqual(store.signup_url(), app.url_for('auth/signup', redirect='/'))
+        store = AppEngineAuthStore(local.current_handler)
+        self.assertEqual(store.signup_url(), local.current_handler.url_for('auth/signup', redirect='/'))
 
 
 class TestMiddleware(DataStoreTestCase, unittest.TestCase):
@@ -105,10 +103,7 @@ class TestMiddleware(DataStoreTestCase, unittest.TestCase):
         DataStoreTestCase.setUp(self)
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
         os.environ.pop('USER_EMAIL', None)
         os.environ.pop('USER_ID', None)
@@ -516,10 +511,7 @@ class TestUserModel(DataStoreTestCase, unittest.TestCase):
         DataStoreTestCase.setUp(self)
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_create(self):
         user = User.create('my_username', 'my_id')
@@ -556,6 +548,9 @@ class TestUserModel(DataStoreTestCase, unittest.TestCase):
 
     def test_check_password(self):
         app = Tipfy()
+        request = Request.from_values('/')
+        local.current_handler = RequestHandler(app, request)
+
         user = User.create('my_username', 'my_id', password='foo')
 
         self.assertEqual(user.check_password('foo'), True)
@@ -563,6 +558,9 @@ class TestUserModel(DataStoreTestCase, unittest.TestCase):
 
     def test_check_session(self):
         app = Tipfy()
+        request = Request.from_values('/')
+        local.current_handler = RequestHandler(app, request)
+
         user = User.create('my_username', 'my_id', password='foo')
 
         session_id = user.session_id
@@ -608,6 +606,9 @@ class TestUserModel(DataStoreTestCase, unittest.TestCase):
 
     def test_renew_session(self):
         app = Tipfy()
+        request = Request.from_values('/')
+        local.current_handler = RequestHandler(app, request)
+
         user = User.create('my_username', 'my_id')
         user.renew_session()
 
@@ -622,10 +623,7 @@ class TestMiscelaneous(DataStoreTestCase, unittest.TestCase):
         DataStoreTestCase.setUp(self)
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_create_session_id(self):
         self.assertEqual(len(create_session_id()), 32)
@@ -636,26 +634,21 @@ class TestMultiAuthStore(DataStoreTestCase, unittest.TestCase):
         DataStoreTestCase.setUp(self)
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def get_app(self):
         app = Tipfy(config={'tipfy.sessions': {
             'secret_key': 'secret',
         }})
-        app.set_locals(Request.from_values('/'))
+        local.current_handler = RequestHandler(app, Request.from_values('/'))
         return app
-
-    def test_factory(self):
-        app = self.get_app()
-        store = MultiAuthStore.factory(app, 'auth_store')
-        self.assertEqual(isinstance(store, MultiAuthStore), True)
 
     def test_login_with_form_invalid(self):
         app = self.get_app()
-        store = MultiAuthStore(app, app.request)
+        request = Request.from_values('/')
+        local.current_handler = RequestHandler(app, request)
+
+        store = MultiAuthStore(local.current_handler)
         res = store.login_with_form('foo', 'bar', remember=True)
 
         self.assertEqual(res, False)
@@ -663,7 +656,10 @@ class TestMultiAuthStore(DataStoreTestCase, unittest.TestCase):
     def test_login_with_form(self):
         user = User.create('foo', 'foo_id', password='bar')
         app = self.get_app()
-        store = MultiAuthStore(app, app.request)
+        request = Request.from_values('/')
+        local.current_handler = RequestHandler(app, request)
+
+        store = MultiAuthStore(local.current_handler)
         res = store.login_with_form('foo', 'bar', remember=True)
         self.assertEqual(res, True)
 
@@ -672,7 +668,10 @@ class TestMultiAuthStore(DataStoreTestCase, unittest.TestCase):
 
     def test_login_with_auth_id(self):
         app = self.get_app()
-        store = MultiAuthStore(app, app.request)
+        request = Request.from_values('/')
+        local.current_handler = RequestHandler(app, request)
+
+        store = MultiAuthStore(local.current_handler)
         store.login_with_auth_id('foo_id', remember=False)
 
         user = User.create('foo', 'foo_id', password='bar')
@@ -682,17 +681,20 @@ class TestMultiAuthStore(DataStoreTestCase, unittest.TestCase):
     def test_real_login(self):
         user = User.create('foo', 'foo_id', auth_remember=True)
         app = self.get_app()
-        store = MultiAuthStore(app, app.request)
+        request = Request.from_values('/')
+        local.current_handler = RequestHandler(app, request)
+
+        store = MultiAuthStore(local.current_handler)
         store.login_with_auth_id('foo_id', remember=False)
 
         response = Response()
-        app.request.session_store.save(response)
+        local.current_handler.session_store.save(response)
 
         request = Request.from_values('/', headers={
             'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
         })
-        app.set_locals(request)
-        store = MultiAuthStore(app, app.request)
+        local.current_handler = RequestHandler(app, request)
+        store = MultiAuthStore(local.current_handler)
         self.assertNotEqual(store.user, None)
         self.assertEqual(store.user.username, 'foo')
         self.assertEqual(store.user.auth_id, 'foo_id')
@@ -700,55 +702,58 @@ class TestMultiAuthStore(DataStoreTestCase, unittest.TestCase):
     def test_real_logout(self):
         user = User.create('foo', 'foo_id', auth_remember=True)
         app = self.get_app()
-        store = MultiAuthStore(app, app.request)
+        request = Request.from_values('/')
+        local.current_handler = RequestHandler(app, request)
+
+        store = MultiAuthStore(local.current_handler)
         store.login_with_auth_id('foo_id', remember=False)
 
         response = Response()
-        app.request.session_store.save(response)
+        local.current_handler.session_store.save(response)
 
         request = Request.from_values('/', headers={
             'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
         })
-        app.set_locals(request)
-        store = MultiAuthStore(app, app.request)
+        local.current_handler = RequestHandler(app, request)
+        store = MultiAuthStore(local.current_handler)
         self.assertNotEqual(store.user, None)
         self.assertEqual(store.user.username, 'foo')
         store.logout()
 
         response = Response()
-        app.request.session_store.save(response)
+        local.current_handler.session_store.save(response)
 
         request = Request.from_values('/', headers={
             'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
         })
-        app.set_locals(request)
-        store = MultiAuthStore(app, app.request)
+        local.current_handler = RequestHandler(app, request)
+        store = MultiAuthStore(local.current_handler)
 
         #self.assertEqual(store.user, None)
         self.assertEqual(store.session, None)
 
     def test_real_login_no_user(self):
         app = self.get_app()
-        store = MultiAuthStore(app, app.request)
+        store = MultiAuthStore(local.current_handler)
         user = store.create_user('foo', 'foo_id')
         store.login_with_auth_id('foo_id', remember=False)
 
         response = Response()
-        app.request.session_store.save(response)
+        local.current_handler.session_store.save(response)
 
         user.delete()
 
         request = Request.from_values('/', headers={
             'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
         })
-        app.set_locals(request)
-        store = MultiAuthStore(app, app.request)
+        local.current_handler = RequestHandler(app, request)
+        store = MultiAuthStore(local.current_handler)
         self.assertEqual(store.session['id'], 'foo_id')
         self.assertEqual(store.user, None)
 
     def test_real_login_invalid(self):
         app = self.get_app()
-        store = MultiAuthStore(app, app.request)
+        store = MultiAuthStore(local.current_handler)
         self.assertEqual(store.user, None)
         self.assertEqual(store.session, None)
 

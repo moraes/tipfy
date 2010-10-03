@@ -1,8 +1,8 @@
 import os
 import unittest
 
-from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
-    ALLOWED_METHODS)
+from tipfy import Request, RequestHandler, Response, Rule, Tipfy
+from tipfy.app import ALLOWED_METHODS
 
 from tipfy.sessions import SecureCookieSession
 from tipfy.i18n import I18nStore
@@ -196,8 +196,8 @@ class TestHandler(unittest.TestCase):
 
         handler = Handler(app, request)
         self.assertEqual(isinstance(handler.session, SecureCookieSession), True)
-        self.assertEqual(isinstance(handler.auth_store, AppEngineAuthStore), True)
-        self.assertEqual(isinstance(handler.i18n_store, I18nStore), True)
+        self.assertEqual(isinstance(handler.auth, AppEngineAuthStore), True)
+        self.assertEqual(isinstance(handler.i18n, I18nStore), True)
 
 class TestHandlerMiddleware(unittest.TestCase):
     def test_before_dispatch(self):

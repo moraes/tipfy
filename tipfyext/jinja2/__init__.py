@@ -14,7 +14,8 @@ from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from werkzeug import cached_property
 
-from tipfy import APPENGINE, DEV_APPSERVER, _url_for
+from tipfy import current_handler, APPENGINE, DEV_APPSERVER
+from tipfy.app import _url_for
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -54,10 +55,10 @@ class Jinja2Mixin(object):
         return Jinja2.factory(self.app, 'jinja2')
 
     def render_template(self, _filename, **context):
-        return self.jinja2.render_template(_filename, **context)
+        return self.jinja2.render_template(self, _filename, **context)
 
     def render_response(self, _filename, **context):
-        return self.jinja2.render_response(_filename, **context)
+        return self.jinja2.render_response(self, _filename, **context)
 
 
 class Jinja2(object):
@@ -120,7 +121,7 @@ class Jinja2(object):
         """
         return self.environment.get_template(_filename).render(**context)
 
-    def render_template(self, _filename, **context):
+    def render_template(self, _handler, _filename, **context):
         """Renders a template and returns a response object.
 
         :param _filename:
@@ -131,11 +132,11 @@ class Jinja2(object):
        :returns:
             A rendered template.
         """
-        ctx = self.context.copy()
+        ctx = _handler.context.copy()
         ctx.update(context)
         return self.render(_filename, **ctx)
 
-    def render_response(self, _filename, **context):
+    def render_response(self, _handler, _filename, **context):
         """Returns a response object with a rendered template.
 
         :param _filename:
@@ -144,7 +145,7 @@ class Jinja2(object):
             Keyword arguments used as variables in the rendered template.
             These will override values set in the request context.
         """
-        res = self.render_template(_filename, **context)
+        res = self.render_template(_handler, _filename, **context)
         return self.app.response_class(res)
 
     def get_template_attribute(self, filename, attribute):

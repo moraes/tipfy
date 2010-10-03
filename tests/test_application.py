@@ -3,8 +3,8 @@ import sys
 import unittest
 
 import tipfy
-from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
-    ALLOWED_METHODS, local)
+from tipfy import Request, RequestHandler, Response, Rule, Tipfy
+from tipfy.app import local, ALLOWED_METHODS
 
 
 class AllMethodsHandler(RequestHandler):
@@ -57,8 +57,6 @@ class TestApp(unittest.TestCase):
 
     def test_200_appengine(self):
         tipfy.APPENGINE = True
-        Tipfy.app = None
-        Tipfy.request = None
 
         app = Tipfy(rules=[Rule('/', name='home', handler=AllMethodsHandler)])
         client = app.get_test_client()
@@ -68,8 +66,6 @@ class TestApp(unittest.TestCase):
         self.assertEqual(response.data, 'Method: GET')
 
         tipfy.APPENGINE = False
-        Tipfy.app = local('app')
-        Tipfy.request = local('request')
 
     def test_404(self):
         # No URL rules defined.
@@ -114,7 +110,8 @@ class TestApp(unittest.TestCase):
 
     def test_make_response(self):
         app = Tipfy()
-        response = app.make_response()
+        request = Request.from_values()
+        response = app.make_response(request, )
 
         self.assertEqual(isinstance(response, app.response_class), True)
         self.assertEqual(response.data, '')
@@ -122,7 +119,8 @@ class TestApp(unittest.TestCase):
 
     def test_make_response_from_response(self):
         app = Tipfy()
-        response = app.make_response(Response('hello, world!'))
+        request = Request.from_values()
+        response = app.make_response(request, Response('hello, world!'))
 
         self.assertEqual(isinstance(response, app.response_class), True)
         self.assertEqual(response.status_code, 200)
@@ -130,7 +128,8 @@ class TestApp(unittest.TestCase):
 
     def test_make_response_from_string(self):
         app = Tipfy()
-        response = app.make_response('hello, world!')
+        request = Request.from_values()
+        response = app.make_response(request, 'hello, world!')
 
         self.assertEqual(isinstance(response, app.response_class), True)
         self.assertEqual(response.data, 'hello, world!')
@@ -138,7 +137,8 @@ class TestApp(unittest.TestCase):
 
     def test_make_response_from_tuple(self):
         app = Tipfy()
-        response = app.make_response('hello, world!', 404)
+        request = Request.from_values()
+        response = app.make_response(request, 'hello, world!', 404)
 
         self.assertEqual(isinstance(response, app.response_class), True)
         self.assertEqual(response.data, 'hello, world!')
@@ -146,7 +146,8 @@ class TestApp(unittest.TestCase):
 
     def test_make_response_from_none(self):
         app = Tipfy()
-        self.assertRaises(ValueError, app.make_response, None)
+        request = Request.from_values()
+        self.assertRaises(ValueError, app.make_response, request, None)
 
 
 class TestHandleException(unittest.TestCase):
@@ -182,10 +183,7 @@ class TestHandleException(unittest.TestCase):
 
 class TestMiscelaneous(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_dev_run(self):
         tipfy.APPENGINE = True
@@ -210,5 +208,3 @@ class TestMiscelaneous(unittest.TestCase):
 
         tipfy.APPENGINE = False
         tipfy.DEV_APPSERVER = False
-        Tipfy.app = local('app')
-        Tipfy.request = local('request')

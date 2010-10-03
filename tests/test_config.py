@@ -4,15 +4,14 @@ Tests for tipfy config
 """
 import unittest
 
-from tipfy import Config, Tipfy, RequestHandler, get_config, REQUIRED_VALUE
+from tipfy import Tipfy, RequestHandler, REQUIRED_VALUE
+from tipfy.app import local
+from tipfy.config import Config
 
 
 class TestConfig(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_get(self):
         config = Config({'foo': {
@@ -166,10 +165,7 @@ class TestConfig(unittest.TestCase):
 
 class TestLoadConfig(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_default_config(self):
         config = Config()
@@ -261,17 +257,6 @@ class TestLoadConfig(unittest.TestCase):
         config = Config()
         self.assertRaises(KeyError, config.get_config, 'tipfy', 'foo')
 
-    def test_app_get_config(self):
-        app = Tipfy()
-
-        self.assertEqual(app.get_config('resources.i18n', 'locale'), 'en_US')
-        self.assertEqual(app.get_config('resources.i18n', 'locale', 'foo'), 'en_US')
-        self.assertEqual(app.get_config('resources.i18n'), {
-            'locale': 'en_US',
-            'timezone': 'America/Chicago',
-            'required': REQUIRED_VALUE,
-        })
-
     def test_request_handler_get_config(self):
         app = Tipfy()
 
@@ -288,10 +273,7 @@ class TestLoadConfig(unittest.TestCase):
 
 class TestLoadConfigGetItem(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_default_config(self):
         config = Config()
@@ -383,11 +365,10 @@ class TestLoadConfigGetItem(unittest.TestCase):
 
 class TestGetConfig(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
+    '''
     def test_get_config(self):
         app = Tipfy()
         self.assertEqual(get_config('resources.i18n', 'locale'), 'en_US')
+    '''

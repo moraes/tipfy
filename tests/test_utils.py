@@ -6,11 +6,12 @@ import unittest
 
 import werkzeug
 
-from tipfy import (RequestHandler, Response, Rule, Tipfy, redirect,
-    redirect_to, render_json_response)
+from tipfy import RequestHandler, Request, Response, Rule, Tipfy
+from tipfy.app import local
 
 from tipfy.utils import (xhtml_escape, xhtml_unescape, json_encode,
-    json_decode, url_escape, url_unescape, utf8, _unicode)
+    json_decode, render_json_response, url_escape, url_unescape, utf8,
+    _unicode)
 
 
 class HomeHandler(RequestHandler):
@@ -60,11 +61,8 @@ def get_app():
 
 class TestRedirect(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
-
+        local.__release_local__()
+    '''
     #===========================================================================
     # redirect()
     #===========================================================================
@@ -147,19 +145,17 @@ class TestRedirect(unittest.TestCase):
 
         response = client.get('/redirect_to_invalid', base_url='http://foo.com')
         self.assertEqual(response.status_code, 500)
-
+    '''
 
 class TestRenderJson(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     #===========================================================================
     # render_json_response()
     #===========================================================================
     def test_render_json_response(self):
+        local.current_handler = HomeHandler(Tipfy(), Request.from_values())
         response = render_json_response({'foo': 'bar'})
 
         self.assertEqual(isinstance(response, Response), True)
@@ -169,10 +165,7 @@ class TestRenderJson(unittest.TestCase):
 
 class TestUtils(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_xhtml_escape(self):
         self.assertEqual(xhtml_escape('"foo"'), '&quot;foo&quot;')

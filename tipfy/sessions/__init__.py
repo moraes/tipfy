@@ -395,7 +395,7 @@ class SessionStore(object):
 class SessionMiddleware(object):
     """Saves sessions at the end of a request."""
     def after_dispatch(self, handler, response):
-        handler.request.session_store.save(response)
+        handler.session_store.save(response)
         return response
 
 

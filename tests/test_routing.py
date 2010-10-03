@@ -1,15 +1,13 @@
 import unittest
 
 from tipfy import Tipfy, RequestHandler, Response
+from tipfy.app import local
 from tipfy.routing import HandlerPrefix, Router, Rule
 
 
 class TestRouter(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_add(self):
         app = Tipfy()
@@ -28,10 +26,7 @@ class TestRouter(unittest.TestCase):
 
 class TestRouting(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     #==========================================================================
     # HandlerPrefix
@@ -79,10 +74,7 @@ class TestRouting(unittest.TestCase):
 
 class TestAlternativeRouting(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     #==========================================================================
     # HandlerPrefix

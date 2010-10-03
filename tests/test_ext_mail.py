@@ -7,6 +7,7 @@ import sys
 import unittest
 
 from tipfy import Rule, Tipfy
+from tipfy.app import local
 
 from google.appengine.api.xmpp import Message as ApiMessage
 
@@ -31,10 +32,7 @@ class TestInboundMailHandler(unittest.TestCase):
         pass
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_mail(self):
         app = get_app()

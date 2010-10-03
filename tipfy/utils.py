@@ -21,7 +21,7 @@ import re
 import xml.sax.saxutils
 import urllib
 
-from tipfy import current_handler
+from tipfy.app import current_handler
 
 try:
     # Preference for installed library with updated fixes.

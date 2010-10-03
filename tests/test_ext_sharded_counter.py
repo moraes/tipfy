@@ -9,7 +9,8 @@ from gaetestbed import DataStoreTestCase, MemcacheTestCase
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
-from tipfy import Tipfy
+from tipfy import Request, RequestHandler, Tipfy
+from tipfy.app import local
 from tipfyext.appengine.sharded_counter import Counter
 
 
@@ -19,13 +20,10 @@ class TestCounter(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         MemcacheTestCase.setUp(self)
 
         app = Tipfy()
-        app.set_locals()
+        local.current_handler = RequestHandler(app, Request.from_values())
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_counter(self):
         # Build a new counter that uses the unique key name 'hits'.

@@ -12,7 +12,7 @@ from werkzeug import import_string, url_quote
 from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
     Rule as BaseRule, RuleFactory)
 
-from tipfy import local
+from tipfy.app import local
 
 
 class Router(object):

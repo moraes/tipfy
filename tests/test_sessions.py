@@ -6,6 +6,7 @@ from gaetestbed import DataStoreTestCase, MemcacheTestCase
 from werkzeug import cached_property
 
 from tipfy import Tipfy, Request, RequestHandler, Response, Rule
+from tipfy.app import local
 from tipfy.sessions import (SecureCookieSession, SecureCookieStore,
     SessionMiddleware, SessionStore)
 from tipfy.sessions.appengine import (DatastoreSession, MemcacheSession,
@@ -18,10 +19,7 @@ class BaseHandler(RequestHandler):
 
 class TestSessionStoreBase(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def _get_app(self):
         return Tipfy(config={
@@ -31,20 +29,20 @@ class TestSessionStoreBase(unittest.TestCase):
         })
 
     def test_secure_cookie_store(self):
-        app = self._get_app()
-        store = SessionStore(app, Request.from_values('/'))
+        local.current_handler = handler = RequestHandler(self._get_app(), Request.from_values())
+        store = SessionStore(handler)
 
         self.assertEqual(isinstance(store.secure_cookie_store, SecureCookieStore), True)
 
     def test_secure_cookie_store_no_secret_key(self):
-        app = Tipfy()
-        store = SessionStore(app, Request.from_values('/'))
+        local.current_handler = handler = RequestHandler(Tipfy(), Request.from_values())
+        store = SessionStore(handler)
 
         self.assertRaises(KeyError, getattr, store, 'secure_cookie_store')
 
     def test_get_cookie_args(self):
-        app = self._get_app()
-        store = SessionStore(app, Request.from_values('/'))
+        local.current_handler = handler = RequestHandler(self._get_app(), Request.from_values())
+        store = SessionStore(handler)
 
         self.assertEqual(store.get_cookie_args(), {
             'max_age':     None,
@@ -63,8 +61,8 @@ class TestSessionStoreBase(unittest.TestCase):
         })
 
     def test_get_save_session(self):
-        app = self._get_app()
-        store = SessionStore(app, Request.from_values('/'))
+        local.current_handler = handler = RequestHandler(self._get_app(), Request.from_values())
+        store = SessionStore(handler)
 
         session = store.get_session()
         self.assertEqual(isinstance(session, SecureCookieSession), True)
@@ -75,17 +73,17 @@ class TestSessionStoreBase(unittest.TestCase):
         response = Response()
         store.save(response)
 
-        app = self._get_app()
         request = Request.from_values('/', headers={'Cookie': '\n'.join(response.headers.getlist('Set-Cookie'))})
-        store = SessionStore(app, request)
+        local.current_handler = handler = RequestHandler(self._get_app(), request)
+        store = SessionStore(handler)
 
         session = store.get_session()
         self.assertEqual(isinstance(session, SecureCookieSession), True)
         self.assertEqual(session, {'foo': 'bar'})
 
     def test_set_delete_cookie(self):
-        app = self._get_app()
-        store = SessionStore(app, Request.from_values('/'))
+        local.current_handler = handler = RequestHandler(self._get_app(), Request.from_values())
+        store = SessionStore(handler)
 
         store.set_cookie('foo', 'bar')
         store.set_cookie('baz', 'ding')
@@ -108,11 +106,6 @@ class TestSessionStoreBase(unittest.TestCase):
         self.assertEqual(request.cookies.get('foo', None), '')
         self.assertEqual(request.cookies['baz'], 'ding')
 
-    def test_factory(self):
-        app = Tipfy()
-        app.set_locals(Request.from_values('/'))
-        self.assertEqual(isinstance(SessionStore.factory(app, 'session_store'), SessionStore), True)
-
 
 class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def setUp(self):
@@ -126,10 +119,7 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
         })
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def _get_app(self, *args, **kwargs):
         app = Tipfy(config={
@@ -137,7 +127,7 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
                 'secret_key': 'secret',
             },
         })
-        app.set_locals(Request.from_values(*args, **kwargs))
+        local.current_handler = handler = RequestHandler(app, Request.from_values(*args, **kwargs))
         return app
 
     def test_set_session(self):
@@ -148,7 +138,7 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
                     res = 'undefined'
                     session = SecureCookieSession()
                     session['key'] = 'a session value'
-                    self.request.session_store.set_session(self.request.session_store.config['cookie_name'], session)
+                    self.session_store.set_session(self.session_store.config['cookie_name'], session)
 
                 return Response(res)
 
@@ -169,13 +159,13 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def test_set_session_datastore(self):
         class MyHandler(BaseHandler):
             def get(self):
-                session = self.request.session_store.get_session(backend='datastore')
+                session = self.session_store.get_session(backend='datastore')
                 res = session.get('key')
                 if not res:
                     res = 'undefined'
                     session = DatastoreSession(None, 'a_random_session_id')
                     session['key'] = 'a session value'
-                    self.request.session_store.set_session(self.request.session_store.config['cookie_name'], session, backend='datastore')
+                    self.session_store.set_session(self.session_store.config['cookie_name'], session, backend='datastore')
 
                 return Response(res)
 
@@ -196,7 +186,7 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def test_get_memcache_session(self):
         class MyHandler(BaseHandler):
             def get(self):
-                session = self.request.session_store.get_session(backend='memcache')
+                session = self.session_store.get_session(backend='memcache')
                 res = session.get('test')
                 if not res:
                     res = 'undefined'
@@ -221,7 +211,7 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
     def test_get_datastore_session(self):
         class MyHandler(BaseHandler):
             def get(self):
-                session = self.request.session_store.get_session(backend='datastore')
+                session = self.session_store.get_session(backend='datastore')
                 res = session.get('test')
                 if not res:
                     res = 'undefined'
@@ -249,9 +239,9 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
                 res = self.request.cookies.get('test')
                 if not res:
                     res = 'undefined'
-                    self.request.session_store.set_cookie('test', 'a cookie value')
+                    self.session_store.set_cookie('test', 'a cookie value')
                 else:
-                    self.request.session_store.delete_cookie('test')
+                    self.session_store.delete_cookie('test')
 
                 return Response(res)
 
@@ -285,9 +275,9 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
                 res = self.request.cookies.get('test')
                 if not res:
                     res = 'undefined'
-                    self.request.session_store.set_cookie('test', 'a cookie value')
+                    self.session_store.set_cookie('test', 'a cookie value')
 
-                self.request.session_store.unset_cookie('test')
+                self.session_store.unset_cookie('test')
                 return Response(res)
 
         rules = [Rule('/', name='test', handler=MyHandler)]
@@ -309,11 +299,11 @@ class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
             def get(self):
                 response = Response()
 
-                cookie = self.request.session_store.get_secure_cookie('test') or {}
+                cookie = self.session_store.get_secure_cookie('test') or {}
                 res = cookie.get('test')
                 if not res:
                     res = 'undefined'
-                    self.request.session_store.set_secure_cookie(response, 'test', {'test': 'a secure cookie value'})
+                    self.session_store.set_secure_cookie(response, 'test', {'test': 'a secure cookie value'})
 
                 response.data = res
                 return response
@@ -420,10 +410,7 @@ class TestSessionModel(DataStoreTestCase, MemcacheTestCase,
         self.app = Tipfy()
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def test_get_by_sid_without_cache(self):
         sid = 'test'

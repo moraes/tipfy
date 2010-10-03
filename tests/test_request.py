@@ -3,6 +3,7 @@ import sys
 import unittest
 
 from tipfy import Request, RequestHandler, Response, Rule, Tipfy
+from tipfy.app import local
 from tipfy.sessions import SessionStore, SecureCookieSession
 from tipfy.auth.appengine import AppEngineAuthStore
 from tipfy.utils import json_decode, json_encode
@@ -10,10 +11,7 @@ from tipfy.utils import json_decode, json_encode
 
 class TestRequest(unittest.TestCase):
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
 
     def _get_app(self):
         return Tipfy(config={
@@ -39,23 +37,23 @@ class TestRequest(unittest.TestCase):
     def test_session_store(self):
         app = self._get_app()
         request = Request.from_values('/')
-        app.set_locals(request)
+        local.current_handler = handler = RequestHandler(app, request)
 
-        self.assertEqual(isinstance(request.session_store, SessionStore), True)
+        self.assertEqual(isinstance(handler.session_store, SessionStore), True)
 
     def test_session(self):
         app = self._get_app()
         request = Request.from_values('/')
-        app.set_locals(request)
+        local.current_handler = handler = RequestHandler(app, request)
 
-        session = request.session
+        session = handler.session
         self.assertEqual(isinstance(session, SecureCookieSession), True)
         self.assertEqual(session, {})
 
     def test_auth_store(self):
         app = self._get_app()
         request = Request.from_values('/')
-        app.set_locals(request)
+        local.current_handler = handler = RequestHandler(app, request)
 
-        self.assertEqual(isinstance(request.auth_store, AppEngineAuthStore), True)
+        self.assertEqual(isinstance(handler.auth, AppEngineAuthStore), True)
 

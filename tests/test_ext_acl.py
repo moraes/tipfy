@@ -8,8 +8,11 @@ from gaetestbed import DataStoreTestCase, MemcacheTestCase
 
 from google.appengine.api import memcache
 
-from tipfy import Tipfy, CURRENT_VERSION_ID
+from tipfy import Tipfy, Request, RequestHandler, CURRENT_VERSION_ID
+from tipfy.app import local
 from tipfyext.appengine.acl import Acl, AclRules, _rules_map, AclMixin
+
+from tipfy.app import local
 
 
 class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
@@ -19,17 +22,14 @@ class TestAcl(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):
 
         self.app = Tipfy()
         self.app.config['tipfy']['dev'] = False
-        self.app.set_locals()
+        local.current_handler = RequestHandler(self.app, Request.from_values())
 
         Acl.roles_map = {}
         Acl.roles_lock = CURRENT_VERSION_ID
         _rules_map.clear()
 
     def tearDown(self):
-        try:
-            Tipfy.app.clear_locals()
-        except:
-            pass
+        local.__release_local__()
         self.app.config['tipfy']['dev'] = True
 
         Acl.roles_map = {}

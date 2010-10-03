@@ -66,7 +66,7 @@ class BaseAuthStore(object):
     @cached_property
     def _session_base(self):
         cookie_name = self.config['cookie_name']
-        return self.request.session_store.get_session(cookie_name)
+        return self.handler.session_store.get_session(cookie_name)
 
     def _url(self, _name, **kwargs):
         kwargs.setdefault('redirect', self.request.path)
@@ -210,7 +210,7 @@ class SessionAuthStore(BaseAuthStore):
     def _save_session_base(self, **kwargs):
         _kwargs = self.app.config['tipfy.sessions']['cookie_args'].copy()
         _kwargs.update(kwargs)
-        self.request.session_store.set_session(self.config['cookie_name'],
+        self.handler.session_store.set_session(self.config['cookie_name'],
             self._session_base, **_kwargs)
 
 

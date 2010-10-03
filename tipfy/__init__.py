@@ -32,12 +32,17 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #: default_subdomain
 #:     The default subdomain used for rules without a subdomain defined.
 #:     This only need to be defined to map URLs to subdomains. Default is ''.
+#:
+#: enable_debugger
+#:     True to enable the interactive debugger when in debug mode, False
+#:     otherwise. Default is True.
 default_config = {
     'auth_store_class':    'tipfy.auth.appengine.AppEngineAuthStore',
     'i18n_store_class':    'tipfy.i18n.I18nStore',
     'session_store_class': 'tipfy.sessions.SessionStore',
     'server_name':         None,
     'default_subdomain':   '',
+    'enable_debugger':     True,
 }
 
 from tipfy.app import *

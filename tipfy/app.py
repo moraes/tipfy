@@ -337,7 +337,7 @@ class Tipfy(object):
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""
-        if self.debug:
+        if self.debug and self.config['tipfy']['enable_debugger']:
             return self._debugged_wsgi_app(environ, start_response)
 
         return self.wsgi_app(environ, start_response)

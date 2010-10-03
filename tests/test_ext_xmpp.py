@@ -93,6 +93,7 @@ class TestCommandHandler(unittest.TestCase):
 
     def test_not_implemented(self):
         app = get_app()
+        app.config['tipfy']['enable_debugger'] = False
         client = app.get_test_client()
 
         data = {

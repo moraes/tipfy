@@ -91,6 +91,7 @@ class TestApp(unittest.TestCase):
     def test_500_debug(self):
         # Handler import will fail.
         app = Tipfy(rules=[Rule('/', name='home', handler='non.existent.handler')], debug=True)
+        app.config['tipfy']['enable_debugger'] = False
         client = app.get_test_client()
         self.assertRaises(ImportError, client.get, '/')
 

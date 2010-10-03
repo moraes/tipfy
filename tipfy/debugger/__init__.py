@@ -61,17 +61,18 @@ class DebuggedApplication(DebuggedApplicationBase):
         if response.status_code != 404 or not os.path.exists(ZIP_PATH):
             return response
 
+        filepath = os.path.join('werkzeug', 'debug', 'shared', filename)
         mimetype = mimetypes.guess_type(filename)[0] or \
             'application/octet-stream'
 
+        f = zipfile.ZipFile(ZIP_PATH, 'r')
         try:
-            filepath = os.path.join('werkzeug', 'debug', 'shared', filename)
-            f = zipfile.ZipFile(ZIP_PATH, 'r')
             response = Response(f.read(filepath), mimetype=mimetype)
-            f.close()
             return response
-        except:
+        except Exception:
             pass
+        finally:
+            f.close()
 
         return Response('Not Found', status=404)
 

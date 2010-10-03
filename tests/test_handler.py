@@ -31,6 +31,7 @@ class TestHandler(unittest.TestCase):
         app = Tipfy(rules=[
             Rule('/', name='home', handler=HomeHandler),
         ], debug=True)
+        app.config['tipfy']['enable_debugger'] = False
 
         client = app.get_test_client()
 
@@ -87,6 +88,7 @@ class TestHandler(unittest.TestCase):
             Rule('/value-error', name='value-error', handler=HandlerWithValueError),
             Rule('/not-implemented-error', name='not-implemented-error', handler=HandlerWithNotImplementedError),
         ], debug=True)
+        app.config['tipfy']['enable_debugger'] = False
 
         client = app.get_test_client()
 

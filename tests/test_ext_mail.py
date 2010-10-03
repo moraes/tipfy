@@ -45,6 +45,7 @@ class TestInboundMailHandler(unittest.TestCase):
 
     def test_not_implemented(self):
         app = get_app()
+        app.config['tipfy']['enable_debugger'] = False
         client = app.get_test_client()
 
         self.assertRaises(NotImplementedError, client.open, method='POST', path='/test2', data=MESSAGE, content_type='text/plain')

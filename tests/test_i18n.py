@@ -2,6 +2,8 @@
 """
     Tests for tipfy.i18n
 """
+from __future__ import with_statement
+
 import datetime
 import gettext as gettext_stdlib
 import os
@@ -16,6 +18,24 @@ from tipfy import (Tipfy, RequestHandler, Request, Response, Rule,
 from tipfy.app import local
 import tipfy.i18n as i18n
 from tipfy.sessions import SessionMiddleware
+
+
+class BaseTestCase(unittest.TestCase):
+    def setUp(self):
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=RequestHandler)
+        ], config={
+            'tipfy.sessions': {
+                'secret_key': 'secret',
+            },
+            'tipfy.i18n': {
+                'timezone': 'UTC'
+            },
+        })
+        local.current_handler = RequestHandler(app, Request.from_values('/'))
+
+    def tearDown(self):
+        local.__release_local__()
 
 
 #==============================================================================
@@ -61,21 +81,7 @@ class TestI18nMiddleware(unittest.TestCase):
 #==============================================================================
 # _(), gettext(), ngettext(), lazy_gettext(), lazy_ngettext()
 #==============================================================================
-class TestGettext(unittest.TestCase):
-    def setUp(self):
-        app = Tipfy(config={
-            'tipfy.sessions': {
-                'secret_key': 'secret',
-            },
-            'tipfy.i18n': {
-                'timezone': 'UTC'
-            },
-        })
-        local.current_handler = RequestHandler(app, Request.from_values('/'))
-
-    def tearDown(self):
-        local.__release_local__()
-
+class TestGettext(BaseTestCase):
     def test_translations_not_set(self):
         local.__release_local__()
         self.assertRaises(RuntimeError, i18n.gettext, 'foo')
@@ -102,8 +108,10 @@ class TestGettext(unittest.TestCase):
 # I18nStore.get_store_for_request()
 #==============================================================================
 class TestStoreForRequest(unittest.TestCase):
-    def setUp(self):
-        self.app = Tipfy(config={
+    def get_app(self):
+        return Tipfy(rules=[
+            Rule('/', name='home', handler=RequestHandler)
+        ], config={
             'tipfy.sessions': {
                 'secret_key': 'secret',
             },
@@ -113,59 +121,56 @@ class TestStoreForRequest(unittest.TestCase):
         })
 
     def test_get_store_for_request(self):
-        self.app.config['tipfy.i18n']['locale'] = 'jp_JP'
-        handler = RequestHandler(self.app, Request.from_values('/'))
-        self.assertEqual(handler.i18n.locale, 'jp_JP')
+        app = self.get_app()
+        app.config['tipfy.i18n']['locale'] = 'jp_JP'
+
+        with app.get_test_handler('/') as handler:
+            self.assertEqual(handler.i18n.locale, 'jp_JP')
 
     def test_get_store_for_request_args(self):
-        self.app.config['tipfy.i18n']['locale_request_lookup'] = [('args', 'language')]
-        handler = RequestHandler(self.app, Request.from_values(query_string={'language': 'es_ES'}))
-        self.assertEqual(handler.i18n.locale, 'es_ES')
+        app = self.get_app()
+        app.config['tipfy.i18n']['locale_request_lookup'] = [('args', 'language')]
+
+        with app.get_test_handler('/', query_string={'language': 'es_ES'}) as handler:
+            self.assertEqual(handler.i18n.locale, 'es_ES')
 
     def test_get_store_for_request_form(self):
-        self.app.config['tipfy.i18n']['locale_request_lookup'] = [('form', 'language')]
-        handler = RequestHandler(self.app, Request.from_values(data={'language': 'es_ES'}, method='POST'))
-        self.assertEqual(handler.i18n.locale, 'es_ES')
+        app = self.get_app()
+        app.config['tipfy.i18n']['locale_request_lookup'] = [('form', 'language')]
+
+        with app.get_test_handler('/', data={'language': 'es_ES'}, method='POST') as handler:
+            self.assertEqual(handler.i18n.locale, 'es_ES')
 
     def test_get_store_for_request_cookies(self):
-        self.app.config['tipfy.i18n']['locale_request_lookup'] = [('cookies', 'language')]
-        handler = RequestHandler(self.app, Request.from_values(headers=[('Cookie', 'language="es_ES"; Path=/')]))
-        self.assertEqual(handler.i18n.locale, 'es_ES')
+        app = self.get_app()
+        app.config['tipfy.i18n']['locale_request_lookup'] = [('cookies', 'language')]
+
+        with app.get_test_handler('/', headers=[('Cookie', 'language="es_ES"; Path=/')]) as handler:
+            self.assertEqual(handler.i18n.locale, 'es_ES')
 
     def test_get_store_for_request_args_cookies(self):
-        self.app.config['tipfy.i18n']['locale_request_lookup'] = [
+        app = self.get_app()
+        app.config['tipfy.i18n']['locale_request_lookup'] = [
             ('args', 'foo'),
             ('cookies', 'language')
         ]
-        handler = RequestHandler(self.app, Request.from_values(headers=[('Cookie', 'language="es_ES"; Path=/')]))
-        self.assertEqual(handler.i18n.locale, 'es_ES')
+
+        with app.get_test_handler('/', headers=[('Cookie', 'language="es_ES"; Path=/')]) as handler:
+            self.assertEqual(handler.i18n.locale, 'es_ES')
 
     def test_get_store_for_request_rule_args(self):
-        self.app.config['tipfy.i18n']['locale_request_lookup'] = [('rule_args', 'locale'),]
-        request = Request.from_values('/')
-        request.rule_args = {'locale': 'es_ES'}
-        handler = RequestHandler(self.app, request)
-        self.assertEqual(handler.i18n.locale, 'es_ES')
+        app = self.get_app()
+        app.config['tipfy.i18n']['locale_request_lookup'] = [('rule_args', 'locale'),]
+
+        with app.get_test_handler('/') as handler:
+            handler.request.rule_args = {'locale': 'es_ES'}
+            self.assertEqual(handler.i18n.locale, 'es_ES')
 
 
 #==============================================================================
 # Date formatting
 #==============================================================================
-class TestDates(unittest.TestCase):
-    def setUp(self):
-        app = Tipfy(config={
-            'tipfy.sessions': {
-                'secret_key': 'secret',
-            },
-            'tipfy.i18n': {
-                'timezone': 'UTC'
-            },
-        })
-        local.current_handler = RequestHandler(app, Request.from_values('/'))
-
-    def tearDown(self):
-        local.__release_local__()
-
+class TestDates(BaseTestCase):
     def test_format_date(self):
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
 
@@ -301,21 +306,7 @@ class TestDates(unittest.TestCase):
 #==============================================================================
 # Timezones
 #==============================================================================
-class TestTimezones(unittest.TestCase):
-    def setUp(self):
-        app = Tipfy(config={
-            'tipfy.sessions': {
-                'secret_key': 'secret',
-            },
-            'tipfy.i18n': {
-                'timezone': 'UTC'
-            },
-        })
-        local.current_handler = RequestHandler(app, Request.from_values('/'))
-
-    def tearDown(self):
-        local.__release_local__()
-
+class TestTimezones(BaseTestCase):
     def test_set_timezone(self):
         current_handler.i18n.set_timezone('UTC')
         self.assertEqual(current_handler.i18n.tzinfo.zone, 'UTC')
@@ -373,21 +364,7 @@ class TestTimezones(unittest.TestCase):
 #==============================================================================
 # Number formatting
 #==============================================================================
-class TestNumberFormatting(unittest.TestCase):
-    def setUp(self):
-        app = Tipfy(config={
-            'tipfy.sessions': {
-                'secret_key': 'secret',
-            },
-            'tipfy.i18n': {
-                'timezone': 'UTC'
-            },
-        })
-        local.current_handler = RequestHandler(app, Request.from_values('/'))
-
-    def tearDown(self):
-        local.__release_local__()
-
+class TestNumberFormatting(BaseTestCase):
     def test_format_number(self):
         i18n.set_locale('en_US')
         self.assertEqual(i18n.format_number(1099), u'1,099')
@@ -456,21 +433,7 @@ class TestNumberFormatting(unittest.TestCase):
 #==============================================================================
 # Miscelaneous
 #==============================================================================
-class TestMiscelaneous(unittest.TestCase):
-    def setUp(self):
-        app = Tipfy(config={
-            'tipfy.sessions': {
-                'secret_key': 'secret',
-            },
-            'tipfy.i18n': {
-                'timezone': 'UTC'
-            },
-        })
-        local.current_handler = RequestHandler(app, Request.from_values('/'))
-
-    def tearDown(self):
-        local.__release_local__()
-
+class TestMiscelaneous(BaseTestCase):
     def test_list_translations(self):
         cwd = os.getcwd()
         os.chdir(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'resources'))

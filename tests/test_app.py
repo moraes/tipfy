@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 """
-tests for tipfy.app
+    Tests for tipfy.app
 """
 from __future__ import with_statement
 
@@ -9,8 +10,7 @@ import unittest
 
 from . import BaseTestCase
 
-from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
-    current_handler)
+from tipfy import Request, RequestHandler, Response, Rule, Tipfy
 from tipfy.utils import json_encode
 
 
@@ -224,10 +224,10 @@ class TestRequestHandler(BaseTestCase):
             self.assertEqual(handler.url_for('contact'), '/contact')
 
             # Extras
-            self.assertEqual(current_handler.url_for('about', _anchor='history'), '/about#history')
-            self.assertEqual(current_handler.url_for('about', _full=True), 'http://localhost/about')
-            self.assertEqual(current_handler.url_for('about', _netloc='www.google.com'), 'http://www.google.com/about')
-            self.assertEqual(current_handler.url_for('about', _scheme='https'), 'https://localhost/about')
+            self.assertEqual(handler.url_for('about', _anchor='history'), '/about#history')
+            self.assertEqual(handler.url_for('about', _full=True), 'http://localhost/about')
+            self.assertEqual(handler.url_for('about', _netloc='www.google.com'), 'http://www.google.com/about')
+            self.assertEqual(handler.url_for('about', _scheme='https'), 'https://localhost/about')
 
     def test_store_instances(self):
         from tipfy.auth.appengine import AppEngineAuthStore

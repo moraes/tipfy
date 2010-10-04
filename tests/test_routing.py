@@ -1,7 +1,6 @@
 from . import BaseTestCase
 
 from tipfy import Tipfy, RequestHandler, Response
-from tipfy.app import local
 from tipfy.routing import HandlerPrefix, Router, Rule
 
 

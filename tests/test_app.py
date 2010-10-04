@@ -7,7 +7,7 @@ import os
 import sys
 import unittest
 
-from . import BaseTestCase, CurrentHandlerContext
+from . import BaseTestCase
 
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
     current_handler)
@@ -137,7 +137,7 @@ class TestRequestHandler(BaseTestCase):
                 'bar': 'baz',
             }
         })
-        with CurrentHandlerContext(app, '/') as handler:
+        with app.get_test_handler('/') as handler:
             self.assertEqual(handler.get_config('foo', 'bar'), 'baz')
 
     def test_handle_exception(self):
@@ -218,7 +218,7 @@ class TestRequestHandler(BaseTestCase):
             Rule('/about', name='about', handler='handlers.About'),
             Rule('/contact', name='contact', handler='handlers.Contact'),
         ])
-        with CurrentHandlerContext(app, '/') as handler:
+        with app.get_test_handler('/') as handler:
             self.assertEqual(handler.url_for('home'), '/')
             self.assertEqual(handler.url_for('about'), '/about')
             self.assertEqual(handler.url_for('contact'), '/contact')
@@ -241,7 +241,7 @@ class TestRequestHandler(BaseTestCase):
                 'secret_key': 'secret',
             },
         })
-        with CurrentHandlerContext(app, '/') as handler:
+        with app.get_test_handler('/') as handler:
             self.assertEqual(isinstance(handler.session, SecureCookieSession), True)
             self.assertEqual(isinstance(handler.auth, AppEngineAuthStore), True)
             self.assertEqual(isinstance(handler.i18n, I18nStore), True)

@@ -461,6 +461,7 @@ class Tipfy(object):
               - None: a ValueError exception is raised.
             - If multiple arguments are passed, a response is created using
               the arguments.
+
         :returns:
             A :attr:`response_class` instance.
         """
@@ -491,6 +492,17 @@ class Tipfy(object):
         """
         from werkzeug import Client
         return Client(self, self.response_class, use_cookies=True)
+
+    def get_test_handler(self, *args, **kwargs):
+        """Returns a handler set as a current handler for testing purposes.
+
+        .. seealso:: :class:`tipfy.test.CurrentHandlerContext`.
+
+        :returns:
+            A :class:`tipfy.test.CurrentHandlerContext` instance.
+        """
+        from .test import CurrentHandlerContext
+        return CurrentHandlerContext(self, *args, **kwargs)
 
     def run(self):
         """Runs the app using ``CGIHandler``. This must be called inside a

@@ -72,6 +72,35 @@ class Router(object):
         request.rule, request.rule_args = match
         return match
 
+    def get_handler_class(self, rule):
+        """Returns a handler class for a given rule. This will import and set
+        the handler class and method in the rule if it is defined as a string.
+
+        :param rule:
+            A :class:`Rule` class.
+        :returns:
+            A :class:`tipfy.RequestHandler` class.
+        """
+        if isinstance(rule.handler, basestring):
+            # When the handler is lazily loaded, the ``rule.handler`` attribute
+            # is replaced by the imported class. We also check if a method
+            # is defined using the `Handler:method` notation, and set the
+            # method in the rule.
+            parts = rule.handler.rsplit(':', 1)
+            handler = parts[0]
+            if len(parts) > 1:
+                rule.handler_method = parts[1]
+
+            if handler not in self.handlers:
+                # Import handler set in matched rule. This can raise an
+                # ImportError or AttributeError if the handler is badly
+                # defined. The exception will be caught in the WSGI app.
+                self.handlers[handler] = import_string(handler)
+
+            rule.handler = self.handlers[handler]
+
+        return rule.handler
+
     def dispatch(self, app, request, match, method=None):
         """Dispatches a request. This instantiates and calls a
         :class:`tipfy.RequestHandler` based on the matched :class:`Rule`.
@@ -87,20 +116,7 @@ class Router(object):
             method can be forced instead of using the request method.
         """
         rule, kwargs = match
-
-        if isinstance(rule.handler, basestring):
-            parts = rule.handler.rsplit(':', 1)
-            handler = parts[0]
-            if len(parts) > 1:
-                rule.handler_method = parts[1]
-
-            if handler not in self.handlers:
-                # Import handler set in matched rule. This can raise an
-                # ImportError or AttributeError if the handler is badly
-                # defined. The exception will be caught in the WSGI app.
-                self.handlers[handler] = import_string(handler)
-
-            rule.handler = self.handlers[handler]
+        handler_class = self.get_handler_class(rule)
 
         if not method:
             if rule.handler_method is None:

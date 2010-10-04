@@ -68,45 +68,58 @@ class Router(object):
             server_name=self.get_server_name())
 
         # Match the path against registered rules.
-        match = request.url_adapter.match(return_rule=True)
-        request.rule, request.rule_args = match
+        request.rule, request.rule_args = match = request.url_adapter.match(
+            return_rule=True)
         return match
 
-    def get_handler_class(self, rule):
-        """Returns a handler class for a given rule. This will import and set
-        the handler class and method in the rule if it is defined as a string.
+    def get_dispatch_spec(self, request, match, method=None):
+        """Returns a dispatch specification for a match: the handler, method
+        and keyword arguments to be executed for this request.
 
-        :param rule:
-            A :class:`Rule` class.
+        When the ``rule.handler`` attribute is set as a string, it is replaced
+        by the imported class. Importing the handler can raise an ImportError
+        or AttributeError if the handler is badly defined. The exception will
+        be handled in the WSGI app.
+
+        We also check if a method is defined using the ``Handler:method``
+        notation, and set the method in the rule. The returned method, if not
+        passed explicitly, will be the handler method (if set) or the current
+        request method.
+
+        :param request:
+            A :class:`tipfy.Request` instance.
+        :param match:
+            A tuple ``(rule, kwargs)``, resulted from the matched URL.
+        :param method:
+            Handler method to be called.
         :returns:
-            A :class:`tipfy.RequestHandler` class.
+            A tuple ``(handler_class, method, kwargs)``.
         """
+        rule, kwargs = match
+
         if isinstance(rule.handler, basestring):
-            # When the handler is lazily loaded, the ``rule.handler`` attribute
-            # is replaced by the imported class. We also check if a method
-            # is defined using the `Handler:method` notation, and set the
-            # method in the rule.
             parts = rule.handler.rsplit(':', 1)
             handler = parts[0]
             if len(parts) > 1:
                 rule.handler_method = parts[1]
 
             if handler not in self.handlers:
-                # Import handler set in matched rule. This can raise an
-                # ImportError or AttributeError if the handler is badly
-                # defined. The exception will be caught in the WSGI app.
                 self.handlers[handler] = import_string(handler)
 
             rule.handler = self.handlers[handler]
 
-        return rule.handler
+        if not method:
+            if rule.handler_method is None:
+                method = request.method.lower().replace('-', '_')
+            else:
+                method = rule.handler_method
 
-    def dispatch(self, app, request, match, method=None):
+        return rule.handler, method, kwargs
+
+    def dispatch(self, request, match, method=None):
         """Dispatches a request. This instantiates and calls a
         :class:`tipfy.RequestHandler` based on the matched :class:`Rule`.
 
-        :param app:
-            A :class:`tipfy.Tipfy` instance.
         :param request:
             A :class:`tipfy.Request` instance.
         :param match:
@@ -115,17 +128,8 @@ class Router(object):
             Handler method to be called. In cases like exception handling, a
             method can be forced instead of using the request method.
         """
-        rule, kwargs = match
-        handler_class = self.get_handler_class(rule)
-
-        if not method:
-            if rule.handler_method is None:
-                method = request.method.lower().replace('-', '_')
-            else:
-                method = rule.handler_method
-
-        # Instantiate the handler.
-        local.current_handler = handler = rule.handler(app, request)
+        cls, method, kwargs = self.get_dispatch_spec(request, match, method)
+        local.current_handler = handler = cls(self.app, request)
         try:
             # Dispatch the requested method.
             return handler(method, **kwargs)
@@ -135,7 +139,7 @@ class Router(object):
                 raise
 
             # If the handler implements exception handling, let it handle it.
-            return app.make_response(request, handler.handle_exception(e))
+            return self.app.make_response(request, handler.handle_exception(e))
 
     def build(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place

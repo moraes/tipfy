@@ -67,8 +67,8 @@ class CurrentHandlerContext(object):
         else:
             if self.handler_class is None:
                 match = self.app.router.match(self.request)
-                rule, kwargs = match
-                handler_class = self.app.router.get_handler_class(rule)
+                spec = self.app.router.get_dispatch_spec(self.request, match)
+                handler_class, method, kwargs = spec
             else:
                 handler_class = self.handler_class
 

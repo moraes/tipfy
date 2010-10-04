@@ -371,7 +371,7 @@ class Tipfy(object):
                 abort(501)
 
             match = self.router.match(request)
-            response = self.router.dispatch(self, request, match)
+            response = self.router.dispatch(request, match)
         except Exception, e:
             try:
                 response = self.handle_exception(request, e)
@@ -437,7 +437,7 @@ class Tipfy(object):
         if handler:
             rule = Rule('/', handler=handler, name='__exception__')
             kwargs = dict(exception=exception)
-            return self.router.dispatch(self, request, (rule, kwargs),
+            return self.router.dispatch(request, (rule, kwargs),
                 method='handle_exception')
         else:
             raise

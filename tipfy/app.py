@@ -435,10 +435,8 @@ class Tipfy(object):
 
         handler = self.error_handlers.get(code)
         if handler:
-            rule = Rule('/', handler=handler, name='__exception__')
-            kwargs = dict(exception=exception)
-            return self.router.dispatch(request, (rule, kwargs),
-                method='handle_exception')
+            match = (handler, 'handle_exception', {'exception': exception})
+            return self.router.dispatch(request, match)
         else:
             raise
 

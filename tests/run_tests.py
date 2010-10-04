@@ -15,6 +15,21 @@ import sys
 
 import nose
 
+# Explicitly defining to not cover tipfy.template.
+cover_packages = [
+    'tipfy.app',
+    'tipfy.auth',
+    'tipfy.config',
+    'tipfy.debugger',
+    'tipfy.dev',
+    'tipfy.i18n',
+    'tipfy.middleware',
+    'tipfy.routing',
+    'tipfy.sessions',
+    'tipfy.utils',
+    'tipfyext',
+]
+
 if __name__ == '__main__':
     base = os.path.abspath(os.path.dirname(__file__))
     tipfy = os.path.join(base, '..')
@@ -22,5 +37,6 @@ if __name__ == '__main__':
     sys.path[0:0] = [tipfy, app]
 
     argv = [__file__]
-    argv += '-d --with-gae -P --without-sandbox --cover-erase --with-coverage --cover-package=tipfy --gae-application=./project/app'.split()
+    argv += '-d --with-gae -P --without-sandbox --with-coverage --cover-erase --gae-application=./project/app'.split()
+    argv += ['--cover-package=%s' % ','.join(cover_packages)]
     nose.run(argv=argv)

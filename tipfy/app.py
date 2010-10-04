@@ -25,20 +25,16 @@ local = Local()
 #: Currently active handler.
 current_handler = local('current_handler')
 
-from tipfy import default_config
-from tipfy.config import Config, REQUIRED_VALUE
-from tipfy.routing import Router, Rule
-from tipfy.utils import json_decode
+from . import default_config
+from .config import Config, REQUIRED_VALUE
+from .routing import Router, Rule
+from .utils import json_decode
 
 __all__ = [
     'HTTPException', 'Request', 'RequestHandler', 'Response', 'Tipfy',
     'current_handler', 'APPENGINE', 'APPLICATION_ID', 'CURRENT_VERSION_ID',
     'DEV_APPSERVER',
 ]
-
-# Allowed request methods.
-ALLOWED_METHODS = frozenset(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT',
-    'TRACE'])
 
 # App Engine flags.
 SERVER_SOFTWARE = os.environ.get('SERVER_SOFTWARE', '')
@@ -211,7 +207,7 @@ class RequestHandler(object):
         :returns:
             A list of methods supported by this handler.
         """
-        return [method for method in ALLOWED_METHODS if
+        return [method for method in self.app.allowed_methods if
             getattr(self, method.lower().replace('-', '_'), None)]
 
     def handle_exception(self, exception=None):
@@ -307,6 +303,9 @@ class Response(BaseResponse):
 
 class Tipfy(object):
     """The WSGI application."""
+    # Allowed request methods.
+    allowed_methods = frozenset(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST',
+        'PUT', 'TRACE'])
     #: Default class for requests.
     request_class = Request
     #: Default class for responses.
@@ -368,7 +367,7 @@ class Tipfy(object):
         try:
             request = self.request_class(environ)
 
-            if request.method not in ALLOWED_METHODS:
+            if request.method not in self.allowed_methods:
                 abort(501)
 
             match = self.router.match(request)

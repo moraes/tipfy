@@ -11,7 +11,6 @@ from . import BaseTestCase, CurrentHandlerContext
 
 from tipfy import (Request, RequestHandler, Response, Rule, Tipfy,
     current_handler)
-from tipfy.app import ALLOWED_METHODS, local
 from tipfy.utils import json_encode
 
 
@@ -55,7 +54,7 @@ class TestRequestHandler(BaseTestCase):
         app = Tipfy(rules=[Rule('/', name='home', handler=AllMethodsHandler)])
         client = app.get_test_client()
 
-        for method in ALLOWED_METHODS:
+        for method in app.allowed_methods:
             response = client.open('/', method=method)
             self.assertEqual(response.status_code, 200, method)
             if method == 'HEAD':
@@ -98,7 +97,7 @@ class TestRequestHandler(BaseTestCase):
         self.assertRaises(ImportError, client.get, '/')
 
     def test_501(self):
-        """Method is not in ALLOWED_METHODS."""
+        """Method is not in app.allowed_methods."""
         app = Tipfy()
         client = app.get_test_client()
 

@@ -88,7 +88,7 @@ import os.path
 import re
 import zipfile
 
-import tipfy.utils as escape
+from . import utils as escape
 
 
 class Template(object):

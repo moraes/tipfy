@@ -50,34 +50,51 @@ class Router(object):
 
     def match(self, request):
         """Matches registered :class:`Rule` definitions against the current
-        request and returns the handler, method and keyword arguments to be
-        executed.
+        request and returns the matched rule and rule arguments.
 
         The URL adapter, matched rule and rule arguments will be set in the
         :class:`tipfy.Request` instance.
 
-        When the ``rule.handler`` attribute is set as a string, it is replaced
-        by the imported class. Also if the handler is defined using the
-        ``Handler:method`` notation, the method will be stored in the rule.
-
         Three exceptions can occur when matching the rules: ``NotFound``,
-        ``MethodNotAllowed`` or ``RequestRedirect``. Also when the handler is
-        dynamically imported an ``ImportError`` or ``AttributeError`` can be
-        raised if the handler is badly defined. Any of these exceptions will
-        be caught in the WSGI app.
+        ``MethodNotAllowed`` or ``RequestRedirect``. Any of these exceptions
+        will be caught by the WSGI app.
 
         :param request:
             A :class:`tipfy.Request` instance.
         :returns:
-            A tuple ``(handler_class, method, kwargs)`` to be executed.
+            A tuple ``(rule, rule_args)`` with the matched rule.
         """
         # Bind the URL map to the current request
         request.url_adapter = self.map.bind_to_environ(request.environ,
             server_name=self.get_server_name())
 
         # Match the path against registered rules.
-        rule, rule_args = request.url_adapter.match(return_rule=True)
-        request.rule, request.rule_args = rule, rule_args
+        match = request.rule, request.rule_args = request.url_adapter.match(
+            return_rule=True)
+        return match
+
+    def get_dispatch_spec(self, request, match, method=None):
+        """Returns the handler, method and keyword arguments to be executed
+        for the matched rule.
+
+        When the ``rule.handler`` attribute is set as a string, it is replaced
+        by the imported class. If the handler string is defined using the
+        ``Handler:method`` notation, the method will be stored in the rule.
+
+        When the handler is dynamically imported an ``ImportError`` or
+        ``AttributeError`` can be raised if the handler is badly defined.
+        Any of these exceptions will be caught by the WSGI app.
+
+        :param request:
+            A :class:`tipfy.Request` instance.
+        :param match:
+            A tuple ``(handler_class, method, kwargs)`` to be executed.
+        :param method:
+            A method to be used instead of using the request or handler method.
+        :returns:
+            A tuple ``(handler_class, method, kwargs)`` to be executed.
+        """
+        rule, rule_args = match
 
         if isinstance(rule.handler, basestring):
             parts = rule.handler.rsplit(':', 1)
@@ -90,23 +107,30 @@ class Router(object):
 
             rule.handler = self.handlers[handler]
 
-        if rule.handler_method is None:
-            method = request.method.lower().replace('-', '_')
-        else:
-            method = rule.handler_method
+        if not method:
+            if rule.handler_method is None:
+                method = request.method.lower().replace('-', '_')
+            else:
+                method = rule.handler_method
 
         return rule.handler, method, rule_args
 
-    def dispatch(self, request, match):
+    def dispatch(self, request, match, method=None):
         """Dispatches a request. This instantiates and calls a
         :class:`tipfy.RequestHandler` based on the matched :class:`Rule`.
 
         :param request:
             A :class:`tipfy.Request` instance.
         :param match:
-            A tuple ``(handler_class, method, kwargs)`` to be executed.
+            A tuple ``(rule, rule_args)`` with the matched rule.
+        :param method:
+            A method to be used instead of using the request or handler method.
+        :returns:
+            A :class:`tipfy.Response` instance.
         """
-        cls, method, kwargs = match
+        cls, method, kwargs = self.get_dispatch_spec(request, match, method)
+
+        # Instantiate the handler.
         local.current_handler = handler = cls(self.app, request)
         try:
             # Dispatch the requested method.

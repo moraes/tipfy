@@ -1,14 +1,11 @@
-import unittest
+from . import BaseTestCase
 
 from tipfy import Tipfy, RequestHandler, Response
 from tipfy.app import local
 from tipfy.routing import HandlerPrefix, Router, Rule
 
 
-class TestRouter(unittest.TestCase):
-    def tearDown(self):
-        local.__release_local__()
-
+class TestRouter(BaseTestCase):
     def test_add(self):
         app = Tipfy()
         router = Router(app)
@@ -24,10 +21,7 @@ class TestRouter(unittest.TestCase):
         self.assertEqual(len(list(router.map.iter_rules())), 3)
 
 
-class TestRouting(unittest.TestCase):
-    def tearDown(self):
-        local.__release_local__()
-
+class TestRouting(BaseTestCase):
     #==========================================================================
     # HandlerPrefix
     #==========================================================================
@@ -59,7 +53,6 @@ class TestRouting(unittest.TestCase):
         app = Tipfy([
             Rule('/<regex(".*"):path>', name='home', handler=TestHandler),
         ])
-
         client = app.get_test_client()
 
         response = client.get('/foo')
@@ -72,13 +65,7 @@ class TestRouting(unittest.TestCase):
         self.assertEqual(response.data, 'foo/bar/baz')
 
 
-class TestAlternativeRouting(unittest.TestCase):
-    def tearDown(self):
-        local.__release_local__()
-
-    #==========================================================================
-    # HandlerPrefix
-    #==========================================================================
+class TestAlternativeRouting(BaseTestCase):
     def test_handler(self):
         rules = [
             HandlerPrefix('resources.alternative_routing.', [

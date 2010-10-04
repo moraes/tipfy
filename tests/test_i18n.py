@@ -111,44 +111,41 @@ class TestStoreForRequest(unittest.TestCase):
                 'timezone': 'UTC'
             },
         })
-        local.current_handler = RequestHandler(self.app, Request.from_values('/'))
-
-    def tearDown(self):
-        local.__release_local__()
 
     def test_get_store_for_request(self):
         self.app.config['tipfy.i18n']['locale'] = 'jp_JP'
-        self.assertEqual(current_handler.i18n.locale, 'jp_JP')
+        handler = RequestHandler(self.app, Request.from_values('/'))
+        self.assertEqual(handler.i18n.locale, 'jp_JP')
 
     def test_get_store_for_request_args(self):
         self.app.config['tipfy.i18n']['locale_request_lookup'] = [('args', 'language')]
-        local.current_handler = RequestHandler(self.app, Request.from_values(query_string={'language': 'es_ES'}))
-        self.assertEqual(current_handler.i18n.locale, 'es_ES')
+        handler = RequestHandler(self.app, Request.from_values(query_string={'language': 'es_ES'}))
+        self.assertEqual(handler.i18n.locale, 'es_ES')
 
     def test_get_store_for_request_form(self):
         self.app.config['tipfy.i18n']['locale_request_lookup'] = [('form', 'language')]
-        local.current_handler = RequestHandler(self.app, Request.from_values(data={'language': 'es_ES'}, method='POST'))
-        self.assertEqual(current_handler.i18n.locale, 'es_ES')
+        handler = RequestHandler(self.app, Request.from_values(data={'language': 'es_ES'}, method='POST'))
+        self.assertEqual(handler.i18n.locale, 'es_ES')
 
     def test_get_store_for_request_cookies(self):
         self.app.config['tipfy.i18n']['locale_request_lookup'] = [('cookies', 'language')]
-        local.current_handler = RequestHandler(self.app, Request.from_values(headers=[('Cookie', 'language="es_ES"; Path=/')]))
-        self.assertEqual(current_handler.i18n.locale, 'es_ES')
+        handler = RequestHandler(self.app, Request.from_values(headers=[('Cookie', 'language="es_ES"; Path=/')]))
+        self.assertEqual(handler.i18n.locale, 'es_ES')
 
     def test_get_store_for_request_args_cookies(self):
         self.app.config['tipfy.i18n']['locale_request_lookup'] = [
             ('args', 'foo'),
             ('cookies', 'language')
         ]
-        local.current_handler = RequestHandler(self.app, Request.from_values(headers=[('Cookie', 'language="es_ES"; Path=/')]))
-        self.assertEqual(current_handler.i18n.locale, 'es_ES')
+        handler = RequestHandler(self.app, Request.from_values(headers=[('Cookie', 'language="es_ES"; Path=/')]))
+        self.assertEqual(handler.i18n.locale, 'es_ES')
 
     def test_get_store_for_request_rule_args(self):
         self.app.config['tipfy.i18n']['locale_request_lookup'] = [('rule_args', 'locale'),]
         request = Request.from_values('/')
         request.rule_args = {'locale': 'es_ES'}
-        local.current_handler = RequestHandler(self.app, request)
-        self.assertEqual(current_handler.i18n.locale, 'es_ES')
+        handler = RequestHandler(self.app, request)
+        self.assertEqual(handler.i18n.locale, 'es_ES')
 
 
 #==============================================================================

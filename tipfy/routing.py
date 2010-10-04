@@ -56,17 +56,15 @@ class Router(object):
         The URL adapter, matched rule and rule arguments will be set in the
         :class:`tipfy.Request` instance.
 
-        Three exceptions can occur when matching the rules: ``NotFound``,
-        ``MethodNotAllowed`` or ``RequestRedirect``. If they are
-        raised, they are handled by the WSGI application.
-
         When the ``rule.handler`` attribute is set as a string, it is replaced
-        by the imported class. Importing the handler can raise an ImportError
-        or AttributeError if the handler is badly defined. The exception will
-        be handled in the WSGI app.
+        by the imported class. Also if the handler is defined using the
+        ``Handler:method`` notation, the method will be stored in the rule.
 
-        If the handler is defined using the ``Handler:method`` notation, the
-        method will be stored in the rule.
+        Three exceptions can occur when matching the rules: ``NotFound``,
+        ``MethodNotAllowed`` or ``RequestRedirect``. Also when the handler is
+        dynamically imported an ``ImportError`` or ``AttributeError`` can be
+        raised if the handler is badly defined. Any of these exceptions will
+        be caught in the WSGI app.
 
         :param request:
             A :class:`tipfy.Request` instance.

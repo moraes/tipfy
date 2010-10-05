@@ -95,14 +95,13 @@ class Jinja2(object):
         if enable_i18n:
             # Install i18n.
             from tipfy import i18n
-            env.install_gettext_callables(
-                lambda s: i18n.gettext(s),
-                lambda s, p, n: i18n.ngettext(s, p, n),
+            env.install_gettext_callables(i18n.gettext, i18n.ngettext,
                 newstyle=True)
             env.filters.update({
-                'format_date':     i18n.format_date,
-                'format_time':     i18n.format_time,
-                'format_datetime': i18n.format_datetime,
+                'format_date':      i18n.format_date,
+                'format_time':      i18n.format_time,
+                'format_datetime':  i18n.format_datetime,
+                'format_timedelta': i18n.format_timedelta,
             })
 
         env.globals['url_for'] = url_for

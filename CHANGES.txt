@@ -6,15 +6,12 @@ Tipfy 0.7 is a huge step with several additional features and improvements in
 tipfy's core design. Here's an overview of what is new:
 
 - NEW: Tipfy can now be used outside of App Engine. Variables that are not
-  thread safe such as Tipfy.app and Tipfy.request are now stored in thread
-  locals for non-App Engine servers.
+  thread safe are now stored in thread locals.
 
-- NEW: app and request globals are back, available as globals in tipfy. They
-  are stored in thread locals outside of App Engine. Current usage doesn't
-  change but now it is possible to import app and request directly, like this::
-
-      # app and request are proxies to Tipfy.app and Tipfy.request
-      from tipfy import app, request
+- NEW: a `current_handler` global is available in tipfy, providing access to
+  the currently matched RequestHandler. The handler becomes a central piece
+  to access the WSGI app, request and the utilities it provides such as lazily
+  loaded auth, i18n and sessions.
 
 - NEW: tipfy.utils provides the functions json_decode and json_encode, which
   will use the best simplejson module available and apply correct escaping.
@@ -48,10 +45,9 @@ Auth
           'auth_store_class': 'tipfy.auth.appengine.AppEngineAuthStore',
       }
 
-  Then it is available through lazy loading in both Request and RequestHandler:
+  Then it is available through lazy loading in the RequestHandler:
 
-  - Request.auth_store provides access to the configured auth store.
-  - RequestHandler.auth is a shortcut to Request.auth_store.
+  - RequestHandler.auth provides access to the configured auth store.
 
   Example::
 
@@ -81,10 +77,9 @@ I18n
           'i18n_store_class': 'tipfy.i18n.I18nStore',
       }
 
-  Then it is available through lazy loading in both Request and RequestHandler:
+  Then it is available through lazy loading in the RequestHandler:
 
-  - Request.i18n_store provides access to the configured i18n store.
-  - RequestHandler.i18n is a shortcut to Request.i18n_store.
+  - RequestHandler.i18n provides access to the configured i18n store.
 
   Example::
 
@@ -96,18 +91,6 @@ I18n
   Global i18n functions are still available in tipfy.i18n.
 
 
-Debugger
---------
-- NEW: Debugger is now part of tipfy core, without extra-dependencies.
-  Previously the debugger was dependent on Jinja2, but now it uses the built-in
-  template engine. The debugger is enabled directly in main.py as a normal
-  WSGI middleware. See main.py in the project dir for a setup that also
-  includes patching the dev server for better Jinja2 debugging.
-
-- IMPROVED: the debugger now works even if the libraries are imported using
-  zipimport.
-
-
 Sessions
 --------
 - NEW: Sessions are now part of tipfy core. The auth store is configured in
@@ -117,13 +100,12 @@ Sessions
           'session_store_class': 'tipfy.sessions.SessionStore',
       }
 
-  Then it is available through lazy loading in both Request and RequestHandler:
+  Then it is available through lazy loading in the RequestHandler:
 
-  - Request.session provides access to the session using the configured
+  - RequestHandler.session provides access to the session using the configured
     backend and session key.
-  - Request.session_store provides session related utilities such as getting
-    sessions from different backends and setting/deleting cookies.
-  - RequestHandler.session is a shortcut to Request.session.
+  - RequestHandler.session_store provides session related utilities such as
+    getting sessions from different backends and setting/deleting cookies.
 
   Example::
 
@@ -139,12 +121,27 @@ Sessions
               self.session.flash('Hello, world!')
 
               # Get a session from a different backend.
-              session = self.request.session_store.get_session(backend='memcache')
+              session = self.session_store.get_session(backend='memcache')
 
 - NEW: secure cookie has a faster and easier to use implementation. See
   tipfy.sessions.SecureCookieStore.
 
 - NEW: flash messages now have a category and configurable key [explain]
+
+
+Debugger
+--------
+- NEW: Debugger is now part of tipfy core, without extra-dependencies.
+  Previously the debugger was dependent on Jinja2, but now it uses the built-in
+  template engine. The debugger is enabled by default when in development mode,
+  and can be disabled with a configuration:
+
+      config['tipfy'] = {
+          'enable_debugger': False,
+      }
+
+- IMPROVED: the debugger now works even if the libraries are imported using
+  zipimport.
 
 
 Routing
@@ -322,8 +319,6 @@ Config
 
 WSGI App
 --------
-- REMOVED: make_wsgi_app() and run_wsgi_app(). [explain]
-
 - NEW: Added Tipfy.make_response(). With this, handler methods are not
   required to always return a response. If a string or unicode is returned,
   it is converted to a response. Other possibility is to return a tuple to
@@ -341,10 +336,32 @@ WSGI App
               # Return an HTTPException which will be converted to a response.
               return MethodNotAllowed()
 
+- NEW: added Tipfy.get_test_handler(). This provides a context to test a
+  handler, matching it from a custom request if needed. This is intended to be
+  used with a `with` statement::
+
+      from __future__ import with_statement
+
+      from tipfy import Tipfy, Rule
+
+      app = Tipfy(rules=[
+          Rule('/about', name='home', handler='handles.AboutHandler'),
+      ])
+
+      with app.get_test_handler('/about') as handler:
+          self.assertEqual(handler.url_for('/', _full=True),
+              'http://localhost/about')
+
 - NEW: app has now a debug attribute, set when it is initialized with
   debug=True.
 
 - IMPROVED: Exception handling [explain]
+
+- REMOVED: make_wsgi_app() and run_wsgi_app(). [explain]
+
+- CHANGED: removed ALLOWED_METHODS, and Tipfy has now an ``allowed_methods``
+  attribute. This makes it easier to enable extra methods (say, for WebDAV)
+  for an app instance or extended app.
 
 
 Request
@@ -359,6 +376,12 @@ Buildout
 - IMPROVED: simplified buildout project structure to remove cruft:
   - 'etc/' is removed and its contents go to 'var/'.
   - 'distlib/' is now placed in 'lib/dist/'.
+
+
+Jinja2
+------
+- tipfyext.jinja2 allows to set custom extensions, globals and filters more
+  easily. [explain]
 
 - ...
 
@@ -467,7 +490,7 @@ Version 0.6 - July 25, 2010
           def test_redirect(self):
               class Handler1(RequestHandler):
                   def get(self, **kwargs):
-                      return redirect(self.request.url_for('test2'))
+                      return redirect_to('test2')
 
               class Handler2(RequestHandler):
                   def get(self, **kwargs):

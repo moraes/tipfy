@@ -43,7 +43,7 @@ class CurrentHandlerContext(object):
             is not passed explicitly.
         :param kwargs:
             Keyword arguments to build a :class:`Request` instance if a request
-            is not passed explicitly. A few keyword arguments are special:
+            is not passed explicitly. A few keys have special meaning:
 
             - `request`: a :class:`Request` object. If not passed, a new
               request is built using the passed `args` and `kwargs`. If

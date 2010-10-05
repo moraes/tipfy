@@ -66,7 +66,7 @@ class Router(object):
         """
         # Bind the URL map to the current request
         request.url_adapter = self.map.bind_to_environ(request.environ,
-            server_name=self.get_server_name())
+            server_name=self.get_server_name(request))
 
         # Match the path against registered rules.
         match = request.rule, request.rule_args = request.url_adapter.match(
@@ -210,12 +210,14 @@ class Router(object):
         """
         return self.app.config['tipfy']['default_subdomain']
 
-    def get_server_name(self):
+    def get_server_name(self, request):
         """Returns the server name used to bind the URL map. By default it
         returns the configured server name. Extend this if you want to
         calculate the server name dynamically (e.g., to match subdomains
         from multiple domains).
 
+        :param request:
+            A :class:`tipfy.Request` instance.
         :returns:
             The server name used to build the URL adapter.
         """
@@ -249,7 +251,7 @@ class Rule(BaseRule):
         if self.defaults is not None:
             defaults = dict(self.defaults)
 
-        return Rule(self.rule, handler=self.handler, name=self.endpoint,
+        return Rule(self.rule, handler=self.handler, name=self.name,
             defaults=defaults, subdomain=self.subdomain, methods=self.methods,
             build_only=self.build_only, strict_slashes=self.strict_slashes,
             redirect_to=self.redirect_to)

@@ -35,7 +35,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy-dev',
-    version = '1.0',
+    version = '1.2',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/tipfy.tar.gz',
@@ -63,12 +63,17 @@ setup(
     include_package_data = True,
     install_requires = [
         'werkzeug>=0.6.1',
-        'jinja2>=2.5.1',
-        'babel',
-        'gaepytz',
-        'wtforms',
+        # This is only required because a namespaced package is declated.
         'setuptools',
     ],
+    extras_require = {
+        'i18n': [
+            'babel',
+            'gaepytz',
+        ],
+        'jinja2': 'jinja2>=2.5.1',
+        'wtforms': 'wtforms',
+    },
     entry_points = {
         'console_scripts': [
             'jinja2_compile = tipfyext.jinja2.scripts:compile_templates',

@@ -50,15 +50,14 @@ APPENGINE = (APPLICATION_ID is not None and (DEV_APPSERVER or
 
 
 class RequestHandler(object):
-    """Base class to handle requests. Implements the minimal interface
-    required by :class:`Tipfy`.
-
-    The dispatch method implements a middleware system to execute hooks before
-    and after processing a request and to handle exceptions.
+    """Base class to handle requests. This is the central piece of an
+    application and provides access to the current WSGI app and request.
+    Additionally it provides lazy access to auth, i18n and session stores,
+    and several utilities to handle a request.
     """
-    #: A list of middleware classes or callables. A middleware can implement
-    #: three methods that are called before and after the current request
-    #: method is executed, or if an exception occurs:
+    #: A list of middleware instances. A middleware can implement three
+    #: methods that are called before and after the current request method
+    #: is executed, or if an exception occurs:
     #:
     #: before_dispatch(handler)
     #:     Called before the requested method is executed. If returns a
@@ -67,10 +66,11 @@ class RequestHandler(object):
     #:
     #: after_dispatch(handler, response)
     #:     Called after the requested method is executed. Must always return
-    #:     a response. All *after_dispatch* middleware are always executed.
+    #:     a response. These are executed in reverse order.
     #:
     #: handle_exception(handler, exception)
     #:     Called if an exception occurs while executing the requested method.
+    #:     These are executed in reverse order.
     middleware = None
 
     def __init__(self, app, request):
@@ -88,7 +88,8 @@ class RequestHandler(object):
 
     def __call__(self, _method, *args, **kwargs):
         """Executes a handler method. This is called by :class:`Tipfy` and
-        must return a :class:`Response` object.
+        must return a :class:`Response` object. If :attr:`middleware` are
+        defined, use their hooks to process the request or handle exceptions.
 
         :param _method:
             The method to be dispatched, normally the request method in
@@ -478,7 +479,7 @@ class Tipfy(object):
                 return self.response_class(rv)
 
             if rv is None:
-                raise ValueError('Handler did not return a response')
+                raise ValueError('RequestHandler did not return a response.')
 
             return self.response_class.force_type(rv, request.environ)
 

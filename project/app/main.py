@@ -23,7 +23,7 @@ def enable_appstats(app):
 
 
 def enable_jinja2_debugging():
-    """Enables debugger middleware."""
+    """Enables blacklisted modules that help Jinja2 debugging."""
     if not debug:
         return
 

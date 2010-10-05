@@ -73,6 +73,34 @@ class Router(object):
             return_rule=True)
         return match
 
+    def dispatch(self, request, match, method=None):
+        """Dispatches a request. This instantiates and calls a
+        :class:`tipfy.RequestHandler` based on the matched :class:`Rule`.
+
+        :param request:
+            A :class:`tipfy.Request` instance.
+        :param match:
+            A tuple ``(rule, rule_args)`` with the matched rule.
+        :param method:
+            A method to be used instead of using the request or handler method.
+        :returns:
+            A :class:`tipfy.Response` instance.
+        """
+        cls, method, kwargs = self.get_dispatch_spec(request, match, method)
+
+        # Instantiate the handler.
+        local.current_handler = handler = cls(self.app, request)
+        try:
+            # Dispatch the requested method.
+            return handler(method, **kwargs)
+        except Exception, e:
+            if method == 'handle_exception':
+                # We are already handling an exception.
+                raise
+
+            # If the handler implements exception handling, let it handle it.
+            return self.app.make_response(request, handler.handle_exception(e))
+
     def get_dispatch_spec(self, request, match, method=None):
         """Returns the handler, method and keyword arguments to be executed
         for the matched rule.
@@ -114,34 +142,6 @@ class Router(object):
                 method = rule.handler_method
 
         return rule.handler, method, rule_args
-
-    def dispatch(self, request, match, method=None):
-        """Dispatches a request. This instantiates and calls a
-        :class:`tipfy.RequestHandler` based on the matched :class:`Rule`.
-
-        :param request:
-            A :class:`tipfy.Request` instance.
-        :param match:
-            A tuple ``(rule, rule_args)`` with the matched rule.
-        :param method:
-            A method to be used instead of using the request or handler method.
-        :returns:
-            A :class:`tipfy.Response` instance.
-        """
-        cls, method, kwargs = self.get_dispatch_spec(request, match, method)
-
-        # Instantiate the handler.
-        local.current_handler = handler = cls(self.app, request)
-        try:
-            # Dispatch the requested method.
-            return handler(method, **kwargs)
-        except Exception, e:
-            if method == 'handle_exception':
-                # We are already handling an exception.
-                raise
-
-            # If the handler implements exception handling, let it handle it.
-            return self.app.make_response(request, handler.handle_exception(e))
 
     def build(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place

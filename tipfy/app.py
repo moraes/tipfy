@@ -523,7 +523,7 @@ class Tipfy(object):
         """
         if DEV_APPSERVER and APPENGINE:
             # Fix issue #772.
-            from tipfy.dev import fix_sys_path
+            from .dev import fix_sys_path
             fix_sys_path()
 
         CGIHandler().run(self)
@@ -531,7 +531,7 @@ class Tipfy(object):
     @cached_property
     def _debugged_wsgi_app(self):
         """Returns the WSGI app wrapped by an interactive debugger."""
-        from tipfy.debugger import DebuggedApplication
+        from .debugger import DebuggedApplication
         return DebuggedApplication(self.wsgi_app, evalex=True)
 
     @cached_property

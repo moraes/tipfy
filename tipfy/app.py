@@ -22,10 +22,15 @@ from werkzeug.exceptions import HTTPException, InternalServerError, abort
 
 #: Context-local.
 local = Local()
-#: A proxy to the active handler for this request. This is available for
+#: A proxy to the active handler for a request. This is intended to be used by
 #: functions called out of a handler context. Usage is generally discouraged:
-#: it is preferable to pass the handler as argument to functions when possible
-#: and only use this as last alternative -- when a proxy is really needed.
+#: it is preferable to pass the handler as argument when possible and only use
+#: this as last alternative -- when a proxy is really needed.
+#:
+#: For example, the :func:`tipfy.utils.url_for` function requires the current
+#: request to generate a URL. As its purpose is to be assigned to a template
+#: context or other objects shared between requests, we use `current_handler`
+#: there to avoid having to reassign the function for each request.
 current_handler = local('current_handler')
 
 from . import default_config

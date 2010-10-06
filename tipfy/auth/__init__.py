@@ -238,7 +238,9 @@ class MultiAuthStore(SessionAuthStore):
         user = self.get_user_entity(username=username)
 
         if user is not None and user.check_password(password) is True:
-            # Successful login. Make the user available.
+            # Successful login. Check if session id needs renewal.
+            user.renew_session(max_age=self.config['session_max_age'])
+            # Make the user available.
             self._user = user
             # Store the cookie.
             self._set_session(user.auth_id, user, remember)
@@ -293,6 +295,9 @@ class MultiAuthStore(SessionAuthStore):
         if not user.check_session(session_token):
             # Token didn't match.
             return self.logout()
+
+        # Successful login. Check if session id needs renewal.
+        user.renew_session(max_age=self.config['session_max_age'])
 
         if (current_token != user.session_id) or user.auth_remember:
             # Token was updated or we need to renew session per request.

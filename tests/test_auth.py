@@ -12,7 +12,7 @@ from tipfy.auth import (AdminRequiredMiddleware, LoginRequiredMiddleware,
     admin_required, login_required, user_required,
     user_required_if_authenticated, check_password_hash, generate_password_hash,
     create_session_id, MultiAuthStore)
-from tipfy.auth.appengine import AppEngineAuthStore, AppEngineMixedAuthStore
+from tipfy.auth.appengine import AuthStore, MixedAuthStore
 from tipfy.auth.appengine.model import User
 
 
@@ -45,7 +45,7 @@ def get_app():
     return app
 
 
-class TestAppEngineAuthStore(unittest.TestCase):
+class TestAuthStore(unittest.TestCase):
     def tearDown(self):
         local.__release_local__()
 
@@ -56,7 +56,7 @@ class TestAppEngineAuthStore(unittest.TestCase):
         request = Request.from_values('/')
         local.current_handler = RequestHandler(app, request)
 
-        store = AppEngineAuthStore(local.current_handler)
+        store = AuthStore(local.current_handler)
         self.assertEqual(store.user_model, User)
 
     def test_login_url(self):
@@ -67,7 +67,7 @@ class TestAppEngineAuthStore(unittest.TestCase):
         local.current_handler = RequestHandler(app, request)
         app.router.match(request)
 
-        store = AppEngineAuthStore(local.current_handler)
+        store = AuthStore(local.current_handler)
         self.assertEqual(store.login_url(), local.current_handler.url_for('auth/login', redirect='/'))
 
         tipfy.auth.DEV_APPSERVER_APPSERVER = False
@@ -83,7 +83,7 @@ class TestAppEngineAuthStore(unittest.TestCase):
         local.current_handler = RequestHandler(app, request)
         app.router.match(request)
 
-        store = AppEngineAuthStore(local.current_handler)
+        store = AuthStore(local.current_handler)
         self.assertEqual(store.logout_url(), local.current_handler.url_for('auth/logout', redirect='/'))
 
     def test_signup_url(self):
@@ -94,7 +94,7 @@ class TestAppEngineAuthStore(unittest.TestCase):
         local.current_handler = RequestHandler(app, request)
         app.router.match(request)
 
-        store = AppEngineAuthStore(local.current_handler)
+        store = AuthStore(local.current_handler)
         self.assertEqual(store.signup_url(), local.current_handler.url_for('auth/signup', redirect='/'))
 
 
@@ -610,12 +610,12 @@ class TestUserModel(DataStoreTestCase, unittest.TestCase):
         local.current_handler = RequestHandler(app, request)
 
         user = User.create('my_username', 'my_id')
-        user.renew_session()
+        user.renew_session(max_age=86400)
 
     def test_renew_session_force(self):
         app = Tipfy()
         user = User.create('my_username', 'my_id')
-        user.renew_session(force=True)
+        user.renew_session(force=True, max_age=86400)
 
 
 class TestMiscelaneous(DataStoreTestCase, unittest.TestCase):

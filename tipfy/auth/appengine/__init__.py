@@ -15,7 +15,7 @@ from werkzeug import cached_property
 from tipfy.auth import BaseAuthStore, SessionAuthStore
 
 
-class AppEngineAuthStore(BaseAuthStore):
+class AuthStore(BaseAuthStore):
     """This RequestHandler mixin uses App Engine's built-in Users API. Main
     reasons to use it instead of Users API are:
 
@@ -54,7 +54,7 @@ class AppEngineAuthStore(BaseAuthStore):
         return self.get_user_entity(auth_id='gae|%s' % self.session.user_id())
 
 
-class AppEngineMixedAuthStore(SessionAuthStore):
+class MixedAuthStore(SessionAuthStore):
     """This stores uses App Engine auth mixed with own session, allowing
     cross-subdomain auth.
     """
@@ -89,6 +89,9 @@ class AppEngineMixedAuthStore(SessionAuthStore):
         if not user.check_session(session_token):
             # Token didn't match.
             return self.logout()
+
+        # Successful login. Check if session id needs renewal.
+        user.renew_session(max_age=self.config['session_max_age'])
 
         if (current_token != user.session_id) or user.auth_remember:
             # Token was updated or we need to renew session per request.

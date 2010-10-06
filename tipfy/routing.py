@@ -21,19 +21,16 @@ __all__ = [
 
 class Router(object):
     def __init__(self, app, rules=None):
-        """
+        """Initializes the router.
+
         :param app:
             A :class:`tipfy.Tipfy` instance.
         :param rules:
-            Initial URL rules definitions. It can be a list of :class:`Rule`,
-            a callable or a string defining a callable that returns the rules
-            list. The callable is called passing the WSGI application as
-            parameter. If None, it will import ``get_rules()`` from *urls.py*
-            and call it passing the WSGI application.
+            A list of initial :class:`Rule` instances.
         """
         self.app = app
         self.handlers = {}
-        self.map = self.get_map(rules)
+        self.map = self.create_map(rules)
 
     def add(self, rule):
         """Adds a rule to the URL map.
@@ -62,7 +59,8 @@ class Router(object):
         :param request:
             A :class:`tipfy.Request` instance.
         :returns:
-            A tuple ``(rule, rule_args)`` with the matched rule.
+            A tuple ``(rule, rule_args)`` with the matched rule and rule
+            arguments.
         """
         # Bind the URL map to the current request
         request.url_adapter = self.map.bind_to_environ(request.environ,
@@ -80,7 +78,8 @@ class Router(object):
         :param request:
             A :class:`tipfy.Request` instance.
         :param match:
-            A tuple ``(rule, rule_args)`` with the matched rule.
+            A tuple ``(rule, rule_args)`` with the matched rule and rule
+            arguments.
         :param method:
             A method to be used instead of using the request or handler method.
         :returns:
@@ -116,7 +115,8 @@ class Router(object):
         :param request:
             A :class:`tipfy.Request` instance.
         :param match:
-            A tuple ``(handler_class, method, kwargs)`` to be executed.
+            A tuple ``(rule, rule_args)`` with the matched rule and rule
+            arguments.
         :param method:
             A method to be used instead of using the request or handler method.
         :returns:
@@ -190,7 +190,7 @@ class Router(object):
 
         return url
 
-    def get_map(self, rules=None):
+    def create_map(self, rules=None):
         """Returns a ``werkzeug.routing.Map`` instance with the given
         :class:`Rule` definitions.
 

@@ -138,13 +138,22 @@ class I18nStore(object):
     #: Current tzinfo.
     tzinfo = None
 
-    def __init__(self, app, loaded_translations=None, locale=None,
-        timezone=None):
-        self.app = app
-        self.loaded_translations = loaded_translations or {}
-        self.config = app.config[__name__]
-        self.set_locale(locale or self.config['locale'])
-        self.set_timezone(timezone or self.config['timezone'])
+    def __init__(self, handler):
+        self.config = handler.app.config[__name__]
+        self.loaded_translations = handler.app.registry.setdefault(
+            'i18n.translations', {})
+        self.set_locale_for_request(handler)
+        self.set_timezone_for_request(handler)
+
+    def set_locale_for_request(self, handler):
+        locale = _get_request_value(handler,
+            self.config['locale_request_lookup'], self.config['locale'])
+        self.set_locale(locale)
+
+    def set_timezone_for_request(self, handler):
+        timezone = _get_request_value(handler,
+            self.config['timezone_request_lookup'], self.config['timezone'])
+        self.set_timezone(timezone)
 
     def set_locale(self, locale):
         """Sets the current locale and translations.
@@ -613,26 +622,6 @@ class I18nStore(object):
         """
         return dates.get_timezone_name(dt_or_tzinfo, locale=self.locale)
 
-    @classmethod
-    def get_store_for_request(cls, handler):
-        """Returns a I18nStore bound to a given request.
-
-        :param request:
-            A :class:`tipfy.Request` instance.
-        :returns:
-            A new :class:`I18nStore` instance with locale and timezone set
-            for the request.
-        """
-        app = handler.app
-        config = app.config[__name__]
-        translations = app.registry.setdefault('i18n.translations', {})
-        locale = _get_request_value(handler,
-            config['locale_request_lookup'], config['locale'])
-        timezone = _get_request_value(handler,
-            config['timezone_request_lookup'], config['timezone'])
-
-        return cls(app, translations, locale, timezone)
-
 
 def set_locale(locale):
     """See :meth:`I18nStore.set_locale`."""
@@ -812,14 +801,16 @@ def _get_request_value(handler, lookup_list, default=None):
     :returns:
         A locale code or timezone setting.
     """
-    value = None
     request = handler.request
     for method, key in lookup_list:
-        if method == 'session':
-            value = handler.session.get(key, None)
+        if method in ('session', 'context'):
+            # Get from session or handler context.
+            obj = getattr(handler, method)
         else:
-            # Get locale from GET, POST, session, cookies or rule_args.
-            value = getattr(request, method).get(key, None)
+            # Get from GET, POST, cookies or rule_args.
+            obj = getattr(request, method)
+
+        value = obj.get(key, None)
 
         if value is not None:
             break

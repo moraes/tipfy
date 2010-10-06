@@ -16,7 +16,6 @@ from google.appengine.ext import db
 
 from werkzeug import check_password_hash, generate_password_hash
 
-from tipfy import current_handler
 from tipfy.auth import create_session_id
 
 
@@ -114,12 +113,10 @@ class User(db.Model):
         :returns:
             True is the password is valid, False otherwise.
         """
-        if not check_password_hash(self.password, password):
-            return False
+        if check_password_hash(self.password, password):
+            return True
 
-        # Check if session id needs to be renewed.
-        self.renew_session()
-        return True
+        return False
 
     def check_session(self, session_id):
         """Checks if an auth token is valid.
@@ -129,14 +126,12 @@ class User(db.Model):
         :returns:
             True is the token id is valid, False otherwise.
         """
-        if self.session_id != session_id:
-            return False
+        if self.session_id == session_id:
+            return True
 
-        # Check if session id needs to be renewed.
-        self.renew_session()
-        return True
+        return False
 
-    def renew_session(self, force=False):
+    def renew_session(self, force=False, max_age=None):
         """Renews the session id if its expiration time has passed.
 
         :param force:
@@ -147,10 +142,7 @@ class User(db.Model):
         """
         if force is False:
             # Only renew the session id if it is too old.
-            config = current_handler.app.config
-            max_age = config['tipfy.auth']['session_max_age']
             expires = datetime.timedelta(seconds=max_age)
-
             force = (self.session_updated + expires < datetime.datetime.now())
 
         if force is True:

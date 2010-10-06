@@ -42,7 +42,7 @@ Auth
   module and uses an App Engine store by default::
 
       config['tipfy'] = {
-          'auth_store_class': 'tipfy.auth.appengine.AppEngineAuthStore',
+          'auth_store_class': 'tipfy.auth.appengine.AuthStore',
       }
 
   Then it is available through lazy loading in the RequestHandler:
@@ -345,7 +345,7 @@ WSGI App
       from tipfy import Tipfy, Rule
 
       app = Tipfy(rules=[
-          Rule('/about', name='home', handler='handles.AboutHandler'),
+          Rule('/about', name='home', handler='handlers.AboutHandler'),
       ])
 
       with app.get_test_handler('/about') as handler:

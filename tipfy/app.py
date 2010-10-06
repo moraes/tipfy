@@ -22,7 +22,10 @@ from werkzeug.exceptions import HTTPException, InternalServerError, abort
 
 #: Context-local.
 local = Local()
-#: Currently active handler.
+#: A proxy to the active handler for this request. This is available for
+#: functions called out of a handler context. Usage is generally discouraged:
+#: it is preferable to pass the handler as argument to functions when possible
+#: and only use this as last alternative -- when a proxy is really needed.
 current_handler = local('current_handler')
 
 from . import default_config
@@ -50,7 +53,7 @@ APPENGINE = (APPLICATION_ID is not None and (DEV_APPSERVER or
 
 
 class RequestHandler(object):
-    """Base class to handle requests. This is the central piece of an
+    """Base class to handle requests. This is the central piece for an
     application and provides access to the current WSGI app and request.
     Additionally it provides lazy access to auth, i18n and session stores,
     and several utilities to handle a request.
@@ -160,7 +163,7 @@ class RequestHandler(object):
         :returns:
             An i18n store instance.
         """
-        return self.app.i18n_store_class.get_store_for_request(self)
+        return self.app.i18n_store_class(self)
 
     @cached_property
     def session(self):
@@ -380,7 +383,7 @@ class Tipfy(object):
                 response = self.make_response(request, e)
             except:
                 if self.debug:
-                    cleanup = False
+                    cleanup = not self.config['tipfy']['enable_debugger']
                     raise
 
                 # We only log unhandled non-HTTP exceptions. Users should
@@ -497,12 +500,12 @@ class Tipfy(object):
     def get_test_handler(self, *args, **kwargs):
         """Returns a handler set as a current handler for testing purposes.
 
-        .. seealso:: :class:`tipfy.test.CurrentHandlerContext`.
+        .. seealso:: :class:`tipfy.testing.CurrentHandlerContext`.
 
         :returns:
-            A :class:`tipfy.test.CurrentHandlerContext` instance.
+            A :class:`tipfy.testing.CurrentHandlerContext` instance.
         """
-        from .test import CurrentHandlerContext
+        from .testing import CurrentHandlerContext
         return CurrentHandlerContext(self, *args, **kwargs)
 
     def run(self):

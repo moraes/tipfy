@@ -231,10 +231,9 @@ class SessionStore(object):
     }
 
     def __init__(self, handler, backends=None):
-        self.app = handler.app
         self.request = handler.request
         # Base configuration.
-        self.config = self.app.config[__name__]
+        self.config = handler.app.config[__name__]
         # A dictionary of support backend classes.
         self.backends = backends or self.default_backends
         # The default backend to use when none is provided.
@@ -296,12 +295,13 @@ class SessionStore(object):
         :param key:
             Cookie name. See :meth:`get_session`.
         :param value:
-            Session value, a dictionary-like object.
+            A dictionary of session values.
         :param backend:
             Name of the session backend. See :meth:`get_session`.
         :param kwargs:
             Options to save the cookie. See :meth:`get_session`.
         """
+        assert isinstance(value, dict), 'Session values must be a dict.'
         backend = backend or self.default_backend
         sessions = self._sessions.setdefault(backend, {})
         session = self.backends[backend].get_session(self, **kwargs)

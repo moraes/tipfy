@@ -15,7 +15,7 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #:
 #: auth_store_class
 #:     The default auth store class to use in :class:`tipfy.Request`.
-#:     Default is `tipfy.auth.appengine.AppEngineAuthStore`.
+#:     Default is `tipfy.auth.appengine.AuthStore`.
 #:
 #: i18n_store_class
 #:     The default internationalization store class.
@@ -37,7 +37,7 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #:     True to enable the interactive debugger when in debug mode, False
 #:     otherwise. Default is True.
 default_config = {
-    'auth_store_class':    'tipfy.auth.appengine.AppEngineAuthStore',
+    'auth_store_class':    'tipfy.auth.appengine.AuthStore',
     'i18n_store_class':    'tipfy.i18n.I18nStore',
     'session_store_class': 'tipfy.sessions.SessionStore',
     'server_name':         None,

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.test
-    ~~~~~~~~~~
+    tipfy.testing
+    ~~~~~~~~~~~~~
 
     Unit test utilities.
 
@@ -23,7 +23,7 @@ class CurrentHandlerContext(object):
         from tipfy import Tipfy, Rule
 
         app = Tipfy(rules=[
-            Rule('/about', name='home', handler='handles.AboutHandler'),
+            Rule('/about', name='home', handler='handlers.AboutHandler'),
         ])
 
         with app.get_test_handler('/about') as handler:

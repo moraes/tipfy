@@ -14,7 +14,6 @@ from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from werkzeug import cached_property
 
-from tipfy import current_handler, APPENGINE, DEV_APPSERVER
 from tipfy.utils import url_for
 
 #: Default configuration values for this module. Keys are:
@@ -33,7 +32,9 @@ from tipfy.utils import url_for
 #: environment_args
 #:     Keyword arguments used to instantiate the Jinja2 environment. By
 #:     default autoescaping is enabled and two extensions are set:
-#:     'jinja2.ext.autoescape' and 'jinja2.ext.with_'.
+#:     'jinja2.ext.autoescape' and 'jinja2.ext.with_'. For production it may
+#:     be a godd idea to set 'auto_reload' to False -- we don't need to check
+#:     if templates changed in production.
 default_config = {
     'templates_dir': 'templates',
     'templates_compiled_target': None,
@@ -78,10 +79,6 @@ class Jinja2(object):
             else:
                 # Parse templates for every new environment instances.
                 kwargs['loader'] = FileSystemLoader(config['templates_dir'])
-
-        #if APPENGINE and not DEV_APPSERVER:
-        #    # We don't need to check if templates changed in production.
-        #    kwargs['auto_reload'] = False
 
         # Initialize the environment.
         env = Environment(**kwargs)

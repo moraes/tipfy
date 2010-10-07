@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfyext.appengine.blobstore
+    Tests for tipfy.appengine.blobstore
 """
 import datetime
 import decimal
@@ -11,7 +11,7 @@ import unittest
 
 from google.appengine.ext import blobstore
 
-from tipfyext.appengine.blobstore import (CreationFormatError, parse_blob_info,
+from tipfy.appengine.blobstore import (CreationFormatError, parse_blob_info,
     parse_creation)
 
 from werkzeug import FileStorage

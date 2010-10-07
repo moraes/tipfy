@@ -21,8 +21,8 @@ import urllib
 
 from google.appengine.api import urlfetch
 
-from tipfy import redirect, REQUIRED_VALUE
-from tipfy.utils import json_decode, json_encode
+from .. import redirect, REQUIRED_VALUE
+from ..utils import json_decode, json_encode
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -52,7 +52,7 @@ class FacebookMixin(object):
     When your application is set up, you can use the FacebookMixin like this
     to authenticate the user with Facebook::
 
-        from tipfy import RequestHandler, abort
+        from tipfy import RequestHandler
         from tipfyext.auth.facebook import FacebookMixin
 
         class FacebookHandler(RequestHandler, FacebookMixin):
@@ -64,7 +64,7 @@ class FacebookMixin(object):
 
             def _on_auth(self, user):
                 if not user:
-                    abort(403)
+                    self.abort(403)
 
                 # Set the user in the session.
 
@@ -103,7 +103,7 @@ class FacebookMixin(object):
 
             args['req_perms'] = ','.join(extended_permissions)
 
-        return redirect('http://www.facebook.com/login.php?' +
+        return self.redirect('http://www.facebook.com/login.php?' +
                         urllib.urlencode(args))
 
     def authorize_redirect(self, extended_permissions, callback_uri=None,
@@ -156,7 +156,7 @@ class FacebookMixin(object):
 
         Here is an example for the stream.get() method::
 
-            from tipfy import RequestHandler, redirect
+            from tipfy import RequestHandler
             from tipfyext.auth.facebook import FacebookMixin
             from tipfyext.jinja2 import Jinja2Mixin
 
@@ -170,7 +170,7 @@ class FacebookMixin(object):
                 def _on_stream(self, stream):
                     if stream is None:
                        # Not authorized to read the stream yet?
-                       return redirect(self.authorize_redirect('read_stream'))
+                       return self.redirect(self.authorize_redirect('read_stream'))
 
                     return self.render_response('stream.html', stream=stream)
         """

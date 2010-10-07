@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfyext.appengine.xmpp
+    Tests for tipfy.appengine.xmpp
 """
 import os
 import sys
@@ -71,7 +71,7 @@ class Message(ApiMessage):
 
 class TestCommandHandler(unittest.TestCase):
     def setUp(self):
-        from tipfyext.appengine import xmpp
+        from tipfy.appengine import xmpp
         self.xmpp_module = xmpp.xmpp
         xmpp.xmpp = sys.modules[__name__]
 
@@ -79,7 +79,7 @@ class TestCommandHandler(unittest.TestCase):
         local.__release_local__()
         fake_local.clear()
 
-        from tipfyext.appengine import xmpp
+        from tipfy.appengine import xmpp
         xmpp.xmpp = self.xmpp_module
 
     def test_no_command(self):

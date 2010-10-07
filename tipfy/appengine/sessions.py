@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.sessions.appengine
+    tipfy.appengine.sessions
     ~~~~~~~~~~~~~~~~~~~~~~~~
 
     App Engine session backends.
@@ -14,9 +14,9 @@ import uuid
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
-from tipfy.sessions import BaseSession
+from ..sessions import BaseSession
 
-from tipfyext.appengine.db import (PickleProperty, get_protobuf_from_entity,
+from tipfy.appengine.db import (PickleProperty, get_protobuf_from_entity,
     get_entity_from_protobuf)
 
 # Validate session keys.

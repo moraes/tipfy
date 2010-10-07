@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfyext.appengine.sharded_counter
+    Tests for tipfy.appengine.sharded_counter
 """
 from datetime import datetime, timedelta
 import unittest
@@ -11,7 +11,7 @@ from google.appengine.ext import db
 
 from tipfy import Request, RequestHandler, Tipfy
 from tipfy.app import local
-from tipfyext.appengine.sharded_counter import Counter
+from tipfy.appengine.sharded_counter import Counter
 
 
 class TestCounter(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):

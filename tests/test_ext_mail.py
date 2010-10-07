@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfyext.appengine.mail
+    Tests for tipfy.appengine.mail
 """
 import os
 import sys

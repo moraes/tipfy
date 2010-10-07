@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.appengine.xmpp
-    ~~~~~~~~~~~~~~~~~~~~~~~
+    tipfy.appengine.xmpp
+    ~~~~~~~~~~~~~~~~~~~~
 
     XMPP webapp handler classes.
 
@@ -16,7 +16,7 @@ import logging
 
 from google.appengine.api import xmpp
 
-from tipfy import RequestHandler
+from .. import RequestHandler
 
 
 class BaseHandler(RequestHandler):

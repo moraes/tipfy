@@ -59,6 +59,7 @@ setup(
     ],
     namespace_packages = [
         'tipfyext',
+        'tipfyext.appengine',
     ],
     include_package_data = True,
     install_requires = [

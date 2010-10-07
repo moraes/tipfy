@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfyext.appengine.db
+    Tests for tipfy.appengine.db
 """
 import unittest
 import hashlib
@@ -11,7 +11,7 @@ from gaetestbed import DataStoreTestCase
 
 from werkzeug.exceptions import NotFound
 
-from tipfyext.appengine import db as ext_db
+from tipfy.appengine import db as ext_db
 
 
 class FooModel(db.Model):

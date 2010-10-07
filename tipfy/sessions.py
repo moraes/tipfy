@@ -15,8 +15,8 @@ import hmac
 import logging
 import time
 
-from tipfy import APPENGINE, DEFAULT_VALUE, REQUIRED_VALUE
-from tipfy.utils import json_encode, json_decode
+from . import APPENGINE, DEFAULT_VALUE, REQUIRED_VALUE
+from .utils import json_encode, json_decode
 
 from werkzeug import cached_property
 from werkzeug.contrib.sessions import ModificationTrackingDict
@@ -400,7 +400,7 @@ class SessionMiddleware(object):
 
 
 if APPENGINE:
-    from tipfy.sessions.appengine import DatastoreSession, MemcacheSession
+    from tipfy.appengine.sessions import DatastoreSession, MemcacheSession
     SessionStore.default_backends.update({
         'datastore': DatastoreSession,
         'memcache':  MemcacheSession,

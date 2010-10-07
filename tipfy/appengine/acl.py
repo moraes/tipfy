@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.appengine.acl
-    ~~~~~~~~~~~~~~~~~~~~~~
+    tipfy.appengine.acl
+    ~~~~~~~~~~~~~~~~~~~
 
     Simple Access Control List
 
@@ -65,7 +65,7 @@ from google.appengine.api import memcache
 from werkzeug import cached_property
 
 from tipfy import current_handler, CURRENT_VERSION_ID
-from tipfyext.appengine.db import PickleProperty
+from tipfy.appengine.db import PickleProperty
 
 #: Cache for loaded rules.
 _rules_map = {}
@@ -277,7 +277,7 @@ class Acl(object):
     provides a centralized interface to check permissions. Each Acl object
     checks the permissions for a single user. For example::
 
-        from tipfyext.appengine.acl import Acl
+        from tipfy.appengine.acl import Acl
 
         # Build an Acl object for user 'John' in the 'code-reviews' area.
         acl = Acl('code-reviews', 'John')

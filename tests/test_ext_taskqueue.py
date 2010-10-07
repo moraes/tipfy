@@ -28,7 +28,7 @@ def get_rules():
 def get_url_rules():
     # Fake get_rules() for testing.
     rules = [
-        Rule('/_ah/queue/deferred', name='tasks/deferred', handler='tipfyext.appengine.taskqueue.DeferredHandler'),
+        Rule('/_ah/queue/deferred', name='tasks/deferred', handler='tipfy.appengine.taskqueue.DeferredHandler'),
     ]
 
     return Map(rules)

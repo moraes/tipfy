@@ -9,7 +9,7 @@ from tipfy import Tipfy, Request, RequestHandler, Response, Rule
 from tipfy.app import local
 from tipfy.sessions import (SecureCookieSession, SecureCookieStore,
     SessionMiddleware, SessionStore)
-from tipfy.sessions.appengine import (DatastoreSession, MemcacheSession,
+from tipfy.appengine.sessions import (DatastoreSession, MemcacheSession,
     SessionModel)
 
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.appengine.db.properties
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    tipfy.appengine.db.properties
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Extra db.Model property classes.
 
@@ -31,7 +31,7 @@ class EtagProperty(db.Property):
     Example::
 
         from google.appengine.ext import db
-        from tipfyext.appengine.db import EtagProperty
+        from tipfy.appengine.db import EtagProperty
 
         class StaticContent(db.Model):
             data = db.BlobProperty()
@@ -175,7 +175,7 @@ class SlugProperty(db.Property):
     Note: the slug is only set or updated after the entity is saved. Example::
 
         from google.appengine.ext import db
-        from tipfyext.appengine.db import SlugProperty
+        from tipfy.appengine.db import SlugProperty
 
         class BlogPost(db.Model):
             title = db.StringProperty()

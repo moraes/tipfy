@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.appengine.db
-    ~~~~~~~~~~~~~~~~~~~~~
+    tipfy.appengine.db
+    ~~~~~~~~~~~~~~~~~~
 
     Datastore utilities extension.
 
@@ -29,7 +29,7 @@ def get_protobuf_from_entity(entities):
     :func:`get_entity_from_protobuf`. Example::
 
         from google.appengine.api import memcache
-        from tipfyext.appengine.db import get_protobuf_from_entity
+        from tipfy.appengine.db import get_protobuf_from_entity
 
         # Inside a handler, given that a MyModel model is defined.
         entity = MyModel(key_name='foo')
@@ -66,7 +66,7 @@ def get_entity_from_protobuf(data):
     Example::
 
         from google.appengine.api import memcache
-        from tipfyext.appengine.db import get_entity_from_protobuf
+        from tipfy.appengine.db import get_entity_from_protobuf
 
         # Get the protobuf from cache and de-serialize it.
         protobuf = memcache.get('my-cache-key')
@@ -97,7 +97,7 @@ def get_reference_key(entity, prop_name):
     the referenced entity. Example::
 
         from google.appengine.ext import db
-        from tipfyext.appengine.db import get_reference_key
+        from tipfy.appengine.db import get_reference_key
 
         # Set a book entity with an author reference.
         class Author(db.Model):
@@ -133,7 +133,7 @@ def populate_entity(entity, **kwargs):
     multiple properties coming from a form or set in a dictionary. Example::
 
         from google.appengine.ext import db
-        from tipfyext.appengine.db import populate_entity
+        from tipfy.appengine.db import populate_entity
 
         class Author(db.Model):
             name = db.StringProperty(required=True)
@@ -205,7 +205,7 @@ def get_or_insert_with_flag(model, key_name, **kwargs):
     is inserted, the flag is True, otherwise it is False. Example::
 
         from google.appengine.ext import db
-        from tipfyext.appengine.db import get_or_insert_with_flag
+        from tipfy.appengine.db import get_or_insert_with_flag
 
         class Author(db.Model):
             name = db.StringProperty()
@@ -241,7 +241,7 @@ def get_or_404(key):
     Example:
 
         from tipfy import RequestHandler
-        from tipfyext.appengine.db import get_or_404
+        from tipfy.appengine.db import get_or_404
         from mymodels import Contact
 
         class EditContactHandler(RequestHandler):
@@ -273,7 +273,7 @@ def get_by_id_or_404(model, id, parent=None):
     Example::
 
         from tipfy import RequestHandler
-        from tipfyext.appengine.db import get_by_id_or_404
+        from tipfy.appengine.db import get_by_id_or_404
         from mymodels import Contact
 
         class EditContactHandler(RequestHandler):
@@ -307,7 +307,7 @@ def get_by_key_name_or_404(model, key_name, parent=None):
     error. Example::
 
         from tipfy import RequestHandler
-        from tipfyext.appengine.db import get_by_key_name_or_404
+        from tipfy.appengine.db import get_by_key_name_or_404
         from mymodels import Contact
 
         class EditContactHandler(RequestHandler):
@@ -365,7 +365,7 @@ def retry_on_timeout(retries=3, interval=1.0, exponent=2.0):
     ``db.Timeout`` exception is raised. Example::
 
         from tipfy import RequestHandler
-        from tipfyext.appengine.db import retry_on_timeout
+        from tipfy.appengine.db import retry_on_timeout
         from mymodels import Contact
 
         class EditContactHandler(RequestHandler):
@@ -424,7 +424,7 @@ def load_entity(model, kwarg_old, kwarg_new=None, fetch_mode=None):
     If not found, a ``NotFound`` exception is raised. Example::
 
         from tipfy import RequestHandler
-        from tipfyext.appengine.db import load_entity
+        from tipfy.appengine.db import load_entity
         from mymodels import Contact
 
         class EditContactHandler(RequestHandler):
@@ -499,7 +499,7 @@ class ModelMixin(object):
 
         from google.appengine.ext import db
 
-        from tipfyext.appengine.db import ModelMixin
+        from tipfy.appengine.db import ModelMixin
 
         class DateMixin(ModelMixin):
             created = db.DateTimeProperty(auto_now_add=True)
@@ -532,7 +532,7 @@ class ModelMixin(object):
         return '__model_mixin__'
 
 
-from tipfyext.appengine.db.properties import *
+from tipfy.appengine.db.properties import *
 
 # Old name
 get_property_dict = get_entity_dict

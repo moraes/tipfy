@@ -18,9 +18,9 @@ import urllib
 
 from google.appengine.api import urlfetch
 
-from tipfy import REQUIRED_VALUE
-from tipfy.auth.oauth import OAuthMixin
-from tipfy.utils import json_decode, json_encode
+from .. import REQUIRED_VALUE
+from ..utils import json_decode, json_encode
+from .oauth import OAuthMixin
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -53,7 +53,7 @@ class TwitterMixin(OAuthMixin):
     You must use the mixin on the handler for the URL you registered as your
     application's Callback URL. For example::
 
-        from tipfy import RequestHandler, abort
+        from tipfy import RequestHandler
         from tipfyext.auth.twitter import TwitterMixin
         from tipfyext.session import CookieMixin, SessionMiddleware
 
@@ -68,7 +68,7 @@ class TwitterMixin(OAuthMixin):
 
             def _on_auth(self, user):
                 if not user:
-                    abort(403)
+                    self.abort(403)
 
                 # Set the user in the session.
                 # ...

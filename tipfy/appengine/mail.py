@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.appengine.mail
-    ~~~~~~~~~~~~~~~~~~~~~~~
+    tipfy.appengine.mail
+    ~~~~~~~~~~~~~~~~~~~~
 
     A simple RequestHandler to help with receiving mail.
 
@@ -13,7 +13,7 @@
 """
 from google.appengine.api import mail
 
-from tipfy import RequestHandler
+from .. import RequestHandler
 
 
 class InboundMailHandler(RequestHandler):

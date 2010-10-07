@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Tests for tipfyext.appengine.acl
+    Tests for tipfy.appengine.acl
 """
 import unittest
 
@@ -10,7 +10,7 @@ from google.appengine.api import memcache
 
 from tipfy import Tipfy, Request, RequestHandler, CURRENT_VERSION_ID
 from tipfy.app import local
-from tipfyext.appengine.acl import Acl, AclRules, _rules_map, AclMixin
+from tipfy.appengine.acl import Acl, AclRules, _rules_map, AclMixin
 
 from tipfy.app import local
 

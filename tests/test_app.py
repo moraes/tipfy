@@ -230,7 +230,7 @@ class TestRequestHandler(BaseTestCase):
             self.assertEqual(handler.url_for('about', _scheme='https'), 'https://localhost/about')
 
     def test_store_instances(self):
-        from tipfy.auth.appengine import AuthStore
+        from tipfy.appengine.auth import AuthStore
         from tipfy.i18n import I18nStore
         from tipfy.sessions import SecureCookieSession
 
@@ -405,7 +405,7 @@ class TestTipfy(BaseTestCase):
         self.assertEqual(res.data, '500 custom handler')
 
     def test_store_classes(self):
-        from tipfy.auth.appengine import AuthStore
+        from tipfy.appengine.auth import AuthStore
         from tipfy.i18n import I18nStore
         from tipfy.sessions import SessionStore
 

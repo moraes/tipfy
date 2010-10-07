@@ -42,7 +42,7 @@ Auth
   module and uses an App Engine store by default::
 
       config['tipfy'] = {
-          'auth_store_class': 'tipfy.auth.appengine.AuthStore',
+          'auth_store_class': 'tipfy.appengine.auth.AuthStore',
       }
 
   Then it is available through lazy loading in the RequestHandler:

@@ -25,8 +25,6 @@ import uuid
 
 from google.appengine.api import urlfetch
 
-from tipfy import abort, redirect
-
 
 class OAuthMixin(object):
     """A :class:`tipfy.RequestHandler` mixin that implements OAuth
@@ -136,11 +134,11 @@ class OAuthMixin(object):
         """
         if not response:
             logging.warning('Could not get OAuth request token.')
-            abort(500)
+            self.abort(500)
         elif response.status_code < 200 or response.status_code >= 300:
             logging.warning('Invalid OAuth response (%d): %s',
                 response.status_code, response.content)
-            abort(500)
+            self.abort(500)
 
         request_token = _oauth_parse_response(response.content)
         data = '|'.join([request_token['key'], request_token['secret']])
@@ -150,7 +148,7 @@ class OAuthMixin(object):
             args['oauth_callback'] = urlparse.urljoin(
                 self.request.url, callback_uri)
 
-        return redirect(authorize_url + '?' + urllib.urlencode(args))
+        return self.redirect(authorize_url + '?' + urllib.urlencode(args))
 
     def _oauth_access_token_url(self, request_token):
         """

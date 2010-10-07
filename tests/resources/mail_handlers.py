@@ -1,6 +1,6 @@
 from tipfy import Response
 
-from tipfyext.appengine.mail import InboundMailHandler
+from tipfy.appengine.mail import InboundMailHandler
 
 
 class MailHandler(InboundMailHandler):

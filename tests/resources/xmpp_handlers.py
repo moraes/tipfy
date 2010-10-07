@@ -1,4 +1,4 @@
-from tipfyext.appengine.xmpp import BaseHandler, CommandHandler
+from tipfy.appengine.xmpp import BaseHandler, CommandHandler
 
 
 class XmppHandler(CommandHandler):

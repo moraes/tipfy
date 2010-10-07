@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.auth.model
-    ~~~~~~~~~~~~~~~~
+    tipfy.appengine.auth.model
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Base model for authenticated users.
 

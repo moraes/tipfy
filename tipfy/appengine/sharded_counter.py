@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.appengine.sharded_counter
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    tipfy.appengine.sharded_counter
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     A general purpose sharded counter implementation for the datastore.
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.appengine.taskqueue
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    tipfy.appengine.taskqueue
+    ~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Task queue utilities extension.
 
@@ -14,7 +14,7 @@ from google.appengine.ext import db
 from google.appengine.ext.deferred import defer, run, PermanentTaskFailure
 from google.appengine.runtime import DeadlineExceededError
 
-from tipfy import RequestHandler
+from .. import RequestHandler
 
 
 class DeferredHandler(RequestHandler):

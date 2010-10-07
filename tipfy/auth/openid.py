@@ -18,8 +18,6 @@ import urlparse
 
 from google.appengine.api import urlfetch
 
-from tipfy import redirect
-
 
 class OpenIdMixin(object):
     """A :class:`tipfy.RequestHandler` mixin that implements OpenID
@@ -55,7 +53,7 @@ class OpenIdMixin(object):
         ax_attrs = ax_attrs or ('name', 'email', 'language', 'username')
         openid_endpoint = openid_endpoint or self._OPENID_ENDPOINT
         args = self._openid_args(callback_uri, ax_attrs=ax_attrs)
-        return redirect(openid_endpoint + '?' + urllib.urlencode(args))
+        return self.redirect(openid_endpoint + '?' + urllib.urlencode(args))
 
     def get_authenticated_user(self, callback, openid_name=None):
         """Fetches the authenticated user data upon redirect.

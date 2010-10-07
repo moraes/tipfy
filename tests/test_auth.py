@@ -12,8 +12,8 @@ from tipfy.auth import (AdminRequiredMiddleware, LoginRequiredMiddleware,
     admin_required, login_required, user_required,
     user_required_if_authenticated, check_password_hash, generate_password_hash,
     create_session_id, MultiAuthStore)
-from tipfy.auth.appengine import AuthStore, MixedAuthStore
-from tipfy.auth.appengine.model import User
+from tipfy.appengine.auth import AuthStore, MixedAuthStore
+from tipfy.appengine.auth.model import User
 
 
 class LoginHandler(RequestHandler):

@@ -17,9 +17,9 @@ import urllib
 
 from google.appengine.api import urlfetch
 
-from tipfy import redirect, REQUIRED_VALUE
-from tipfy.auth.oauth import OAuthMixin
-from tipfy.auth.openid import OpenIdMixin
+from .. import REQUIRED_VALUE
+from .oauth import OAuthMixin
+from .openid import OpenIdMixin
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -45,7 +45,7 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
     values for the user, including 'email', 'name', and 'locale'.
     Example usage::
 
-        from tipfy import RequestHandler, abort
+        from tipfy import RequestHandler
         from tipfyext.auth.google import GoogleMixin
 
         class GoogleHandler(RequestHandler, GoogleMixin):
@@ -57,7 +57,7 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
 
             def _on_auth(self, user):
                 if not user:
-                    abort(403)
+                    self.abort(403)
 
                 # Set the user in the session.
     """
@@ -94,7 +94,7 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
         ax_attrs = ax_attrs or ['name', 'email', 'language', 'username']
         args = self._openid_args(callback_uri, ax_attrs=ax_attrs,
                                  oauth_scope=oauth_scope)
-        return redirect(self._OPENID_ENDPOINT + '?' + urllib.urlencode(args))
+        return self.redirect(self._OPENID_ENDPOINT + '?' + urllib.urlencode(args))
 
     def get_authenticated_user(self, callback):
         """Fetches the authenticated user data upon redirect."""

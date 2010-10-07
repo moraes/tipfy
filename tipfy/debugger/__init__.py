@@ -16,7 +16,7 @@ import os
 import sys
 import zipfile
 
-from tipfy.template import Loader, ZipLoader
+from ..template import Loader, ZipLoader
 
 _LOADER = None
 TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'templates')

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    tipfy.auth.appengine
+    tipfy.appengine.auth
     ~~~~~~~~~~~~~~~~~~~~
 
     App Engine authentication backends.

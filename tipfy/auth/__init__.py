@@ -14,7 +14,7 @@ import uuid
 
 from werkzeug import abort
 
-from tipfy import DEV_APPSERVER
+from .. import DEV_APPSERVER
 
 from werkzeug import (cached_property, check_password_hash,
     generate_password_hash, import_string)
@@ -23,7 +23,7 @@ from werkzeug import (cached_property, check_password_hash,
 #:
 #: user_model
 #:     A ``db.Model`` class used for authenticated users, as a string.
-#:     Default is `tipfy.auth.appengine.model.User`.
+#:     Default is `tipfy.appengine.auth.model.User`.
 #:
 #: secure_urls
 #:     True to use secure URLs for login, logout and sign up, False otherwise.
@@ -37,7 +37,7 @@ from werkzeug import (cached_property, check_password_hash,
 #:     Interval in seconds before a user session id is renewed.
 #:     Default is 1 week.
 default_config = {
-    'user_model':      'tipfy.auth.appengine.model.User',
+    'user_model':      'tipfy.appengine.auth.model.User',
     'cookie_name':     'session',
     'secure_urls':     False,
     'session_max_age': 86400 * 7,

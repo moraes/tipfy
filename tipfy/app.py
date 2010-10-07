@@ -241,7 +241,7 @@ class RequestHandler(object):
         given URI. This won't stop code execution, so you must return when
         calling this method::
 
-            return redirect('/some-path')
+            return self.redirect('/some-path')
 
         :param location:
             A relative or absolute URI (e.g., '../contacts').

@@ -33,7 +33,7 @@ except ImportError:
     except ImportError:
         raise RuntimeError('gaepytz or pytz are required.')
 
-from . import current_handler
+from .app import current_handler
 
 #: Default configuration values for this module. Keys are:
 #:

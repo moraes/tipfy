@@ -30,7 +30,7 @@ local = Local()
 #: For example, the :func:`tipfy.utils.url_for` function requires the current
 #: request to generate a URL. As its purpose is to be assigned to a template
 #: context or other objects shared between requests, we use `current_handler`
-#: there to avoid having to reassign the function for each request.
+#: there to dynamically get the currently active handler.
 current_handler = local('current_handler')
 
 from . import default_config

@@ -21,8 +21,8 @@ import urllib
 
 from google.appengine.api import urlfetch
 
-from .. import redirect, REQUIRED_VALUE
-from ..utils import json_decode, json_encode
+from tipfy import REQUIRED_VALUE
+from tipfy.utils import json_decode, json_encode
 
 #: Default configuration values for this module. Keys are:
 #:

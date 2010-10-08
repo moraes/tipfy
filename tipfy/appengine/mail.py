@@ -13,7 +13,7 @@
 """
 from google.appengine.api import mail
 
-from .. import RequestHandler
+from tipfy import RequestHandler
 
 
 class InboundMailHandler(RequestHandler):

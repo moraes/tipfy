@@ -16,7 +16,7 @@ import logging
 
 from google.appengine.api import xmpp
 
-from .. import RequestHandler
+from tipfy import RequestHandler
 
 
 class BaseHandler(RequestHandler):

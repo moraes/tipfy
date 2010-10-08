@@ -18,6 +18,7 @@ import nose
 # Explicitly defining to not cover tipfy.template.
 cover_packages = [
     'tipfy.app',
+    'tipfy.appengine',
     'tipfy.auth',
     'tipfy.config',
     'tipfy.debugger',

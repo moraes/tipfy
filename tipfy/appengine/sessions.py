@@ -14,7 +14,7 @@ import uuid
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
-from ..sessions import BaseSession
+from tipfy.sessions import BaseSession
 
 from tipfy.appengine.db import (PickleProperty, get_protobuf_from_entity,
     get_entity_from_protobuf)
@@ -34,11 +34,6 @@ class SessionModel(db.Model):
     #: Session data, pickled.
     data = PickleProperty()
 
-    @classmethod
-    def kind(cls):
-        """Returns the datastore kind we use for this model."""
-        return cls.kind_name
-
     @property
     def sid(self):
         """Returns the session id, which is the same as the key name.
@@ -49,6 +44,11 @@ class SessionModel(db.Model):
         return self.key().name()
 
     @classmethod
+    def kind(cls):
+        """Returns the datastore kind we use for this model."""
+        return cls.kind_name
+
+    @classmethod
     def get_by_sid(cls, sid):
         """Returns a ``Session`` instance by session id.
 
@@ -57,10 +57,8 @@ class SessionModel(db.Model):
         :returns:
             An existing ``Session`` entity.
         """
-        data = cls.get_cache(sid)
-        if data:
-            session = get_entity_from_protobuf(data)
-        else:
+        session = cls.get_cache(sid)
+        if not session:
             session = SessionModel.get_by_key_name(sid)
             if session:
                 session.set_cache()
@@ -80,7 +78,9 @@ class SessionModel(db.Model):
 
     @classmethod
     def get_cache(cls, sid):
-        return memcache.get(sid)
+        data = memcache.get(sid)
+        if data:
+            return get_entity_from_protobuf(data)
 
     def set_cache(self):
         """Saves a new cache for this entity."""
@@ -129,15 +129,12 @@ class DatastoreSession(AppEngineBaseSession):
     @classmethod
     def _get_by_sid(cls, sid, **kwargs):
         """Returns a session given a session id."""
-        entity = None
-
         if sid and _is_valid_key(sid):
             entity = cls.model_class.get_by_sid(sid)
+            if entity:
+                return cls(entity.data, sid)
 
-        if not entity:
-            return cls((), cls._get_new_sid())
-
-        return cls(entity.data, sid)
+        return cls((), cls._get_new_sid())
 
     def save_session(self, response, store, name, **kwargs):
         if not self.modified:
@@ -151,15 +148,12 @@ class MemcacheSession(AppEngineBaseSession):
     @classmethod
     def _get_by_sid(cls, sid, **kwargs):
         """Returns a session given a session id."""
-        data = None
-
         if sid and _is_valid_key(sid):
             data = memcache.get(sid)
+            if data:
+                return cls(data, sid)
 
-        if not data:
-            return cls((), cls._get_new_sid())
-
-        return cls(data, sid)
+        return cls((), cls._get_new_sid())
 
     def save_session(self, response, store, name, **kwargs):
         if not self.modified:

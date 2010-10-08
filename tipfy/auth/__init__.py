@@ -14,7 +14,7 @@ import uuid
 
 from werkzeug import abort
 
-from .. import DEV_APPSERVER
+from tipfy import DEV_APPSERVER
 
 from werkzeug import (cached_property, check_password_hash,
     generate_password_hash, import_string)

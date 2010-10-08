@@ -14,7 +14,7 @@ from google.appengine.ext import db
 from google.appengine.ext.deferred import defer, run, PermanentTaskFailure
 from google.appengine.runtime import DeadlineExceededError
 
-from .. import RequestHandler
+from tipfy import RequestHandler
 
 
 class DeferredHandler(RequestHandler):

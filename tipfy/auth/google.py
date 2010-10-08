@@ -17,7 +17,7 @@ import urllib
 
 from google.appengine.api import urlfetch
 
-from .. import REQUIRED_VALUE
+from tipfy import REQUIRED_VALUE
 from .oauth import OAuthMixin
 from .openid import OpenIdMixin
 

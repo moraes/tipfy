@@ -386,7 +386,7 @@ class Tipfy(object):
                 response = self.handle_exception(request, e)
             except HTTPException, e:
                 response = self.make_response(request, e)
-            except:
+            except Exception, e:
                 if self.debug:
                     cleanup = not self.config['tipfy']['enable_debugger']
                     raise

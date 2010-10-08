@@ -23,7 +23,7 @@ from tipfy.utils import url_for
 #:
 #: templates_compiled_target
 #:     Target for compiled templates. If set, uses the loader for compiled
-#:     templates when deployed. If it ends with a '.zip' it will be treated
+#:     templates in production. If it ends with a '.zip' it will be treated
 #:     as a zip file. Default is None.
 #:
 #: force_use_compiled
@@ -34,15 +34,15 @@ from tipfy.utils import url_for
 #:     default autoescaping is enabled and two extensions are set:
 #:     'jinja2.ext.autoescape' and 'jinja2.ext.with_'. For production it may
 #:     be a godd idea to set 'auto_reload' to False -- we don't need to check
-#:     if templates changed in production.
+#:     if templates changed after deployed.
 default_config = {
     'templates_dir': 'templates',
     'templates_compiled_target': None,
     'force_use_compiled': False,
-    'environment_args': dict(
-        autoescape=True,
-        extensions=['jinja2.ext.autoescape', 'jinja2.ext.with_'],
-    ),
+    'environment_args': {
+        'autoescape': True,
+        'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_'],
+    },
 }
 
 

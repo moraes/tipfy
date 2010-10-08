@@ -248,17 +248,6 @@ class SessionStore(object):
         """Factory for secure cookies."""
         return SecureCookieStore(self.config['secret_key'])
 
-    def get_cookie_args(self, **kwargs):
-        """Returns a copy of the default cookie configuration updated with the
-        passed arguments.
-
-        :param kwargs:
-            Keyword arguments to override in the cookie configuration.
-        """
-        _kwargs = self.config['cookie_args'].copy()
-        _kwargs.update(kwargs)
-        return _kwargs
-
     def get_session(self, key=None, backend=None, **kwargs):
         """Returns a session for a given key. If the session doesn't exist, a
         new session is returned.
@@ -390,6 +379,17 @@ class SessionStore(object):
             for sessions in self._sessions.values():
                 for key, (value, kwargs) in sessions.iteritems():
                     value.save_session(response, self, key, **kwargs)
+
+    def get_cookie_args(self, **kwargs):
+        """Returns a copy of the default cookie configuration updated with the
+        passed arguments.
+
+        :param kwargs:
+            Keyword arguments to override in the cookie configuration.
+        """
+        _kwargs = self.config['cookie_args'].copy()
+        _kwargs.update(kwargs)
+        return _kwargs
 
 
 class SessionMiddleware(object):

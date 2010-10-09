@@ -96,7 +96,7 @@ class RequestHandler(object):
 
     def __call__(self, _method, *args, **kwargs):
         """Executes a handler method. This is called by :class:`Tipfy` and
-        must return a :class:`Response` object. If :attr:`middleware` are
+        must return a :attr:`response_class` object. If :attr:`middleware` are
         defined, use their hooks to process the request or handle exceptions.
 
         :param _method:
@@ -105,7 +105,7 @@ class RequestHandler(object):
         :param kwargs:
             Keyword arguments from the matched :class:`Rule`.
         :returns:
-            A :class:`Response` instance.
+            A :attr:`response_class` instance.
         """
         method = getattr(self, _method, None)
         if method is None:
@@ -283,8 +283,8 @@ class RequestHandler(object):
 
 
 class Request(BaseRequest):
-    """The :class:`Request` object contains all environment variables for the
-    current request: GET, POST, FILES, cookies and headers.
+    """Provides all environment variables for the current request: GET, POST,
+    FILES, cookies and headers.
     """
     #: URL adapter.
     url_adapter = None
@@ -434,7 +434,7 @@ class Tipfy(object):
            above.
 
         :param request:
-            A :class:`Request` instance.
+            A :attr:`request_class` instance.
         :param exception:
             The raised exception.
         """

@@ -244,7 +244,8 @@ class RequestHandler(object):
             return self.redirect('/some-path')
 
         :param location:
-            A relative or absolute URI (e.g., '../contacts').
+            A relative or absolute URI (e.g., '../contacts'). If relative, it
+            will be joined to the current request URL.
         :param code:
             The HTTP status code for the redirect.
         :returns:
@@ -270,7 +271,8 @@ class RequestHandler(object):
         :returns:
             A :class:`Response` object with headers set for redirection.
         """
-        return self.redirect(self.url_for(_name, **kwargs), code=_code)
+        return self.redirect(self.url_for(_name, _full=kwargs.pop('_full',
+            True), **kwargs), code=_code)
 
     def url_for(self, _name, **kwargs):
         """Returns a URL for a named :class:`Rule`.
@@ -284,11 +286,11 @@ class Request(BaseRequest):
     """The :class:`Request` object contains all environment variables for the
     current request: GET, POST, FILES, cookies and headers.
     """
-    #: URL adapter bound to a request.
+    #: URL adapter.
     url_adapter = None
-    #: Matched URL rule for a request.
+    #: Matched :class:`tipfy.Rule`.
     rule = None
-    #: Keyword arguments from the matched URL rule.
+    #: Keyword arguments from the matched rule.
     rule_args = None
 
     @cached_property
@@ -375,7 +377,6 @@ class Tipfy(object):
         cleanup = True
         try:
             request = self.request_class(environ)
-
             if request.method not in self.allowed_methods:
                 abort(501)
 

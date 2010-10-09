@@ -53,8 +53,8 @@ class Router(object):
         :class:`tipfy.Request` instance.
 
         Three exceptions can occur when matching the rules: ``NotFound``,
-        ``MethodNotAllowed`` or ``RequestRedirect``. Any of these exceptions
-        will be caught by the WSGI app.
+        ``MethodNotAllowed`` or ``RequestRedirect``. The WSGI app will handle
+        raised exceptions.
 
         :param request:
             A :class:`tipfy.Request` instance.
@@ -109,8 +109,8 @@ class Router(object):
         ``Handler:method`` notation, the method will be stored in the rule.
 
         When the handler is dynamically imported an ``ImportError`` or
-        ``AttributeError`` can be raised if the handler is badly defined.
-        Any of these exceptions will be caught by the WSGI app.
+        ``AttributeError`` can be raised if it is badly defined. The WSGI app
+        will handle raised exceptions.
 
         :param request:
             A :class:`tipfy.Request` instance.

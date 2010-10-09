@@ -278,8 +278,8 @@ class SessionStore(object):
         return sessions[key][0]
 
     def set_session(self, key, value, backend=None, **kwargs):
-        """Sets a session value. If the session exists, it will be reset with
-        the new values.
+        """Sets a session value. If a session with the same key exists, it
+        will be overriden with the new value.
 
         :param key:
             Cookie name. See :meth:`get_session`.
@@ -290,7 +290,7 @@ class SessionStore(object):
         :param kwargs:
             Options to save the cookie. See :meth:`get_session`.
         """
-        assert isinstance(value, dict), 'Session values must be a dict.'
+        assert isinstance(value, dict), 'Session value must be a dict.'
         backend = backend or self.default_backend
         sessions = self._sessions.setdefault(backend, {})
         session = self.backends[backend].get_session(self, **kwargs)
@@ -326,7 +326,7 @@ class SessionStore(object):
         :param kwargs:
             Options to save the cookie. See :meth:`get_session`.
         """
-        assert isinstance(value, dict), 'Secure cookie values must be a dict.'
+        assert isinstance(value, dict), 'Secure cookie value must be a dict.'
         kwargs = self.get_cookie_args(**kwargs)
         self.secure_cookie_store.set_cookie(response, name, value, **kwargs)
 

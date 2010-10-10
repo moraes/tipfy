@@ -76,6 +76,12 @@ default_config = {
 
 
 class BaseSession(ModificationTrackingDict):
+    __slots__ = ModificationTrackingDict.__slots__ + ('new',)
+
+    def __init__(self, data=None, new=False):
+        ModificationTrackingDict.__init__(self, data or ())
+        self.new = new
+
     def get_flashes(self, key='_flash'):
         """Returns a flash message. Flash messages are deleted when first read.
 
@@ -109,10 +115,12 @@ class BaseSession(ModificationTrackingDict):
 class SecureCookieSession(BaseSession):
     @classmethod
     def get_session(cls, store, name=None, **kwargs):
-        if not name:
-            return cls(())
+        if name:
+            data = store.get_secure_cookie(name)
+            if data is not None:
+                return cls(data)
 
-        return cls(store.get_secure_cookie(name) or ())
+        return cls(new=True)
 
     def save_session(self, response, store, name, **kwargs):
         if not self.modified:

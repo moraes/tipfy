@@ -138,9 +138,10 @@ class Config(dict):
         """
         assert isinstance(values, dict), 'Module configuration must be a dict.'
         if module not in self:
-            dict.__setitem__(self, module, SubConfig(module))
-
-        module_dict = dict.__getitem__(self, module)
+            module_dict = SubConfig(module)
+            dict.__setitem__(self, module, module_dict)
+        else:
+            module_dict = dict.__getitem__(self, module)
 
         for key, value in values.iteritems():
             module_dict.setdefault(key, value)
@@ -157,9 +158,12 @@ class Config(dict):
         """
         assert isinstance(values, dict), 'Module configuration must be a dict.'
         if module not in self:
-            dict.__setitem__(self, module, SubConfig(module))
+            module_dict = SubConfig(module)
+            dict.__setitem__(self, module, module_dict)
+        else:
+            module_dict = dict.__getitem__(self, module)
 
-        dict.__getitem__(self, module).update(values)
+        module_dict.update(values)
 
     def get_config(self, module, key=None, default=REQUIRED_VALUE):
         """Returns a configuration value for a module and optionally a key.

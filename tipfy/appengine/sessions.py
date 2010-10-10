@@ -104,9 +104,14 @@ class SessionModel(db.Model):
 class AppEngineBaseSession(BaseSession):
     __slots__ = BaseSession.__slots__ + ('sid',)
 
-    def __init__(self, data, sid):
-        BaseSession.__init__(self, data or ())
-        self.sid = sid
+    def __init__(self, data=None, sid=None, new=False):
+        BaseSession.__init__(self, data, new)
+        if new:
+            self.sid = self.__class__._get_new_sid()
+        elif sid is None:
+            raise ValueError('A session id is required for existing sessions.')
+        else:
+            self.sid = sid
 
     @classmethod
     def _get_new_sid(cls):
@@ -116,11 +121,14 @@ class AppEngineBaseSession(BaseSession):
 
     @classmethod
     def get_session(cls, store, name=None, **kwargs):
-        if not name:
-            return cls((), cls._get_new_sid())
+        if name:
+            cookie = store.get_secure_cookie(name)
+            if cookie is not None:
+                sid = cookie.get('_sid')
+                if sid and _is_valid_key(sid):
+                    return cls._get_by_sid(sid, **kwargs)
 
-        cookie = store.get_secure_cookie(name) or {}
-        return cls._get_by_sid(cookie.get('_sid'), **kwargs)
+        return cls(new=True)
 
 
 class DatastoreSession(AppEngineBaseSession):
@@ -129,12 +137,11 @@ class DatastoreSession(AppEngineBaseSession):
     @classmethod
     def _get_by_sid(cls, sid, **kwargs):
         """Returns a session given a session id."""
-        if sid and _is_valid_key(sid):
-            entity = cls.model_class.get_by_sid(sid)
-            if entity:
-                return cls(entity.data, sid)
+        entity = cls.model_class.get_by_sid(sid)
+        if entity is not None:
+            return cls(entity.data, sid)
 
-        return cls((), cls._get_new_sid())
+        return cls(new=True)
 
     def save_session(self, response, store, name, **kwargs):
         if not self.modified:
@@ -148,12 +155,11 @@ class MemcacheSession(AppEngineBaseSession):
     @classmethod
     def _get_by_sid(cls, sid, **kwargs):
         """Returns a session given a session id."""
-        if sid and _is_valid_key(sid):
-            data = memcache.get(sid)
-            if data:
-                return cls(data, sid)
+        data = memcache.get(sid)
+        if data is not None:
+            return cls(data, sid)
 
-        return cls((), cls._get_new_sid())
+        return cls(new=True)
 
     def save_session(self, response, store, name, **kwargs):
         if not self.modified:

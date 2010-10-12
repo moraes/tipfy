@@ -233,7 +233,7 @@ class RequestHandler(object):
         return redirect(location, code)
 
     def redirect_to(self, _name, _code=302, **kwargs):
-        """Convenience method mixing :meth:`redirect` and :method:`url_for`:
+        """Convenience method mixing :meth:`redirect` and :meth:`url_for`:
         redirects the client to a URL built using a named :class:`Rule`.
 
         :param _name:

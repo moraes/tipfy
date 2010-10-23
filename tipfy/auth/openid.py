@@ -28,7 +28,7 @@ class OpenIdMixin(object):
     _OPENID_ENDPOINT = None
 
     def authenticate_redirect(self, callback_uri=None, ax_attrs=None,
-        openid_name=None):
+        openid_endpoint=None):
         """Returns the authentication URL for this service.
 
         After authentication, the service will redirect back to the given
@@ -55,7 +55,7 @@ class OpenIdMixin(object):
         args = self._openid_args(callback_uri, ax_attrs=ax_attrs)
         return self.redirect(openid_endpoint + '?' + urllib.urlencode(args))
 
-    def get_authenticated_user(self, callback, openid_name=None):
+    def get_authenticated_user(self, callback, openid_endpoint=None):
         """Fetches the authenticated user data upon redirect.
 
         This method should be called by the handler that receives the

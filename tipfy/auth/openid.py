@@ -11,6 +11,7 @@
     :copyright: 2010 tipfy.org.
     :license: Apache License Version 2.0, see LICENSE.txt for more details.
 """
+
 from __future__ import absolute_import
 import logging
 import urllib
@@ -18,6 +19,13 @@ import urlparse
 
 from google.appengine.api import urlfetch
 
+def make_full_url(base, args):
+    if "?" in base:
+        delimiter = "&"
+    else:
+        delimiter = "?"
+    
+    return base + delimiter + urllib.urlencode(args)
 
 class OpenIdMixin(object):
     """A :class:`tipfy.RequestHandler` mixin that implements OpenID
@@ -53,7 +61,7 @@ class OpenIdMixin(object):
         ax_attrs = ax_attrs or ('name', 'email', 'language', 'username')
         openid_endpoint = openid_endpoint or self._OPENID_ENDPOINT
         args = self._openid_args(callback_uri, ax_attrs=ax_attrs)
-        return self.redirect(openid_endpoint + '?' + urllib.urlencode(args))
+        return self.redirect(make_full_url(openid_endpoint, args))
 
     def get_authenticated_user(self, callback, openid_endpoint=None):
         """Fetches the authenticated user data upon redirect.
@@ -76,15 +84,20 @@ class OpenIdMixin(object):
         openid_endpoint = openid_endpoint or self._OPENID_ENDPOINT
         args = dict((k, v[-1]) for k, v in self.request.args.lists())
         args['openid.mode'] = u'check_authentication'
-        url = openid_endpoint + '?' + urllib.urlencode(args)
-
+        url = make_full_url(openid_endpoint, args)
+        
         try:
             response = urlfetch.fetch(url, deadline=10)
-            return self._on_authentication_verified(callback, response)
+            if response.status_code < 200 or response.status_code >= 300:
+                logging.warning('Invalid OpenID response: %s',
+                    response.content)
+            else:
+                return self._on_authentication_verified(callback, response)
         except urlfetch.DownloadError, e:
             logging.exception(e)
-
+        
         return self._on_authentication_verified(callback, None)
+
 
     def _openid_args(self, callback_uri, ax_attrs=None, oauth_scope=None):
         """Builds and returns the OpenId arguments used in the authentication
@@ -206,6 +219,9 @@ class OpenIdMixin(object):
                 user['name'] = u' '.join(name_parts)
             elif user.get('email'):
                 user['name'] = user.get('email').split('@', 1)[0]
+                
+        # get the claimed_id
+        user['claimed_id'] = self.request.args.get('openid.claimed_id', u'')
 
         return callback(user)
 

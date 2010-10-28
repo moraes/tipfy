@@ -1,6 +1,13 @@
 # General
 .DS_Store
 *.pyc
+.coverage
+.egg-info
 
 # Tipfy
 project/
+dist
+docs/build
+docs/project
+tests/project
+

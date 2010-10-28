@@ -1,2 +1,6 @@
+# General
 .DS_Store
 *.pyc
+
+# Tipfy
+project/

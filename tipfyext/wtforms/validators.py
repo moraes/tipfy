@@ -17,7 +17,7 @@ from werkzeug import url_encode
 from wtforms.validators import *
 from wtforms.validators import ValidationError
 
-from tipfy import current_handler, get_config
+from tipfy import current_handler
 
 
 RECAPTCHA_VERIFY_SERVER = 'http://api-verify.recaptcha.net/verify'
@@ -77,7 +77,8 @@ class Recaptcha(object):
 
     def _validate_recaptcha(self, challenge, response, remote_addr):
         """Performs the actual validation."""
-        private_key = get_config('tipfyext.wtforms', 'recaptcha_private_key')
+        private_key = current_handler.get_config('tipfyext.wtforms',
+            'recaptcha_private_key')
         result = urlfetch.fetch(url=RECAPTCHA_VERIFY_SERVER,
             method=urlfetch.POST,
             headers={'Content-Type': 'application/x-www-form-urlencoded'},

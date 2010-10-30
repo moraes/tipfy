@@ -13,14 +13,9 @@ import uuid
 
 from wtforms import Form as BaseForm
 
-from tipfy import Request
+from tipfy import Request, current_handler
 from tipfyext.wtforms.fields import FileField, CsrfTokenField
 from tipfyext.wtforms.validators import CsrfToken
-
-try:
-    from tipfy import i18n
-except ImportError, e:
-    i18n = None
 
 
 class Form(BaseForm):
@@ -95,7 +90,8 @@ class Form(BaseForm):
         token_list = self._get_session(request).setdefault('_csrf_token', [])
         token_list.append(token)
         # Store a maximum number of tokens.
-        maximum_tokens = get_config('tipfyext.wtforms', 'csrf_tokens')
+        maximum_tokens = current_handler.get_config('tipfyext.wtforms',
+            'csrf_tokens')
         while len(token_list) > maximum_tokens:
             token_list.pop(0)
 

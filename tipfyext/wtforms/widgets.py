@@ -10,17 +10,13 @@
     :copyright: 2009 Plurk Inc.
     :license: BSD, see LICENSE.txt for more details.
 """
-#from werkzeug import url_encode
-
-from tipfy.utils import json_encode
+from werkzeug import url_encode
 
 from wtforms.widgets import *
 
-#from tipfy import get_config
-#try:
-#    from tipfy.i18n import _
-#except ImportError, e:
-#    _ = lambda string: string
+from tipfy import current_handler
+from tipfy.i18n import _
+from tipfy.utils import json_encode
 
 
 RECAPTCHA_API_SERVER = 'http://api.recaptcha.net/'
@@ -38,13 +34,13 @@ RECAPTCHA_HTML = u'''
 class RecaptchaWidget(object):
     def __call__(self, field, error=None, **kwargs):
         """Returns the recaptcha input HTML."""
-        if get_config('tipfyext.wtforms', 'recaptcha_use_ssl'):
+        config = current_handler.get_config('tipfyext.wtforms')
+        if config.get('recaptcha_use_ssl'):
             server = RECAPTCHA_SSL_API_SERVER
         else:
             server = RECAPTCHA_API_SERVER
 
-        query_options = dict(k=get_config('tipfyext.wtforms',
-            'recaptcha_public_key'))
+        query_options = dict(k=config.get('recaptcha_public_key'))
 
         if field.recaptcha_error is not None:
             query_options['error'] = unicode(field.recaptcha_error)
@@ -66,7 +62,7 @@ class RecaptchaWidget(object):
                 'incorrect_try_again': _('Incorrect. Try again.'),
             }
         }
-        custom_options = get_config('tipfyext.wtforms', 'recaptcha_options')
+        custom_options = config.get('recaptcha_options')
         if custom_options:
             options.update(custom_options)
 

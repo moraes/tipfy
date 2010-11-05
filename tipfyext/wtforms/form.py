@@ -77,13 +77,8 @@ class Form(BaseForm):
             else:
                 field.process(data)
 
-    def _get_session(self, request):
-        session_store = request.registry.get('session_store', None)
-        if not session_store:
-            raise TypeError('You must enable sessions to use '
-                'CSRF protection')
-
-        return session_store.get_session()
+    def _get_session(self):
+        return current_handler.session_store.get_session()|
 
     def _get_csrf_token(self, request):
         token = str(uuid.uuid4())

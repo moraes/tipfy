@@ -78,7 +78,7 @@ class Form(BaseForm):
                 field.process(data)
 
     def _get_session(self):
-        return current_handler.session_store.get_session()|
+        return current_handler.session_store.get_session()
 
     def _get_csrf_token(self, request):
         token = str(uuid.uuid4())

@@ -174,3 +174,25 @@ class TestJinja2(unittest.TestCase):
         template = jinja2.environment.from_string("""{{ message|ho }}""")
 
         self.assertEqual(template.render(), 'Hey there! Ho!')
+
+    def test_after_environment_created(self):
+        def after_creation(environment):
+            environment.filters['ho'] = lambda x: x + ', Ho!'
+
+        app = Tipfy(config={'tipfyext.jinja2': {'after_environment_created': after_creation}})
+        request = Request.from_values()
+        local.current_handler = handler = RequestHandler(app, request)
+        jinja2 = Jinja2(app)
+
+        template = jinja2.environment.from_string("""{{ 'Hey'|ho }}""")
+        self.assertEqual(template.render(), 'Hey, Ho!')
+
+    def test_after_environment_created_using_string(self):
+        app = Tipfy(config={'tipfyext.jinja2': {'after_environment_created': 'resources.jinja2_after_environment_created.after_creation'}})
+        request = Request.from_values()
+        local.current_handler = handler = RequestHandler(app, request)
+        jinja2 = Jinja2(app)
+
+        template = jinja2.environment.from_string("""{{ 'Hey'|ho }}""")
+        self.assertEqual(template.render(), 'Hey, Ho!')
+

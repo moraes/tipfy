@@ -12,7 +12,7 @@
 """
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
-from werkzeug import cached_property
+from werkzeug import cached_property, import_string
 
 from tipfy.utils import url_for
 
@@ -35,6 +35,12 @@ from tipfy.utils import url_for
 #:     'jinja2.ext.autoescape' and 'jinja2.ext.with_'. For production it may
 #:     be a godd idea to set 'auto_reload' to False -- we don't need to check
 #:     if templates changed after deployed.
+#:
+#: after_environment_created
+#:     A function called after the environment is created. Can also be defined
+#:     as a string to be imported dynamically. Use this to set extra filters,
+#:     global variables, extensions etc. It is called passing the environment
+#:     as argument.
 default_config = {
     'templates_dir': 'templates',
     'templates_compiled_target': None,
@@ -43,6 +49,7 @@ default_config = {
         'autoescape': True,
         'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_'],
     },
+    'after_environment_created': None,
 }
 
 
@@ -102,6 +109,14 @@ class Jinja2(object):
             })
 
         env.globals['url_for'] = url_for
+
+        after_creation_func = config['after_environment_created']
+        if after_creation_func:
+            if isinstance(after_creation_func, basestring):
+                after_creation_func = import_string(after_creation_func)
+
+            after_creation_func(env)
+
         self.environment = env
 
     def render(self, _filename, **context):

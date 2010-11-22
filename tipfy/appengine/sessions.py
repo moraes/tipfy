@@ -132,6 +132,7 @@ class AppEngineBaseSession(BaseSession):
 
 
 class DatastoreSession(AppEngineBaseSession):
+    """A session that stores data serialized in the datastore."""
     model_class = SessionModel
 
     @classmethod
@@ -152,6 +153,7 @@ class DatastoreSession(AppEngineBaseSession):
 
 
 class MemcacheSession(AppEngineBaseSession):
+    """A session that stores data serialized in memcache."""
     @classmethod
     def _get_by_sid(cls, sid, **kwargs):
         """Returns a session given a session id."""

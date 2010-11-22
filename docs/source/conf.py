@@ -20,14 +20,14 @@ curr_path = os.path.abspath(os.path.dirname(__file__))
 project_path = os.path.join(curr_path, '..', 'project')
 
 # SDK
-sdk_path = os.path.join(project_path, 'etc', 'parts', 'google_appengine')
+sdk_path = os.path.join(project_path, 'var', 'parts', 'google_appengine')
 sys.path.insert(0, os.path.join(sdk_path, 'lib', 'django'))
 sys.path.insert(0, os.path.join(sdk_path, 'lib', 'webob'))
 sys.path.insert(0, os.path.join(sdk_path, 'lib', 'yaml', 'lib'))
 sys.path.insert(0, sdk_path)
 
 # App libs.
-sys.path.insert(0, os.path.join(project_path, 'app', 'distlib'))
+sys.path.insert(0, os.path.join(project_path, 'app', 'lib', 'dist'))
 
 # -- General configuration -----------------------------------------------------
 

@@ -114,6 +114,7 @@ class BaseSession(ModificationTrackingDict):
 
 
 class SecureCookieSession(BaseSession):
+    """A session that stores data serialized in a signed cookie."""
     @classmethod
     def get_session(cls, store, name=None, **kwargs):
         if name:

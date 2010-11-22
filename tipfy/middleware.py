@@ -16,6 +16,15 @@ class ETagMiddleware(object):
     returns '304 Not Modified' if the request contains a matching etag.
     """
     def after_dispatch(self, handler, response):
+        """Called after the class:`tipfy.RequestHandler` method was executed.
+
+        :param handler:
+            A class:`tipfy.RequestHandler` instance.
+        :param response:
+            A class:`tipfy.Response` instance.
+        :returns:
+            A class:`tipfy.Response` instance.
+        """
         if not isinstance(response, ETagResponseMixin):
             return response
 

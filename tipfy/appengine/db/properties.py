@@ -227,8 +227,8 @@ def _slugify(value, max_length=None, default=None):
     :param value:
         The string to be slugified.
     :param max_length:
-        An intebger to restrict the resulting string to this
-        maximum length. Words are not broken when restricting length.
+        An integer to restrict the resulting string to a maximum length.
+        Words are not broken when restricting length.
     :param default:
         A default value in case the resulting string is empty.
     :returns:

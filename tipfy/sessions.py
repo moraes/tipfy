@@ -4,7 +4,8 @@
     ==============
 
     Lightweight sessions support for tipfy. Includes sessions using secure
-    cookies and supports flash messages.
+    cookies and supports flash messages. For App Engine's datastore and
+    memcache based sessions, see tipfy.appengine.sessions.
 
     :copyright: 2010 by tipfy.org.
     :license: Apache Sotware License, see LICENSE for details.
@@ -157,27 +158,27 @@ class SecureCookieStore(object):
         value = request.cookies.get(name)
 
         if not value:
-            return None
+            return
 
         parts = value.split('|')
         if len(parts) != 3:
-            return None
+            return
 
         signature = self._get_signature(name, parts[0], parts[1])
 
         if not self._check_signature(parts[2], signature):
             logging.warning('Invalid cookie signature %r', value)
-            return None
+            return
 
         if max_age is not None and (int(parts[1]) < time.time() - max_age):
             logging.warning('Expired cookie %r', value)
-            return None
+            return
 
         try:
             return self._decode(parts[0])
         except:
             logging.warning('Cookie value failed to be decoded: %r', parts[0])
-            return None
+            return
 
     def set_cookie(self, response, name, value, **kwargs):
         """Signs and timestamps a cookie so it cannot be forged.
@@ -253,7 +254,11 @@ class SessionStore(object):
 
     @cached_property
     def secure_cookie_store(self):
-        """Factory for secure cookies."""
+        """Factory for secure cookies.
+
+        :returns:
+            A :class:`SecureCookieStore` instance.
+        """
         return SecureCookieStore(self.config['secret_key'])
 
     def get_session(self, key=None, backend=None, **kwargs):
@@ -394,6 +399,8 @@ class SessionStore(object):
 
         :param kwargs:
             Keyword arguments to override in the cookie configuration.
+        :returns:
+            A dictionary with arguments for the session cookie.
         """
         _kwargs = self.config['cookie_args'].copy()
         _kwargs.update(kwargs)
@@ -403,6 +410,15 @@ class SessionStore(object):
 class SessionMiddleware(object):
     """Saves sessions at the end of a request."""
     def after_dispatch(self, handler, response):
+        """Called after the class:`tipfy.RequestHandler` method was executed.
+
+        :param handler:
+            A class:`tipfy.RequestHandler` instance.
+        :param response:
+            A class:`tipfy.Response` instance.
+        :returns:
+            A class:`tipfy.Response` instance.
+        """
         handler.session_store.save(response)
         return response
 

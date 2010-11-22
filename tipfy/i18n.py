@@ -99,17 +99,18 @@ default_config = {
 
 
 class I18nMiddleware(object):
-    """``tipfy.RequestHandler`` middleware that saves the current locale in
-    the session at the end of request, if it differs from the current value
-    stored in the session.
+    """Saves the current locale in the session at the end of request, if it
+    differs from the current value stored in the session.
     """
     def after_dispatch(self, handler, response):
-        """Saves the current locale in the session.
+        """Called after the class:`tipfy.RequestHandler` method was executed.
 
         :param handler:
-            A :class:`tipfy.RequestHandler` instance.
+            A class:`tipfy.RequestHandler` instance.
         :param response:
-            A :class:`tipfy.Response` instance.
+            A class:`tipfy.Response` instance.
+        :returns:
+            A class:`tipfy.Response` instance.
         """
         session = handler.session
         i18n = handler.i18n

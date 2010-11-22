@@ -2,7 +2,9 @@
 \.DS_Store$
 \.coverage
 \.egg-info
+\.bak
 dist
+temp
 docs/build
 docs/project
 tests/project

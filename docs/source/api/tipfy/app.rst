@@ -26,7 +26,7 @@ WSGI Application
 .. autoclass:: Tipfy
    :members: allowed_methods, request_class, response_class, config_class,
              router_class, __init__, __call__, wsgi_app, handle_exception,
-             make_response, get_test_client, get_test_handler, run,
+             make_response, get_config, get_test_client, get_test_handler, run,
              auth_store_class, i18n_store_class, session_store_class
 
 

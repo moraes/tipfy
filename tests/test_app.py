@@ -461,6 +461,10 @@ class TestTipfy(BaseTestCase):
         app.run()
         self.assertEqual(sys.stdout.getvalue(), 'Status: 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 11\r\n\r\nMethod: GET')
 
+    def test_get_config(self):
+        app = Tipfy(config={'tipfy': {'foo': 'bar'}})
+        self.assertEqual(app.get_config('tipfy', 'foo'), 'bar')
+
 
 class TestRequest(BaseTestCase):
     def test_json(self):

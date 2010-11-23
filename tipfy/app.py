@@ -496,6 +496,13 @@ class Tipfy(object):
 
         return self.response_class(*rv)
 
+    def get_config(self, module, key=None, default=REQUIRED_VALUE):
+        """Returns a configuration value for a module.
+
+        .. seealso:: :meth:`Config.get_config`.
+        """
+        return self.config.get_config(module, key=key, default=default)
+
     def get_test_client(self):
         """Creates a test client for this application.
 

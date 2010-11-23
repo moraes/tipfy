@@ -81,7 +81,7 @@ class BaseAuthStore(object):
         """Returns a URL that, when visited, prompts the user to sign in.
 
         :returns:
-            A URL to perform logout.
+            A URL to perform login.
         """
         return self._url('auth/login', **kwargs)
 
@@ -97,7 +97,7 @@ class BaseAuthStore(object):
         """Returns a URL that, when visited, prompts the user to sign up.
 
         :returns:
-            A URL to perform logout.
+            A URL to perform signup.
         """
         return self._url('auth/signup', **kwargs)
 

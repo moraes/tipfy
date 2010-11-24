@@ -136,10 +136,17 @@ class Router(object):
             rule.handler = self.handlers[handler]
 
         if not method:
+            request_method = request.method.lower().replace('-', '_')
+
             if rule.handler_method is None:
-                method = request.method.lower().replace('-', '_')
+                method = request_method
             else:
                 method = rule.handler_method
+                # Idea: if rule has methods defined, append the current
+                # request method to the method name (or add a 'method_sufix'
+                # argument to rule).
+                # if rule.methods:
+                #     method += '_' + request_method
 
         return rule.handler, method, rule_args
 

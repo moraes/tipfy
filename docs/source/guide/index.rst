@@ -5,6 +5,7 @@ Topics to cover:
 - Response
 - URL Routing
 - Config
+- Templates
 - RequestHandler Middleware
 - Exception Handling
 - Sessions: securecookie, datastore, memcache

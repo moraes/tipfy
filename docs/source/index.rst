@@ -20,6 +20,7 @@ User Guide
    guide/config.rst
    guide/routing.rst
    guide/middleware.rst
+   guide/templates.rst
    guide/auth.rst
    guide/i18n.rst
    guide/sessions.rst

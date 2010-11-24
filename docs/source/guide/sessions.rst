@@ -5,9 +5,7 @@ Sessions
 
 Quick start
 -----------
-To use sessions:
-
-- Set 'secret_key' config key:
+To use sessions, first set a 'secret_key' config key:
 
 **config.py**
 
@@ -17,7 +15,7 @@ To use sessions:
        'secret_key': 'my very secret secret key',
    }
 
-- Define a base RequestHandler with SessionMiddleware:
+Then define a base RequestHandler with SessionMiddleware:
 
 **handlers.py**
 
@@ -30,7 +28,7 @@ To use sessions:
        middleware = [SessionMiddleware()]
 
 
-- Extend the BaseHandler when you need session support:
+Now, just extend the BaseHandler when you need session support:
 
 **handlers.py**
 

@@ -1,0 +1,4 @@
+.. _guide.templates:
+
+Templates
+=========

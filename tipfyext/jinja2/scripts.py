@@ -14,6 +14,7 @@ import sys
 from jinja2 import FileSystemLoader
 
 from tipfy import Tipfy
+from tipfy.scripting import set_gae_sys_path
 from tipfyext.jinja2 import Jinja2
 
 
@@ -91,28 +92,13 @@ def compile_templates(argv=None):
     if argv is None:
         argv = sys.argv
 
-    cwd = os.getcwd()
-    app_path = os.path.join(cwd, 'app')
-    gae_path = os.path.join(cwd, 'var/parts/google_appengine')
-
-    extra_paths = [
-        app_path,
-        gae_path,
-        # These paths are required by the SDK.
-        os.path.join(gae_path, 'lib', 'antlr3'),
-        os.path.join(gae_path, 'lib', 'django'),
-        os.path.join(gae_path, 'lib', 'ipaddr'),
-        os.path.join(gae_path, 'lib', 'webob'),
-        os.path.join(gae_path, 'lib', 'yaml', 'lib'),
-    ]
-
-    sys.path = extra_paths + sys.path
-
+    set_gae_sys_path()
     from config import config
 
     app = Tipfy(config=config)
     template_path = app.get_config('tipfyext.jinja2', 'templates_dir')
-    compiled_path = app.get_config('tipfyext.jinja2', 'templates_compiled_target')
+    compiled_path = app.get_config('tipfyext.jinja2',
+        'templates_compiled_target')
 
     if compiled_path is None:
         raise ValueError('Missing configuration key to compile templates.')
@@ -140,8 +126,8 @@ def compile_templates(argv=None):
     FileSystemLoader.list_templates = list_templates
 
     env = Jinja2.factory(app, 'jinja2').environment
-    env.compile_templates(target, extensions=None, filter_func=filter_templates,
-                          zip=zip_cfg, log_function=logger,
-                          ignore_errors=False, py_compile=False)
+    env.compile_templates(target, extensions=None,
+        filter_func=filter_templates, zip=zip_cfg, log_function=logger,
+        ignore_errors=False, py_compile=False)
 
     FileSystemLoader.list_templates = old_list_templates

@@ -98,6 +98,8 @@ Then just set the error handler in the app for all desired HTTP error codes:
 
 Handling exceptions in RequestHandler
 -------------------------------------
+TODO
 
 Handling exceptions using middleware
 ------------------------------------
+TODO

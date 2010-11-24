@@ -1,1 +1,4 @@
+.. _guide.response:
 
+Response
+========

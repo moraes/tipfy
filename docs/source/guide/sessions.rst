@@ -1,3 +1,5 @@
+.. _guide.sessions:
+
 Sessions
 ========
 

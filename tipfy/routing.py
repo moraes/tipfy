@@ -144,7 +144,7 @@ class Router(object):
                 method = rule.handler_method
                 # Idea: if rule has methods defined, append the current
                 # request method to the method name (or add a 'method_sufix'
-                # argument to rule).
+                # argument to rule to enable it?).
                 # if rule.methods:
                 #     method += '_' + request_method
 
@@ -244,7 +244,7 @@ class Rule(BaseRule):
 
         url = self.url_for('user-list')
     """
-    def __init__(self, path, handler=None, name=None, **kwargs):
+    def __init__(self, path, name=None, handler=None, **kwargs):
         self.name = kwargs.pop('endpoint', name)
         self.handler = handler or self.name
         self.handler_method = None

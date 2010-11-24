@@ -8,6 +8,26 @@ the `Tutorials Page <http://www.tipfy.org/wiki/tutorials/>`_,
 and the `Guide <http://www.tipfy.org/wiki/guide/>`_.
 
 
+User Guide
+----------
+.. toctree::
+   :maxdepth: 3
+
+   guide/quick_start.rst
+   guide/request_handler.rst
+   guide/request.rst
+   guide/response.rst
+   guide/config.rst
+   guide/routing.rst
+   guide/middleware.rst
+   guide/auth.rst
+   guide/i18n.rst
+   guide/sessions.rst
+   guide/exception_handling.rst
+   guide/debugger.rst
+   guide/testing.rst
+
+
 Core API
 --------
 .. toctree::

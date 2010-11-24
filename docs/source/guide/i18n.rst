@@ -1,1 +1,4 @@
+.. _guide.i18n:
 
+Internationalization
+====================

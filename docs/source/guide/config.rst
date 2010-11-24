@@ -1,1 +1,4 @@
+.. _guide.config:
 
+Configuration
+=============

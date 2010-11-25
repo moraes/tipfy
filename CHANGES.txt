@@ -1,4 +1,4 @@
-Version 0.7 - Not yet released
+Version 1.0 - Not yet released
 ==============================
 *This change log is a work in progress*
 
@@ -110,6 +110,8 @@ Sessions
   Example::
 
       class MyHandler(RequestHandler):
+          middleware = [SessionMiddleware()]
+
           def get(self, **kwargs):
               # Set a value in the current session.
               self.session['foo'] = 'bar'

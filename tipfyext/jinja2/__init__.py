@@ -53,22 +53,6 @@ default_config = {
 }
 
 
-class Jinja2Mixin(object):
-    """Mixin that adds ``render_template`` and ``render_response`` methods
-    to a :class:`tipfy.RequestHandler`. It will use the request context to
-    render templates.
-    """
-    @cached_property
-    def jinja2(self):
-        return Jinja2.factory(self.app, 'jinja2')
-
-    def render_template(self, _filename, **context):
-        return self.jinja2.render_template(self, _filename, **context)
-
-    def render_response(self, _filename, **context):
-        return self.jinja2.render_response(self, _filename, **context)
-
-
 class Jinja2(object):
     def __init__(self, app, _globals=None, filters=None):
         self.app = app
@@ -189,3 +173,22 @@ class Jinja2(object):
             _app.registry[_name] = cls(_app, **kwargs)
 
         return _app.registry[_name]
+
+
+class Jinja2Mixin(object):
+    """Mixin that adds ``render_template`` and ``render_response`` methods
+    to a :class:`tipfy.RequestHandler`. It will use the request context to
+    render templates.
+    """
+    # The Jinja2 creator.
+    jinja2_class = Jinja2
+
+    @cached_property
+    def jinja2(self):
+        return self.jinja2_class.factory(self.app, 'jinja2')
+
+    def render_template(self, _filename, **context):
+        return self.jinja2.render_template(self, _filename, **context)
+
+    def render_response(self, _filename, **context):
+        return self.jinja2.render_response(self, _filename, **context)

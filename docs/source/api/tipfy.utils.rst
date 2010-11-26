@@ -11,6 +11,8 @@ Functions
 .. autofunction:: xhtml_unescape
 .. autofunction:: json_encode
 .. autofunction:: json_decode
+.. autofunction:: json_b64encode
+.. autofunction:: json_b64decode
 .. autofunction:: render_json_response
 .. autofunction:: squeeze
 .. autofunction:: url_escape

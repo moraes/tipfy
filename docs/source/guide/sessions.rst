@@ -43,10 +43,32 @@ Now, just extend the BaseHandler when you need session support:
            return 'testing sessions'
 
 
-Changing the session backend
-----------------------------
+Using multiple sessions
+-----------------------
+It is possible to use multiple sessions in the a request. They can use one
+the same or different backends. To do so, you request a new session to the
+session store:
+
+**handlers.py**
+
+.. code-block:: python
+
+   class MyHandler(BaseHandler):
+       def get(self, **kwargs):
+           # Request a new session using the cookie name 'cart' and the datastore
+           # backend.
+           session = self.session_store.get_session('cart', backend='datastore')
+
+           # Any value set in the session will be persisted.
+           session['foo'] = 'bar'
+
+           return 'testing multiple sessions'
+
+
+Changing the default session backend
+------------------------------------
 By default sessions use secure cookies. To use datastore or memcache-based
-sessions, configure the sessions module:
+sessions by default, configure the sessions module:
 
 **config.py**
 
@@ -59,8 +81,8 @@ sessions, configure the sessions module:
    }
 
 
-Flash messages
---------------
+Using flash messages
+--------------------
 Flash messages are part of a session. They are deleted when read. To set or
 read flash messages:
 
@@ -76,4 +98,26 @@ read flash messages:
            # Read previously set flash messages (this will delete them).
            flashes = self.session.get_flashes()
 
-           return 'testing flah messages'
+           return 'testing flash messages'
+
+
+Setting and deleting cookies
+----------------------------
+Cookies are set or deleted calling methods from the Response object, but
+sometimes it can be convenient to set or delete a cookie before having a
+Response available. You can do it using the session store:
+
+
+**handlers.py**
+
+.. code-block:: python
+
+   class MyHandler(BaseHandler):
+       def get(self, **kwargs):
+           # Set a cookie.
+           self.session_store.set_cookie('key', 'value')
+
+           # Delete a cookie.
+           self.session_store.delete_cookie('another_key')
+
+           return 'testing cookies'

@@ -35,8 +35,9 @@ cover_packages = [
 if __name__ == '__main__':
     base = os.path.abspath(os.path.dirname(__file__))
     tipfy = os.path.join(base, '..')
-    app   = os.path.join(base, 'project', 'app', 'lib', 'dist')
-    sys.path[0:0] = [tipfy, app]
+    app = os.path.join(base, 'project', 'app', 'lib', 'dist')
+    gae = os.path.join(base, 'project', 'var', 'parts', 'google_appengine')
+    sys.path[0:0] = [tipfy, app, gae]
 
     argv = [__file__]
     argv += '-d --with-gae -P --without-sandbox --with-coverage --cover-erase --gae-application=./project/app'.split()

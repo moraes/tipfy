@@ -1,0 +1,26 @@
+application: my-app
+version: 1
+runtime: python
+api_version: 1
+
+derived_file_type:
+- python_precompiled
+
+handlers:
+- url: /(robots\.txt|favicon\.ico)
+  static_files: static/\1
+  upload: static/(.*)
+
+- url: /static
+  static_dir: static
+
+- url: /remote_api
+  script: $PYTHON_LIB/google/appengine/ext/remote_api/handler.py
+  login: admin
+
+- url: /_ah/queue/deferred
+  script: main.py
+  login: admin
+
+- url: /.*
+  script: main.py

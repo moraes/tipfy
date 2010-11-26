@@ -15,7 +15,7 @@
 # under the License.
 
 """Escaping/unescaping methods for HTML, JSON, URLs, and others."""
-
+import base64
 import htmlentitydefs
 import re
 import xml.sax.saxutils
@@ -41,17 +41,39 @@ except ImportError:
 
 
 def xhtml_escape(value):
-    """Escapes a string so it is valid within XML or XHTML."""
+    """Escapes a string so it is valid within XML or XHTML.
+
+    :param value:
+        The value to be escaped.
+    :returns:
+        The escaped value.
+    """
     return utf8(xml.sax.saxutils.escape(value, {'"': "&quot;"}))
 
 
 def xhtml_unescape(value):
-    """Un-escapes an XML-escaped string."""
+    """Un-escapes an XML-escaped string.
+
+    :param value:
+        The value to be un-escaped.
+    :returns:
+        The un-escaped value.
+    """
     return re.sub(r"&(#?)(\w+?);", _convert_entity, _unicode(value))
 
 
 def json_encode(value, *args, **kwargs):
-    """JSON-encodes the given Python object."""
+    """Serializes a value to JSON.
+
+    :param value:
+        A value to be serialized.
+    :param args:
+        Extra arguments to be passed to `simplejson.dumps()`.
+    :param kwargs:
+        Extra keyword arguments to be passed to `simplejson.dumps()`.
+    :returns:
+        The serialized value.
+    """
     # JSON permits but does not require forward slashes to be escaped.
     # This is useful when json data is emitted in a <script> tag
     # in HTML, as it prevents </script> tags from prematurely terminating
@@ -62,8 +84,40 @@ def json_encode(value, *args, **kwargs):
 
 
 def json_decode(value, *args, **kwargs):
-    """Returns Python objects for the given JSON string."""
+    """Deserializes a value from JSON.
+
+    :param value:
+        A value to be deserialized.
+    :param args:
+        Extra arguments to be passed to `simplejson.loads()`.
+    :param kwargs:
+        Extra keyword arguments to be passed to `simplejson.loads()`.
+    :returns:
+        The deserialized value.
+    """
     return simplejson.loads(_unicode(value), *args, **kwargs)
+
+
+def json_b64encode(value):
+    """Serializes a value to JSON and encodes it to base64.
+
+    :param value:
+        A value to be encoded.
+    :returns:
+        The encoded value.
+    """
+    return base64.b64encode(json_encode(value, separators=(',', ':')))
+
+
+def json_b64decode(value):
+    """Decodes a value from base64 and deserializes it from JSON.
+
+    :param value:
+        A value to be decoded.
+    :returns:
+        The decoded value.
+    """
+    return json_decode(base64.b64decode(value))
 
 
 def render_json_response(*args, **kwargs):
@@ -97,15 +151,31 @@ def url_unescape(value):
 
 
 def utf8(value):
+    """Encodes a unicode value to UTF-8 if not yet encoded.
+
+    :param value:
+        Value to be encoded.
+    :returns:
+        An encoded string.
+    """
     if isinstance(value, unicode):
         return value.encode("utf-8")
+
     assert isinstance(value, str)
     return value
 
 
 def _unicode(value):
+    """Encodes a string value to unicode if not yet decoded.
+
+    :param value:
+        Value to be decoded.
+    :returns:
+        A decoded string.
+    """
     if isinstance(value, str):
         return value.decode("utf-8")
+
     assert isinstance(value, unicode)
     return value
 

@@ -45,17 +45,41 @@ Anatomy of a Rule
 
 Rule parameters
 ~~~~~~~~~~~~~~~
-TODO
+TODO:
+
+    Rule(rule, name=None, handler=None, defaults=None, subdomain=None,
+        methods=None, build_only=None, strict_slashes=None,
+        redirect_to=None)
 
 
 Rule variables
 ~~~~~~~~~~~~~~
-TODO
+TODO:
+
+- Unicode (minlength=1, maxlength=None, length=None)
+    Rule('/pages/<page>'),
+    Rule('/<string(length=2):lang_code>')
+- Path ()
+    Rule('/<path:wikipage>')
+    Rule('/<path:wikipage>/edit')
+- Any (*items)
+    Rule('/<any(about, help, imprint, u"class"):page_name>')
+- Integer (fixed_digits=0, min=None, max=None)
+    Rule('/page/<int:page>')
+- Float (min=None, max=None)¶
+    Rule('/probability/<float:probability>')
 
 
 URL building
 ------------
-TODO
+URLs are built calling `self.url_for` inside a handler, or {{ url_for }} inside
+Jinja2 templates. There's also a standalone function `tipfy.utils.url_for()`
+that serves for the same purpose. You pass the rule name to the function and
+all the variable values defined for the rule.
+
+Extra parameters passed to `url_for()` are appended as query arguments.
+
+TODO: '_full', '_method', '_scheme', '_netloc', '_anchor'
 
 
 Rule wrappers

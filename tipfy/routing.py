@@ -232,9 +232,10 @@ class Router(object):
 
 
 class Rule(BaseRule):
-    """Extends Werkzeug routing to support handler and name definitions for
-    each Rule. Handler is a :class:`tipfy.RequestHandler` class and name is a
-    friendly name used to build URL's. For example::
+    """A Rule represents one URL pattern. Tipfy extends Werkzeug's Rule
+    to support handler and name definitions. Handler is the
+    :class:`tipfy.RequestHandler` class that will handle the request and name
+    is a unique name used to build URL's. For example::
 
         Rule('/users', name='user-list', handler='my_app:UsersHandler')
 
@@ -245,6 +246,93 @@ class Rule(BaseRule):
         url = self.url_for('user-list')
     """
     def __init__(self, path, name=None, handler=None, **kwargs):
+        """There are some options for `Rule` that change the way it behaves
+        and are passed to the `Rule` constructor. Note that besides the
+        rule-string all arguments *must* be keyword arguments in order to not
+        break the application on upgrades.
+
+        :param path:
+            Rule strings basically are just normal URL paths with placeholders
+            in the format ``<converter(arguments):name>`` where the converter
+            and the arguments are optional. If no converter is defined the
+            `default` converter is used which means `string` in the normal
+            configuration.
+
+            URL rules that end with a slash are branch URLs, others are leaves.
+            If you have `strict_slashes` enabled (which is the default), all
+            branch URLs that are matched without a trailing slash will trigger a
+            redirect to the same URL with the missing slash appended.
+
+            The converters are defined on the `Map`.
+        :param name:
+            The rule name used for URL generation.
+        :param handler:
+            The handler class used to handle requests when this rule matches.
+            Can be a class or a class defined as a string to be lazily
+            imported.
+        :param defaults:
+            An optional dict with defaults for other rules with the same
+            endpoint. This is a bit tricky but useful if you want to have
+            unique URLs::
+
+                rules = [
+                    Rule('/all/', name='pages', handler='handlers.PageHandler', defaults={'page': 1}),
+                    Rule('/all/page/<int:page>', name='pages', handler='handlers.PageHandler'),
+                ]
+
+            If a user now visits ``http://example.com/all/page/1`` he will be
+            redirected to ``http://example.com/all/``. If `redirect_defaults`
+            is disabled on the `Map` instance this will only affect the URL
+            generation.
+        :param subdomain:
+            The subdomain rule string for this rule. If not specified the rule
+            only matches for the `default_subdomain` of the map. If the map is
+            not bound to a subdomain this feature is disabled.
+
+            Can be useful if you want to have user profiles on different
+            subdomains and all subdomains are forwarded to your application.
+        :param methods:
+            A sequence of http methods this rule applies to. If not specified,
+            all methods are allowed. For example this can be useful if you want
+            different endpoints for `POST` and `GET`. If methods are defined
+            and the path matches but the method matched against is not in this
+            list or in the list of another rule for that path the error raised
+            is of the type `MethodNotAllowed` rather than `NotFound`. If `GET`
+            is present in the list of methods and `HEAD` is not, `HEAD` is
+            added automatically.
+        :param strict_slashes:
+            Override the `Map` setting for `strict_slashes` only for this rule.
+            If not specified the `Map` setting is used.
+        :param build_only:
+            Set this to True and the rule will never match but will create a
+            URL that can be build. This is useful if you have resources on a
+            subdomain or folder that are not handled by the WSGI application
+            (like static data).
+        :param redirect_to:
+            If given this must be either a string or callable. In case of a
+            callable it's called with the url adapter that triggered the match
+            and the values of the URL as keyword arguments and has to return
+            the target for the redirect, otherwise it has to be a string with
+            placeholders in rule syntax::
+
+                def foo_with_slug(adapter, id):
+                    # ask the database for the slug for the old id. this of
+                    # course has nothing to do with werkzeug.
+                    return 'foo/' + Foo.get_slug_for_id(id)
+
+                rules = [
+                    Rule('/foo/<slug>', name='foo', handler='handlers.FooHandler'),
+                    Rule('/some/old/url/<slug>', redirect_to='foo/<slug>'),
+                    Rule('/other/old/url/<int:id>', redirect_to=foo_with_slug)
+                ]
+
+            When the rule is matched the routing system will raise a
+            `RequestRedirect` exception with the target for the redirect.
+
+            Keep in mind that the URL will be joined against the URL root of
+            the script so don't use a leading slash on the target URL unless
+            you really mean root of that domain.
+        """
         self.name = kwargs.pop('endpoint', name)
         self.handler = handler or self.name
         self.handler_method = None
@@ -258,7 +346,7 @@ class Rule(BaseRule):
         if self.defaults is not None:
             defaults = dict(self.defaults)
 
-        return Rule(self.rule, handler=self.handler, name=self.name,
+        return Rule(self.rule, name=self.name, handler=self.handler,
             defaults=defaults, subdomain=self.subdomain, methods=self.methods,
             build_only=self.build_only, strict_slashes=self.strict_slashes,
             redirect_to=self.redirect_to)

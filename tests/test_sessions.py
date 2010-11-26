@@ -9,6 +9,7 @@ from tipfy import Tipfy, Request, RequestHandler, Response, Rule
 from tipfy.app import local
 from tipfy.sessions import (SecureCookieSession, SecureCookieStore,
     SessionMiddleware, SessionStore)
+from tipfy.utils import json_b64decode
 from tipfy.appengine.sessions import (DatastoreSession, MemcacheSession,
     SessionModel)
 
@@ -105,6 +106,22 @@ class TestSessionStoreBase(unittest.TestCase):
 
         self.assertEqual(request.cookies.get('foo', None), '')
         self.assertEqual(request.cookies['baz'], 'ding')
+
+    def test_set_cookie_encoded(self):
+        local.current_handler = handler = RequestHandler(self._get_app(), Request.from_values())
+        store = SessionStore(handler)
+
+        store.set_cookie('foo', 'bar', format='json')
+        store.set_cookie('baz', 'ding', format='json')
+
+        response = Response()
+        store.save(response)
+
+        headers = {'Cookie': '\n'.join(response.headers.getlist('Set-Cookie'))}
+        request = Request.from_values('/', headers=headers)
+
+        self.assertEqual(json_b64decode(request.cookies.get('foo')), 'bar')
+        self.assertEqual(json_b64decode(request.cookies.get('baz')), 'ding')
 
 
 class TestSessionStore(DataStoreTestCase, MemcacheTestCase, unittest.TestCase):

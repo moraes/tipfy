@@ -3,8 +3,10 @@ version: 1
 runtime: python
 api_version: 1
 
-derived_file_type:
-- python_precompiled
+builtins:
+- appstats: on
+- datastore_admin: on
+- remote_api: on
 
 handlers:
 - url: /(robots\.txt|favicon\.ico)
@@ -13,10 +15,6 @@ handlers:
 
 - url: /static
   static_dir: static
-
-- url: /remote_api
-  script: $PYTHON_LIB/google/appengine/ext/remote_api/handler.py
-  login: admin
 
 - url: /_ah/queue/deferred
   script: main.py

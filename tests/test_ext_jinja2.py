@@ -196,3 +196,20 @@ class TestJinja2(unittest.TestCase):
         template = jinja2.environment.from_string("""{{ 'Hey'|ho }}""")
         self.assertEqual(template.render(), 'Hey, Ho!')
 
+    def test_translations(self):
+        app = Tipfy(config={
+            'tipfyext.jinja2': {
+                'environment_args': {
+                    'extensions': ['jinja2.ext.i18n',],
+                },
+            },
+            'tipfy.sessions': {
+                'secret_key': 'foo',
+            },
+        })
+        request = Request.from_values()
+        local.current_handler = handler = RequestHandler(app, request)
+        jinja2 = Jinja2(app)
+
+        template = jinja2.environment.from_string("""{{ _('foo = %(bar)s', bar='foo') }}""")
+        self.assertEqual(template.render(), 'foo = foo')

@@ -11,11 +11,10 @@
 import hashlib
 import pickle
 import re
-import unicodedata
 
 from google.appengine.ext import db
 
-from tipfy.utils import json_decode, json_encode
+from tipfy.utils import json_decode, json_encode, slugify
 
 try:
     # This is optional, only required by TimezoneProperty.
@@ -193,7 +192,7 @@ class SlugProperty(db.Property):
         if not v:
             return self.default
 
-        return _slugify(v, max_length=self.max_length, default=self.default)
+        return slugify(v, max_length=self.max_length, default=self.default)
 
 
 class TimezoneProperty(db.Property):
@@ -218,36 +217,3 @@ class TimezoneProperty(db.Property):
 
         raise db.BadValueError("Property %s must be a pytz timezone or string."
             % self.name)
-
-
-def _slugify(value, max_length=None, default=None):
-    """Converts a string to slug format (all lowercase, words separated by
-    dashes).
-
-    :param value:
-        The string to be slugified.
-    :param max_length:
-        An integer to restrict the resulting string to a maximum length.
-        Words are not broken when restricting length.
-    :param default:
-        A default value in case the resulting string is empty.
-    :returns:
-        A slugified string.
-    """
-    if not isinstance(value, unicode):
-        value = value.decode('utf8')
-
-    s = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').lower()
-    s = re.sub('-+', '-', re.sub('[^a-zA-Z0-9-]+', '-', s)).strip('-')
-    if not s:
-        return default
-
-    if max_length:
-        # Restrict length without breaking words.
-        while len(s) > max_length:
-            if s.find('-') == -1:
-                s = s[:max_length]
-            else:
-                s = s.rsplit('-', 1)[0]
-
-    return s

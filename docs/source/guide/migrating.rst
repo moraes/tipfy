@@ -109,6 +109,14 @@ import it from werkzeug.
 
 **Problem**::
 
+    ImportError: cannot import name NotFound
+
+**Solution**: use `self.abort(404)` inside handlers.
+
+----
+
+**Problem**::
+
     ImportError: cannot import name rules
 
 **Solution**: The new `main.py` import the rules list from `urls.py` directly.
@@ -205,6 +213,15 @@ is now part of tipfy core and available in the `RequestHandler` by default.
 
 **Solution**: auth is now an attribute of `RequestHandler`. Inside a handler,
 use `self.auth.user` instead.
+
+----
+
+**Problem**::
+
+    AttributeError: 'SomeHandlerName' object has no attribute 'auth_create_user'
+
+**Solution**: auth is now an attribute of `RequestHandler`. Inside a handler,
+use `self.auth.create_user` instead.
 
 ----
 

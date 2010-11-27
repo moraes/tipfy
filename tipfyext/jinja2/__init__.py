@@ -89,12 +89,14 @@ class Jinja2(object):
                 lambda s, p, n: current_handler.i18n.translations.ungettext(s,
                     p, n),
                 newstyle=True)
-            env.filters.update({
+            format_functions = {
                 'format_date':      i18n.format_date,
                 'format_time':      i18n.format_time,
                 'format_datetime':  i18n.format_datetime,
                 'format_timedelta': i18n.format_timedelta,
-            })
+            }
+            env.globals.update(format_functions)
+            env.filters.update(format_functions)
 
         env.globals['url_for'] = url_for
 

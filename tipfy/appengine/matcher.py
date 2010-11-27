@@ -30,7 +30,7 @@ class MatcherHandler(RequestHandler):
         form = self.request.form
         result = self.match(
             sub_ids=form.getlist('id'),
-            key=form['key'],
+            key=form.get('key'),
             topic=form['topic'],
             results_count=int(form['results_count']),
             results_offset=int(form['results_offset']),

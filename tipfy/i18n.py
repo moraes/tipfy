@@ -195,16 +195,7 @@ class I18nStore(object):
         :returns:
             The translated string.
         """
-        try:
-            return self.translations.ugettext(string) % variables
-        except KeyError, e:
-            import logging
-            logging.info('*' * 100)
-            logging.info(string)
-            logging.info(variables)
-            logging.info('*' * 100)
-
-            return 'booo!'
+        return self.translations.ugettext(string) % variables
 
     def ngettext(self, singular, plural, n, **variables):
         """Translates a possible pluralized string according to the current

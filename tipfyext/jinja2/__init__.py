@@ -14,6 +14,7 @@ from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from werkzeug import cached_property, import_string
 
+from tipfy import current_handler
 from tipfy.utils import url_for
 
 #: Default configuration values for this module. Keys are:
@@ -83,7 +84,10 @@ class Jinja2(object):
         if enable_i18n:
             # Install i18n.
             from tipfy import i18n
-            env.install_gettext_callables(i18n.gettext, i18n.ngettext,
+            env.install_gettext_callables(
+                lambda x: current_handler.i18n.translations.ugettext(x),
+                lambda s, p, n: current_handler.i18n.translations.ungettext(s,
+                    p, n),
                 newstyle=True)
             env.filters.update({
                 'format_date':      i18n.format_date,

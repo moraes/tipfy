@@ -12,16 +12,49 @@ TODO
 
 Custom global variables, filters and functions
 ----------------------------------------------
-To set custom global variables, filters and functions, you can define a
-function that is called right after the environment is created. You do that in
-the configuration file. It must point to where the function is:
+Override `jinja2` from the `Jinja2Mixin` to set custom global variables,
+filters and functions:
+
+**handlers.py**
+
+.. code-block:: python
+
+   from werkzeug import cached_property
+
+   from tipfy import RequestHandler
+   from tipfyext.jinja2 import Jinja2Mixin
+
+   # Define a dictionary with global variables and functions.
+   custom_globals = {
+       'some_key':   'some_value',
+       'my_function': my_function,
+   }
+
+   # Define a dictionary with global filters.
+   custom_filters = {
+       'markdown': markdown,
+   }
+
+   class MyHandler(RequestHandler, Jinja2Mixin):
+       @cached_property
+       def jinja2(self):
+           return Jinja2.factory(self.app, 'jinja2', _globals=custom_globals,
+               filters=custom_filters)
+
+
+That's all you need. For completeness, let's see other ways to do the
+same thing, so that you can extend the API if needed.
+
+A different way is to define a function that is called right after the
+environment is created. You do that in the configuration file. It must point
+to where the function is:
 
 **config.py**
 
 .. code-block:: python
 
    config['tipfyext.jinja2'] = {
-       'after_environment_created': 'my_handlers.after_environment_created'
+       'after_environment_created': 'my_handlers.after_environment_created',
    }
 
 The function takes the Jinja2 environment as parameter, and you can do whatever

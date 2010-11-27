@@ -10,6 +10,11 @@ Quick start
 TODO
 
 
+Jinja2 syntax
+-------------
+TODO
+
+
 Custom global variables, filters and functions
 ----------------------------------------------
 Override `jinja2` from the `Jinja2Mixin` to set custom global variables,
@@ -32,7 +37,7 @@ filters and functions:
 
    # Define a dictionary with global filters.
    custom_filters = {
-       'markdown': markdown,
+       'my_filter': my_filter,
    }
 
    class MyHandler(RequestHandler, Jinja2Mixin):
@@ -45,9 +50,9 @@ filters and functions:
 That's all you need. For completeness, let's see other ways to do the
 same thing, so that you can extend the API if needed.
 
-A different way is to define a function that is called right after the
-environment is created. You do that in the configuration file. It must point
-to where the function is:
+You can also define a function that is called right after the environment
+is created. You do that in the configuration file. It must point to where the
+function is located:
 
 **config.py**
 
@@ -128,8 +133,3 @@ in the handler that uses `Jinja2Mixin`:
    class CustomJinja2Mixin(Jinja2Mixin):
        # The Jinja2 creator.
        jinja2_class = CustomJinja2
-
-
-Jinja2 syntax
--------------
-TODO

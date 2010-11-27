@@ -10,14 +10,91 @@ Quick start
 TODO
 
 
-Custom global variables and functions
--------------------------------------
-TODO
+Custom global variables, filters and functions
+----------------------------------------------
+To set custom global variables, filters and functions, you can define a
+function that is called right after the environment is created. You do that in
+the configuration file. It must point to where the function is:
+
+**config.py**
+
+.. code-block:: python
+
+   config['tipfyext.jinja2'] = {
+       'after_environment_created': 'my_handlers.after_environment_created'
+   }
+
+The function takes the Jinja2 environment as parameter, and you can do whatever
+you need with it:
+
+**my_handlers.py**
+
+.. code-block:: python
+
+   def my_function(some_argument):
+       return 'done!'
+
+   def my_filter(some_argument):
+       return 'done!'
+
+   def after_environment_created(env):
+       # Define a dictionary with global variables and functions.
+       _globals = {
+           'some_key':   'some_value',
+           'my_function': my_function,
+       }
+
+       # Define a dictionary with global filters.
+       filters = {
+           'my_filter': my_filter,
+       }
+
+       env.globals.update(_globals)
+       env.filters.update(filters)
 
 
-Custom filters
---------------
-TODO
+Alternatively, you can extend the `Jinja2` class:
+
+**handlers.py**
+
+.. code-block:: python
+
+   from tipfyext.jinja2 import Jinja2, Jinja2Mixin
+
+   def my_function(some_argument):
+       return 'done!'
+
+   def my_filter(some_argument):
+       return 'done!'
+
+   class CustomJinja2(Jinja2):
+       def __init__(self, app, _globals=None, filters=None):
+           # Define a dictionary with global variables and functions.
+           _globals = {
+               'some_key':   'some_value',
+               'my_function': my_function,
+           }
+
+           # Define a dictionary with global filters.
+           filters = {
+               'my_filter': my_filter,
+           }
+
+           super(CustomJinja2, self).__init__(app, _globals=_globals,
+               filters=filters)
+
+Then either extend `Jinja2Mixin`, or set the `jinja2_class` to the custom one
+in the handler that uses `Jinja2Mixin`:
+
+**handlers.py**
+
+.. code-block:: python
+
+   from tipfyext.jinja2 import Jinja2, Jinja2Mixin
+
+   class CustomJinja2Mixin(Jinja2Mixin):
+       # The Jinja2 creator.
+       jinja2_class = CustomJinja2
 
 
 Jinja2 syntax

@@ -15,23 +15,6 @@ from google.appengine.api import matcher
 from tipfy import RequestHandler
 
 
-class Matcher(RequestHandler):
-    """A simple test to feed the matcher::
-
-        class Index(RequestHandler):
-            def get(self):
-                schema = {str:['symbol'], float:['price']}
-                matcher.subscribe(dict, 'symbol:GOOG AND price > 500', 'ikai:GOOG',
-                    schema=schema, topic='Stock')
-                matcher.match({'symbol': 'GOOG', 'price': 515.0}, topic='Stock')
-                return "Hai"
-    """
-    def post(self, **kwargs):
-        form = self.request.form
-        sub_ids = form.getlist('id')
-        topic = form['topic']
-        results_count = form['results_count']
-        doc = matcher.get_document(form)
-        logging.info("sub_ids: %s, topic: %s, results_count: %r, doc: %r" %
-            (sub_ids, topic, results_count, doc))
-        return ''
+class MatcherHandler(RequestHandler):
+    def get_document(self):
+        return matcher.get_document(self.request.form)

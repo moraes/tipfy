@@ -10,7 +10,6 @@
 """
 import hashlib
 import pickle
-import re
 
 from google.appengine.ext import db
 

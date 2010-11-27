@@ -46,7 +46,7 @@ default_config = {
 }
 
 from .app import (HTTPException, Request, RequestHandler, Response, Tipfy,
-    abort, current_handler, APPENGINE, APPLICATION_ID, CURRENT_VERSION_ID,
-    DEV_APPSERVER)
+    abort, current_app, current_handler, APPENGINE, APPLICATION_ID,
+    CURRENT_VERSION_ID, DEV_APPSERVER)
 from .config import DEFAULT_VALUE, REQUIRED_VALUE
 from .routing import HandlerPrefix, NamePrefix, Rule, Subdomain, Submount

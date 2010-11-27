@@ -195,3 +195,12 @@ is now part of tipfy core and available in the `RequestHandler` by default.
 
 **Solution**: auth is now an attribute of `RequestHandler`. Inside a handler,
 use `self.auth.user` instead.
+
+----
+
+**Problem**::
+KeyError: "Module 'tipfy' requires the config key 'dev' to be set."
+
+**Solution**: 'dev' is no longer a valid config key, so if you try to use
+it this exception will be raised. Use `self.app.debug` inside a handler, or
+to check if the dev server is in use import `DEV_APPSERVER` from tipfy.

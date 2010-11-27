@@ -32,6 +32,8 @@ local = Local()
 #: context or other objects shared between requests, we use `current_handler`
 #: there to dynamically get the currently active handler.
 current_handler = local('current_handler')
+#: Same as current_handler, only for the active WSGI app.
+current_app = local('current_app')
 
 from . import default_config
 from .config import Config, REQUIRED_VALUE
@@ -336,6 +338,7 @@ class Tipfy(object):
         :param debug:
             True if this is debug mode, False otherwise.
         """
+        local.current_app = self
         self.debug = debug
         self.registry = {}
         self.error_handlers = {}
@@ -347,6 +350,7 @@ class Tipfy(object):
 
     def __call__(self, environ, start_response):
         """Shortcut for :meth:`Tipfy.wsgi_app`."""
+        local.current_app = self
         if self.debug and self.config['tipfy']['enable_debugger']:
             return self._debugged_wsgi_app(environ, start_response)
 

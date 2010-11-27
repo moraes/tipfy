@@ -2,3 +2,23 @@
 
 Internationalization
 ====================
+
+Quick start
+-----------
+TODO
+
+Enable i18n for Jinja2 templates. You need to add the extension
+`jinja2.ext.i18n` to the configuration. Here we add also some other default
+extensions:
+
+.. code-block:: python
+
+   **config.py**
+
+   # Configuration for the 'tipfy.ext.session' module.
+   config['tipfyext.jinja2'] = {
+       'environment_args': {
+           'autoescape': True,
+           'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.i18n', 'jinja2.ext.with_'],
+       },
+   }

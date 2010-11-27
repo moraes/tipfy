@@ -7,6 +7,7 @@ and patches:
 - Danil Semelenov (sgtpep)
 - Stephen Gornick (sgornick)
 - Thomas Johansson (prencher)
+- James Crasta (crast)
 
 tipfy also includes open source libraries or adapted code from the following
 projects:

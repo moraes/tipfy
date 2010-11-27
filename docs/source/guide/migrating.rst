@@ -13,6 +13,16 @@ Before starting an upgrade, make a backup of your code.
    from tipfy import get_config
    from tipfy import import_string
 
+3. Middleware defined in handlers must be instances. Before::
+
+       class BaseHandler(RequestHandler):
+           middleware = [sessions.SessionMiddleware]
+
+   After::
+
+       class BaseHandler(RequestHandler):
+           middleware = [sessions.SessionMiddleware()]
+
 
 Common exceptions
 -----------------
@@ -199,8 +209,61 @@ use `self.auth.user` instead.
 ----
 
 **Problem**::
-KeyError: "Module 'tipfy' requires the config key 'dev' to be set."
+
+    AttributeError: 'SomeHandlerName' object has no attribute 'auth_session'
+
+**Solution**: auth is now an attribute of `RequestHandler`. Inside a handler,
+use `self.auth.session` instead.
+
+----
+
+**Problem**::
+
+    AttributeError: 'SomeHandlerName' object has no attribute 'auth_login_url'
+
+**Solution**: auth is now an attribute of `RequestHandler`. Inside a handler,
+use `self.auth.login_url` instead.
+
+----
+
+**Problem**::
+
+    AttributeError: 'SomeHandlerName' object has no attribute 'auth_logout_url'
+
+**Solution**: auth is now an attribute of `RequestHandler`. Inside a handler,
+use `self.auth.logout_url` instead.
+
+----
+
+**Problem**::
+
+    TypeError: logout_url() takes exactly 1 argument (2 given)
+
+**Solution**: pass the redirect argument as keyword: `redirect=some_url`.
+
+----
+
+**Problem**::
+
+    KeyError: "Module 'tipfy' requires the config key 'dev' to be set."
 
 **Solution**: 'dev' is no longer a valid config key, so if you try to use
 it this exception will be raised. Use `self.app.debug` inside a handler, or
 to check if the dev server is in use import `DEV_APPSERVER` from tipfy.
+
+----
+
+**Problem**::
+
+    KeyError: "Module 'tipfy.sessions' requires the config key 'secret_key' to be set."
+
+**Solution**: set a 'secret_key' in `config.py`:
+
+.. code-block:: python
+
+   config['tipfy.sessions'] = {
+       'secret_key': 'important: change this to something very secret!',
+   }
+
+
+AttributeError: 'WikiViewHandler' object has no attribute 'messages'

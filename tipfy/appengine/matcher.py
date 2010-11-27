@@ -12,7 +12,7 @@ import logging
 
 from google.appengine.api import matcher
 
-from tipfy import RequestHandler
+from tipfy import RequestHandler, Response
 
 
 class MatcherHandler(RequestHandler):
@@ -29,6 +29,7 @@ class MatcherHandler(RequestHandler):
     """
     def post(self, **kwargs):
         """Parses all the fields out of a match and pass along."""
+        form = self.request.form
         result = self.match(
             sub_ids=form.getlist('id'),
             key=form['key'],

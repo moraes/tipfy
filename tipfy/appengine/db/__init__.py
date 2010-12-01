@@ -11,6 +11,7 @@
 import logging
 import time
 
+from google.appengine.api import datastore_errors
 from google.appengine.api.namespace_manager import namespace_manager
 from google.appengine.ext import db
 
@@ -491,6 +492,48 @@ def load_entity(model, kwarg_old, kwarg_new=None, fetch_mode=None):
         return decorated
 
     return decorator
+
+
+def to_key(values):
+    """Coerces a value or list of values to `db.Key` instances.
+
+    :param value:
+        A datastore key as string, `db.Model` or `db.Key` instances, or a list
+        of them. None values of model instances that still don't have a key
+        available will be appended to the result as None.
+    :returns:
+        A `db.Key` or a list of `db.Key` instances.
+    """
+    if values is None:
+        return None
+
+    if not isinstance(values, list):
+        multiple = False
+        values = [values]
+    else:
+        multiple = True
+
+    res = []
+    for value in values:
+        if value is None:
+            res.append(None)
+        elif isinstance(value, db.Model):
+            if value.has_key():
+                res.append(value.key())
+            else:
+                res.append(None)
+        elif isinstance(value, basestring):
+            res.append(db.Key(value))
+        elif isinstance(value, db.Key):
+            res.append(value)
+        else:
+            raise datastore_errors.BadArgumentError('Expected model, key or '
+                'string.')
+
+    if multiple:
+        return res
+
+    return res[0]
 
 
 class ModelMixin(object):

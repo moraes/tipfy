@@ -205,7 +205,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(str(ext_db.get_reference_key(fetched_book, 'author')), str(author.key()))
 
     #===========================================================================
-    # ext_db.populate_entity
+    # db.populate_entity
     #===========================================================================
     def test_populate_entity(self):
         entity_1 = FooModel(name='foo', age=15, married=False)
@@ -265,7 +265,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
 
     #===========================================================================
-    # ext_db.get_entity_dict
+    # db.get_entity_dict
     #===========================================================================
     def test_get_entity_dict(self):
         class MyModel(db.Model):
@@ -515,7 +515,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertRaises(datastore_errors.BadKeyError, FooModel, name='foo', key_name='foo', somekey='foo')
 
     #===========================================================================
-    # @ext_db.retry_on_timeout
+    # @db.retry_on_timeout
     #===========================================================================
     def test_retry_on_timeout_1(self):
         counter = [0]
@@ -533,7 +533,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertEqual(counter[0], 3)
 
     #===========================================================================
-    # @ext_db.load_entity
+    # @db.load_entity
     #===========================================================================
     def test_load_entity_with_key(self):
         @ext_db.load_entity(FooModel, 'foo_key', 'foo', 'key')
@@ -611,7 +611,7 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
         self.assertRaises(NotImplementedError, test)
 
     #===========================================================================
-    # ext_db.run_in_namespace
+    # db.run_in_namespace
     #===========================================================================
     def test_run_in_namespace(self):
         class MyModel(db.Model):
@@ -634,3 +634,27 @@ class TestModel(DataStoreTestCase, unittest.TestCase):
 
         entity = ext_db.run_in_namespace('ns2', get_entity, 'foo')
         self.assertEqual(entity, None)
+
+    #===========================================================================
+    # db.to_key
+    #===========================================================================
+    def test_to_key(self):
+        class MyModel(db.Model):
+            pass
+
+        # None.
+        self.assertEqual(ext_db.to_key(None), None)
+        # Model without key.
+        self.assertEqual(ext_db.to_key(MyModel()), None)
+        # Model with key.
+        self.assertEqual(ext_db.to_key(MyModel(key_name='foo')), db.Key.from_path('MyModel', 'foo'))
+        # Key.
+        self.assertEqual(ext_db.to_key(db.Key.from_path('MyModel', 'foo')), db.Key.from_path('MyModel', 'foo'))
+        # Key as string.
+        self.assertEqual(ext_db.to_key(str(db.Key.from_path('MyModel', 'foo'))), db.Key.from_path('MyModel', 'foo'))
+        # All mixed.
+        keys = [None, MyModel(), MyModel(key_name='foo'), db.Key.from_path('MyModel', 'foo'), str(db.Key.from_path('MyModel', 'foo'))]
+        result = [None, None, db.Key.from_path('MyModel', 'foo'), db.Key.from_path('MyModel', 'foo'), db.Key.from_path('MyModel', 'foo')]
+        self.assertEqual(ext_db.to_key(keys), result)
+
+        self.assertRaises(datastore_errors.BadArgumentError, ext_db.to_key, {})

@@ -57,3 +57,13 @@ Sending a file for download
 
            # Done!
            return response
+
+
+Service authentication using HTTP Basic Auth
+--------------------------------------------
+TODO
+
+
+Service authentication using Google ClientLogin API
+---------------------------------------------------
+TODO

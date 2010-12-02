@@ -169,6 +169,20 @@ class TestRequestHandler(BaseTestCase):
         response = client.get('/redirect-me', follow_redirects=True)
         self.assertEqual(response.data, 'Method: GET')
 
+    def test_redirect_empty(self):
+        class HandlerWithRedirect(RequestHandler):
+            def get(self, **kwargs):
+                return self.redirect('/', empty=True)
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=AllMethodsHandler),
+            Rule('/redirect-me', name='redirect', handler=HandlerWithRedirect),
+        ])
+
+        client = app.get_test_client()
+        response = client.get('/redirect-me', follow_redirects=False)
+        self.assertEqual(response.data, '')
+
     def test_redirect_to(self):
         class HandlerWithRedirectTo(RequestHandler):
             def get(self, **kwargs):
@@ -182,6 +196,20 @@ class TestRequestHandler(BaseTestCase):
         client = app.get_test_client()
         response = client.get('/redirect-me', follow_redirects=True)
         self.assertEqual(response.data, 'Method: GET')
+
+    def test_redirect_to_empty(self):
+        class HandlerWithRedirectTo(RequestHandler):
+            def get(self, **kwargs):
+                return self.redirect_to('home', _empty=True)
+
+        app = Tipfy(rules=[
+            Rule('/', name='home', handler=AllMethodsHandler),
+            Rule('/redirect-me', name='redirect', handler=HandlerWithRedirectTo),
+        ])
+
+        client = app.get_test_client()
+        response = client.get('/redirect-me', follow_redirects=False)
+        self.assertEqual(response.data, '')
 
     def test_redirect_relative_uris(self):
         class MyHandler(RequestHandler):

@@ -238,7 +238,7 @@ class RequestHandler(object):
         """
         return self.app.make_response(self.request, *rv)
 
-    def redirect(self, location, code=302):
+    def redirect(self, location, code=302, empty=False):
         """Returns a response object with headers set for redirection to the
         given URI. This won't stop code execution, so you must return when
         calling this method::
@@ -250,6 +250,9 @@ class RequestHandler(object):
             will be joined to the current request URL.
         :param code:
             The HTTP status code for the redirect.
+        :param empty:
+            If True, returns a response without body. By default Werkzeug sets
+            a standard message in the body.
         :returns:
             A :class:`Response` object with headers set for redirection.
         """
@@ -257,9 +260,14 @@ class RequestHandler(object):
             # Make it absolute.
             location = urlparse.urljoin(self.request.url, location)
 
-        return base_redirect(location, code)
+        response = base_redirect(location, code)
 
-    def redirect_to(self, _name, _code=302, **kwargs):
+        if empty:
+            response.data = ''
+
+        return response
+
+    def redirect_to(self, _name, _code=302, _empty=False, **kwargs):
         """Convenience method mixing ``werkzeug.redirect`` and :func:`url_for`:
         returns a response object with headers set for redirection to a URL
         built using a named :class:`Rule`.
@@ -268,13 +276,16 @@ class RequestHandler(object):
             The rule name.
         :param _code:
             The HTTP status code for the redirect.
+        :param _empty:
+            If True, returns a response without body. By default Werkzeug sets
+            a standard message in the body.
         :param kwargs:
             Keyword arguments to build the URL.
         :returns:
             A :class:`Response` object with headers set for redirection.
         """
         return self.redirect(self.url_for(_name, _full=kwargs.pop('_full',
-            True), **kwargs), code=_code)
+            True), **kwargs), code=_code, empty=_empty)
 
     def url_for(self, _name, **kwargs):
         """Returns a URL for a named :class:`Rule`.

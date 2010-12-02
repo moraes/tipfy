@@ -217,10 +217,7 @@ class SessionAuthStore(BaseAuthStore):
 
 
 class MultiAuthStore(SessionAuthStore):
-    """This RequestHandler mixin is used for custom or third party
-    authentication. It requires a `SessionMixin` to be used with the handler
-    as it depends on sessions to be set.
-    """
+    """Store used for custom or third party authentication."""
     def login_with_form(self, username, password, remember=False):
         """Authenticates the current user using data from a form.
 

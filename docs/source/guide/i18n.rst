@@ -2,12 +2,16 @@
 
 Internationalization
 ====================
+Tipfy has a fairly complete set of tools for internationalization and
+localization. They help to create apps with different translations but also
+to provide localized date, time and numbers, currency.
+
 
 Quick start
 -----------
 TODO
 
-Enable i18n for Jinja2 templates. You need to add the extension
+To enable i18n for Jinja2 templates, you need to add the extension
 `jinja2.ext.i18n` to the configuration. Here we add also some other default
 extensions:
 
@@ -15,10 +19,47 @@ extensions:
 
    **config.py**
 
-   # Configuration for the 'tipfy.ext.session' module.
    config['tipfyext.jinja2'] = {
        'environment_args': {
            'autoescape': True,
            'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.i18n', 'jinja2.ext.with_'],
        },
    }
+
+
+Extracting, compiling and updating translations
+-----------------------------------------------
+We use the `babel command line interface <http://babel.edgewall.org/wiki/Documentation/cmdline.html>`_
+to extract, initialize, compile and update translations. Here is an
+introduction on how to use it. Refer to the manual for a more complete
+description.
+
+The babel extract function can extract not only `{% trans %}` and `{{ _() }}`
+tags from templates but also `gettext()` and its variants from `.py` files.
+Access your project directory in the command line and follow this quick how-to:
+
+* Extract all translations. Here we pass two directories to be scanned:
+  the templates dir and the apps dir. This will create a `messages.pot` file
+  in the `/app/locale` directory with all strings found in these directories::
+
+    $ bin/pybabel extract -F ./babel.cfg -o ./app/locale/messages.pot ./app/templates/ ./app/apps
+
+* To add a new translation, initialize its directory. This is done only once
+  per translation. It will use the `messages.pot` file created on step 1. Here
+  we initialize three translations, `en_US`, `es_ES` and `pt_BR`::
+
+    $ bin/pybabel init -l en_US -d ./app/locale -i ./app/locale/messages.pot
+    $ bin/pybabel init -l es_ES -d ./app/locale -i ./app/locale/messages.pot
+    $ bin/pybabel init -l pt_BR -d ./app/locale -i ./app/locale/messages.pot
+
+* Now the translation catalogs are created in `/app/locale/`. Open each `.po`
+  file and translate them (for example,
+  `/app/locale/en_US/LC_MESSAGES/messages.po`). After all locales are
+  translated, compile them::
+
+    $ bin/pybabel compile -f -d ./app/locale
+
+* That's it. Later, if translations change, repeat step 1 and update them
+  using the new .pot file::
+
+    $ bin/pybabel update -l pt_BR -d ./app/locale/ -i ./app/locale/messages.pot

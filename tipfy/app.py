@@ -569,10 +569,10 @@ class Tipfy(object):
 
     @cached_property
     def i18n_store_class(self):
-        """Returns the configured auth store class.
+        """Returns the configured i18n store class.
 
         :returns:
-            An auth store class.
+            An i18n store class.
         """
         return import_string(self.config['tipfy']['i18n_store_class'])
 

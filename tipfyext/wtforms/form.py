@@ -17,6 +17,11 @@ from tipfy import Request, current_handler
 from tipfyext.wtforms.fields import FileField, CsrfTokenField
 from tipfyext.wtforms.validators import CsrfToken
 
+try:
+    from tipfy import i18n
+except ImportError, e:
+    i18n = None
+
 
 class Form(BaseForm):
     csrf_protection = False
@@ -93,3 +98,14 @@ class Form(BaseForm):
         # Set the validation rule for the tokens.
         self._fields['csrf_token'].validators = [CsrfToken(token_list)]
         return token
+
+    def _get_translations(self):
+        """
+        Override in subclasses to provide alternate translations factory.
+
+        Must return an object that provides gettext() and ngettext() methods.
+        """
+        if i18n:
+            return current_handler.i18n
+        else:
+            return None

@@ -556,11 +556,6 @@ class Tipfy(object):
                 main()
 
         """
-        if DEV_APPSERVER and APPENGINE:
-            # Fix issue #772.
-            from .dev import fix_sys_path
-            fix_sys_path()
-
         CGIHandler().run(self)
 
     @cached_property

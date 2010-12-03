@@ -98,6 +98,8 @@ def compile_templates(argv=None):
 
     extra_paths = [
         app_path,
+        os.path.join(app_path, 'lib'),
+        os.path.join(app_path, 'lib', 'dist'),
         gae_path,
         # These paths are required by the SDK.
         os.path.join(gae_path, 'lib', 'antlr3'),

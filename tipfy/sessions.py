@@ -304,7 +304,28 @@ class SessionStore(object):
         sessions = self._sessions.setdefault(backend, {})
         session = self.backends[backend].get_session(self, **kwargs)
         session.update(value)
+        kwargs = self.get_cookie_args(**kwargs)
         sessions[key] = (session, kwargs)
+
+    def update_session_args(self, key, backend=None, **kwargs):
+        """Updates the cookie options for a session.
+
+        :param key:
+            Cookie name. See :meth:`get_session`.
+        :param backend:
+            Name of the session backend. See :meth:`get_session`.
+        :param kwargs:
+            Options to save the cookie. See :meth:`get_session`.
+        :returns:
+            True if the session was updated, False otherwise.
+        """
+        backend = backend or self.default_backend
+        sessions = self._sessions.setdefault(backend, {})
+        if key in sessions:
+            sessions[key][1].update(kwargs)
+            return True
+
+        return False
 
     def get_secure_cookie(self, name, max_age=DEFAULT_VALUE):
         """Returns a secure cookie from the request.

@@ -190,7 +190,6 @@ class SessionAuthStore(BaseAuthStore):
         self.loaded = True
         self._session_base.pop('_auth', None)
         self._session = self._user = None
-        self._save_session_base()
 
     def _load_session_and_user(self):
         raise NotImplementedError()
@@ -207,13 +206,8 @@ class SessionAuthStore(BaseAuthStore):
             kwargs['max_age'] = None
 
         self._session_base['_auth'] = self._session = session
-        self._save_session_base(**kwargs)
-
-    def _save_session_base(self, **kwargs):
-        _kwargs = self.app.config['tipfy.sessions']['cookie_args'].copy()
-        _kwargs.update(kwargs)
-        self.handler.session_store.set_session(self.config['cookie_name'],
-            self._session_base, **_kwargs)
+        self.handler.session_store.update_session_args(
+            self.config['cookie_name'], **kwargs)
 
 
 class MultiAuthStore(SessionAuthStore):

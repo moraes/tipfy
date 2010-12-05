@@ -34,14 +34,14 @@ Core API
 .. toctree::
    :maxdepth: 3
 
-   api/tipfy/app.rst
-   api/tipfy/config.rst
-   api/tipfy/i18n.rst
-   api/tipfy/middleware.rst
-   api/tipfy/routing.rst
-   api/tipfy/testing.rst
-   api/tipfy/sessions.rst
-   api/tipfy/utils.rst
+   api/tipfy.app.rst
+   api/tipfy.config.rst
+   api/tipfy.i18n.rst
+   api/tipfy.middleware.rst
+   api/tipfy.routing.rst
+   api/tipfy.testing.rst
+   api/tipfy.sessions.rst
+   api/tipfy.utils.rst
 
 
 Indices and tables

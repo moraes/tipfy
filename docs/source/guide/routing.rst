@@ -56,18 +56,27 @@ Rule variables
 ~~~~~~~~~~~~~~
 TODO:
 
-- Unicode (minlength=1, maxlength=None, length=None)
-    Rule('/pages/<page>'),
-    Rule('/<string(length=2):lang_code>')
-- Path ()
-    Rule('/<path:wikipage>')
-    Rule('/<path:wikipage>/edit')
-- Any (*items)
-    Rule('/<any(about, help, imprint, u"class"):page_name>')
-- Integer (fixed_digits=0, min=None, max=None)
-    Rule('/page/<int:page>')
-- Float (min=None, max=None)¶
-    Rule('/probability/<float:probability>')
+- Unicode (minlength=1, maxlength=None, length=None)::
+
+      Rule('/pages/<page>'),
+      Rule('/<string(length=2):lang_code>')
+
+- Path ()::
+
+      Rule('/<path:wikipage>')
+      Rule('/<path:wikipage>/edit')
+
+- Any (items)::
+
+      Rule('/<any(about, help, imprint, u"class"):page_name>')
+
+- Integer (fixed_digits=0, min=None, max=None)::
+
+      Rule('/page/<int:page>')
+
+- Float (min=None, max=None)::
+
+      Rule('/probability/<float:probability>')
 
 
 URL building

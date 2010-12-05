@@ -13,6 +13,7 @@ User Guide
 .. toctree::
    :maxdepth: 3
 
+   guide/index.rst
    guide/quick_start.rst
    guide/request_handler.rst
    guide/request.rst
@@ -27,10 +28,12 @@ User Guide
    guide/exception_handling.rst
    guide/debugger.rst
    guide/testing.rst
+   guide/common_tasks.rst
+   guide/migrating.rst
 
 
-Core API
---------
+API
+---
 .. toctree::
    :maxdepth: 3
 

@@ -184,18 +184,15 @@ def get_entity_dict(entities):
         A dictionary or a list of dictionaries mapping property names to
         values.
     """
-    single = False
     if isinstance(entities, db.Model):
-        entities = [entities]
-        single = True
+        return _get_entity_dict(entities)
 
-    res = [dict((k, getattr(e, k)) for k in get_entity_properties(e)) \
-        for e in entities]
+    return [_get_entity_dict(e) for e in entities]
 
-    if single:
-        return res[0]
 
-    return res
+def _get_entity_dict(entity):
+    """See :func:`get_entity_dict`."""
+    return dict((k, getattr(entity, k)) for k in get_entity_properties(entity))
 
 
 def get_or_insert_with_flag(model, key_name, **kwargs):

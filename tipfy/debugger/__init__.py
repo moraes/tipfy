@@ -31,7 +31,8 @@ def get_loader():
         elif os.path.exists(ZIP_PATH):
             _LOADER = ZipLoader(ZIP_PATH, 'tipfy/debugger/templates')
         else:
-            raise RunTimeError('Could not find debugger templates.')
+            raise RuntimeError('Could not find debugger templates in %r or '
+                '%r.' % (TEMPLATE_PATH, ZIP_PATH))
 
     return _LOADER
 

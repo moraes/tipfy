@@ -130,6 +130,6 @@ in the handler that uses `Jinja2Mixin`:
 
    from tipfyext.jinja2 import Jinja2, Jinja2Mixin
 
-   class CustomJinja2Mixin(Jinja2Mixin):
+   class BaseHandler(RequestHandler, Jinja2Mixin):
        # The Jinja2 creator.
        jinja2_class = CustomJinja2

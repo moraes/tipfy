@@ -107,7 +107,6 @@ Cookies are set or deleted calling methods from the Response object, but
 sometimes it can be convenient to set or delete a cookie before having a
 Response available. You can do it using the session store:
 
-
 **handlers.py**
 
 .. code-block:: python

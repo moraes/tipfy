@@ -134,8 +134,8 @@ below use the prefix 'company-':
        ]),
    ]
 
-So to generate URLs the name is 'company-home', 'company-about' and
-'company-contact'. This is nice to prefix rule names belonging to a same
+So to generate URLs the names will be 'company-home', 'company-about' and
+'company-contact'. This is useful group rule names belonging to a same
 category or app.
 
 Subdomain

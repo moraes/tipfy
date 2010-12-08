@@ -154,7 +154,7 @@ class SessionAuthStore(BaseAuthStore):
         self.loaded = False
         self._session = self._user = None
 
-    @cached_property
+    @property
     def session(self):
         """Returns the currently logged in user session."""
         if self.loaded is False:
@@ -162,7 +162,7 @@ class SessionAuthStore(BaseAuthStore):
 
         return self._session
 
-    @cached_property
+    @property
     def user(self):
         """Returns the currently logged in user entity or None.
 

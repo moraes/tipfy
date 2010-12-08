@@ -1,7 +1,9 @@
+from __future__ import with_statement
+
 from . import BaseTestCase
 
 from tipfy import Tipfy, RequestHandler, Response
-from tipfy.routing import HandlerPrefix, Router, Rule
+from tipfy.routing import HandlerPrefix, NamePrefix, Router, Rule
 
 
 class TestRouter(BaseTestCase):
@@ -40,6 +42,29 @@ class TestRouting(BaseTestCase):
 
         response = client.get('/defaults')
         self.assertEqual(response.data, 'bar')
+
+    #==========================================================================
+    # NamePrefix
+    #==========================================================================
+    def test_name_prefix(self):
+        class DummyHandler(RequestHandler):
+            def get(self, **kwargs):
+                return ''
+
+        rules = [
+            NamePrefix('company-', [
+                Rule('/', name='home', handler=DummyHandler),
+                Rule('/about', name='about', handler=DummyHandler),
+                Rule('/contact', name='contact', handler=DummyHandler),
+            ]),
+        ]
+
+        app = Tipfy(rules)
+
+        with app.get_test_handler('/') as handler:
+            self.assertEqual(handler.url_for('company-home'), '/')
+            self.assertEqual(handler.url_for('company-about'), '/about')
+            self.assertEqual(handler.url_for('company-contact'), '/contact')
 
     #==========================================================================
     # RegexConverter

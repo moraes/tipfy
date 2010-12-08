@@ -353,8 +353,8 @@ class Rule(BaseRule):
 
 
 class HandlerPrefix(RuleFactory):
-    """Prefixes all handler values (which must be strings for this factory) of
-    nested rules with another string. For example, take these rules::
+    """Prefixes all handler values of nested rules with another string. For
+    example, take these rules::
 
         rules = [
             Rule('/', name='index', handler='my_app.handlers.IndexHandler'),
@@ -385,6 +385,39 @@ class HandlerPrefix(RuleFactory):
                 yield rule
 
 
+class NamePrefix(RuleFactory):
+    """Prefixes all name values of nested rules with another string. For
+    example, take these rules::
+
+        rules = [
+            Rule('/', name='company-home', handler='handlers.HomeHandler'),
+            Rule('/about', name='company-about', handler='handlers.AboutHandler'),
+            Rule('/contact', name='company-contact', handler='handlers.ContactHandler'),
+        ]
+
+    You can wrap them by ``NamePrefix`` to define the name avoid repetition.
+    This is equivalent to the above::
+
+        rules = [
+            NamePrefix('company-', [
+                Rule('/', name='home', handler='handlers.HomeHandler'),
+                Rule('/about', name='about', handler='handlers.AboutHandler'),
+                Rule('/contact', name='contact', handler='handlers.ContactHandler'),
+            ]),
+        ]
+    """
+    def __init__(self, prefix, rules):
+        self.prefix = prefix
+        self.rules = rules
+
+    def get_rules(self, map):
+        for rulefactory in self.rules:
+            for rule in rulefactory.get_rules(map):
+                rule = rule.empty()
+                rule.name = rule.endpoint = self.prefix + rule.name
+                yield rule
+
+
 class RegexConverter(BaseConverter):
     """A :class:`Rule` converter that matches a regular expression::
 
@@ -400,5 +433,3 @@ class RegexConverter(BaseConverter):
 # Add regex converter to the list of converters.
 Map.default_converters = dict(Map.default_converters)
 Map.default_converters['regex'] = RegexConverter
-# Alias only because we prefer "name" instead of "endpoint" in rules.
-NamePrefix = EndpointPrefix

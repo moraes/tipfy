@@ -302,6 +302,12 @@ class TestDates(BaseTestCase):
         self.assertEqual(i18n.format_timedelta(datetime.timedelta(hours=23), threshold=1.1), u'23 hours')
         self.assertEqual(i18n.format_timedelta(datetime.datetime.now() - datetime.timedelta(days=5)), u'5 days')
 
+    def test_format_iso(self):
+        value = datetime.datetime(2009, 11, 10, 16, 36, 05)
+
+        self.assertEqual(i18n.format_date(value, format='iso'), u'2009-11-10')
+        self.assertEqual(i18n.format_time(value, format='iso'), u'16:36:05')
+        self.assertEqual(i18n.format_datetime(value, format='iso'), u'2009-11-10T16:36:05+0000')
 
 #==============================================================================
 # Timezones

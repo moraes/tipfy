@@ -66,6 +66,15 @@ class TestRouting(BaseTestCase):
             self.assertEqual(handler.url_for('company-about'), '/about')
             self.assertEqual(handler.url_for('company-contact'), '/contact')
 
+        with app.get_test_handler('/') as handler:
+            self.assertEqual(handler.request.rule.name, 'company-home')
+
+        with app.get_test_handler('/about') as handler:
+            self.assertEqual(handler.request.rule.name, 'company-about')
+
+        with app.get_test_handler('/contact') as handler:
+            self.assertEqual(handler.request.rule.name, 'company-contact')
+
     #==========================================================================
     # RegexConverter
     #==========================================================================

@@ -86,14 +86,17 @@ default_config = {
         'time.medium':      None,
         'time.full':        None,
         'time.long':        None,
+        'time.iso':         "HH':'mm':'ss",
         'date.short':       None,
         'date.medium':      None,
         'date.full':        None,
         'date.long':        None,
+        'date.iso':         "yyyy'-'MM'-'dd",
         'datetime.short':   None,
         'datetime.medium':  None,
         'datetime.full':    None,
         'datetime.long':    None,
+        'datetime.iso':     "yyyy'-'MM'-'dd'T'HH':'mm':'ssZ",
     },
 }
 
@@ -257,7 +260,7 @@ class I18nStore(object):
         if format is None:
             format = self.config['date_formats'].get(key)
 
-        if format in ('short', 'medium', 'full', 'long'):
+        if format in ('short', 'medium', 'full', 'long', 'iso'):
             rv = self.config['date_formats'].get('%s.%s' % (key, format))
             if rv is not None:
                 format = rv

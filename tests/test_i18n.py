@@ -92,9 +92,22 @@ class TestGettext(BaseTestCase):
     def test_gettext_(self):
         self.assertEqual(i18n._('foo'), u'foo')
 
+    def test_gettext_with_variables(self):
+        self.assertEqual(i18n.gettext('foo %(foo)s'), u'foo %(foo)s')
+        self.assertEqual(i18n.gettext('foo %(foo)s') % {'foo': 'bar'}, u'foo bar')
+        self.assertEqual(i18n.gettext('foo %(foo)s', foo='bar'), u'foo bar')
+
     def test_ngettext(self):
         self.assertEqual(i18n.ngettext('One foo', 'Many foos', 1), u'One foo')
         self.assertEqual(i18n.ngettext('One foo', 'Many foos', 2), u'Many foos')
+
+    def test_ngettext_with_variables(self):
+        self.assertEqual(i18n.ngettext('One foo %(foo)s', 'Many foos %(foo)s', 1), u'One foo %(foo)s')
+        self.assertEqual(i18n.ngettext('One foo %(foo)s', 'Many foos %(foo)s', 2), u'Many foos %(foo)s')
+        self.assertEqual(i18n.ngettext('One foo %(foo)s', 'Many foos %(foo)s', 1, foo='bar'), u'One foo bar')
+        self.assertEqual(i18n.ngettext('One foo %(foo)s', 'Many foos %(foo)s', 2, foo='bar'), u'Many foos bar')
+        self.assertEqual(i18n.ngettext('One foo %(foo)s', 'Many foos %(foo)s', 1) % {'foo': 'bar'}, u'One foo bar')
+        self.assertEqual(i18n.ngettext('One foo %(foo)s', 'Many foos %(foo)s', 2) % {'foo': 'bar'}, u'Many foos bar')
 
     def test_lazy_gettext(self):
         self.assertEqual(i18n.lazy_gettext('foo'), u'foo')

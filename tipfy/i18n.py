@@ -198,7 +198,10 @@ class I18nStore(object):
         :returns:
             The translated string.
         """
-        return self.translations.ugettext(string) % variables
+        if variables:
+            return self.translations.ugettext(string) % variables
+
+        return self.translations.ugettext(string)
 
     def ngettext(self, singular, plural, n, **variables):
         """Translates a possible pluralized string according to the current
@@ -216,7 +219,10 @@ class I18nStore(object):
         :returns:
             The translated string.
         """
-        return self.translations.ungettext(singular, plural, n) % variables
+        if variables:
+            return self.translations.ungettext(singular, plural, n) % variables
+
+        return self.translations.ungettext(singular, plural, n)
 
     def to_local_timezone(self, datetime):
         """Returns a datetime object converted to the local timezone.

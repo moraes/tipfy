@@ -5,7 +5,7 @@
 
     Mako template support for Tipfy.
 
-    Learn more about Jinja2 at http://www.makotemplates.org/
+    Learn more about Mako at http://www.makotemplates.org/
 
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
@@ -15,6 +15,8 @@ from cStringIO import StringIO
 
 from mako.lookup import TemplateLookup
 from mako.runtime import Context
+
+from werkzeug import cached_property
 
 #: Default configuration values for this module. Keys are:
 #:

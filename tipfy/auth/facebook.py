@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    tipfyext.auth.facebook
-    ~~~~~~~~~~~~~~~~~~~~~~
+    tipfy.auth.facebook
+    ~~~~~~~~~~~~~~~~~~~
 
     Implementation of Facebook authentication scheme.
 
@@ -44,7 +44,7 @@ class FacebookMixin(object):
     Facebook at http://www.facebook.com/developers/apps.php. Then
     copy your API Key and Application Secret to config.py::
 
-        config['tipfyext.auth.twitter'] = {
+        config['tipfy.auth.twitter'] = {
             'api_key':    'XXXXXXXXXXXXXXX',
             'app_secret': 'XXXXXXXXXXXXXXX',
         }
@@ -53,7 +53,7 @@ class FacebookMixin(object):
     to authenticate the user with Facebook::
 
         from tipfy import RequestHandler
-        from tipfyext.auth.facebook import FacebookMixin
+        from tipfy.auth.facebook import FacebookMixin
 
         class FacebookHandler(RequestHandler, FacebookMixin):
             def get(self):
@@ -157,7 +157,7 @@ class FacebookMixin(object):
         Here is an example for the stream.get() method::
 
             from tipfy import RequestHandler
-            from tipfyext.auth.facebook import FacebookMixin
+            from tipfy.auth.facebook import FacebookMixin
             from tipfyext.jinja2 import Jinja2Mixin
 
             class MainHandler(RequestHandler, Jinja2Mixin, FacebookMixin):

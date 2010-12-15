@@ -157,7 +157,7 @@ class SessionAuthStore(BaseAuthStore):
     @property
     def session(self):
         """Returns the currently logged in user session."""
-        if self.loaded is False:
+        if not self.loaded:
             self._load_session_and_user()
 
         return self._session
@@ -170,7 +170,7 @@ class SessionAuthStore(BaseAuthStore):
             A :class:`User` entity, if the user for the current request is
             logged in, or None.
         """
-        if self.loaded is False:
+        if not self.loaded:
             self._load_session_and_user()
 
         return self._user
@@ -228,7 +228,7 @@ class MultiAuthStore(SessionAuthStore):
         self.loaded = True
         user = self.get_user_entity(username=username)
 
-        if user is not None and user.check_password(password) is True:
+        if user is not None and user.check_password(password):
             # Successful login. Check if session id needs renewal.
             user.renew_session(max_age=self.config['session_max_age'])
             # Make the user available.

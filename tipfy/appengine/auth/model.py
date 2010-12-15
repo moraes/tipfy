@@ -140,12 +140,12 @@ class User(db.Model):
         :returns:
             None.
         """
-        if force is False:
+        if not force:
             # Only renew the session id if it is too old.
             expires = datetime.timedelta(seconds=max_age)
             force = (self.session_updated + expires < datetime.datetime.now())
 
-        if force is True:
+        if force:
             self.session_id = create_session_id()
             self.session_updated = datetime.datetime.now()
             self.put()

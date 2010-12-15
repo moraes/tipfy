@@ -43,7 +43,7 @@ class TwitterMixin(OAuthMixin):
     Twitter at http://twitter.com/apps. Then copy your Consumer Key and
     Consumer Secret to ``config.py``::
 
-        config['tipfyext.auth.twitter'] = {
+        config['tipfy.auth.twitter'] = {
             'consumer_key':    'XXXXXXXXXXXXXXX',
             'consumer_secret': 'XXXXXXXXXXXXXXX',
         }
@@ -54,11 +54,11 @@ class TwitterMixin(OAuthMixin):
     application's Callback URL. For example::
 
         from tipfy import RequestHandler
-        from tipfyext.auth.twitter import TwitterMixin
-        from tipfyext.session import CookieMixin, SessionMiddleware
+        from tipfy.auth.twitter import TwitterMixin
+        from tipfy.sessions import  SessionMiddleware
 
-        class TwitterHandler(RequestHandler, CookieMixin, TwitterMixin):
-            middleware = [SessionMiddleware]
+        class TwitterHandler(RequestHandler, TwitterMixin):
+            middleware = [SessionMiddleware()]
 
             def get(self):
                 if self.request.args.get('oauth_token', None):
@@ -134,11 +134,11 @@ class TwitterMixin(OAuthMixin):
         this method. Example usage::
 
             from tipfy import RequestHandler, Response
-            from tipfyext.auth.twitter import TwitterMixin
-            from tipfyext.session import CookieMixin, SessionMiddleware
+            from tipfy.auth.twitter import TwitterMixin
+            from tipfy.sessions import SessionMiddleware
 
-            class TwitterHandler(RequestHandler, CookieMixin, TwitterMixin):
-                middleware = [SessionMiddleware]
+            class TwitterHandler(RequestHandler, TwitterMixin):
+                middleware = [SessionMiddleware()]
 
                 def get(self):
                     return self.twitter_request(

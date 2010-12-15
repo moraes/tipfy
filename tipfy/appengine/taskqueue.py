@@ -35,7 +35,7 @@ class DeferredHandler(RequestHandler):
     The URL rule for urls.py is::
 
         Rule('/_ah/queue/deferred', name='tasks/deferred',
-             handler='tipfyext.taskqueue.DeferredHandler')
+             handler='tipfy.appengine.taskqueue.DeferredHandler')
     """
     def post(self):
         headers = ['%s:%s' % (k, v) for k, v in self.request.headers.items()
@@ -57,7 +57,7 @@ class Mapper(object):
 
     For example, to delete all ``MyModel`` records::
 
-        from tipfyext.taskqueue import Mapper
+        from tipfy.appengine.taskqueue import Mapper
         from mymodels import myModel
 
         class MyModelMapper(Mapper):
@@ -81,7 +81,7 @@ class Mapper(object):
     The URL rule for urls.py is::
 
         Rule('/_ah/queue/deferred', name='tasks/deferred',
-            handler='tipfyext.tasks.DeferredHandler')
+            handler='tipfy.appengine.taskqueue.DeferredHandler')
 
     This class derives from `deffered article <http://code.google.com/appengine/articles/deferred.html>`_.
     """

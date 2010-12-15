@@ -46,7 +46,7 @@ class GoogleMixin(OpenIdMixin, OAuthMixin):
     Example usage::
 
         from tipfy import RequestHandler
-        from tipfyext.auth.google import GoogleMixin
+        from tipfy.auth.google import GoogleMixin
 
         class GoogleHandler(RequestHandler, GoogleMixin):
             def get(self):

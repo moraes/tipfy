@@ -43,7 +43,7 @@ class FriendFeedMixin(OAuthMixin):
     FriendFeed at http://friendfeed.com/api/applications. Then
     copy your Consumer Key and Consumer Secret to config.py::
 
-        config['tipfyext.auth.friendfeed'] = {
+        config['tipfy.auth.friendfeed'] = {
             'consumer_key':    'XXXXXXXXXXXXXXX',
             'consumer_secret': 'XXXXXXXXXXXXXXX',
         }
@@ -54,11 +54,11 @@ class FriendFeedMixin(OAuthMixin):
     application's Callback URL. For example::
 
         from tipfy import RequestHandler
-        from tipfyext.auth.friendfeed import FriendFeedMixin
-        from tipfyext.session import CookieMixin, SessionMiddleware
+        from tipfy.auth.friendfeed import FriendFeedMixin
+        from tipfy.sessions SessionMiddleware
 
-        class FriendFeedHandler(RequestHandler, CookieMixin, FriendFeedMixin):
-            middleware = [SessionMiddleware]
+        class FriendFeedHandler(RequestHandler, FriendFeedMixin):
+            middleware = [SessionMiddleware()]
 
             def get(self):
                 if self.request.args.get('oauth_token', None):
@@ -114,11 +114,11 @@ class FriendFeedMixin(OAuthMixin):
         this method. Example usage::
 
             from tipfy import RequestHandler, Response
-            from tipfyext.auth.friendfeed import FriendFeedMixin
-            from tipfyext.session import CookieMixin, SessionMiddleware
+            from tipfy.auth.friendfeed import FriendFeedMixin
+            from tipfy.sessions import SessionMiddleware
 
             class MainHandler(RequestHandler, FriendFeedMixin):
-                middleware = [SessionMiddleware]
+                middleware = [SessionMiddleware()]
 
                 def get(self):
                     return self.friendfeed_request('/entry',

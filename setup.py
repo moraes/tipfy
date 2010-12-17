@@ -52,6 +52,7 @@ setup(
         'tipfy.appengine.db',
         'tipfy.auth',
         'tipfy.debugger',
+        'tipfy.scripts',
         'tipfyext',
         'tipfyext.appengine',
         'tipfyext.jinja2',
@@ -66,6 +67,7 @@ setup(
         'werkzeug>=0.6.1',
         # This is only required because a namespaced package is declated.
         'setuptools',
+        'pip',
     ],
     extras_require = {
         'i18n': [
@@ -78,6 +80,7 @@ setup(
     entry_points = {
         'console_scripts': [
             'jinja2_compile = tipfyext.jinja2.scripts:compile_templates',
+            'tipfy = tipfy.scripts.manage:main',
         ],
     },
     classifiers = [

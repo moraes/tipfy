@@ -276,9 +276,6 @@ class GaeSdkExtendedAction(Action):
                 kwargs['default'] = manager.config.get(config_sections,
                     option_key)
 
-            print args
-            print kwargs
-
             parser.add_argument(*args, **kwargs)
 
         # Add app path.
@@ -294,7 +291,6 @@ class GaeSdkExtendedAction(Action):
         gae_argv = self.get_base_gae_argv()
         for long_option, short_option, is_bool in self.get_getopt_options():
             value = getattr(args, long_option)
-            print value
             if value is not None:
                 if is_bool and value:
                     value = '--%s' % long_option
@@ -353,6 +349,7 @@ class GaeRunserverAction(GaeSdkExtendedAction):
     description = 'Starts the Google App Engine development server using ' \
         'before and after hooks and allowing configurable defaults.'
 
+    # All options from dev_appserver in a modified getopt style.
     options = [
         ('address=', 'a'),
         'admin_console_server=',
@@ -427,6 +424,7 @@ class GaeDeployAction(GaeSdkExtendedAction):
     description = 'Deploys to Google App Engine using before and after ' \
         'hooks and allowing configurable defaults.'
 
+    # All options from appcfg update in a modified getopt style.
     options = [
       ('help', 'h'),
       ('quiet', 'q'),

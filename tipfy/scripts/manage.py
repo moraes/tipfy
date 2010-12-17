@@ -308,42 +308,6 @@ class GaeSdkExtendedAction(Action):
 
         return gae_argv
 
-    def get_gae_argv2(self, manager, args):
-        if manager.app_section:
-            config_sections = [manager.app_section, 'tipfy']
-        else:
-            config_sections = ['tipfy']
-
-        argv = self.gae_argv[:]
-        for opt, opt_type, opt_default in self.gae_options:
-            opt_key = '%s.%s' % (self.action, opt)
-            value = None
-            if opt_type == 'string':
-                value = manager.config.get(config_sections, opt_key)
-
-                if value is not None:
-                    if manager.app and opt in self.gae_expandable_options:
-                        # Expand the value using the app name.
-                        value = value % dict(app=manager.app)
-
-                    argv.append('--%s=%s' % (opt, value))
-            elif opt_type == 'boolean':
-                value = manager.config.getboolean(config_sections, opt_key)
-
-                if value is not None and value != opt_default:
-                    # Only append the value if it differs from default.
-                    argv.append('--%s' % opt)
-
-        # Add app dir as last argument.
-        app_path = manager.config.get(config_sections, 'path', '')
-
-        # Use the name as last option?
-        # if not app_path and manager.app:
-            # app_path = manager.app
-
-        argv.append(os.path.abspath(app_path))
-        return argv
-
 
 class GaeRunserverAction(GaeSdkExtendedAction):
     description = 'Starts the Google App Engine development server using ' \

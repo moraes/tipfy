@@ -328,15 +328,15 @@ class GaeRunserverAction(GaeSdkExtendedAction):
     defaults.
 
     Default values for each option can be defined in tipfy.cfg in the main
-    section or for a specific app, prefixed by "runserver.":
+    section or for a specific app, prefixed by "runserver.". A special
+    variable "app" is replaced by the value from the "--app" argument:
 
         [DEFAULT]
-        path = /path/to/%(app_key)s
+        path = /path/to/%(app)s
         runserver.debug = true
-        runserver.datastore_path = /path/to/%(app_key)s.datastore
+        runserver.datastore_path = /path/to/%(app)s.datastore
 
-        [app:my_app]
-        app_key = my_app
+        [my_app]
         runserver.port = 8081
 
     In this case, executing:
@@ -445,14 +445,14 @@ class GaeDeployAction(GaeSdkExtendedAction):
     using before and after hooks and allowing configurable defaults.
 
     Default values for each option can be defined in tipfy.cfg in the main
-    section or for a specific app, prefixed by "deploy.":
+    section or for a specific app, prefixed by "deploy.". A special variable
+    "app" is replaced by the value from the "--app" argument:
 
         [DEFAULT]
-        path = /path/to/%(app_key)s
+        path = /path/to/%(app)s
         deploy.verbose = true
 
-        [app:my_app]
-        app_key = my_app
+        [my_app]
         deploy.email = user@gmail.com
         deploy.no_cookies = true
 
@@ -615,11 +615,12 @@ class TipfyManager(object):
         # The active app, if defined.
         self.app = args.app or self.config.get('DEFAULT', 'default.app')
 
-        # Load config fom a specific app, if defined.
+        # Load config fom a specific app, if defined, or use default one.
+        self.config_section = self.app or 'DEFAULT'
+
+        # If app is set, a default 'app' value can be used in expansions.
         if self.app:
-            self.config_section = 'app:%s' % self.app
-        else:
-            self.config_section = 'DEFAULT'
+            self.config.set('DEFAULT', 'app', self.app)
 
         # Prepend configured paths to sys.path, if any.
         sys.path[:0] = self.config.getlist(self.config_section, 'sys.path', [])

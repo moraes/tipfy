@@ -327,16 +327,16 @@ class GaeRunserverAction(GaeSdkExtendedAction):
     development server using before and after hooks and allowing configurable
     defaults.
 
-    Each option can be defined in tipfy.cfg in the main section or for
-    a specific app, prefixed by "runserver.":
+    Default values for each option can be defined in tipfy.cfg in the main
+    section or for a specific app, prefixed by "runserver.":
 
         [DEFAULT]
+        path = /path/to/%(app_key)s
         runserver.debug = true
         runserver.datastore_path = /path/to/%(app_key)s.datastore
 
         [app:my_app]
         app_key = my_app
-        path = /path/to/app
         runserver.port = 8081
 
     In this case, executing:
@@ -345,7 +345,7 @@ class GaeRunserverAction(GaeSdkExtendedAction):
 
     ...will expand to:
 
-        dev_appserver --datastore_path=/path/to/my_app.datastore --debug --port=8081 /path/to/app
+        dev_appserver --datastore_path=/path/to/my_app.datastore --debug --port=8081 /path/to/my_app
 
     Define in "runserver.before" and "runserver.after" a list of functions
     to run before and after the server executes. These functions are imported
@@ -444,14 +444,15 @@ class GaeDeployAction(GaeSdkExtendedAction):
     A convenient wrapper for "appcfg update": deploys to Google App Engine
     using before and after hooks and allowing configurable defaults.
 
-    Each option can be defined in tipfy.cfg in the main section or for
-    a specific app, prefixed by "deploy.":
+    Default values for each option can be defined in tipfy.cfg in the main
+    section or for a specific app, prefixed by "deploy.":
 
         [DEFAULT]
+        path = /path/to/%(app_key)s
         deploy.verbose = true
 
         [app:my_app]
-        path = /path/to/app
+        app_key = my_app
         deploy.email = user@gmail.com
         deploy.no_cookies = true
 
@@ -461,7 +462,7 @@ class GaeDeployAction(GaeSdkExtendedAction):
 
     ...will expand to:
 
-        appcfg update --verbose --email=user@gmail.com --no_cookies /path/to/app
+        appcfg update --verbose --email=user@gmail.com --no_cookies /path/to/my_app
 
     Define in "deploy.before" and "deploy.after" a list of functions to run
     before and after deployment. These functions are imported so they must

@@ -4,8 +4,9 @@ import os
 import runpy
 import shutil
 import sys
+import textwrap
 
-from argparse import ArgumentParser as ArgumentParserBase
+import argparse
 
 
 # Be a good neighbour.
@@ -51,7 +52,7 @@ def get_unique_sequence(seq):
     return [x for x in seq if x not in seen and not seen.add(x)]
 
 
-class ArgumentParser(ArgumentParserBase):
+class ArgumentParser(argparse.ArgumentParser):
     def parse_args(self, args=None, namespace=None, with_extras=False):
         """Parses arguments ignoring extra ones.
 
@@ -129,6 +130,10 @@ class Config(ConfigParser.SafeConfigParser):
                 if self._get(section, option) is not None:
                     return get_func(section, option)
             except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+                pass
+            except ConfigParser.InterpolationMissingOptionError:
+                # XXX should check in the end if value for interpolation
+                # was missing?
                 pass
 
         return default
@@ -234,6 +239,7 @@ class GaeSdkAction(Action):
 
 
 class GaeSdkExtendedAction(Action):
+    action = None
     options = []
 
     def get_option_config_key(self, option):
@@ -257,7 +263,15 @@ class GaeSdkExtendedAction(Action):
 
     def get_parser_from_getopt_options(self, manager):
         section = manager.config_section
-        parser = ArgumentParser(description=self.description, add_help=False)
+
+        usage = '%%(prog)s %(action)s [--config CONFIG] [--app APP] ' \
+            '[options]' % dict(action=self.action)
+
+        parser = ArgumentParser(
+            description=self.description,
+            add_help=False,
+            usage=usage,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
         for long_option, short_option, is_bool in self.get_getopt_options():
             option = self.get_option_config_key(long_option)
@@ -285,6 +299,10 @@ class GaeSdkExtendedAction(Action):
         parser = self.get_parser_from_getopt_options(manager)
         args, extras = parser.parse_args(args=argv, with_extras=True)
 
+        if args.help:
+            parser.print_help()
+            sys.exit(1)
+
         gae_argv = self.get_base_gae_argv()
         for long_option, short_option, is_bool in self.get_getopt_options():
             value = getattr(args, long_option)
@@ -304,8 +322,59 @@ class GaeSdkExtendedAction(Action):
 
 
 class GaeRunserverAction(GaeSdkExtendedAction):
-    description = 'Starts the Google App Engine development server using ' \
-        'before and after hooks and allowing configurable defaults.'
+    """
+    A convenient wrapper for "dev_appserver": starts the Google App Engine
+    development server using before and after hooks and allowing configurable
+    defaults.
+
+    Each option can be defined in tipfy.cfg in the main section or for
+    a specific app, prefixed by "runserver.":
+
+        [DEFAULT]
+        runserver.debug = true
+        runserver.datastore_path = /path/to/%(app_key)s.datastore
+
+        [app:my_app]
+        app_key = my_app
+        path = /path/to/app
+        runserver.port = 8081
+
+    In this case, executing:
+
+        tipfy runserver --app=my_app
+
+    ...will expand to:
+
+        dev_appserver --datastore_path=/path/to/my_app.datastore --debug --port=8081 /path/to/app
+
+    Define in "runserver.before" and "runserver.after" a list of functions
+    to run before and after the server executes. These functions are imported
+    so they must be in sys.path. For example:
+
+        [DEFAULT]
+        runserver.before =
+            hooks.before_runserver_1
+            hooks.before_runserver_2
+
+        runserver.after =
+            hooks.after_runserver_1
+            hooks.after_runserver_2
+
+    Then define in the module "hooks.py" some functions to be executed:
+
+        def before_runserver_1(manager, args):
+            print 'before_runserver_1!'
+
+        def after_runserver_1(manager, args):
+            print 'after_runserver_1!'
+
+        # ...
+
+    Use "tipfy dev_appserver --help" for a description of each option.
+    """
+    description = textwrap.dedent(__doc__)
+
+    action = 'runserver'
 
     # All options from dev_appserver in a modified getopt style.
     options = [
@@ -355,28 +424,73 @@ class GaeRunserverAction(GaeSdkExtendedAction):
         # Assemble arguments.
         sys.argv = self.get_gae_argv(manager, argv)
 
-        # Should we run the hooks?
-        run_hooks = '--help' not in sys.argv
-
         # Execute runserver.before scripts.
-        if run_hooks:
-            self.run_hooks(before_hooks, manager, argv)
+        self.run_hooks(before_hooks, manager, argv)
 
         try:
             self.message('Executing: %s' % ' '.join(sys.argv))
+            return
             runpy.run_module('dev_appserver', run_name='__main__',
                 alter_sys=True)
         except ImportError:
             self.error(MISSING_GAE_SDK_MSG % dict(script='dev_appserver'))
         finally:
             # Execute runserver.after scripts.
-            if run_hooks:
-                self.run_hooks(after_hooks, manager, argv)
+            self.run_hooks(after_hooks, manager, argv)
 
 
 class GaeDeployAction(GaeSdkExtendedAction):
-    description = 'Deploys to Google App Engine using before and after ' \
-        'hooks and allowing configurable defaults.'
+    """
+    A convenient wrapper for "appcfg update": deploys to Google App Engine
+    using before and after hooks and allowing configurable defaults.
+
+    Each option can be defined in tipfy.cfg in the main section or for
+    a specific app, prefixed by "deploy.":
+
+        [DEFAULT]
+        deploy.verbose = true
+
+        [app:my_app]
+        path = /path/to/app
+        deploy.email = user@gmail.com
+        deploy.no_cookies = true
+
+    In this case, executing:
+
+        tipfy deploy --app=my_app
+
+    ...will expand to:
+
+        appcfg update --verbose --email=user@gmail.com --no_cookies /path/to/app
+
+    Define in "deploy.before" and "deploy.after" a list of functions to run
+    before and after deployment. These functions are imported so they must
+    be in sys.path. For example:
+
+        [DEFAULT]
+        deploy.before =
+            hooks.before_deploy_1
+            hooks.before_deploy_2
+
+        deploy.after =
+            hooks.after_deploy_1
+            hooks.after_deploy_2
+
+    Then define in the module "hooks.py" some functions to be executed:
+
+        def before_deploy_1(manager, args):
+            print 'before_deploy_1!'
+
+        def after_deploy_1(manager, args):
+            print 'after_deploy_1!'
+
+        # ...
+
+    Use "tipfy appcfg update --help" for a description of each option.
+    """
+    description = textwrap.dedent(__doc__)
+
+    action = 'deploy'
 
     # All options from appcfg update in a modified getopt style.
     options = [
@@ -410,12 +524,8 @@ class GaeDeployAction(GaeSdkExtendedAction):
         # Assemble arguments.
         sys.argv = self.get_gae_argv(manager, argv)
 
-        # Should we run the hooks?
-        run_hooks = '--help' not in sys.argv
-
         # Execute deploy.before scripts.
-        if run_hooks:
-            self.run_hooks(before_hooks, manager, argv)
+        self.run_hooks(before_hooks, manager, argv)
 
         try:
             self.message('Executing: %s' % ' '.join(sys.argv))
@@ -425,8 +535,7 @@ class GaeDeployAction(GaeSdkExtendedAction):
             self.error(MISSING_GAE_SDK_MSG % dict(script='appcfg'))
         finally:
             # Execute deploy.after scripts.
-            if run_hooks:
-                self.run_hooks(after_hooks, manager, argv)
+            self.run_hooks(after_hooks, manager, argv)
 
 
 class InstallPackageAction(Action):

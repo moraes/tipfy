@@ -93,20 +93,6 @@ class Config(ConfigParser.SafeConfigParser):
 
         return res
 
-    def getlists(self, sections, option, default=None, unique=True):
-        """Returns a list merging lists from multiple sections."""
-        if isinstance(sections, basestring):
-            sections = [sections]
-
-        res = []
-        for section in sections:
-            res.extend(self.getlist(section, option, [], False))
-
-        if unique:
-            return get_unique_sequence(res)
-
-        return res
-
     def _get(self, section, option):
         return ConfigParser.SafeConfigParser.get(self, section, option)
 
@@ -207,7 +193,7 @@ class CreateAppAction(Action):
         template_dir = args.template
         if not template_dir:
             # Try getting the template set in config.
-            template_dir = manager.config.get(manager.config_sections,
+            template_dir = manager.config.get(manager.config_section,
                 'create_app.stubs.appengine')
 
         if not template_dir:
@@ -270,10 +256,11 @@ class GaeSdkExtendedAction(Action):
             yield long_option, short_option, is_bool
 
     def get_parser_from_getopt_options(self, manager):
+        section = manager.config_section
         parser = ArgumentParser(description=self.description, add_help=False)
 
         for long_option, short_option, is_bool in self.get_getopt_options():
-            option_key = self.get_option_config_key(long_option)
+            option = self.get_option_config_key(long_option)
             args = ['--%s' % long_option]
             kwargs = {}
 
@@ -282,16 +269,14 @@ class GaeSdkExtendedAction(Action):
 
             if is_bool:
                 kwargs['action'] = 'store_true'
-                kwargs['default'] = manager.config.getboolean(
-                    manager.config_sections, option_key)
+                kwargs['default'] = manager.config.getboolean(section, option)
             else:
-                kwargs['default'] = manager.config.get(
-                    manager.config_sections, option_key)
+                kwargs['default'] = manager.config.get(section, option)
 
             parser.add_argument(*args, **kwargs)
 
         # Add app path.
-        app_path = manager.config.get(manager.config_sections, 'path')
+        app_path = manager.config.get(section, 'path', '')
         parser.add_argument('app', nargs='?', default=app_path)
 
         return parser
@@ -363,16 +348,15 @@ class GaeRunserverAction(GaeSdkExtendedAction):
         return ['dev_appserver']
 
     def __call__(self, manager, argv):
-        before = manager.config.getlists(reversed(manager.config_sections),
-            'runserver.before', [])
-        after = manager.config.getlists(reversed(manager.config_sections),
-            'runserver.after', [])
+        section = manager.config_section
+        before_hooks = manager.config.getlist(section, 'runserver.before', [])
+        after_hooks = manager.config.getlist(section, 'runserver.after', [])
 
         # Assemble arguments.
         sys.argv = self.get_gae_argv(manager, argv)
 
         # Execute runserver.before scripts.
-        self.run_hooks(before, manager, argv)
+        self.run_hooks(before_hooks, manager, argv)
 
         try:
             self.message('Executing: %s' % ' '.join(sys.argv))
@@ -382,7 +366,7 @@ class GaeRunserverAction(GaeSdkExtendedAction):
             self.error(MISSING_GAE_SDK_MSG % dict(script='dev_appserver'))
         finally:
             # Execute runserver.after scripts.
-            self.run_hooks(after, manager, argv)
+            self.run_hooks(after_hooks, manager, argv)
 
 
 class GaeDeployAction(GaeSdkExtendedAction):
@@ -414,26 +398,25 @@ class GaeDeployAction(GaeSdkExtendedAction):
         return ['appcfg', 'update']
 
     def __call__(self, manager, argv):
-        before = manager.config.getlists(reversed(manager.config_sections),
-            'deploy.before', [])
-        after = manager.config.getlists(reversed(manager.config_sections),
-            'deploy.after', [])
+        section = manager.config_section
+        before_hooks = manager.config.getlist(section, 'deploy.before', [])
+        after_hooks = manager.config.getlist(section, 'deploy.after', [])
 
         # Assemble arguments.
         sys.argv = self.get_gae_argv(manager, argv)
 
         # Execute deploy.before scripts.
-        self.run_hooks(before, manager, argv)
+        self.run_hooks(before_hooks, manager, argv)
 
         try:
             self.message('Executing: %s' % ' '.join(sys.argv))
-            runpy.run_module('dev_appserver', run_name='__main__',
+            runpy.run_module('appcfg', run_name='__main__',
                 alter_sys=True)
         except ImportError:
-            self.error(MISSING_GAE_SDK_MSG % dict(script='dev_appserver'))
+            self.error(MISSING_GAE_SDK_MSG % dict(script='appcfg'))
         finally:
             # Execute deploy.after scripts.
-            self.run_hooks(after, manager, argv)
+            self.run_hooks(after_hooks, manager, argv)
 
 
 class InstallPackageAction(Action):
@@ -463,6 +446,12 @@ class InstallAppengineSdkAction(Action):
         raise NotImplementedError()
 
 
+class TestAction(Action):
+    """Testing stuff."""
+    def __call__(self, manager, argv):
+        print manager.app
+
+
 class TipfyManager(object):
     description = 'Tipfy Management Utilities.'
     epilog = 'Use "%(prog)s action --help" for help on specific actions.'
@@ -482,6 +471,7 @@ class TipfyManager(object):
         # 'install_gae_sdk':  InstallAppengineSdkAction(),
         'create_app':       CreateAppAction(),
         'install':          InstallPackageAction(),
+        'test':             TestAction(),
     }
 
     def __init__(self):
@@ -504,17 +494,16 @@ class TipfyManager(object):
         self.parse_config(args.config_file)
 
         # The active app, if defined.
-        self.app = args.app
+        self.app = args.app or self.config.get('DEFAULT', 'default.app')
 
-        # Config sections lookup order.
-        self.config_sections = ['tipfy']
-        if args.app:
-            # Load config fom a specific app section first, if defined.
-            self.config_sections.insert(0, 'app:%s' % args.app)
+        # Load config fom a specific app, if defined.
+        if self.app:
+            self.config_section = 'app:%s' % self.app
+        else:
+            self.config_section = 'DEFAULT'
 
         # Prepend configured paths to sys.path, if any.
-        sys.path[:0] = self.config.getlists(reversed(self.config_sections),
-            'sys.path', [])
+        sys.path[:0] = self.config.getlist(self.config_section, 'sys.path', [])
 
         if args.action not in self.actions:
             # Unknown action or --help.

@@ -46,6 +46,11 @@ def import_string(import_name, silent=False):
             raise
 
 
+def get_unique_sequence(seq):
+    seen = set()
+    return [x for x in seq if x not in seen and not seen.add(x)]
+
+
 class ArgumentParser(ArgumentParserBase):
     def parse_args(self, args=None, namespace=None, with_extras=False):
         """Parses arguments ignoring extra ones.
@@ -64,8 +69,8 @@ class ArgumentParser(ArgumentParserBase):
         return super(ArgumentParser, self).parse_args(args, namespace)
 
 
-class Config(ConfigParser.RawConfigParser):
-    """Wraps RawConfigParser `get*()` functions to allow a default to be
+class Config(ConfigParser.SafeConfigParser):
+    """Wraps SafeConfigParser `get*()` functions to allow a default to be
     returned instead of throwing errors. Also adds `getlist()` to split
     multi-line values into a list.
     """
@@ -81,44 +86,63 @@ class Config(ConfigParser.RawConfigParser):
     def getint(self, section, option, default=None):
         return self._get_wrapper(self._getint, section, option, default)
 
-    def getlist(self, section, option, default=None):
-        return self._get_wrapper(self._getlist, section, option, default)
+    def getlist(self, section, option, default=None, unique=True):
+        res = self._get_wrapper(self._getlist, section, option, default)
+        if unique:
+            return get_unique_sequence(res)
+
+        return res
+
+    def getlists(self, sections, option, default=None, unique=True):
+        """Returns a list merging lists from multiple sections."""
+        if isinstance(sections, basestring):
+            sections = [sections]
+
+        res = []
+        for section in sections:
+            res.extend(self.getlist(section, option, [], False))
+
+        if unique:
+            return get_unique_sequence(res)
+
+        return res
 
     def _get(self, section, option):
-        return ConfigParser.RawConfigParser.get(self, section, option)
+        return ConfigParser.SafeConfigParser.get(self, section, option)
 
     def _getboolean(self, section, option):
-        return ConfigParser.RawConfigParser.getboolean(self, section,
+        return ConfigParser.SafeConfigParser.getboolean(self, section,
             option)
 
     def _getfloat(self, section, option):
-        return ConfigParser.RawConfigParser.getfloat(self, section, option)
+        return ConfigParser.SafeConfigParser.getfloat(self, section, option)
 
     def _getint(self, section, option):
-        return ConfigParser.RawConfigParser.getint(self, section, option)
+        return ConfigParser.SafeConfigParser.getint(self, section, option)
 
     def _getlist(self, section, option):
         value = self.get(section, option)
-        values = []
+        res = []
         if value:
             for line in value.splitlines():
                 line = line.strip()
                 if line:
-                    values.append(line)
+                    res.append(line)
 
-        return values
+        return res
 
     def _get_wrapper(self, get_func, sections, option, default=None):
-        """Wraps get functions allowing default values and sections fallback
-        until a value is found.
+        """Wraps get functions allowing default values and a list of sections
+        looked up in order until a value is found.
         """
         if isinstance(sections, basestring):
             sections = [sections]
 
         for section in sections:
             try:
-                return get_func(section, option)
-            except Exception:
+                if self._get(section, option) is not None:
+                    return get_func(section, option)
+            except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
                 pass
 
         return default
@@ -178,17 +202,12 @@ class CreateAppAction(Action):
             'If not defined, the default app skeleton is used.')
 
     def __call__(self, manager, argv):
-        if manager.app_section:
-            config_sections = [manager.app_section, 'tipfy']
-        else:
-            config_sections = ['tipfy']
-
         args = self.parser.parse_args(args=argv)
 
         template_dir = args.template
         if not template_dir:
             # Try getting the template set in config.
-            template_dir = manager.config.get(config_sections,
+            template_dir = manager.config.get(manager.config_sections,
                 'create_app.stubs.appengine')
 
         if not template_dir:
@@ -231,8 +250,6 @@ class GaeSdkAction(Action):
 class GaeSdkExtendedAction(Action):
     options = []
 
-    expandable_options = []
-
     def get_option_config_key(self, option):
         raise NotImplementedError()
 
@@ -253,11 +270,6 @@ class GaeSdkExtendedAction(Action):
             yield long_option, short_option, is_bool
 
     def get_parser_from_getopt_options(self, manager):
-        if manager.app_section:
-            config_sections = [manager.app_section, 'tipfy']
-        else:
-            config_sections = ['tipfy']
-
         parser = ArgumentParser(description=self.description, add_help=False)
 
         for long_option, short_option, is_bool in self.get_getopt_options():
@@ -270,16 +282,16 @@ class GaeSdkExtendedAction(Action):
 
             if is_bool:
                 kwargs['action'] = 'store_true'
-                kwargs['default'] = manager.config.getboolean(config_sections,
-                    option_key)
+                kwargs['default'] = manager.config.getboolean(
+                    manager.config_sections, option_key)
             else:
-                kwargs['default'] = manager.config.get(config_sections,
-                    option_key)
+                kwargs['default'] = manager.config.get(
+                    manager.config_sections, option_key)
 
             parser.add_argument(*args, **kwargs)
 
         # Add app path.
-        app_path = manager.config.get(config_sections, 'path')
+        app_path = manager.config.get(manager.config_sections, 'path')
         parser.add_argument('app', nargs='?', default=app_path)
 
         return parser
@@ -298,9 +310,6 @@ class GaeSdkExtendedAction(Action):
                     value = '--%s=%s' % (long_option, value)
 
                 if value:
-                    if long_option in self.expandable_options and manager.app:
-                        value = value % dict(app=manager.app)
-
                     gae_argv.append(value)
 
         # App app path.
@@ -347,12 +356,6 @@ class GaeRunserverAction(GaeSdkExtendedAction):
         'trusted',
     ]
 
-    expandable_options = [
-        'datastore_path',
-        'blobstore_path',
-        'history_path',
-    ]
-
     def get_option_config_key(self, option):
         return 'runserver.%s' % option
 
@@ -360,12 +363,10 @@ class GaeRunserverAction(GaeSdkExtendedAction):
         return ['dev_appserver']
 
     def __call__(self, manager, argv):
-        before = manager.config.getlist('tipfy', 'runserver.before', [])
-        after = manager.config.getlist('tipfy', 'runserver.after', [])
-        if manager.app:
-            section = manager.app_section
-            before += manager.config.getlist(section, 'runserver.before', [])
-            after += manager.config.getlist(section, 'runserver.after', [])
+        before = manager.config.getlists(reversed(manager.config_sections),
+            'runserver.before', [])
+        after = manager.config.getlists(reversed(manager.config_sections),
+            'runserver.after', [])
 
         # Assemble arguments.
         sys.argv = self.get_gae_argv(manager, argv)
@@ -413,12 +414,10 @@ class GaeDeployAction(GaeSdkExtendedAction):
         return ['appcfg', 'update']
 
     def __call__(self, manager, argv):
-        before = manager.config.getlist('tipfy', 'deploy.before', [])
-        after = manager.config.getlist('tipfy', 'deploy.after', [])
-        if manager.app:
-            section = manager.app_section
-            before += manager.config.getlist(section, 'deploy.before', [])
-            after += manager.config.getlist(section, 'deploy.after', [])
+        before = manager.config.getlists(reversed(manager.config_sections),
+            'deploy.before', [])
+        after = manager.config.getlists(reversed(manager.config_sections),
+            'deploy.after', [])
 
         # Assemble arguments.
         sys.argv = self.get_gae_argv(manager, argv)
@@ -504,16 +503,18 @@ class TipfyManager(object):
         # Load configuration.
         self.parse_config(args.config_file)
 
-        # Load config fom a specific app section, if defined.
+        # The active app, if defined.
         self.app = args.app
-        self.app_section = 'app:%s' % args.app if args.app else None
+
+        # Config sections lookup order.
+        self.config_sections = ['tipfy']
+        if args.app:
+            # Load config fom a specific app section first, if defined.
+            self.config_sections.insert(0, 'app:%s' % args.app)
 
         # Prepend configured paths to sys.path, if any.
-        paths = self.config.getlist('tipfy', 'sys.path', [])
-        if self.app:
-            paths[:0] = self.config.getlist(self.app_section, 'sys.path', [])
-
-        sys.path[:0] = paths
+        sys.path[:0] = self.config.getlists(reversed(self.config_sections),
+            'sys.path', [])
 
         if args.action not in self.actions:
             # Unknown action or --help.

@@ -297,7 +297,7 @@ class GaeSdkExtendedAction(Action):
                 if value:
                     gae_argv.append(value)
 
-        # App app path.
+        # Add app path.
         gae_argv.append(os.path.abspath(args.app))
 
         return gae_argv
@@ -355,8 +355,12 @@ class GaeRunserverAction(GaeSdkExtendedAction):
         # Assemble arguments.
         sys.argv = self.get_gae_argv(manager, argv)
 
+        # Should we run the hooks?
+        run_hooks = '--help' not in sys.argv
+
         # Execute runserver.before scripts.
-        self.run_hooks(before_hooks, manager, argv)
+        if run_hooks:
+            self.run_hooks(before_hooks, manager, argv)
 
         try:
             self.message('Executing: %s' % ' '.join(sys.argv))
@@ -366,7 +370,8 @@ class GaeRunserverAction(GaeSdkExtendedAction):
             self.error(MISSING_GAE_SDK_MSG % dict(script='dev_appserver'))
         finally:
             # Execute runserver.after scripts.
-            self.run_hooks(after_hooks, manager, argv)
+            if run_hooks:
+                self.run_hooks(after_hooks, manager, argv)
 
 
 class GaeDeployAction(GaeSdkExtendedAction):
@@ -405,8 +410,12 @@ class GaeDeployAction(GaeSdkExtendedAction):
         # Assemble arguments.
         sys.argv = self.get_gae_argv(manager, argv)
 
+        # Should we run the hooks?
+        run_hooks = '--help' not in sys.argv
+
         # Execute deploy.before scripts.
-        self.run_hooks(before_hooks, manager, argv)
+        if run_hooks:
+            self.run_hooks(before_hooks, manager, argv)
 
         try:
             self.message('Executing: %s' % ' '.join(sys.argv))
@@ -416,7 +425,8 @@ class GaeDeployAction(GaeSdkExtendedAction):
             self.error(MISSING_GAE_SDK_MSG % dict(script='appcfg'))
         finally:
             # Execute deploy.after scripts.
-            self.run_hooks(after_hooks, manager, argv)
+            if run_hooks:
+                self.run_hooks(after_hooks, manager, argv)
 
 
 class InstallPackageAction(Action):
@@ -479,11 +489,10 @@ class TipfyManager(object):
         self.parser = ArgumentParser(description=self.description,
             epilog=self.epilog, add_help=False)
         self.parser.add_argument('action', help='Action to perform. '
-            'Available actions are: %s.' % actions, nargs='?', default='help')
-        self.parser.add_argument('--config', dest='config_file',
-            default='tipfy.cfg', help='Configuration file.')
-        self.parser.add_argument('--app', dest='app',
-            help='App configuration to load.')
+            'Available actions are: %s.' % actions, nargs='?')
+        self.parser.add_argument('--config', default='tipfy.cfg',
+            help='Configuration file.')
+        self.parser.add_argument('--app', help='App configuration to load.')
         self.parser.add_argument('-h', '--help', help='Show this help message '
             'and exit.', action='store_true')
 
@@ -491,7 +500,7 @@ class TipfyManager(object):
         args, extras = self.parser.parse_args(args=argv, with_extras=True)
 
         # Load configuration.
-        self.parse_config(args.config_file)
+        self.parse_config(args.config)
 
         # The active app, if defined.
         self.app = args.app or self.config.get('DEFAULT', 'default.app')

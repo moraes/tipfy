@@ -26,6 +26,7 @@ cover_packages = [
     'tipfy.i18n',
     'tipfy.middleware',
     'tipfy.routing',
+    'tipfy.scripts.manage',
     'tipfy.sessions',
     'tipfy.testing',
     'tipfy.utils',

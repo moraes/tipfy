@@ -3,11 +3,14 @@ import ConfigParser
 import os
 import runpy
 import shutil
+import re
 import sys
 import textwrap
 
 import argparse
 
+
+INTERPOLATE_RE = re.compile(r"%\(([^)]*)\)s")
 
 # Be a good neighbour.
 if sys.platform == 'win32':
@@ -17,6 +20,11 @@ else:
 
 MISSING_GAE_SDK_MSG = "%(script)r wasn't found. Add the App Engine SDK to " \
     "sys.path or configure sys.path in tipfy.cfg."
+
+
+def get_unique_sequence(seq):
+    seen = set()
+    return [x for x in seq if x not in seen and not seen.add(x)]
 
 
 def import_string(import_name, silent=False):
@@ -47,78 +55,64 @@ def import_string(import_name, silent=False):
             raise
 
 
-def get_unique_sequence(seq):
-    seen = set()
-    return [x for x in seq if x not in seen and not seen.add(x)]
-
-
-class ArgumentParser(argparse.ArgumentParser):
-    def parse_args(self, args=None, namespace=None, with_extras=False):
-        """Parses arguments ignoring extra ones.
-
-        :returns:
-            If `with_extras` is False, the namespace populated with recognized
-            arguments. Extra arguments will result in an error.
-
-            If `with_extras` is True, a tuple (namespace, extras)  with the
-            namespace populated with recognized arguments and a list with the
-            non-recognized arguments.
-        """
-        if with_extras:
-            return self.parse_known_args(args, namespace)
-
-        return super(ArgumentParser, self).parse_args(args, namespace)
-
-
-class Config(ConfigParser.SafeConfigParser):
-    """Wraps SafeConfigParser `get*()` functions to allow a default to be
+class Config(ConfigParser.RawConfigParser):
+    """Wraps RawConfigParser `get*()` functions to allow a default to be
     returned instead of throwing errors. Also adds `getlist()` to split
     multi-line values into a list.
     """
-    def get(self, section, option, default=None):
-        return self._get_wrapper(self._get, section, option, default)
+    _boolean_states = {
+        '1':     True,
+        'yes':   True,
+        'true':  True,
+        'on':    True,
+        '0':     False,
+        'no':    False,
+        'false': False,
+        'off':   False,
+    }
 
-    def getboolean(self, section, option, default=None):
-        return self._get_wrapper(self._getboolean, section, option, default)
+    def get(self, section, option, default=None, raw=False):
+        return self._get_wrapper(section, option, unicode, default, raw)
 
-    def getfloat(self, section, option, default=None):
-        return self._get_wrapper(self._getfloat, section, option, default)
+    def getboolean(self, section, option, default=None, raw=False):
+        return self._get_wrapper(section, option, self._to_boolean, default,
+            raw)
 
-    def getint(self, section, option, default=None):
-        return self._get_wrapper(self._getint, section, option, default)
+    def getfloat(self, section, option, default=None, raw=False):
+        return self._get_wrapper(section, option, self._to_float, default, raw)
 
-    def getlist(self, section, option, default=None, unique=True):
-        res = self._get_wrapper(self._getlist, section, option, default)
+    def getint(self, section, option, default=None, raw=False):
+        return self._get_wrapper(section, option, self._to_int, default, raw)
+
+    def getlist(self, section, option, default=None, raw=False, unique=True):
+        res = self._get_wrapper(section, option, self._to_list, default, raw)
         if unique:
             return get_unique_sequence(res)
 
         return res
 
     def _get(self, section, option):
-        return ConfigParser.SafeConfigParser.get(self, section, option)
+        return ConfigParser.RawConfigParser.get(self, section, option)
 
-    def _getboolean(self, section, option):
-        return ConfigParser.SafeConfigParser.getboolean(self, section,
-            option)
+    def _to_boolean(self, value):
+        key = value.lower()
+        if key not in self._boolean_states:
+            raise ValueError('Not a boolean: %r. Booleans must be '
+                'one of %s.' % (value, ', '.join(self._boolean_states.keys())))
 
-    def _getfloat(self, section, option):
-        return ConfigParser.SafeConfigParser.getfloat(self, section, option)
+        return self._boolean_states[key]
 
-    def _getint(self, section, option):
-        return ConfigParser.SafeConfigParser.getint(self, section, option)
+    def _to_float(self, value):
+        return float(value)
 
-    def _getlist(self, section, option):
-        value = self.get(section, option)
-        res = []
-        if value:
-            for line in value.splitlines():
-                line = line.strip()
-                if line:
-                    res.append(line)
+    def _to_int(self, value):
+        return int(value)
 
-        return res
+    def _to_list(self, value):
+        value = [line.strip() for line in value.splitlines()]
+        return [v for v in value if v]
 
-    def _get_wrapper(self, get_func, sections, option, default=None):
+    def _get_wrapper(self, sections, option, converter, default, raw):
         """Wraps get functions allowing default values and a list of sections
         looked up in order until a value is found.
         """
@@ -127,27 +121,64 @@ class Config(ConfigParser.SafeConfigParser):
 
         for section in sections:
             try:
-                if self._get(section, option) is not None:
-                    return get_func(section, option)
+                value = self._get(section, option)
+                if not raw:
+                    value = self._interpolate(section, option, value)
+
+                return converter(value)
             except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
                 pass
-            except ConfigParser.InterpolationMissingOptionError:
-                # XXX should check in the end if value for interpolation
-                # was missing?
+            except ValueError:
+                # Failed conversion?
                 pass
 
         return default
+
+    def _interpolate(self, section, option, value, tried=None):
+        if not '%(' in value:
+            return value
+
+        matches = INTERPOLATE_RE.findall(value)
+        if not matches:
+            return value
+
+        if tried is None:
+            tried = [(section, option)]
+
+        variables = {}
+        matches = get_unique_sequence(matches)
+        for match in matches:
+            parts = tuple(match.split(':', 1))
+            if len(parts) == 1:
+                parts = section, match
+
+            if parts in tried:
+                continue
+
+            tried.append(parts)
+            new_section, new_option = parts
+            try:
+                found = self._get(new_section, new_option)
+                tried.append(('DEFAULT', new_option))
+                variables[match] = self._interpolate(new_section, new_option,
+                    found, tried)
+            except Exception:
+                pass
+
+        if len(matches) == len(variables):
+            return value % variables
+
+        raise ConfigParser.InterpolationError(section, option,
+            'Cound not replace %r.' % value)
 
 
 class Action(object):
     """Base interface for custom actions."""
     #: ArgumentParser description.
     description = None
+
     #: ArgumentParser epilog.
     epilog = None
-
-    def __init__(self):
-        pass
 
     def __call__(self, manager, argv):
         raise NotImplementedError()
@@ -184,22 +215,24 @@ class CreateAppAction(Action):
     """Creates a directory for a new tipfy app."""
     description = 'Creates a directory for a new App Engine app.'
 
-    def __init__(self):
-        self.parser = ArgumentParser(description=self.description)
-        self.parser.add_argument('app_dir', help='App directory '
+    def get_parser(self):
+        parser = argparse.ArgumentParser(description=self.description)
+        parser.add_argument('app_dir', help='App directory '
             'or directories.', nargs='+')
-        self.parser.add_argument('-t', '--template', dest='template',
+        parser.add_argument('-t', '--template', dest='template',
             help='App template, copied to the new project directory. '
             'If not defined, the default app skeleton is used.')
+        return parser
 
     def __call__(self, manager, argv):
-        args = self.parser.parse_args(args=argv)
+        parser = self.get_parser()
+        args = parser.parse_args(args=argv)
 
         template_dir = args.template
         if not template_dir:
             # Try getting the template set in config.
             template_dir = manager.config.get(manager.config_section,
-                'create_app.stubs.appengine')
+                'create_app.appengine_stub')
 
         if not template_dir:
             # Use default template.
@@ -214,13 +247,11 @@ class CreateAppAction(Action):
             app_dir = os.path.abspath(app_dir)
             self.create_app(manager, app_dir, template_dir)
 
-    def create_app(self, app_dir, template_dir):
+    def create_app(self, manager, app_dir, template_dir):
         if os.path.exists(app_dir):
             self.error('Project directory already exists: %r.' % app_dir)
 
         shutil.copytree(template_dir, app_dir)
-
-        # XXX Add section to config
 
 
 class GaeSdkAction(Action):
@@ -267,11 +298,12 @@ class GaeSdkExtendedAction(Action):
         usage = '%%(prog)s %(action)s [--config CONFIG] [--app APP] ' \
             '[options]' % dict(action=self.action)
 
-        parser = ArgumentParser(
+        parser = argparse.ArgumentParser(
             description=self.description,
-            add_help=False,
             usage=usage,
-            formatter_class=argparse.RawDescriptionHelpFormatter)
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            add_help=False
+        )
 
         for long_option, short_option, is_bool in self.get_getopt_options():
             option = self.get_option_config_key(long_option)
@@ -297,7 +329,7 @@ class GaeSdkExtendedAction(Action):
 
     def get_gae_argv(self, manager, argv):
         parser = self.get_parser_from_getopt_options(manager)
-        args, extras = parser.parse_args(args=argv, with_extras=True)
+        args, extras = parser.parse_known_args(args=argv)
 
         if args.help:
             parser.print_help()
@@ -542,27 +574,31 @@ class GaeDeployAction(GaeSdkExtendedAction):
 class InstallPackageAction(Action):
     description = 'Installs packages in the app directory.'
 
-    def __init__(self):
+    def get_parser(self):
         # XXX cache option
         # XXX symlinks option
-        self.parser = ArgumentParser(description=self.description)
-        self.parser.add_argument('packages', help='Package names', nargs='+')
-        self.parser.add_argument('app_dir', help='App directory.')
+        parser = argparse.ArgumentParser(description=self.description)
+        parser.add_argument('packages', help='Package names', nargs='+')
+        parser.add_argument('app_dir', help='App directory.')
+        return parser
 
     def __call__(self, manager, argv):
-        args = self.parser.parse_args(args=argv)
+        parser = self.get_parser()
+        args = parser.parse_args(args=argv)
 
 
 class InstallAppengineSdkAction(Action):
     """Not implemented yet."""
     description = 'Downloads and unzips the App Engine SDK.'
 
-    def __init__(self):
-        self.parser = ArgumentParser(description=self.description)
-        self.parser.add_argument('--version', '-v', help='SDK version. '
+    def get_parser(self):
+        parser = argparse.ArgumentParser(description=self.description)
+        parser.add_argument('--version', '-v', help='SDK version. '
             'If not defined, downloads the latest stable one.')
+        return parser
 
     def __call__(self, manager, argv):
+        parser = self.get_parser()
         raise NotImplementedError()
 
 
@@ -594,26 +630,44 @@ class TipfyManager(object):
         'test':             TestAction(),
     }
 
-    def __init__(self):
+    def get_parser(self):
         actions = ', '.join(sorted(self.actions.keys()))
-        self.parser = ArgumentParser(description=self.description,
+        parser = argparse.ArgumentParser(description=self.description,
             epilog=self.epilog, add_help=False)
-        self.parser.add_argument('action', help='Action to perform. '
+        parser.add_argument('action', help='Action to perform. '
             'Available actions are: %s.' % actions, nargs='?')
-        self.parser.add_argument('--config', default='tipfy.cfg',
+        parser.add_argument('--config', default='tipfy.cfg',
             help='Configuration file.')
-        self.parser.add_argument('--app', help='App configuration to load.')
-        self.parser.add_argument('-h', '--help', help='Show this help message '
+        parser.add_argument('--app', help='App configuration to load.')
+        parser.add_argument('-h', '--help', help='Show this help message '
             'and exit.', action='store_true')
+        return parser
+
+    def parse_config(self, config_file):
+        """Load configuration. If files are not specified, try 'tipfy.cfg'
+        in the current dir.
+        """
+        self.config_files = {
+            'global': os.path.realpath(os.path.join(os.path.expanduser('~'),
+                GLOBAL_CONFIG_FILE)),
+            'project': os.path.realpath(os.path.abspath(config_file)),
+        }
+
+        self.config = Config()
+        self.config_loaded = self.config.read([
+            self.config_files['global'],
+            self.config_files['project'],
+        ])
 
     def __call__(self, argv):
-        args, extras = self.parser.parse_args(args=argv, with_extras=True)
+        parser = self.get_parser()
+        args, extras = parser.parse_known_args(args=argv)
 
         # Load configuration.
         self.parse_config(args.config)
 
         # The active app, if defined.
-        self.app = args.app or self.config.get('DEFAULT', 'default.app')
+        self.app = args.app or self.config.get('DEFAULT', 'app')
 
         # Load config fom a specific app, if defined, or use default one.
         self.config_section = self.app or 'DEFAULT'
@@ -627,23 +681,13 @@ class TipfyManager(object):
 
         if args.action not in self.actions:
             # Unknown action or --help.
-            return self.parser.print_help()
+            return parser.print_help()
 
         if args.help:
             # Delegate help to action.
             extras.append('--help')
 
         self.actions[args.action](self, extras)
-
-    def parse_config(self, config_file):
-        """Load configuration. If files are not specified, try 'tipfy.cfg'
-        in the current dir.
-        """
-        self.config = Config()
-        self.config_files = self.config.read([
-            os.path.join(os.path.expanduser('~'), GLOBAL_CONFIG_FILE),
-            os.path.abspath(config_file)
-        ])
 
 
 def main():

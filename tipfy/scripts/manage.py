@@ -10,8 +10,6 @@ import textwrap
 import argparse
 
 
-INTERPOLATE_RE = re.compile(r"%\(([^)]*)\)s")
-
 # Be a good neighbour.
 if sys.platform == 'win32':
     GLOBAL_CONFIG_FILE = 'tipfy.cfg'
@@ -60,6 +58,8 @@ class Config(ConfigParser.RawConfigParser):
     returned instead of throwing errors. Also adds `getlist()` to split
     multi-line values into a list.
     """
+    _interpolate_re = re.compile(r"%\(([^)]*)\)s")
+
     _boolean_states = {
         '1':     True,
         'yes':   True,
@@ -138,7 +138,7 @@ class Config(ConfigParser.RawConfigParser):
         if not '%(' in value:
             return value
 
-        matches = INTERPOLATE_RE.findall(value)
+        matches = self._interpolate_re.findall(value)
         if not matches:
             return value
 
@@ -148,15 +148,16 @@ class Config(ConfigParser.RawConfigParser):
         variables = {}
         matches = get_unique_sequence(matches)
         for match in matches:
-            parts = tuple(match.split(':', 1))
+            parts = tuple(match.split('|', 1))
             if len(parts) == 1:
-                parts = section, match
+                new_section, new_option = section, match
+            else:
+                new_section, new_option = parts
 
             if parts in tried:
                 continue
 
             tried.append(parts)
-            new_section, new_option = parts
             try:
                 found = self._get(new_section, new_option)
                 tried.append(('DEFAULT', new_option))
@@ -174,21 +175,34 @@ class Config(ConfigParser.RawConfigParser):
 
 class Action(object):
     """Base interface for custom actions."""
+    #: Action name.
+    name = None
+
     #: ArgumentParser description.
     description = None
 
     #: ArgumentParser epilog.
     epilog = None
 
+    def __init__(self, name):
+        self.name = name
+
     def __call__(self, manager, argv):
         raise NotImplementedError()
 
+    def get_config_section(self, manager):
+        sections = ['tipfy:%s' % self.name]
+        if manager.app:
+            sections.insert(0, '%s:%s' % (manager.app, self.name))
+
+        return sections
+
     def error(self, message, status=1):
         """Displays an error message and exits."""
-        self.message(message)
+        self.log(message)
         sys.exit(status)
 
-    def message(self, message):
+    def log(self, message):
         """Displays a message."""
         sys.stderr.write(message + '\n')
 
@@ -225,14 +239,14 @@ class CreateAppAction(Action):
         return parser
 
     def __call__(self, manager, argv):
+        section = self.get_config_section(manager)
         parser = self.get_parser()
         args = parser.parse_args(args=argv)
 
         template_dir = args.template
         if not template_dir:
             # Try getting the template set in config.
-            template_dir = manager.config.get(manager.config_section,
-                'create_app.appengine_stub')
+            template_dir = manager.config.get(section, 'appengine_stub')
 
         if not template_dir:
             # Use default template.
@@ -256,25 +270,24 @@ class CreateAppAction(Action):
 
 class GaeSdkAction(Action):
     """This is just a wrapper for tools found in the Google App Engine SDK.
-    No additional arguments are parsed.
+    It delegates all arguments to the SDK script and no additional arguments
+    are parsed.
     """
-    def __init__(self, action):
-        self.action = action
-
     def __call__(self, manager, argv):
-        sys.argv = [self.action] + argv
+        sys.argv = [self.name] + argv
         try:
-            runpy.run_module(self.action, run_name='__main__', alter_sys=True)
+            runpy.run_module(self.name, run_name='__main__', alter_sys=True)
         except ImportError:
-            self.error(MISSING_GAE_SDK_MSG % dict(script=self.action))
+            self.error(MISSING_GAE_SDK_MSG % dict(script=self.name))
 
 
 class GaeSdkExtendedAction(Action):
-    action = None
+    """Base class for actions that wrap the App Engine SDK scripts to make
+    them configurable or to add before/after hooks. It accepts all options
+    from the correspondent SDK scripts, but they can be configured in
+    tipfy.cfg.
+    """
     options = []
-
-    def get_option_config_key(self, option):
-        raise NotImplementedError()
 
     def get_base_gae_argv(self):
         raise NotImplementedError()
@@ -293,10 +306,10 @@ class GaeSdkExtendedAction(Action):
             yield long_option, short_option, is_bool
 
     def get_parser_from_getopt_options(self, manager):
-        section = manager.config_section
+        section = self.get_config_section(manager)
 
         usage = '%%(prog)s %(action)s [--config CONFIG] [--app APP] ' \
-            '[options]' % dict(action=self.action)
+            '[options]' % dict(action=self.name)
 
         parser = argparse.ArgumentParser(
             description=self.description,
@@ -306,7 +319,6 @@ class GaeSdkExtendedAction(Action):
         )
 
         for long_option, short_option, is_bool in self.get_getopt_options():
-            option = self.get_option_config_key(long_option)
             args = ['--%s' % long_option]
             kwargs = {}
 
@@ -315,9 +327,10 @@ class GaeSdkExtendedAction(Action):
 
             if is_bool:
                 kwargs['action'] = 'store_true'
-                kwargs['default'] = manager.config.getboolean(section, option)
+                kwargs['default'] = manager.config.getboolean(section,
+                    long_option)
             else:
-                kwargs['default'] = manager.config.get(section, option)
+                kwargs['default'] = manager.config.get(section, long_option)
 
             parser.add_argument(*args, **kwargs)
 
@@ -359,17 +372,20 @@ class GaeRunserverAction(GaeSdkExtendedAction):
     development server using before and after hooks and allowing configurable
     defaults.
 
-    Default values for each option can be defined in tipfy.cfg in the main
-    section or for a specific app, prefixed by "runserver.". A special
-    variable "app" is replaced by the value from the "--app" argument:
+    Default values for each option can be defined in tipfy.cfg in the
+    "tipfy:runserver" section or for the current app, sufixed by ":runserver".
+    A special variable "app" is replaced by the value from the "--app"
+    argument:
 
-        [DEFAULT]
+        [tipfy]
         path = /path/to/%(app)s
-        runserver.debug = true
-        runserver.datastore_path = /path/to/%(app)s.datastore
 
-        [my_app]
-        runserver.port = 8081
+        [tipfy:runserver]
+        debug = true
+        datastore_path = /path/to/%(app)s.datastore
+
+        [my_app:runserver]
+        port = 8081
 
     In this case, executing:
 
@@ -379,16 +395,16 @@ class GaeRunserverAction(GaeSdkExtendedAction):
 
         dev_appserver --datastore_path=/path/to/my_app.datastore --debug --port=8081 /path/to/my_app
 
-    Define in "runserver.before" and "runserver.after" a list of functions
-    to run before and after the server executes. These functions are imported
-    so they must be in sys.path. For example:
+    Define in "before" and "after" a list of functions to run before and after
+    the server executes. These functions are imported so they must be in
+    sys.path. For example:
 
-        [DEFAULT]
-        runserver.before =
+        [tipfy:runserver]
+        before =
             hooks.before_runserver_1
             hooks.before_runserver_2
 
-        runserver.after =
+        after =
             hooks.after_runserver_1
             hooks.after_runserver_2
 
@@ -405,8 +421,6 @@ class GaeRunserverAction(GaeSdkExtendedAction):
     Use "tipfy dev_appserver --help" for a description of each option.
     """
     description = textwrap.dedent(__doc__)
-
-    action = 'runserver'
 
     # All options from dev_appserver in a modified getopt style.
     options = [
@@ -442,32 +456,28 @@ class GaeRunserverAction(GaeSdkExtendedAction):
         'trusted',
     ]
 
-    def get_option_config_key(self, option):
-        return 'runserver.%s' % option
-
     def get_base_gae_argv(self):
         return ['dev_appserver']
 
     def __call__(self, manager, argv):
-        section = manager.config_section
-        before_hooks = manager.config.getlist(section, 'runserver.before', [])
-        after_hooks = manager.config.getlist(section, 'runserver.after', [])
+        section = self.get_config_section(manager)
+        before_hooks = manager.config.getlist(section, 'before', [])
+        after_hooks = manager.config.getlist(section, 'after', [])
 
         # Assemble arguments.
         sys.argv = self.get_gae_argv(manager, argv)
 
-        # Execute runserver.before scripts.
+        # Execute before scripts.
         self.run_hooks(before_hooks, manager, argv)
 
+        script = 'dev_appserver'
         try:
-            self.message('Executing: %s' % ' '.join(sys.argv))
-            return
-            runpy.run_module('dev_appserver', run_name='__main__',
-                alter_sys=True)
+            self.log('Executing: %s' % ' '.join(sys.argv))
+            runpy.run_module(script, run_name='__main__', alter_sys=True)
         except ImportError:
-            self.error(MISSING_GAE_SDK_MSG % dict(script='dev_appserver'))
+            self.error(MISSING_GAE_SDK_MSG % dict(script=script))
         finally:
-            # Execute runserver.after scripts.
+            # Execute after scripts.
             self.run_hooks(after_hooks, manager, argv)
 
 
@@ -476,17 +486,20 @@ class GaeDeployAction(GaeSdkExtendedAction):
     A convenient wrapper for "appcfg update": deploys to Google App Engine
     using before and after hooks and allowing configurable defaults.
 
-    Default values for each option can be defined in tipfy.cfg in the main
-    section or for a specific app, prefixed by "deploy.". A special variable
-    "app" is replaced by the value from the "--app" argument:
+    Default values for each option can be defined in tipfy.cfg in the
+    "tipfy:deploy" section or for the current app, sufixed by ":deploy".
+    A special variable "app" is replaced by the value from the "--app"
+    argument:
 
-        [DEFAULT]
+        [tipfy]
         path = /path/to/%(app)s
-        deploy.verbose = true
 
-        [my_app]
-        deploy.email = user@gmail.com
-        deploy.no_cookies = true
+        [tipfy:deploy]
+        verbose = true
+
+        [my_app:deploy]
+        email = user@gmail.com
+        no_cookies = true
 
     In this case, executing:
 
@@ -496,16 +509,16 @@ class GaeDeployAction(GaeSdkExtendedAction):
 
         appcfg update --verbose --email=user@gmail.com --no_cookies /path/to/my_app
 
-    Define in "deploy.before" and "deploy.after" a list of functions to run
-    before and after deployment. These functions are imported so they must
-    be in sys.path. For example:
+    Define in "before" and "after" a list of functions to run before and after
+    deployment. These functions are imported so they must be in sys.path.
+    For example:
 
-        [DEFAULT]
-        deploy.before =
+        [tipfy:deploy]
+        before =
             hooks.before_deploy_1
             hooks.before_deploy_2
 
-        deploy.after =
+        after =
             hooks.after_deploy_1
             hooks.after_deploy_2
 
@@ -523,55 +536,50 @@ class GaeDeployAction(GaeSdkExtendedAction):
     """
     description = textwrap.dedent(__doc__)
 
-    action = 'deploy'
-
     # All options from appcfg update in a modified getopt style.
     options = [
-      ('help', 'h'),
-      ('quiet', 'q'),
-      ('verbose', 'v'),
-      'noisy',
-      ('server=', 's'),
-      'insecure',
-      ('email=', 'e'),
-      ('host=', 'H'),
-      'no_cookies',
-      'passin',
-      ('application=', 'A'),
-      ('version=', 'V'),
-      ('max_size=', 'S'),
-      'no_precompilation',
+        ('help', 'h'),
+        ('quiet', 'q'),
+        ('verbose', 'v'),
+        'noisy',
+        ('server=', 's'),
+        'insecure',
+        ('email=', 'e'),
+        ('host=', 'H'),
+        'no_cookies',
+        'passin',
+        ('application=', 'A'),
+        ('version=', 'V'),
+        ('max_size=', 'S'),
+        'no_precompilation',
     ]
-
-    def get_option_config_key(self, option):
-        return 'deploy.%s' % option
 
     def get_base_gae_argv(self):
         return ['appcfg', 'update']
 
     def __call__(self, manager, argv):
-        section = manager.config_section
-        before_hooks = manager.config.getlist(section, 'deploy.before', [])
-        after_hooks = manager.config.getlist(section, 'deploy.after', [])
+        section = self.get_config_section(manager)
+        before_hooks = manager.config.getlist(section, 'before', [])
+        after_hooks = manager.config.getlist(section, 'after', [])
 
         # Assemble arguments.
         sys.argv = self.get_gae_argv(manager, argv)
 
-        # Execute deploy.before scripts.
+        # Execute before scripts.
         self.run_hooks(before_hooks, manager, argv)
 
+        script = 'appcfg'
         try:
-            self.message('Executing: %s' % ' '.join(sys.argv))
-            runpy.run_module('appcfg', run_name='__main__',
-                alter_sys=True)
+            self.log('Executing: %s' % ' '.join(sys.argv))
+            runpy.run_module(script, run_name='__main__', alter_sys=True)
         except ImportError:
-            self.error(MISSING_GAE_SDK_MSG % dict(script='appcfg'))
+            self.error(MISSING_GAE_SDK_MSG % dict(script=script))
         finally:
-            # Execute deploy.after scripts.
+            # Execute after scripts.
             self.run_hooks(after_hooks, manager, argv)
 
 
-class InstallPackageAction(Action):
+class BuildAction(Action):
     description = 'Installs packages in the app directory.'
 
     def get_parser(self):
@@ -613,22 +621,57 @@ class TipfyManager(object):
     epilog = 'Use "%(prog)s action --help" for help on specific actions.'
 
     # XXX Allow users to hook in custom actions.
-    actions = {
+    default_actions = [
         # Wrappers for App Engine SDK tools.
-        'appcfg':           GaeSdkAction('appcfg'),
-        'bulkload_client':  GaeSdkAction('bulkload_client'),
-        'bulkloader':       GaeSdkAction('bulkloader'),
-        'dev_appserver':    GaeSdkAction('dev_appserver'),
-        'remote_api_shell': GaeSdkAction('remote_api_shell'),
+        GaeSdkAction('appcfg'),
+        GaeSdkAction('bulkload_client'),
+        GaeSdkAction('bulkloader'),
+        GaeSdkAction('dev_appserver'),
+        GaeSdkAction('remote_api_shell'),
         # For now these are App Engine specific.
-        'runserver':        GaeRunserverAction(),
-        'deploy':           GaeDeployAction(),
+        GaeRunserverAction('runserver'),
+        GaeDeployAction('deploy'),
         # Extra ones.
-        # 'install_gae_sdk':  InstallAppengineSdkAction(),
-        'create_app':       CreateAppAction(),
-        'install':          InstallPackageAction(),
-        'test':             TestAction(),
-    }
+        # InstallAppengineSdkAction('install_gae_sdk'),
+        CreateAppAction('create_app'),
+        BuildAction('build'),
+        TestAction('test'),
+    ]
+
+    def __init__(self):
+        self.actions = dict((a.name, a) for a in self.default_actions)
+
+    def __call__(self, argv):
+        parser = self.get_parser()
+        args, extras = parser.parse_known_args(args=argv)
+
+        # Load configuration.
+        self.parse_config(args.config)
+
+        # Load config fom a specific app, if defined, or use default one.
+        self.app = args.app or self.config.get('tipfy', 'app')
+
+        # Fallback to the tipfy section.
+        self.config_section = ['tipfy']
+        if self.app:
+            self.config_section.insert(0, self.app)
+
+        # If app is set, an 'app' value can be used in expansions.
+        if self.app:
+            self.config.set('DEFAULT', 'app', self.app)
+
+        # Prepend configured paths to sys.path, if any.
+        sys.path[:0] = self.config.getlist(self.config_section, 'sys.path', [])
+
+        if args.action not in self.actions:
+            # Unknown action or --help.
+            return parser.print_help()
+
+        if args.help:
+            # Delegate help to action.
+            extras.append('--help')
+
+        self.actions[args.action](self, extras)
 
     def get_parser(self):
         actions = ', '.join(sorted(self.actions.keys()))
@@ -637,7 +680,8 @@ class TipfyManager(object):
         parser.add_argument('action', help='Action to perform. '
             'Available actions are: %s.' % actions, nargs='?')
         parser.add_argument('--config', default='tipfy.cfg',
-            help='Configuration file.')
+            help='Configuration file. If not provided, uses tipfy.cfg from '
+            'the current directory.')
         parser.add_argument('--app', help='App configuration to load.')
         parser.add_argument('-h', '--help', help='Show this help message '
             'and exit.', action='store_true')
@@ -658,36 +702,6 @@ class TipfyManager(object):
             self.config_files['global'],
             self.config_files['project'],
         ])
-
-    def __call__(self, argv):
-        parser = self.get_parser()
-        args, extras = parser.parse_known_args(args=argv)
-
-        # Load configuration.
-        self.parse_config(args.config)
-
-        # The active app, if defined.
-        self.app = args.app or self.config.get('DEFAULT', 'app')
-
-        # Load config fom a specific app, if defined, or use default one.
-        self.config_section = self.app or 'DEFAULT'
-
-        # If app is set, a default 'app' value can be used in expansions.
-        if self.app:
-            self.config.set('DEFAULT', 'app', self.app)
-
-        # Prepend configured paths to sys.path, if any.
-        sys.path[:0] = self.config.getlist(self.config_section, 'sys.path', [])
-
-        if args.action not in self.actions:
-            # Unknown action or --help.
-            return parser.print_help()
-
-        if args.help:
-            # Delegate help to action.
-            extras.append('--help')
-
-        self.actions[args.action](self, extras)
 
 
 def main():

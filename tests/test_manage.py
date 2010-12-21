@@ -152,23 +152,27 @@ class TestConfig(BaseTestCase):
 
         [section_1]
         path_name = foo
+        path_1 = /special%(path)s
+        path_2 = /special/%(path_name)s
 
         [section_2]
         path_name = bar
 
         [section_3]
-        path_1 = /path/to/%(section_1:path_name)s
-        path_2 = /path/to/%(section_2:path_name)s
-        path_3 = /%(section_1:path_name)s/%(section_2:path_name)s/%(section_1:path_name)s/%(section_2:path_name)s
-        path_error_1 = /path/to/%(section_3:path_error_1)s
-        path_error_2 = /path/to/%(section_3:path_error_3)s
-        path_error_3 = /path/to/%(section_3:path_error_2)s
+        path_1 = /path/to/%(section_1|path_name)s
+        path_2 = /path/to/%(section_2|path_name)s
+        path_3 = /%(section_1|path_name)s/%(section_2|path_name)s/%(section_1|path_name)s/%(section_2|path_name)s
+        path_error_1 = /path/to/%(section_3|path_error_1)s
+        path_error_2 = /path/to/%(section_3|path_error_3)s
+        path_error_3 = /path/to/%(section_3|path_error_2)s
         path_not_really = /path/to/%(foo
         """)
         config = Config()
         config.readfp(fp)
 
         self.assertEqual(config.get('section_1', 'path'), '/path/to/foo')
+        self.assertEqual(config.get('section_1', 'path_1'), '/special/path/to/foo')
+        self.assertEqual(config.get('section_1', 'path_2'), '/special/foo')
         self.assertEqual(config.get('section_2', 'path'), '/path/to/bar')
 
         self.assertEqual(config.get('section_3', 'path_1'), '/path/to/foo')

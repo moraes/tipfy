@@ -14,7 +14,7 @@ import StringIO
 
 from . import BaseTestCase
 
-from tipfy.scripts.manage import Config
+from tipfy.manage.config import Config
 
 
 class TestConfig(BaseTestCase):
@@ -124,9 +124,13 @@ class TestConfig(BaseTestCase):
         config = Config()
         config.readfp(fp)
 
+        # Non-unique values.
         self.assertEqual(config.getlist('section_1', 'animals'), [
             'rhino',
+            'rhino',
             'hamster',
+            'hamster',
+            'goat',
             'goat',
         ])
         self.assertEqual(config.getlist('section_1', 'fruits'), [
@@ -135,13 +139,10 @@ class TestConfig(BaseTestCase):
             'grape',
         ])
 
-        # Non-unique.
-        self.assertEqual(config.getlist('section_1', 'animals', unique=False), [
-            'rhino',
+        # Unique values.
+        self.assertEqual(config.getlist('section_1', 'animals', unique=True), [
             'rhino',
             'hamster',
-            'hamster',
-            'goat',
             'goat',
         ])
 

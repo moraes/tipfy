@@ -234,7 +234,7 @@ def get_or_insert_with_flag(model, key_name, **kwargs):
     return db.run_in_transaction(txn)
 
 
-def get_or_404(key):
+def get_or_404(*args, **kwargs):
     """Returns a model instance fetched by key or raises a 404 Not Found error.
     Example:
 
@@ -244,22 +244,31 @@ def get_or_404(key):
 
         class EditContactHandler(RequestHandler):
             def get(self, **kwargs):
-                contact = get_or_404(Contact, kwargs['contact_key'])
+                contact = get_or_404(kwargs['contact_key'])
 
                 # ... continue processing contact ...
 
     This function derives from `Kay <http://code.google.com/p/kay-framework/>`_.
 
-    :param key:
-        An encoded ``db.Key`` (a string).
+    :param args:
+        Positional arguments to construct a key using ``db.Key.from_path()``
+        or a ``db.Key`` instance or encoded key.
+    :param kwargs:
+        Keyword arguments to construct a key using ``db.Key.from_path()``.
     :returns:
         A ``db.Model`` instance.
     """
     try:
-        obj = db.get(key)
+        if len(args) == 1:
+            # A Key or encoded Key is the single argument.
+            obj = db.get(args[0])
+        else:
+            # Build a key using all arguments.
+            obj = db.get(db.Key.from_path(*args, **kwargs))
+
         if obj:
             return obj
-    except db.BadKeyError, e:
+    except (db.BadArgumentError, db.BadKeyError):
         # Falling through to raise the NotFound.
         pass
 

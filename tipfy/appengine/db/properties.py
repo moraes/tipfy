@@ -98,19 +98,7 @@ class KeyProperty(db.Property):
 
 class JsonProperty(db.Property):
     """Stores a value automatically encoding to JSON on set and decoding
-    on get. Example::
-
-        >>> class JsonModel(db.Model):
-        ... data = JsonProperty()
-        >>> model = PickleModel()
-        >>> model.data = {"foo": "bar"}
-        >>> model.data
-        {'foo': 'bar'}
-        >>> model.put() # doctest: +ELLIPSIS
-        datastore_types.Key.from_path(u'PickleModel', ...)
-        >>> model2 = PickleModel.all().get()
-        >>> model2.data
-        {'foo': 'bar'}
+    on get.
     """
     data_type = db.Text
 

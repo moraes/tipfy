@@ -87,7 +87,7 @@ class Form(BaseForm):
 
     def _get_csrf_token(self, request):
         token = str(uuid.uuid4())
-        token_list = self._get_session(request).setdefault('_csrf_token', [])
+        token_list = self._get_session().setdefault('_csrf_token', [])
         token_list.append(token)
         # Store a maximum number of tokens.
         maximum_tokens = current_handler.get_config('tipfyext.wtforms',

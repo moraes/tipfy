@@ -52,7 +52,6 @@ setup(
         'tipfy.appengine.db',
         'tipfy.auth',
         'tipfy.debugger',
-        'tipfy.scripts',
         'tipfyext',
         'tipfyext.appengine',
         'tipfyext.jinja2',

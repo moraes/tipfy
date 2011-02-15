@@ -22,7 +22,7 @@ import unicodedata
 import urllib
 import xml.sax.saxutils
 
-from .app import current_handler
+from tipfy.app import current_handler
 
 try:
     # Preference for installed library with updated fixes.

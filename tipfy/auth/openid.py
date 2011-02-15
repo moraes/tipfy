@@ -82,7 +82,7 @@ class OpenIdMixin(object):
         args['openid.mode'] = u'check_authentication'
 
         try:
-            response = urlfetch.fetch(url, deadline=10, method='POST',
+            response = urlfetch.fetch(url, deadline=10, method=urlfetch.POST,
                 payload=urllib.urlencode(args))
             if response.status_code < 200 or response.status_code >= 300:
                 logging.warning('Invalid OpenID response: %s',

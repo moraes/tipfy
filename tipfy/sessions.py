@@ -15,8 +15,8 @@ import hmac
 import logging
 import time
 
-from . import APPENGINE, DEFAULT_VALUE, REQUIRED_VALUE
-from .utils import json_b64encode, json_b64decode
+from tipfy import APPENGINE, DEFAULT_VALUE, REQUIRED_VALUE
+from tipfy.utils import json_b64encode, json_b64decode
 
 from werkzeug import cached_property
 from werkzeug.contrib.sessions import ModificationTrackingDict

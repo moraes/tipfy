@@ -83,6 +83,7 @@ class FriendFeedMixin(OAuthMixin):
     _OAUTH_ACCESS_TOKEN_URL = 'https://friendfeed.com/account/oauth/access_token'
     _OAUTH_AUTHORIZE_URL = 'https://friendfeed.com/account/oauth/authorize'
     _OAUTH_NO_CALLBACKS = True
+    _OAUTH_VERSION = '1.0'
 
     @property
     def _friendfeed_consumer_key(self):

@@ -29,12 +29,16 @@ from google.appengine.api import urlfetch
 class OAuthMixin(object):
     """A :class:`tipfy.RequestHandler` mixin that implements OAuth
     authentication.
+
+    See TwitterMixin and FriendFeedMixin for example implementations.
     """
-
     _OAUTH_AUTHORIZE_URL = None
+    _OAUTH_REQUEST_TOKEN_URL = None
     _OAUTH_NO_CALLBACKS = False
+    _OAUTH_VERSION = '1.0a'
 
-    def authorize_redirect(self, callback_uri=None, oauth_authorize_url=None):
+    def authorize_redirect(self, callback_uri=None, oauth_authorize_url=None,
+        extra_params=None):
         """Redirects the user to obtain OAuth authorization for this service.
 
         Twitter and FriendFeed both require that you register a Callback
@@ -51,14 +55,20 @@ class OAuthMixin(object):
         :param oauth_authorize_url:
             OAuth authorization URL. If not set, uses the value set in
             :attr:`_OAUTH_AUTHORIZE_URL`.
+        :param extra_params:
         :returns:
         """
-        if callback_uri and getattr(self, '_OAUTH_NO_CALLBACKS', False):
+        if callback_uri and self._OAUTH_NO_CALLBACKS:
             raise Exception('This service does not support oauth_callback')
 
         oauth_authorize_url = oauth_authorize_url or self._OAUTH_AUTHORIZE_URL
 
-        url = self._oauth_request_token_url()
+        if self._OAUTH_VERSION == '1.0a':
+            url = self._oauth_request_token_url(callback_uri=callback_uri,
+                extra_params=extra_params)
+        else:
+            url = self._oauth_request_token_url()
+
         try:
             response = urlfetch.fetch(url, deadline=10)
         except urlfetch.DownloadError, e:
@@ -82,34 +92,39 @@ class OAuthMixin(object):
         :returns:
         """
         request_key = self.request.args.get('oauth_token')
+        oauth_verifier = self.request.args.get('oauth_verifier', None)
         request_cookie = self.request.cookies.get('_oauth_request_token')
+
         if not request_cookie:
             logging.warning('Missing OAuth request token cookie')
             return callback(None)
 
-        cookie_key, cookie_secret = request_cookie.split('|')
+        self.session_store.delete_cookie('_oauth_request_token')
+
+        cookie_key, cookie_secret = [base64.b64decode(i) for i in
+            request_cookie.split('|')]
+
         if cookie_key != request_key:
             logging.warning('Request token does not match cookie')
             return callback(None)
 
         token = dict(key=cookie_key, secret=cookie_secret)
-        url = self._oauth_access_token_url(token)
+        if oauth_verifier:
+            token['verifier'] = oauth_verifier
 
         try:
-            response = urlfetch.fetch(url, deadline=10)
-            if response.status_code < 200 or response.status_code >= 300:
-                logging.warning('Invalid OAuth response: %s',
-                    response.content)
-                response = None
+            response = urlfetch.fetch(self._oauth_access_token_url(token),
+                deadline=10)
         except urlfetch.DownloadError, e:
             logging.exception(e)
             response = None
 
         return self._on_access_token(callback, response)
 
-    def _oauth_request_token_url(self):
+    def _oauth_request_token_url(self, callback_uri= None, extra_params=None):
         """
-
+        :param callback_uri:
+        :param extra_params:
         :returns:
         """
         consumer_token = self._oauth_consumer_token()
@@ -119,9 +134,20 @@ class OAuthMixin(object):
             oauth_signature_method='HMAC-SHA1',
             oauth_timestamp=str(int(time.time())),
             oauth_nonce=binascii.b2a_hex(uuid.uuid4().bytes),
-            oauth_version='1.0',
+            oauth_version=self._OAUTH_VERSION,
         )
-        signature = _oauth_signature(consumer_token, 'GET', url, args)
+        self._OAUTH_VERSION == '1.0a':
+            if callback_uri:
+                args['oauth_callback'] = urlparse.urljoin(
+                    self.request.url, callback_uri)
+
+            if extra_params:
+                args.update(extra_params)
+
+            signature = _oauth10a_signature(consumer_token, 'GET', url, args)
+        else:
+            signature = _oauth_signature(consumer_token, 'GET', url, args)
+
         args['oauth_signature'] = signature
         return url + '?' + urllib.urlencode(args)
 
@@ -141,9 +167,11 @@ class OAuthMixin(object):
             self.abort(500)
 
         request_token = _oauth_parse_response(response.content)
-        data = '|'.join([request_token['key'], request_token['secret']])
-        self.set_cookie('_oauth_request_token', data)
+        data = '|'.join([base64.b64encode(request_token['key']),
+            base64.b64encode(request_token['secret'])])
+        self.session_store.set_cookie('_oauth_request_token', data)
         args = dict(oauth_token=request_token['key'])
+
         if callback_uri:
             args['oauth_callback'] = urlparse.urljoin(
                 self.request.url, callback_uri)
@@ -163,10 +191,19 @@ class OAuthMixin(object):
             oauth_signature_method='HMAC-SHA1',
             oauth_timestamp=str(int(time.time())),
             oauth_nonce=binascii.b2a_hex(uuid.uuid4().bytes),
-            oauth_version='1.0',
+            oauth_version=self._OAUTH_VERSION,
         )
-        signature = _oauth_signature(consumer_token, 'GET', url, args,
-                                     request_token)
+
+        if 'verifier' in request_token:
+            args['oauth_verifier'] = request_token['verifier']
+
+        self._OAUTH_VERSION == '1.0a':
+            signature = _oauth10a_signature(consumer_token, 'GET', url, args,
+                request_token)
+        else:
+            signature = _oauth_signature(consumer_token, 'GET', url, args,
+                request_token)
+
         args['oauth_signature'] = signature
         return url + '?' + urllib.urlencode(args)
 
@@ -177,12 +214,12 @@ class OAuthMixin(object):
         :returns:
         """
         if not response:
-            logging.warning('Missing OAuth access token response.')
-            return callback(None)
+            logging.warning('Could not get OAuth access token.')
+            self.abort(500)
         elif response.status_code < 200 or response.status_code >= 300:
-            logging.warning('Invalid OAuth access token response (%d): %s',
+            logging.warning('Invalid OAuth response (%d): %s',
                 response.status_code, response.content)
-            return callback(None)
+            self.abort(500)
 
         access_token = _oauth_parse_response(response.content)
         return self._oauth_get_user(access_token, functools.partial(
@@ -204,14 +241,13 @@ class OAuthMixin(object):
         :returns:
         """
         if not user:
-            callback(None)
-            return
+            return callback(None)
 
         user['access_token'] = access_token
         return callback(user)
 
     def _oauth_request_parameters(self, url, access_token, parameters={},
-                                  method='GET'):
+        method='GET'):
         """Returns the OAuth parameters as a dict for the given request.
 
         parameters should include all POST arguments and query string arguments
@@ -230,28 +266,67 @@ class OAuthMixin(object):
             oauth_signature_method='HMAC-SHA1',
             oauth_timestamp=str(int(time.time())),
             oauth_nonce=binascii.b2a_hex(uuid.uuid4().bytes),
-            oauth_version='1.0',
+            oauth_version=self._OAUTH_VERSION,
         )
         args = {}
         args.update(base_args)
         args.update(parameters)
-        signature = _oauth_signature(consumer_token, method, url, args,
-                                     access_token)
+        self._OAUTH_VERSION == '1.0a':
+            signature = _oauth10a_signature(consumer_token, method, url, args,
+                                         access_token)
+        else:
+            signature = _oauth_signature(consumer_token, method, url, args,
+                                         access_token)
         base_args['oauth_signature'] = signature
         return base_args
+
+
+class OAuth2Mixin(object):
+    """A :class:`tipfy.RequestHandler` mixin that implements OAuth version 2
+    authentication.
+    """
+    _OAUTH_AUTHORIZE_URL = None
+    _OAUTH_ACCESS_TOKEN_URL = None
+
+    def authorize_redirect(self, redirect_uri=None, client_id=None,
+        client_secret=None, extra_params=None, oauth_authorize_url=None):
+        """Redirects the user to obtain OAuth authorization for this service.
+
+        Some providers require that you register a Callback
+        URL with your application. You should call this method to log the
+        user in, and then call get_authenticated_user() in the handler
+        you registered as your Callback URL to complete the authorization
+        process.
+        """
+        args = {
+          'redirect_uri': redirect_uri,
+          'client_id': client_id
+        }
+        if extra_params:
+            args.update(extra_params)
+
+        oauth_authorize_url = oauth_authorize_url or self._OAUTH_AUTHORIZE_URL
+        return self.redirect(oauth_authorize_url + urllib.urlencode(args))
+
+    def _oauth_request_token_url(self, redirect_uri=None, client_id=None,
+        client_secret=None, code=None, extra_params=None):
+        url = self._OAUTH_ACCESS_TOKEN_URL
+        args = dict(
+            redirect_uri=redirect_uri,
+            code=code,
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+        if extra_params:
+            args.update(extra_params)
+
+        return url + urllib.urlencode(args)
 
 
 def _oauth_signature(consumer_token, method, url, parameters={}, token=None):
     """Calculates the HMAC-SHA1 OAuth signature for the given request.
 
     See http://oauth.net/core/1.0/#signing_process
-
-    :param consumer_token:
-    :param method:
-    :param url:
-    :param parameters:
-    :param token:
-    :returns:
     """
     parts = urlparse.urlparse(url)
     scheme, netloc, path = parts[:3]
@@ -265,18 +340,43 @@ def _oauth_signature(consumer_token, method, url, parameters={}, token=None):
     base_string = '&'.join(_oauth_escape(e) for e in base_elems)
 
     key_elems = [consumer_token['secret']]
-    key_elems.append(token['secret'] if token else '')
+    if token:
+        key_elems.append(token['secret'])
+
     key = '&'.join(key_elems)
 
-    hash = hmac.new(key, base_string, hashlib.sha1)
-    return binascii.b2a_base64(hash.digest())[:-1]
+    hmac_hash = hmac.new(key, base_string, hashlib.sha1)
+    return binascii.b2a_base64(hmac_hash.digest())[:-1]
+
+
+def _oauth10a_signature(consumer_token, method, url, parameters={},
+    token=None):
+    """Calculates the HMAC-SHA1 OAuth 1.0a signature for the given request.
+
+    See http://oauth.net/core/1.0a/#signing_process
+    """
+    parts = urlparse.urlparse(url)
+    scheme, netloc, path = parts[:3]
+    normalized_url = scheme.lower() + '://' + netloc.lower() + path
+
+    base_elems = []
+    base_elems.append(method.upper())
+    base_elems.append(normalized_url)
+    base_elems.append('&'.join('%s=%s' % (k, _oauth_escape(str(v)))
+                               for k, v in sorted(parameters.items())))
+
+    base_string = '&'.join(_oauth_escape(e) for e in base_elems)
+    key_elems = [urllib.quote(consumer_token['secret'], safe='~')]
+    if token:
+        key_elems.append(urllib.quote(token['secret'], safe='~'))
+
+    key = '&'.join(key_elems)
+
+    hmac_hash = hmac.new(key, base_string, hashlib.sha1)
+    return binascii.b2a_base64(hmac_hash.digest())[:-1]
 
 
 def _oauth_escape(val):
-    """
-    :param val:
-    :returns:
-    """
     if isinstance(val, unicode):
         val = val.encode('utf-8')
 
@@ -284,10 +384,6 @@ def _oauth_escape(val):
 
 
 def _oauth_parse_response(body):
-    """
-    :param body:
-    :returns:
-    """
     p = cgi.parse_qs(body, keep_blank_values=False)
     token = dict(key=p['oauth_token'][0], secret=p['oauth_token_secret'][0])
 

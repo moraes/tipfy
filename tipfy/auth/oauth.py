@@ -327,6 +327,13 @@ def _oauth_signature(consumer_token, method, url, parameters={}, token=None):
     """Calculates the HMAC-SHA1 OAuth signature for the given request.
 
     See http://oauth.net/core/1.0/#signing_process
+
+    :param consumer_token:
+    :param method:
+    :param url:
+    :param parameters:
+    :param token:
+    :returns:
     """
     parts = urlparse.urlparse(url)
     scheme, netloc, path = parts[:3]
@@ -354,6 +361,13 @@ def _oauth10a_signature(consumer_token, method, url, parameters={},
     """Calculates the HMAC-SHA1 OAuth 1.0a signature for the given request.
 
     See http://oauth.net/core/1.0a/#signing_process
+
+    :param consumer_token:
+    :param method:
+    :param url:
+    :param parameters:
+    :param token:
+    :returns:
     """
     parts = urlparse.urlparse(url)
     scheme, netloc, path = parts[:3]
@@ -377,6 +391,10 @@ def _oauth10a_signature(consumer_token, method, url, parameters={},
 
 
 def _oauth_escape(val):
+    """
+    :param val:
+    :returns:
+    """
     if isinstance(val, unicode):
         val = val.encode('utf-8')
 
@@ -384,6 +402,10 @@ def _oauth_escape(val):
 
 
 def _oauth_parse_response(body):
+    """
+    :param body:
+    :returns:
+    """
     p = cgi.parse_qs(body, keep_blank_values=False)
     token = dict(key=p['oauth_token'][0], secret=p['oauth_token_secret'][0])
 

@@ -15,10 +15,8 @@ from urls import rules
 
 def enable_appstats(app):
     """Enables appstats middleware."""
-    if debug:
-        return
-
-    from google.appengine.ext.appstats.recording import appstats_wsgi_middleware
+    from google.appengine.ext.appstats.recording import \
+        appstats_wsgi_middleware
     app.wsgi_app = appstats_wsgi_middleware(app.wsgi_app)
 
 

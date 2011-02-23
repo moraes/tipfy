@@ -34,12 +34,12 @@ Links
 from setuptools import setup
 
 setup(
-    name = 'tipfy-dev',
-    version = '1.7',
+    name = 'tipfy',
+    version = '1.0b',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/tipfy.tar.gz',
-    description = 'The almighty little framework for Google App Engine',
+    description = 'The almighty little framework for Google App Engine.',
     long_description = __doc__,
     author = 'Rodrigo Moraes',
     author_email = 'rodrigo.moraes@gmail.com',
@@ -52,7 +52,6 @@ setup(
         'tipfy.appengine.db',
         'tipfy.auth',
         'tipfy.debugger',
-        'tipfy.scripts',
         'tipfyext',
         'tipfyext.appengine',
         'tipfyext.jinja2',
@@ -65,9 +64,8 @@ setup(
     include_package_data = True,
     install_requires = [
         'werkzeug>=0.6.1',
-        # This is only required because a namespaced package is declated.
+        # This is only required because a namespaced package is declared.
         'setuptools',
-        'pip',
     ],
     extras_require = {
         'i18n': [

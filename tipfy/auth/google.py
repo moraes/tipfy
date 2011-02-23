@@ -18,8 +18,8 @@ import urllib
 from google.appengine.api import urlfetch
 
 from tipfy import REQUIRED_VALUE
-from .oauth import OAuthMixin
-from .openid import OpenIdMixin
+from tipfy.auth.oauth import OAuthMixin
+from tipfy.auth.openid import OpenIdMixin
 
 #: Default configuration values for this module. Keys are:
 #:

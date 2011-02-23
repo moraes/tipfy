@@ -73,14 +73,17 @@ class OpenIdMixin(object):
         :returns:
             The result from the callback function.
         """
+        # Changed method to POST. See:
+        # https://github.com/facebook/tornado/commit/e5bd0c066afee37609156d1ac465057a726afcd4
+
         # Verify the OpenID response via direct request to the OP
-        openid_endpoint = openid_endpoint or self._OPENID_ENDPOINT
+        url = openid_endpoint or self._OPENID_ENDPOINT
         args = dict((k, v[-1]) for k, v in self.request.args.lists())
         args['openid.mode'] = u'check_authentication'
-        url = make_full_url(openid_endpoint, args)
 
         try:
-            response = urlfetch.fetch(url, deadline=10)
+            response = urlfetch.fetch(url, deadline=10, method=urlfetch.POST,
+                payload=urllib.urlencode(args))
             if response.status_code < 200 or response.status_code >= 300:
                 logging.warning('Invalid OpenID response: %s',
                     response.content)

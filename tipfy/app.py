@@ -35,10 +35,10 @@ current_handler = local('current_handler')
 #: Same as current_handler, only for the active WSGI app.
 current_app = local('current_app')
 
-from . import default_config
-from .config import Config, REQUIRED_VALUE
-from .routing import Router, Rule
-from .utils import json_decode
+from tipfy import default_config
+from tipfy.config import Config, REQUIRED_VALUE
+from tipfy.routing import Router, Rule
+from tipfy.utils import json_decode
 
 __all__ = [
     'HTTPException', 'Request', 'RequestHandler', 'Response', 'Tipfy',
@@ -535,7 +535,7 @@ class Tipfy(object):
         :returns:
             A :class:`tipfy.testing.CurrentHandlerContext` instance.
         """
-        from .testing import CurrentHandlerContext
+        from tipfy.testing import CurrentHandlerContext
         return CurrentHandlerContext(self, *args, **kwargs)
 
     def run(self):
@@ -561,7 +561,7 @@ class Tipfy(object):
     @cached_property
     def _debugged_wsgi_app(self):
         """Returns the WSGI app wrapped by an interactive debugger."""
-        from .debugger import DebuggedApplication
+        from tipfy.debugger import DebuggedApplication
         return DebuggedApplication(self.wsgi_app, evalex=True)
 
     @cached_property

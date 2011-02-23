@@ -20,7 +20,7 @@ from google.appengine.api import urlfetch
 
 from tipfy import REQUIRED_VALUE
 from tipfy.utils import json_decode, json_encode
-from .oauth import OAuthMixin
+from tipfy.auth.oauth import OAuthMixin
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -83,6 +83,7 @@ class FriendFeedMixin(OAuthMixin):
     _OAUTH_ACCESS_TOKEN_URL = 'https://friendfeed.com/account/oauth/access_token'
     _OAUTH_AUTHORIZE_URL = 'https://friendfeed.com/account/oauth/authorize'
     _OAUTH_NO_CALLBACKS = True
+    _OAUTH_VERSION = '1.0'
 
     @property
     def _friendfeed_consumer_key(self):

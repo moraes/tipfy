@@ -13,7 +13,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
 """Escaping/unescaping methods for HTML, JSON, URLs, and others."""
 import base64
 import htmlentitydefs
@@ -22,7 +21,7 @@ import unicodedata
 import urllib
 import xml.sax.saxutils
 
-from .app import current_handler
+from tipfy.app import current_handler
 
 try:
     # Preference for installed library with updated fixes.

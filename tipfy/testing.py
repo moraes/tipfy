@@ -8,7 +8,7 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from .app import local
+from tipfy.app import local
 
 
 class CurrentHandlerContext(object):

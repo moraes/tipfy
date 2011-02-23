@@ -50,9 +50,7 @@ class Mako(object):
             A rendered template.
         """
         template = self.environment.get_template(_filename)
-        buf = StringIO()
-        template.render_context(Context(buf, **context))
-        return buf.getvalue()
+        return template.render_unicode(**context)
 
     def render_template(self, _handler, _filename, **context):
         """Renders a template and returns a response object.

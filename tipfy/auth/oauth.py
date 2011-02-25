@@ -136,7 +136,7 @@ class OAuthMixin(object):
             oauth_nonce=binascii.b2a_hex(uuid.uuid4().bytes),
             oauth_version=self._OAUTH_VERSION,
         )
-        self._OAUTH_VERSION == '1.0a':
+        if self._OAUTH_VERSION == '1.0a':
             if callback_uri:
                 args['oauth_callback'] = urlparse.urljoin(
                     self.request.url, callback_uri)
@@ -197,7 +197,7 @@ class OAuthMixin(object):
         if 'verifier' in request_token:
             args['oauth_verifier'] = request_token['verifier']
 
-        self._OAUTH_VERSION == '1.0a':
+        if self._OAUTH_VERSION == '1.0a':
             signature = _oauth10a_signature(consumer_token, 'GET', url, args,
                 request_token)
         else:
@@ -271,7 +271,7 @@ class OAuthMixin(object):
         args = {}
         args.update(base_args)
         args.update(parameters)
-        self._OAUTH_VERSION == '1.0a':
+        if self._OAUTH_VERSION == '1.0a':
             signature = _oauth10a_signature(consumer_token, method, url, args,
                                          access_token)
         else:

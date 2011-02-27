@@ -1,0 +1,67 @@
+/* --- System Messages - CSS based on jGrowl's --- */
+#tipfy-messages {
+    padding: .5em;
+    z-index: 9999;
+}
+/* Special IE6 Style Positioning */
+#tipfy-messages .ie6 {
+    position: absolute;
+    right: auto;
+    bottom: auto;
+    top: expression((0 + (ignoreMe = document.documentElement.scrollTop ? document.documentElement.scrollTop : document.body.scrollTop)) + 'px');
+    left: expression((0 - this.offsetWidth + (document.documentElement.clientWidth ? document.documentElement.clientWidth : document.body.clientWidth) + (ignoreMe2 = document.documentElement.scrollLeft ? document.documentElement.scrollLeft : document.body.scrollLeft)) + 'px');
+}
+/* Normal Style Positions */
+body > #tipfy-messages {
+    position: fixed;
+    right: 0;
+    top: 0;
+}
+#tipfy-messages .message {
+    position: relative;
+    min-height: 20px;
+    width: 350px;
+    background-color: #FFCC33;
+    color: #1A1A1A;
+    text-align: left;
+    padding: 1em;
+    margin-bottom: .5em;
+    opacity: .90;
+    filter:	alpha(opacity = 90);
+    zoom: 1;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+}
+#tipfy-messages .info {
+    background: #008000;
+    color: #FFF;
+}
+#tipfy-messages .error {
+    background-color: #CC0000;
+    color: #FFF;
+}
+#tipfy-messages .success {
+    background: #0066CC;
+    color: #FFF;
+}
+#tipfy-messages h4 {
+    font-size: 108%;
+    font-weight: bold;
+    margin-bottom: .5em;
+}
+#tipfy-messages p {
+    padding: 0;
+    margin: 0;
+}
+#tipfy-messages .message .close {
+    font-family: arial, sans-serif;
+    font-size: 108%;
+    position: absolute;
+    top: .5em;
+    right: .8em;
+    cursor: pointer;
+}
+#tipfy-messages .message .close:hover {
+    font-weight: bold;
+}

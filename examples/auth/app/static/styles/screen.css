@@ -1,0 +1,80 @@
+/* YUI reset / fonts / grids */
+@import url('_base.css');
+/* Forms */
+@import url('_forms.css');
+/* System messages. */
+@import url('_messages.css');
+
+html, body {
+    background: #F6F6F6;
+}
+
+.top {
+    position: relative;
+    margin-top: 1em;
+}
+.top h1 {
+    font-size: 184%;
+    font-family: trebuchet, 'trebuchet ms', arial, sans-serif;
+    color: #0066CC;
+}
+
+.user-status {
+    position: absolute;
+    top: 0;
+    right: 0;
+    text-align: right;
+}
+.user-status p {
+    padding: .5em;
+    margin: 0;
+}
+
+.content {
+    background: #FFF;
+    padding: 2em;
+    border: 1px solid #EFEFEF;
+}
+.content h1 {
+    background: #3399FF;
+    color: #FFF;
+    padding: 0.5em;
+    margin: 0 0 1em;
+}
+.content form {
+    margin: 0 0 1em;
+}
+
+
+.menu {
+    background: #FFF;
+    list-style: none;
+    font-size: 108%;
+    font-weight: bold;
+    padding: 0;
+    margin: 0;
+    border: 1px solid #EFEFEF;
+}
+.menu li a, .menu li a:hover {
+    display: block;
+    text-decoration: none;
+    padding: 1em;
+    margin: 0;
+}
+.menu li.active a, .menu li.active a:hover {
+    background: #CBEAFF;
+    color: #003399;
+}
+
+.footer {
+    background: #F0F0F0;
+    color: #999999;
+    padding: 1em 2em;
+}
+.footer p {
+    padding: 0;
+    margin: 0;
+}
+.footer a {
+    color: #999999;
+}

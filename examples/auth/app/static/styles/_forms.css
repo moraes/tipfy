@@ -1,0 +1,288 @@
+/* --- Forms --- */
+/* IE compatibility classes (added via javascript):
+    input[type=text]              .input-text
+    input[type=password]          .input-password
+    input[type=button]            .input-button
+    input[type=submit]            .input-submit
+    input[type=checkbox]          .input-checkbox
+    input[type=checkbox] + label  .input-checkbox-label
+    input[type=radio]             .input-radio
+    input[type=radio] + label     .input-radio-label
+    select[multiple=multiple]     .select-multiple
+*/
+.tipfy-form {
+    width: 100%;
+    /* Reset font size for form elements. */
+    font:13px/1.231 arial, sans-serif;
+    *font-size:small;
+    *font:x-small;
+}
+
+/* Fields structure */
+.tipfy-form ol,
+.tipfy-form ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.tipfy-form li,
+.tipfy-form .yui-u {
+    padding: 0;
+    margin: .7em 0 0;
+}
+
+/* Fieldset, legend, label */
+.tipfy-form fieldset {
+    padding: 0;
+    border: 0;
+    margin: 0;
+}
+.tipfy-form label,
+.tipfy-form legend {
+    display: block;
+    color: #000;
+    font-size: 108%;
+    font-weight: bold;
+    padding: 0;
+    margin: 0;
+}
+
+/* Indicate required fields */
+.tipfy-form label abbr {
+    color: #CC0000;
+    font-weight: bold;
+    padding: 0 0 0 .3em;
+    border: 0;
+    margin: 0;
+}
+
+/* Field description */
+.tipfy-form span.descr {
+    display: block;
+    color: #999999;
+}
+
+/* Field errors */
+.tipfy-form ul.errors {
+    padding: 0;
+    margin: 0;
+}
+.tipfy-form ul.errors li {
+    color: #CC0000;
+    font-weight: bold;
+    padding: 0;
+    margin: 0 0 .3em 0;
+}
+
+/* Text, password, select, select-multi, textarea */
+.tipfy-form input[type=text],
+.tipfy-form input[type=password],
+.tipfy-form select,
+.tipfy-form textarea,
+.tipfy-form .input-text,
+.tipfy-form .input-password {
+    width: 100%;
+    background: #F2F2F2;
+    font-size: 123.1%;
+    padding: 3px 0;
+    border: 1px solid #B3B3B3;
+}
+.tipfy-form input[type=text]:focus,
+.tipfy-form input[type=text]:hover,
+.tipfy-form input[type=password]:focus,
+.tipfy-form input[type=password]:hover,
+.tipfy-form select:focus,
+.tipfy-form select:hover,
+.tipfy-form textarea:focus,
+.tipfy-form textarea:hover,
+.tipfy-form .input-text:focus,
+.tipfy-form .input-text:hover,
+.tipfy-form .input-password:focus,
+.tipfy-form .input-password:hover {
+    border: 1px solid #333333;
+}
+.tipfy-form input[type=text]:focus,
+.tipfy-form input[type=password]:focus,
+.tipfy-form textarea:focus,
+.tipfy-form select:focus,
+.tipfy-form .input-text:focus,
+.tipfy-form .input-password:focus {
+    background: #FFFFCC;
+}
+.tipfy-form textarea {
+    height: 100px;
+}
+.tipfy-form select {
+    width: auto;
+}
+.tipfy-form select[multiple=multiple],
+.tipfy-form .select-multiple {
+    width: 100%;
+    height: 100px;
+}
+
+/* Checkboxes and radios */
+.tipfy-form input[type=checkbox],
+.tipfy-form input[type=radio] {
+    padding: 0;
+    margin: 0;
+}
+.tipfy-form input[type=checkbox] + label,
+.tipfy-form input[type=radio] + label,
+.tipfy-form .input-checkbox-label,
+.tipfy-form .input-radio-label {
+    display: inline;
+    font-weight: normal;
+    margin-left: .2em;
+}
+.tipfy-form ul.radio-group {
+    padding: 0;
+    margin: .4em 0 0;
+}
+.tipfy-form ul.radio-group li {
+    padding: 0;
+    margin: .4em 0 0;
+}
+
+/* Buttons */
+.tipfy-form fieldset.submit {
+    text-align: left;
+    padding: 0;
+    margin: 1em 0 0 0;
+}
+
+.tipfy-form input[type=button],
+.tipfy-form input[type=submit],
+.tipfy-form .input-button,
+.tipfy-form .input-submit {
+    font-size: 123.1%;
+    padding: .3em 1em;
+    margin: 0 1em 0 0;
+}
+
+/* Field sizes */
+.tipfy-form .full {
+    width: 100% !important;
+}
+.tipfy-form .half {
+    width: 50% !important;
+}
+.tipfy-form .third {
+    width: 33% !important;
+}
+.tipfy-form .large {
+    width: 400px !important;
+}
+.tipfy-form .medium {
+    width: 200px !important;
+}
+.tipfy-form .small {
+    width: 100px !important;
+}
+/* Size exceptions for textareas */
+.tipfy-form textarea.large {
+    width: 100% !important;
+    height: 400px !important;
+}
+.tipfy-form textarea.medium {
+    width: 100% !important;
+    height: 200px !important;
+}
+.tipfy-form textarea.small {
+    width: 100% !important;
+    height: 100px !important;
+}
+
+/* Monospaced inputs */
+.tipfy-form input.monospace, .tipfy-form textarea.monospace {
+    font-family: 'Lucida Console', 'Bitstream Vera Sans Mono', monospace;
+}
+
+/* --- Horizontal forms --- */
+.tipfy-form table.fields {
+    width: 100%;
+}
+.tipfy-form table.fields td {
+    vertical-align: top;
+}
+.tipfy-form table.fields td.label {
+    width: 150px;
+    text-align: right;
+    padding: .8em .5em .5em 0;
+}
+.tipfy-form table.fields td.label label {
+    font-weight: normal;
+}
+.tipfy-form table.fields td.field {
+    padding: .5em 0;
+}
+
+/* --- Tableless horizontal forms (left and right aligned) ---
+This should work well for basic forms, but no holy grail exists to make
+tabeless columnar forms work with complex forms. For reliable columnar forms,
+use tables instead. */
+
+/* Need to apply clearfix hack because of floated elements inside the li. */
+.tipfy-form li.horiz:after,
+.tipfy-form li.horiz-left:after {
+    content: ".";
+    display: block;
+    height: 0;
+    clear: both;
+    visibility: hidden;
+}
+.tipfy-form li.horiz,
+.tipfy-form li.horiz-left { display: inline-block; }
+/* IE */
+.tipfy-form li.horiz,
+.tipfy-form li.horiz-left { *zoom: 1; *display: block; }
+/* Opera \*/
+* html .tipfy-form li.horiz,
+* html .tipfy-form li.horiz-left { height:1%; }
+.tipfy-form li.horiz,
+.tipfy-form li.horiz-left { display:block; }
+/* end Opera */
+
+/* Floated label */
+.tipfy-form li.horiz label,
+.tipfy-form li.horiz-left label {
+    float: left;
+    width: 12em;
+    margin: 3px .5em 0 0;
+    font-weight: normal;
+    text-align: right;
+}
+.tipfy-form li.horiz .radio-group label,
+.tipfy-form li.horiz-left .radio-group label {
+    float: none;
+    width: auto;
+}
+.tipfy-form li.horiz-left label {
+    text-align: left;
+}
+
+/* Fields can't be 100% anymore (workarounds?): must specify width. */
+.tipfy-form li.horiz span.descr,
+.tipfy-form li.horiz-left span.descr,
+.tipfy-form li.horiz ul.errors,
+.tipfy-form li.horiz-left ul.errors,
+.tipfy-form li.horiz .radio-group,
+.tipfy-form li.horiz-left .radio-group {
+    margin-left: 13.5em;
+}
+.tipfy-form li.horiz input[type=text],
+.tipfy-form li.horiz-left input[type=text],
+.tipfy-form li.horiz input[type=password],
+.tipfy-form li.horiz-left input[type=password],
+.tipfy-form li.horiz textarea,
+.tipfy-form li.horiz-left textarea,
+.tipfy-form li.horiz select[multiple=multiple],
+.tipfy-form li.horiz-left select[multiple=multiple],
+.tipfy-form li.horiz .input-text,
+.tipfy-form li.horiz-left .input-text,
+.tipfy-form li.horiz .input-password,
+.tipfy-form li.horiz-left .input-password,
+.tipfy-form li.horiz .select-multiple,
+.tipfy-form li.horiz-left .select-multiple {
+    width: 300px;
+}

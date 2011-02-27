@@ -44,7 +44,7 @@ class FacebookMixin(object):
     Facebook at http://www.facebook.com/developers/apps.php. Then
     copy your API Key and Application Secret to config.py::
 
-        config['tipfy.auth.facebook'] = {
+        config['tipfy.auth.twitter'] = {
             'api_key':    'XXXXXXXXXXXXXXX',
             'app_secret': 'XXXXXXXXXXXXXXX',
         }

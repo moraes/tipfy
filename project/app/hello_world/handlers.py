@@ -11,6 +11,7 @@
 from tipfy import RequestHandler, Response
 from tipfyext.jinja2 import Jinja2Mixin
 
+
 class HelloWorldHandler(RequestHandler):
     def get(self):
         """Simply returns a Response object with an enigmatic salutation."""

@@ -17,3 +17,11 @@ project/var/develop-eggs
 project/bin
 project/eggs
 project/var/downloads
+
+# Examples
+examples/auth/\.installed.cfg
+examples/auth/var/parts
+examples/auth/var/develop-eggs
+examples/auth/bin
+examples/auth/eggs
+examples/auth/var/downloads

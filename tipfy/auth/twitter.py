@@ -36,42 +36,30 @@ default_config = {
 
 
 class TwitterMixin(OAuthMixin):
-    """A :class:`tipfy.RequestHandler` mixin that implements Twitter OAuth
-    authentication.
+    """Twitter OAuth authentication.
 
     To authenticate with Twitter, register your application with
     Twitter at http://twitter.com/apps. Then copy your Consumer Key and
-    Consumer Secret to ``config.py``::
+    Consumer Secret to the application settings 'twitter_consumer_key' and
+    'twitter_consumer_secret'. Use this Mixin on the handler for the URL
+    you registered as your application's Callback URL.
 
-        config['tipfy.auth.twitter'] = {
-            'consumer_key':    'XXXXXXXXXXXXXXX',
-            'consumer_secret': 'XXXXXXXXXXXXXXX',
-        }
+    When your application is set up, you can use this Mixin like this
+    to authenticate the user with Twitter and get access to their stream:
 
-    When your application is set up, you can use the TwitterMixin to
-    authenticate the user with Twitter and get access to their stream.
-    You must use the mixin on the handler for the URL you registered as your
-    application's Callback URL. For example::
+    class TwitterHandler(tornado.web.RequestHandler,
+                         tornado.auth.TwitterMixin):
+        @tornado.web.asynchronous
+        def get(self):
+            if self.get_argument("oauth_token", None):
+                self.get_authenticated_user(self.async_callback(self._on_auth))
+                return
+            self.authorize_redirect()
 
-        from tipfy import RequestHandler
-        from tipfy.auth.twitter import TwitterMixin
-        from tipfy.sessions import  SessionMiddleware
-
-        class TwitterHandler(RequestHandler, TwitterMixin):
-            middleware = [SessionMiddleware()]
-
-            def get(self):
-                if self.request.args.get('oauth_token', None):
-                    return self.get_authenticated_user(self._on_auth)
-
-                return self.authorize_redirect()
-
-            def _on_auth(self, user):
-                if not user:
-                    self.abort(403)
-
-                # Set the user in the session.
-                # ...
+        def _on_auth(self, user):
+            if not user:
+                raise tornado.web.HTTPError(500, "Twitter auth failed")
+            # Save the user using, e.g., set_secure_cookie()
 
     The user object returned by get_authenticated_user() includes the
     attributes 'username', 'name', and all of the custom Twitter user
@@ -85,18 +73,6 @@ class TwitterMixin(OAuthMixin):
     _OAUTH_ACCESS_TOKEN_URL = 'http://api.twitter.com/oauth/access_token'
     _OAUTH_AUTHORIZE_URL = 'http://api.twitter.com/oauth/authorize'
     _OAUTH_AUTHENTICATE_URL = 'http://api.twitter.com/oauth/authenticate'
-    _OAUTH_NO_CALLBACKS = True
-
-    def _twitter_consumer_key(self):
-        return self.app.config[__name__]['consumer_key']
-
-    def _twitter_consumer_secret(self):
-        return self.app.config[__name__]['consumer_secret']
-
-    def _oauth_consumer_token(self):
-        return dict(
-            key=self._twitter_consumer_key(),
-            secret=self._twitter_consumer_secret())
 
     def authenticate_redirect(self):
         """Just like authorize_redirect(), but auto-redirects if authorized.
@@ -114,12 +90,12 @@ class TwitterMixin(OAuthMixin):
         return self._on_request_token(self._OAUTH_AUTHENTICATE_URL, None,
             response)
 
-    def twitter_request(self, path, callback=None, access_token=None,
-                           post_args=None, **args):
-        """Fetches the given API path, e.g., '/statuses/user_timeline/btaylor'
+    def twitter_request(self, path, callback, access_token=None,
+        post_args=None, **args):
+        """Fetches the given API path, e.g., "/statuses/user_timeline/btaylor"
 
         The path should not include the format (we automatically append
-        '.json' and parse the JSON output).
+        ".json" and parse the JSON output).
 
         If the request is a POST, post_args should be provided. Query
         string arguments should be given as keyword arguments.
@@ -131,42 +107,42 @@ class TwitterMixin(OAuthMixin):
         through authorize_redirect() and get_authenticated_user(). The
         user returned through that process includes an 'access_token'
         attribute that can be used to make authenticated requests via
-        this method. Example usage::
+        this method. Example usage:
 
-            from tipfy import RequestHandler, Response
-            from tipfy.auth.twitter import TwitterMixin
-            from tipfy.sessions import SessionMiddleware
+        class MainHandler(tornado.web.RequestHandler,
+                          tornado.auth.TwitterMixin):
+            @tornado.web.authenticated
+            @tornado.web.asynchronous
+            def get(self):
+                self.twitter_request(
+                    "/statuses/update",
+                    post_args={"status": "Testing Tornado Web Server"},
+                    access_token=user["access_token"],
+                    callback=self.async_callback(self._on_post))
 
-            class TwitterHandler(RequestHandler, TwitterMixin):
-                middleware = [SessionMiddleware()]
+            def _on_post(self, new_entry):
+                if not new_entry:
+                    # Call failed; perhaps missing permission?
+                    self.authorize_redirect()
+                    return
+                self.finish("Posted a message!")
 
-                def get(self):
-                    return self.twitter_request(
-                        '/statuses/update',
-                        post_args={'status': 'Testing Twitter Mixin'},
-                        access_token=user['access_token'],
-                        callback=self._on_post)
-
-                def _on_post(self, new_entry):
-                    if not new_entry:
-                        # Call failed; perhaps missing permission?
-                        return self.authorize_redirect()
-
-                    return Response('Posted a message!')
         """
         # Add the OAuth resource request signature if we have credentials
-        if path == '/search':
-            url = 'http://search.twitter.com/search.json'
-        else:
-            url = 'http://api.twitter.com/1' + path + '.json'
-
+        url = 'http://api.twitter.com/1' + path + '.json'
         if access_token:
             all_args = {}
             all_args.update(args)
             all_args.update(post_args or {})
-            method = 'POST' if post_args is not None else 'GET'
-            oauth = self._oauth_request_parameters(
-                url, access_token, all_args, method=method)
+            consumer_token = self._oauth_consumer_token()
+            if post_args is not None:
+                method = 'POST'
+            else:
+                method = 'GET'
+
+            oauth = self._oauth_request_parameters(url, access_token,
+                all_args, method=method)
+
             args.update(oauth)
 
         if args:
@@ -182,10 +158,6 @@ class TwitterMixin(OAuthMixin):
             logging.exception(e)
             response = None
 
-        if not callback:
-            # Don't preprocess the response, just return a bare one.
-            return response
-
         return self._on_twitter_request(callback, response)
 
     def _on_twitter_request(self, callback, response):
@@ -198,6 +170,17 @@ class TwitterMixin(OAuthMixin):
             return callback(None)
 
         return callback(json_decode(response.content))
+
+    def _twitter_consumer_key(self):
+        return self.app.config[__name__]['consumer_key']
+
+    def _twitter_consumer_secret(self):
+        return self.app.config[__name__]['consumer_secret']
+
+    def _oauth_consumer_token(self):
+        return dict(
+            key=self._twitter_consumer_key(),
+            secret=self._twitter_consumer_secret())
 
     def _oauth_get_user(self, access_token, callback):
         callback = functools.partial(self._parse_user_response, callback)

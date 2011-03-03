@@ -1,4 +1,4 @@
-application: my-app
+application: tipfy-auth
 version: 1
 runtime: python
 api_version: 1

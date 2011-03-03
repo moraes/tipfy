@@ -1,16 +1,19 @@
-from django.utils import simplejson
+from werkzeug import cached_property
 
-from tipfy import (RequestHandler, RequestRedirect, Response, abort,
-    cached_property, redirect, url_for)
-from tipfy.ext.auth import MultiAuthMixin, login_required, user_required
-from tipfy.ext.auth.facebook import FacebookMixin
-from tipfy.ext.auth.friendfeed import FriendFeedMixin
-from tipfy.ext.auth.google import GoogleMixin
-from tipfy.ext.auth.twitter import TwitterMixin
-from tipfy.ext.jinja2 import Jinja2Mixin
-from tipfy.ext.session import AllSessionMixins, SessionMiddleware
-from tipfy.ext.wtforms import Form, fields, validators
+from tipfy import RequestHandler
+from tipfy.auth import (login_required, user_required,
+    UserRequiredIfAuthenticatedMiddleware)
+from tipfy.auth.facebook import FacebookMixin
+from tipfy.auth.friendfeed import FriendFeedMixin
+from tipfy.auth.google import GoogleMixin
+from tipfy.auth.twitter import TwitterMixin
+from tipfy.sessions import SessionMiddleware
+from tipfy.utils import json_encode
 
+from tipfyext.jinja2 import Jinja2Mixin
+from tipfyext.wtforms import Form, fields, validators
+
+# ----- Forms -----
 
 REQUIRED = validators.required()
 
@@ -30,24 +33,31 @@ class RegistrationForm(Form):
     password_confirm = fields.PasswordField('Confirm the password', validators=[REQUIRED])
 
 
-class BaseHandler(RequestHandler, MultiAuthMixin, Jinja2Mixin,
-    AllSessionMixins):
-    middleware = [SessionMiddleware]
+# ----- Handlers -----
+
+class BaseHandler(RequestHandler, Jinja2Mixin):
+    middleware = [SessionMiddleware(), UserRequiredIfAuthenticatedMiddleware()]
+
+    @cached_property
+    def messages(self):
+        """A list of status messages to be displayed to the user."""
+        return self.session.get_flashes(key='_messages')
 
     def render_response(self, filename, **kwargs):
         auth_session = None
-        if 'id' in self.auth_session:
-            auth_session = self.auth_session
+        if self.auth.session:
+            auth_session = self.auth.session
 
-        self.request.context.update({
+        kwargs.update({
             'auth_session': auth_session,
-            'current_user': self.auth_current_user,
-            'login_url':    self.auth_login_url(),
-            'logout_url':   self.auth_logout_url(),
+            'current_user': self.auth.user,
+            'login_url':    self.auth.login_url(),
+            'logout_url':   self.auth.logout_url(),
             'current_url':  self.request.url,
         })
         if self.messages:
-            self.request.context['messages'] = simplejson.dumps(self.messages)
+            kwargs['messages'] = json_encode([dict(body=body, level=level)
+                for body, level in self.messages])
 
         return super(BaseHandler, self).render_response(filename, **kwargs)
 
@@ -71,10 +81,10 @@ class BaseHandler(RequestHandler, MultiAuthMixin, Jinja2Mixin,
         else:
             url = '/'
 
-        if not self.auth_current_user:
-            url = self.auth_signup_url()
+        if not self.auth.user:
+            url = self.auth.signup_url()
 
-        return redirect(url)
+        return self.redirect(url)
 
 
 class HomeHandler(BaseHandler):
@@ -92,39 +102,40 @@ class LoginHandler(BaseHandler):
     def get(self, **kwargs):
         redirect_url = self.redirect_path()
 
-        if self.auth_current_user:
+        if self.auth.user:
             # User is already registered, so don't display the signup form.
-            return redirect(redirect_url)
+            return self.redirect(redirect_url)
 
         opts = {'continue': self.redirect_path()}
         context = {
             'form':                 self.form,
-            'facebook_login_url':   url_for('auth/facebook', **opts),
-            'friendfeed_login_url': url_for('auth/friendfeed', **opts),
-            'google_login_url':     url_for('auth/google', **opts),
-            'twitter_login_url':    url_for('auth/twitter', **opts),
-            'yahoo_login_url':      url_for('auth/yahoo', **opts),
+            'facebook_login_url':   self.url_for('auth/facebook', **opts),
+            'friendfeed_login_url': self.url_for('auth/friendfeed', **opts),
+            'google_login_url':     self.url_for('auth/google', **opts),
+            'twitter_login_url':    self.url_for('auth/twitter', **opts),
+            'yahoo_login_url':      self.url_for('auth/yahoo', **opts),
         }
         return self.render_response('login.html', **context)
 
     def post(self, **kwargs):
         redirect_url = self.redirect_path()
 
-        if self.auth_current_user:
+        if self.auth.user:
             # User is already registered, so don't display the signup form.
-            return redirect(redirect_url)
+            return self.redirect(redirect_url)
 
         if self.form.validate():
             username = self.form.username.data
             password = self.form.password.data
             remember = self.form.remember.data
 
-            res = self.auth_login_with_form(username, password, remember)
+            res = self.auth.login_with_form(username, password, remember)
             if res:
-                return redirect(redirect_url)
+                self.session.add_flash('Welcome back!', 'success', '_messages')
+                return self.redirect(redirect_url)
 
-        self.set_message('error', 'Authentication failed. Please try again.',
-            life=None)
+        self.messages.append(('Authentication failed. Please try again.',
+            'error'))
         return self.get(**kwargs)
 
     @cached_property
@@ -134,16 +145,16 @@ class LoginHandler(BaseHandler):
 
 class LogoutHandler(BaseHandler):
     def get(self, **kwargs):
-        self.auth_logout()
-        return redirect(self.redirect_path())
+        self.auth.logout()
+        return self.redirect(self.redirect_path())
 
 
 class SignupHandler(BaseHandler):
     @login_required
     def get(self, **kwargs):
-        if self.auth_current_user:
+        if self.auth.user:
             # User is already registered, so don't display the signup form.
-            return redirect(self.redirect_path())
+            return self.redirect(self.redirect_path())
 
         return self.render_response('signup.html', form=self.form)
 
@@ -151,25 +162,25 @@ class SignupHandler(BaseHandler):
     def post(self, **kwargs):
         redirect_url = self.redirect_path()
 
-        if self.auth_current_user:
+        if self.auth.user:
             # User is already registered, so don't process the signup form.
-            return redirect(redirect_url)
+            return self.redirect(redirect_url)
 
         if self.form.validate():
-            auth_id = self.auth_session.get('id')
-            user = self.auth_create_user(self.form.nickname.data, auth_id)
+            auth_id = self.auth.session.get('id')
+            user = self.auth.create_user(self.form.nickname.data, auth_id)
             if user:
-                self.auth_set_session(user.auth_id, user.session_id, '1')
-                self.set_message('success', 'You are now registered. '
-                    'Welcome!', flash=True, life=5)
-                return redirect(redirect_url)
+                self.auth.login_with_auth_id(user.auth_id, True)
+                self.session.add_flash('You are now registered. Welcome!',
+                    'success', '_messages')
+                return self.redirect(redirect_url)
             else:
-                self.set_message('error', 'This nickname is already '
-                    'registered.', life=None)
+                self.messages.append(('This nickname is already registered.',
+                    'error'))
                 return self.get(**kwargs)
 
-        self.set_message('error', 'A problem occurred. Please correct the '
-            'errors listed in the form.', life=None)
+        self.messages.append(('A problem occurred. Please correct the '
+            'errors listed in the form.', 'error'))
         return self.get(**kwargs)
 
     @cached_property
@@ -181,18 +192,18 @@ class RegisterHandler(BaseHandler):
     def get(self, **kwargs):
         redirect_url = self.redirect_path()
 
-        if self.auth_current_user:
+        if self.auth.user:
             # User is already registered, so don't display the registration form.
-            return redirect(redirect_url)
+            return self.redirect(redirect_url)
 
         return self.render_response('register.html', form=self.form)
 
     def post(self, **kwargs):
         redirect_url = self.redirect_path()
 
-        if self.auth_current_user:
+        if self.auth.user:
             # User is already registered, so don't process the signup form.
-            return redirect(redirect_url)
+            return self.redirect(redirect_url)
 
         if self.form.validate():
             username = self.form.username.data
@@ -200,24 +211,24 @@ class RegisterHandler(BaseHandler):
             password_confirm = self.form.password_confirm.data
 
             if password != password_confirm:
-                self.set_message('error', "Password confirmation didn't match.",
-                    life=None)
+                self.messages.append(("Password confirmation didn't match.",
+                    'error'))
                 return self.get(**kwargs)
 
             auth_id = 'own|%s' % username
-            user = self.auth_create_user(username, auth_id, password=password)
+            user = self.auth.create_user(username, auth_id, password=password)
             if user:
-                self.auth_set_session(user.auth_id, user.session_id, '1')
-                self.set_message('success', 'You are now registered. '
-                    'Welcome!', flash=True, life=5)
-                return redirect(redirect_url)
+                self.auth.login_with_auth_id(user.auth_id, True)
+                self.session.add_flash('You are now registered. Welcome!',
+                    'success', '_messages')
+                return self.redirect(redirect_url)
             else:
-                self.set_message('error', 'This nickname is already '
-                    'registered.', life=None)
+                self.messages.append(('This nickname is already registered.',
+                    'error'))
                 return self.get(**kwargs)
 
-        self.set_message('error', 'A problem occurred. Please correct the '
-            'errors listed in the form.', life=None)
+        self.messages.append(('A problem occurred. Please correct the '
+            'errors listed in the form.', 'error'))
         return self.get(**kwargs)
 
     @cached_property
@@ -228,14 +239,14 @@ class RegisterHandler(BaseHandler):
 class FacebookAuthHandler(BaseHandler, FacebookMixin):
     def head(self, **kwargs):
         """Facebook will make a HEAD request before returning a callback."""
-        return Response('')
+        return self.app.response_class('')
 
     def get(self):
         url = self.redirect_path()
 
-        if 'id' in self.auth_session:
+        if self.auth.session:
             # User is already signed in, so redirect back.
-            return redirect(url)
+            return self.redirect(url)
 
         self.session['_continue'] = url
 
@@ -248,7 +259,7 @@ class FacebookAuthHandler(BaseHandler, FacebookMixin):
         """
         """
         if not user:
-            abort(403)
+            self.abort(403)
 
         # try user name, fallback to uid.
         username = user.pop('username', None)
@@ -256,7 +267,7 @@ class FacebookAuthHandler(BaseHandler, FacebookMixin):
             username = user.pop('uid', '')
 
         auth_id = 'facebook|%s' % username
-        self.auth_login_with_third_party(auth_id, remember=True,
+        self.auth.login_with_auth_id(auth_id, remember=True,
             session_key=user.get('session_key'))
         return self._on_auth_redirect()
 
@@ -267,9 +278,9 @@ class FriendFeedAuthHandler(BaseHandler, FriendFeedMixin):
     def get(self):
         url = self.redirect_path()
 
-        if 'id' in self.auth_session:
+        if self.auth.session:
             # User is already signed in, so redirect back.
-            return redirect(url)
+            return self.redirect(url)
 
         self.session['_continue'] = url
 
@@ -280,10 +291,10 @@ class FriendFeedAuthHandler(BaseHandler, FriendFeedMixin):
 
     def _on_auth(self, user):
         if not user:
-            abort(403)
+            self.abort(403)
 
         auth_id = 'friendfeed|%s' % user.pop('username', '')
-        self.auth_login_with_third_party(auth_id, remember=True,
+        self.auth.login_with_auth_id(auth_id, remember=True,
             access_token=user.get('access_token'))
         return self._on_auth_redirect()
 
@@ -292,23 +303,23 @@ class TwitterAuthHandler(BaseHandler, TwitterMixin):
     def get(self):
         url = self.redirect_path()
 
-        if 'id' in self.auth_session:
+        if self.auth.user:
             # User is already signed in, so redirect back.
-            return redirect(url)
+            return self.redirect(url)
 
         self.session['_continue'] = url
 
         if self.request.args.get('oauth_token', None):
             return self.get_authenticated_user(self._on_auth)
 
-        return self.authorize_redirect()
+        return self.authorize_redirect(callback_uri='/auth/twitter/')
 
     def _on_auth(self, user):
         if not user:
-            abort(403)
+            self.abort(403)
 
         auth_id = 'twitter|%s' % user.pop('username', '')
-        self.auth_login_with_third_party(auth_id, remember=True,
+        self.auth.login_with_auth_id(auth_id, remember=True,
             access_token=user.get('access_token'))
         return self._on_auth_redirect()
 
@@ -317,9 +328,9 @@ class GoogleAuthHandler(BaseHandler, GoogleMixin):
     def get(self):
         url = self.redirect_path()
 
-        if 'id' in self.auth_session:
+        if self.auth.session:
             # User is already signed in, so redirect back.
-            return redirect(url)
+            return self.redirect(url)
 
         self.session['_continue'] = url
 
@@ -330,8 +341,8 @@ class GoogleAuthHandler(BaseHandler, GoogleMixin):
 
     def _on_auth(self, user):
         if not user:
-            abort(403)
+            self.abort(403)
 
         auth_id = 'google|%s' % user.pop('email', '')
-        self.auth_login_with_third_party(auth_id, remember=True)
+        self.auth.login_with_auth_id(auth_id, remember=True)
         return self._on_auth_redirect()

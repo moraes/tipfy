@@ -3,6 +3,9 @@ version: 1
 runtime: python
 api_version: 1
 
+error_handlers:
+  - file: static/default_error.html
+
 builtins:
 - appstats: on
 - datastore_admin: on

@@ -10,6 +10,8 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
+import blinker
+
 from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from werkzeug import cached_property, import_string
@@ -38,6 +40,7 @@ from tipfy.utils import url_for
 #:     if templates changed after deployed.
 #:
 #: after_environment_created
+#:     [DEPRECATED: use the environment_created hook instead]
 #:     A function called after the environment is created. Can also be defined
 #:     as a string to be imported dynamically. Use this to set extra filters,
 #:     global variables, extensions etc. It is called passing the environment
@@ -107,6 +110,7 @@ class Jinja2(object):
 
             after_creation_func(env)
 
+        environment_created.send(self, environment=env)
         self.environment = env
 
     def render(self, _filename, **context):
@@ -120,7 +124,10 @@ class Jinja2(object):
        :returns:
             A rendered template.
         """
-        return self.environment.get_template(_filename).render(**context)
+        res = self.environment.get_template(_filename).render(**context)
+        template_rendered.send(self, template=_filename, context=context,
+          result=res)
+        return res
 
     def render_template(self, _handler, _filename, **context):
         """Renders a template and returns a response object.
@@ -198,3 +205,8 @@ class Jinja2Mixin(object):
 
     def render_response(self, _filename, **context):
         return self.jinja2.render_response(self, _filename, **context)
+
+
+_signals = blinker.Namespace()
+environment_created = _signals.signal('environment-created')
+template_rendered = _signals.signal('template-rendered')

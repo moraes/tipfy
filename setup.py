@@ -64,6 +64,7 @@ setup(
     include_package_data = True,
     install_requires = [
         'werkzeug>=0.6.1',
+        'blinker>=1.1',
         # This is only required because a namespaced package is declared.
         'setuptools',
     ],

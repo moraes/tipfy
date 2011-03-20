@@ -1,0 +1,24 @@
+application: my-app
+version: 1
+runtime: python
+api_version: 1
+
+builtins:
+- appstats: on
+- datastore_admin: on
+- remote_api: on
+
+handlers:
+- url: /(robots\.txt|favicon\.ico)
+  static_files: static/\1
+  upload: static/(.*)
+
+- url: /static
+  static_dir: static
+
+- url: /_ah/queue/deferred
+  script: main.py
+  login: admin
+
+- url: /.*
+  script: main.py

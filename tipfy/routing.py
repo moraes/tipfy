@@ -11,6 +11,7 @@
 from werkzeug import import_string, url_quote
 from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
     Rule as BaseRule, RuleFactory, Subdomain, Submount)
+from werkzeug.wrappers import BaseResponse
 
 from tipfy.app import local
 
@@ -95,13 +96,12 @@ class Router(object):
 
             rule.handler = handler = self.handlers[handler]
 
-        response = handler(request.app, request)
-        if isinstance(response, AbstractRequestHandler):
-            # TODO: using isinstance instead of checking __call__ because
-            # Response is also a callable. Can be done in a different way?
-            response = response()
+        rv = handler(request.app, request)
+        if not isinstance(rv, BaseResponse) and hasattr(rv, '__call__'):
+            # If it is a callable but not a response, we call it again.
+            rv = rv()
 
-        return response
+        return rv
 
     def build(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place

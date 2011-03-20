@@ -16,9 +16,11 @@ from wsgiref.handlers import CGIHandler
 # Werkzeug Swiss knife.
 # Need to import werkzeug first otherwise py_zipimport fails.
 import werkzeug
-from werkzeug import (Local, Request as BaseRequest, Response as BaseResponse,
-    cached_property, import_string, redirect as base_redirect)
+from werkzeug import (Local, cached_property, import_string,
+    redirect as base_redirect)
 from werkzeug.exceptions import HTTPException, InternalServerError, abort
+from werkzeug.wrappers import (BaseResponse, Request as WerkzeugRequest,
+    Response as WerkzeugResponse)
 
 #: Context-local.
 local = Local()
@@ -320,7 +322,7 @@ class RequestHandler(BaseRequestHandler):
         return response
 
 
-class Request(BaseRequest):
+class Request(WerkzeugRequest):
     """Provides all environment variables for the current request: GET, POST,
     FILES, cookies and headers.
     """
@@ -347,7 +349,7 @@ class Request(BaseRequest):
             return json_decode(self.data)
 
 
-class Response(BaseResponse):
+class Response(WerkzeugResponse):
     """A response object with default mimetype set to ``text/html``."""
     default_mimetype = 'text/html'
 
@@ -490,13 +492,12 @@ class Tipfy(object):
         if not handler:
             raise
 
-        response = handler(request.app, request)
-        if isinstance(response, AbstractRequestHandler):
-            # TODO: using isinstance instead of checking __call__ because
-            # Response is also a callable. Can be done in a different way?
-            response = response()
+        rv = handler(request.app, request)
+        if not isinstance(rv, BaseResponse) and hasattr(rv, '__call__'):
+            # If it is a callable but not a response, we call it again.
+            rv = rv()
 
-        return response
+        return rv
 
     def make_response(self, request, *rv):
         """Converts the returned value from a :class:`RequestHandler` to a

@@ -8,6 +8,8 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
+from werkzeug.utils import import_string
+
 from tipfy.app import local
 
 
@@ -66,9 +68,10 @@ class CurrentHandlerContext(object):
             local.current_handler = self.handler
         else:
             if self.handler_class is None:
-                match = self.app.router.match(self.request)
-                spec = self.app.router.get_dispatch_spec(self.request, match)
-                handler_class, method, kwargs = spec
+                rule, rule_args = self.app.router.match(self.request)
+                handler_class = rule.handler
+                if isinstance(handler_class, basestring):
+                    handler_class = import_string(handler_class)
             else:
                 handler_class = self.handler_class
 

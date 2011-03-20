@@ -8,6 +8,8 @@
     :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
+from __future__ import absolute_import
+
 import base64
 
 try:
@@ -17,8 +19,8 @@ except ImportError:
     try:
         # Standard library module in Python 2.6.
         import json
-        assert hasattr(json, 'loads') and hasattr(json, 'dumps')
     except (ImportError, AssertionError):
+        raise
         try:
             # Google App Engine.
             from django.utils import simplejson as json
@@ -26,6 +28,8 @@ except ImportError:
             raise RuntimeError(
                 'A JSON parser is required, e.g., simplejson at '
                 'http://pypi.python.org/pypi/simplejson/')
+
+assert hasattr(json, 'loads') and hasattr(json, 'dumps')
 
 
 def json_encode(value, *args, **kwargs):

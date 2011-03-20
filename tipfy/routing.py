@@ -291,10 +291,15 @@ class Rule(BaseRule):
         self.handler = handler or self.name
         self.handler_method = handler_method
         if isinstance(self.handler, basestring):
-            parts = self.handler.rsplit(':', 1)
-            self.handler = parts[0]
-            if len(parts) > 1:
-                self.handler_method = parts[1]
+            if handler_method and self.handler.find(':') != -1:
+                raise ValueError(
+                    "If handler_method is defined in a Rule, handler "
+                    "can't have a colon (got %r)." % self.handler)
+            else:
+                parts = self.handler.rsplit(':', 1)
+                self.handler = parts[0]
+                if len(parts) > 1:
+                    self.handler_method = parts[1]
 
         super(Rule, self).__init__(path, endpoint=self.name, **kwargs)
 

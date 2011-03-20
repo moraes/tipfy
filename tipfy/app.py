@@ -61,23 +61,25 @@ APPENGINE = (APPLICATION_ID is not None and (DEV_APPSERVER or
     SERVER_SOFTWARE.startswith('Google App Engine')))
 
 
-class AbstractRequestHandler(object):
-    """RequestHandler interface."""
-
-    def __init__(self, app, request):
-        raise NotImplementedError()
-
-    def __call__(self):
-        raise NotImplementedError()
-
-
-class BaseRequestHandler(AbstractRequestHandler):
+class BaseRequestHandler(object):
     """Base class to handle requests. This is the central piece for an
     application and provides access to the current WSGI app and request.
     Additionally it provides lazy access to auth, i18n and session stores,
     and several utilities to handle a request.
-    """
 
+    Although it is convenient to extend this class (or :class:`RequestHandler`)
+    and some extended functionality like sessions is implemented on top of it,
+    the only required interface by the WSGI app is the following:
+
+        class RequestHandler(object):
+            def __init__(self, app, request):
+                pass
+
+            def __call__(self):
+                return Response()
+
+    A Tipfy-compatible handler can be implemented using only these two methods.
+    """
     def __init__(self, app, request):
         """Initializes the handler.
 
@@ -96,11 +98,6 @@ class BaseRequestHandler(AbstractRequestHandler):
         must return a :attr:`response_class` object. If :attr:`middleware` are
         defined, use their hooks to process the request or handle exceptions.
 
-        :param _method:
-            The method to be dispatched, normally the request method in
-            lower case, e.g., 'get', 'post', 'head' or 'put'.
-        :param kwargs:
-            Keyword arguments from the matched :class:`Rule`.
         :returns:
             A :attr:`response_class` instance.
         """

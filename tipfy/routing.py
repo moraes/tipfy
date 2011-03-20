@@ -86,8 +86,6 @@ class Router(object):
         :returns:
             A :class:`tipfy.Response` instance.
         """
-        from tipfy.app import AbstractRequestHandler
-
         rule, rule_args = self.match(request)
         handler = rule.handler
         if isinstance(handler, basestring):

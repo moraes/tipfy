@@ -20,7 +20,6 @@ except ImportError:
         # Standard library module in Python 2.6.
         import json
     except (ImportError, AssertionError):
-        raise
         try:
             # Google App Engine.
             from django.utils import simplejson as json

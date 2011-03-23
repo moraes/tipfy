@@ -94,7 +94,7 @@ class Router(object):
 
             rule.handler = handler = self.handlers[handler]
 
-        rv = handler(request.app, request)
+        rv = local.current_handler = handler(request.app, request)
         if not isinstance(rv, BaseResponse) and hasattr(rv, '__call__'):
             # If it is a callable but not a response, we call it again.
             rv = rv()
@@ -128,14 +128,11 @@ class Router(object):
         :returns:
             An absolute or relative URL.
         """
-        full = kwargs.pop('_full', False)
         method = kwargs.pop('_method', None)
         scheme = kwargs.pop('_scheme', None)
         netloc = kwargs.pop('_netloc', None)
         anchor = kwargs.pop('_anchor', None)
-
-        if scheme or netloc:
-            full = False
+        full = kwargs.pop('_full', False) and not scheme and not netloc
 
         url = request.url_adapter.build(name, values=kwargs, method=method,
                                         force_external=full)

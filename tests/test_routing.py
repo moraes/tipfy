@@ -4,6 +4,7 @@ from . import BaseTestCase
 
 from tipfy import Tipfy, RequestHandler, Response
 from tipfy.routing import HandlerPrefix, NamePrefix, Router, Rule
+from tipfy.utils import url_for
 
 
 class TestRouter(BaseTestCase):
@@ -96,6 +97,26 @@ class TestRouting(BaseTestCase):
 
         response = client.get('/foo/bar/baz')
         self.assertEqual(response.data, 'foo/bar/baz')
+
+    def test_url_for(self):
+        class DummyHandler(RequestHandler):
+            def get(self, **kwargs):
+                return ''
+
+        rules = [
+            NamePrefix('company-', [
+                Rule('/', name='home', handler=DummyHandler),
+                Rule('/about', name='about', handler=DummyHandler),
+                Rule('/contact', name='contact', handler=DummyHandler),
+            ]),
+        ]
+
+        app = Tipfy(rules)
+
+        with app.get_test_handler('/') as handler:
+            self.assertEqual(url_for('company-home'), '/')
+            self.assertEqual(url_for('company-about'), '/about')
+            self.assertEqual(url_for('company-contact'), '/contact')
 
 
 class TestAlternativeRouting(BaseTestCase):

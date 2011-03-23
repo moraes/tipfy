@@ -160,7 +160,7 @@ class TestRenderJson(unittest.TestCase):
 
         self.assertEqual(isinstance(response, Response), True)
         self.assertEqual(response.mimetype, 'application/json')
-        self.assertEqual(response.data, '{"foo": "bar"}')
+        self.assertEqual(response.data, '{"foo":"bar"}')
 
 
 class TestUtils(unittest.TestCase):

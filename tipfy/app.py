@@ -16,9 +16,11 @@ from wsgiref.handlers import CGIHandler
 # Werkzeug Swiss knife.
 # Need to import werkzeug first otherwise py_zipimport fails.
 import werkzeug
-from werkzeug import (Local, Request as BaseRequest, Response as BaseResponse,
-    cached_property, import_string, redirect as base_redirect)
+from werkzeug import (Local, cached_property, import_string,
+    redirect as base_redirect)
 from werkzeug.exceptions import HTTPException, InternalServerError, abort
+from werkzeug.wrappers import (BaseResponse, Request as WerkzeugRequest,
+    Response as WerkzeugResponse)
 
 #: Context-local.
 local = Local()
@@ -59,30 +61,25 @@ APPENGINE = (APPLICATION_ID is not None and (DEV_APPSERVER or
     SERVER_SOFTWARE.startswith('Google App Engine')))
 
 
-class RequestHandler(object):
+class BaseRequestHandler(object):
     """Base class to handle requests. This is the central piece for an
     application and provides access to the current WSGI app and request.
     Additionally it provides lazy access to auth, i18n and session stores,
     and several utilities to handle a request.
-    """
-    #: A list of middleware instances. A middleware can implement three
-    #: methods that are called before and after the current request method
-    #: is executed, or if an exception occurs:
-    #:
-    #: before_dispatch(handler)
-    #:     Called before the requested method is executed. If returns a
-    #:     response, stops the middleware chain and uses that response, not
-    #:     calling the requested method.
-    #:
-    #: after_dispatch(handler, response)
-    #:     Called after the requested method is executed. Must always return
-    #:     a response. These are executed in reverse order.
-    #:
-    #: handle_exception(handler, exception)
-    #:     Called if an exception occurs while executing the requested method.
-    #:     These are executed in reverse order.
-    middleware = None
 
+    Although it is convenient to extend this class (or :class:`RequestHandler`)
+    and some extended functionality like sessions is implemented on top of it,
+    the only required interface by the WSGI app is the following:
+
+        class RequestHandler(object):
+            def __init__(self, app, request):
+                pass
+
+            def __call__(self):
+                return Response()
+
+    A Tipfy-compatible handler can be implemented using only these two methods.
+    """
     def __init__(self, app, request):
         """Initializes the handler.
 
@@ -96,61 +93,34 @@ class RequestHandler(object):
         # A context for shared data, e.g., template variables.
         self.context = {}
 
-    def __call__(self, _method, *args, **kwargs):
+    def __call__(self):
         """Executes a handler method. This is called by :class:`Tipfy` and
         must return a :attr:`response_class` object. If :attr:`middleware` are
         defined, use their hooks to process the request or handle exceptions.
 
-        :param _method:
-            The method to be dispatched, normally the request method in
-            lower case, e.g., 'get', 'post', 'head' or 'put'.
-        :param kwargs:
-            Keyword arguments from the matched :class:`Rule`.
         :returns:
             A :attr:`response_class` instance.
         """
-        method = getattr(self, _method, None)
-        if method is None:
-            # 405 Method Not Allowed.
-            # The response MUST include an Allow header containing a
-            # list of valid methods for the requested resource.
-            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.6
-            self.abort(405, valid_methods=self.get_valid_methods())
+        return self.dispatch()
 
-        if not self.middleware:
-            # No middleware are set: just execute the method.
-            return self.make_response(method(*args, **kwargs))
+    def dispatch(self):
+        try:
+            request = self.request
+            method_name = request.rule and request.rule.handler_method
+            if not method_name:
+                method_name = request.method.lower()
 
-        # Execute before_dispatch middleware.
-        for obj in self.middleware:
-            func = getattr(obj, 'before_dispatch', None)
-            if func:
-                response = func(self)
-                if response is not None:
-                    break
-        else:
-            try:
-                response = self.make_response(method(*args, **kwargs))
-            except Exception, e:
-                # Execute handle_exception middleware.
-                for obj in reversed(self.middleware):
-                    func = getattr(obj, 'handle_exception', None)
-                    if func:
-                        response = func(self, e)
-                        if response is not None:
-                            break
-                else:
-                    # If a middleware didn't return a response, reraise.
-                    raise
+            method = getattr(self, method_name, None)
+            if not method:
+                # 405 Method Not Allowed.
+                # The response MUST include an Allow header containing a
+                # list of valid methods for the requested resource.
+                # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.6
+                self.abort(405, valid_methods=self.get_valid_methods())
 
-        # Execute after_dispatch middleware.
-        for obj in reversed(self.middleware):
-            func = getattr(obj, 'after_dispatch', None)
-            if func:
-                response = func(self, response)
-
-        # Done!
-        return response
+            return self.make_response(method(**request.rule_args))
+        except Exception, e:
+            return self.handle_exception(exception=e)
 
     @cached_property
     def auth(self):
@@ -295,10 +265,66 @@ class RequestHandler(object):
         return self.app.router.build(self.request, _name, kwargs)
 
 
-class Request(BaseRequest):
+class RequestHandler(BaseRequestHandler):
+    #: A list of middleware instances. A middleware can implement three
+    #: methods that are called before and after the current request method
+    #: is executed, or if an exception occurs:
+    #:
+    #: before_dispatch(handler)
+    #:     Called before the requested method is executed. If returns a
+    #:     response, stops the middleware chain and uses that response, not
+    #:     calling the requested method.
+    #:
+    #: after_dispatch(handler, response)
+    #:     Called after the requested method is executed. Must always return
+    #:     a response. These are executed in reverse order.
+    #:
+    #: handle_exception(handler, exception)
+    #:     Called if an exception occurs while executing the requested method.
+    #:     These are executed in reverse order.
+    middleware = None
+
+    def __call__(self):
+        middleware = self.middleware or []
+
+        # Execute before_dispatch middleware.
+        for obj in middleware:
+            func = getattr(obj, 'before_dispatch', None)
+            if func:
+                response = func(self)
+                if response is not None:
+                    break
+        else:
+            try:
+                response = self.dispatch()
+            except Exception, e:
+                # Execute handle_exception middleware.
+                for obj in reversed(middleware):
+                    func = getattr(obj, 'handle_exception', None)
+                    if func:
+                        response = func(self, e)
+                        if response is not None:
+                            break
+                else:
+                    # If a middleware didn't return a response, reraise.
+                    raise
+
+        # Execute after_dispatch middleware.
+        for obj in reversed(middleware):
+            func = getattr(obj, 'after_dispatch', None)
+            if func:
+                response = func(self, response)
+
+        # Done!
+        return response
+
+
+class Request(WerkzeugRequest):
     """Provides all environment variables for the current request: GET, POST,
     FILES, cookies and headers.
     """
+    #: The WSGI app.
+    app = None
     #: URL adapter.
     url_adapter = None
     #: Matched :class:`tipfy.Rule`.
@@ -320,7 +346,7 @@ class Request(BaseRequest):
             return json_decode(self.data)
 
 
-class Response(BaseResponse):
+class Response(WerkzeugResponse):
     """A response object with default mimetype set to ``text/html``."""
     default_mimetype = 'text/html'
 
@@ -392,11 +418,12 @@ class Tipfy(object):
         cleanup = True
         try:
             request = self.request_class(environ)
+            request.app = self
             if request.method not in self.allowed_methods:
                 abort(501)
 
-            match = self.router.match(request)
-            response = self.router.dispatch(request, match)
+            rv = self.router.dispatch(request)
+            response = self.make_response(request, rv)
         except Exception, e:
             try:
                 response = self.handle_exception(request, e)
@@ -459,13 +486,15 @@ class Tipfy(object):
             code = 500
 
         handler = self.error_handlers.get(code)
-        if handler:
-            rule = Rule('/', handler=handler, name='__exception__')
-            kwargs = dict(exception=exception)
-            return self.router.dispatch(request, (rule, kwargs),
-                method='handle_exception')
-        else:
+        if not handler:
             raise
+
+        rv = handler(request.app, request)
+        if not isinstance(rv, BaseResponse) and hasattr(rv, '__call__'):
+            # If it is a callable but not a response, we call it again.
+            rv = rv()
+
+        return rv
 
     def make_response(self, request, *rv):
         """Converts the returned value from a :class:`RequestHandler` to a

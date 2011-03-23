@@ -17,3 +17,15 @@ class OtherHandler(RequestHandler):
 
     def bar(self, **kwargs):
         return Response('other-bar')
+
+
+def home(app, request):
+    return 'home'
+
+
+def foo(app, request):
+    return 'foo'
+
+
+def bar(app, request):
+    return 'bar'

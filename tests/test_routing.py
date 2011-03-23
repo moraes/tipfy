@@ -123,3 +123,22 @@ class TestAlternativeRouting(BaseTestCase):
         self.assertEqual(response.data, 'other-foo')
         response = client.get('/other/bar')
         self.assertEqual(response.data, 'other-bar')
+
+    def test_function_handler(self):
+        rules = [
+            HandlerPrefix('resources.alternative_routing.', [
+                Rule('/', name='home', handler='home'),
+                Rule('/foo', name='home/foo', handler='foo'),
+                Rule('/bar', name='home/bar', handler='bar'),
+            ])
+        ]
+
+        app = Tipfy(rules)
+        client = app.get_test_client()
+
+        response = client.get('/')
+        self.assertEqual(response.data, 'home')
+        response = client.get('/foo')
+        self.assertEqual(response.data, 'foo')
+        response = client.get('/bar')
+        self.assertEqual(response.data, 'bar')

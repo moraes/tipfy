@@ -11,6 +11,7 @@
 from werkzeug import import_string, url_quote
 from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
     Rule as BaseRule, RuleFactory, Subdomain, Submount)
+from werkzeug.wrappers import BaseResponse
 
 from tipfy.app import local
 
@@ -67,11 +68,11 @@ class Router(object):
             server_name=self.get_server_name(request))
 
         # Match the path against registered rules.
-        match = request.rule, request.rule_args = request.url_adapter.match(
-            return_rule=True)
+        match = request.url_adapter.match(return_rule=True)
+        request.rule, request.rule_args = match
         return match
 
-    def dispatch(self, request, match, method=None):
+    def dispatch(self, request):
         """Dispatches a request. This instantiates and calls a
         :class:`tipfy.RequestHandler` based on the matched :class:`Rule`.
 
@@ -85,70 +86,20 @@ class Router(object):
         :returns:
             A :class:`tipfy.Response` instance.
         """
-        cls, method, kwargs = self.get_dispatch_spec(request, match, method)
-
-        # Instantiate the handler.
-        local.current_handler = handler = cls(self.app, request)
-        try:
-            # Dispatch the requested method.
-            return handler(method, **kwargs)
-        except Exception, e:
-            if method == 'handle_exception':
-                # We are already handling an exception.
-                raise
-
-            # If the handler implements exception handling, let it handle it.
-            return self.app.make_response(request, handler.handle_exception(e))
-
-    def get_dispatch_spec(self, request, match, method=None):
-        """Returns the handler, method and keyword arguments to be executed
-        for the matched rule.
-
-        When the ``rule.handler`` attribute is set as a string, it is replaced
-        by the imported class. If the handler string is defined using the
-        ``Handler:method`` notation, the method will be stored in the rule.
-
-        When the handler is dynamically imported an ``ImportError`` or
-        ``AttributeError`` can be raised if it is badly defined. The WSGI app
-        will handle raised exceptions.
-
-        :param request:
-            A :class:`tipfy.Request` instance.
-        :param match:
-            A tuple ``(rule, rule_args)`` with the matched rule and rule
-            arguments.
-        :param method:
-            A method to be used instead of using the request or handler method.
-        :returns:
-            A tuple ``(handler_class, method, kwargs)`` to be executed.
-        """
-        rule, rule_args = match
-
-        if isinstance(rule.handler, basestring):
-            parts = rule.handler.rsplit(':', 1)
-            handler = parts[0]
-            if len(parts) > 1:
-                rule.handler_method = parts[1]
-
+        rule, rule_args = self.match(request)
+        handler = rule.handler
+        if isinstance(handler, basestring):
             if handler not in self.handlers:
                 self.handlers[handler] = import_string(handler)
 
-            rule.handler = self.handlers[handler]
+            rule.handler = handler = self.handlers[handler]
 
-        if not method:
-            request_method = request.method.lower().replace('-', '_')
+        rv = handler(request.app, request)
+        if not isinstance(rv, BaseResponse) and hasattr(rv, '__call__'):
+            # If it is a callable but not a response, we call it again.
+            rv = rv()
 
-            if rule.handler_method is None:
-                method = request_method
-            else:
-                method = rule.handler_method
-                # Idea: if rule has methods defined, append the current
-                # request method to the method name (or add a 'method_sufix'
-                # argument to rule to enable it?).
-                # if rule.methods:
-                #     method += '_' + request_method
-
-        return rule.handler, method, rule_args
+        return rv
 
     def build(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place
@@ -187,7 +138,7 @@ class Router(object):
             full = False
 
         url = request.url_adapter.build(name, values=kwargs, method=method,
-            force_external=full)
+                                        force_external=full)
 
         if scheme or netloc:
             url = '%s://%s%s' % (scheme or 'http', netloc or request.host, url)
@@ -245,7 +196,8 @@ class Rule(BaseRule):
 
         url = self.url_for('user-list')
     """
-    def __init__(self, path, name=None, handler=None, **kwargs):
+    def __init__(self, path, name=None, handler=None, handler_method=None,
+                 **kwargs):
         """There are some options for `Rule` that change the way it behaves
         and are passed to the `Rule` constructor. Note that besides the
         rule-string all arguments *must* be keyword arguments in order to not
@@ -267,9 +219,11 @@ class Rule(BaseRule):
         :param name:
             The rule name used for URL generation.
         :param handler:
-            The handler class used to handle requests when this rule matches.
-            Can be a class or a class defined as a string to be lazily
-            imported.
+            The handler class or function used to handle requests when this
+            rule matches. Can be defined as a string to be lazily imported.
+        :param handler_method:
+            The method to be executed from the handler class. If not defined,
+            defaults to the current request method in lower case.
         :param defaults:
             An optional dict with defaults for other rules with the same
             endpoint. This is a bit tricky but useful if you want to have
@@ -335,7 +289,18 @@ class Rule(BaseRule):
         """
         self.name = kwargs.pop('endpoint', name)
         self.handler = handler or self.name
-        self.handler_method = None
+        self.handler_method = handler_method
+        if isinstance(self.handler, basestring):
+            if handler_method and self.handler.find(':') != -1:
+                raise ValueError(
+                    "If handler_method is defined in a Rule, handler "
+                    "can't have a colon (got %r)." % self.handler)
+            else:
+                parts = self.handler.rsplit(':', 1)
+                self.handler = parts[0]
+                if len(parts) > 1:
+                    self.handler_method = parts[1]
+
         super(Rule, self).__init__(path, endpoint=self.name, **kwargs)
 
     def empty(self):
@@ -347,7 +312,8 @@ class Rule(BaseRule):
             defaults = dict(self.defaults)
 
         return Rule(self.rule, name=self.name, handler=self.handler,
-            defaults=defaults, subdomain=self.subdomain, methods=self.methods,
+            handler_method=self.handler_method, defaults=defaults,
+            subdomain=self.subdomain, methods=self.methods,
             build_only=self.build_only, strict_slashes=self.strict_slashes,
             redirect_to=self.redirect_to)
 

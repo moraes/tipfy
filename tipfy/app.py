@@ -42,9 +42,11 @@ class Request(werkzeug.wrappers.Request):
     """
     #: The WSGI app.
     app = None
+    #: Exception caught by the WSGI app.
+    exception = None
     #: URL adapter.
-    url_adapter = None
-    #: Matched :class:`tipfy.Rule`.
+    rule_adapter = None
+    #: Matched :class:`tipfy.routing.Rule`.
     rule = None
     #: Keyword arguments from the matched rule.
     rule_args = None
@@ -62,13 +64,24 @@ class Request(werkzeug.wrappers.Request):
         if self.mimetype == 'application/json':
             return json_decode(self.data)
 
+    def _get_rule_adapter(self):
+        # TODO: deprecation warning.
+        return self.rule_adapter
+
+    def _set_rule_adapter(self, adapter):
+        # TODO: deprecation warning.
+        self.rule_adapter = adapter
+
+    # Old name
+    url_adapter = property(_get_rule_adapter, _set_rule_adapter)
+
 
 class Response(werkzeug.wrappers.Response):
     """A response object with default mimetype set to ``text/html``."""
     default_mimetype = 'text/html'
 
 
-class Tipfy(object):
+class App(object):
     """The WSGI application."""
     # Allowed request methods.
     allowed_methods = frozenset(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST',
@@ -103,14 +116,14 @@ class Tipfy(object):
             logging.getLogger().setLevel(logging.DEBUG)
 
     def __call__(self, environ, start_response):
-        """Shortcut for :meth:`Tipfy.wsgi_app`."""
-        local.current_app = self
+        """Shortcut for :meth:`App.wsgi_app`."""
+        local.app = self
         if self.debug and self.config['tipfy']['enable_debugger']:
             return self._debugged_wsgi_app(environ, start_response)
 
         return self.wsgi_app(environ, start_response)
 
-    def wsgi_app(self, environ, start_response):
+    def dispatch(self, environ, start_response):
         """This is the actual WSGI application.  This is not implemented in
         :meth:`__call__` so that middlewares can be applied without losing a
         reference to the class. So instead of doing this::
@@ -134,7 +147,7 @@ class Tipfy(object):
         """
         cleanup = True
         try:
-            request = self.request_class(environ)
+            local.request = request = self.request_class(environ)
             request.app = self
             if request.method not in self.allowed_methods:
                 abort(501)
@@ -165,12 +178,12 @@ class Tipfy(object):
     def handle_exception(self, request, exception):
         """Handles an exception. To set app-wide error handlers, define them
         using the corresponent HTTP status code in the ``error_handlers``
-        dictionary of :class:`Tipfy`. For example, to set a custom
+        dictionary of :class:`App`. For example, to set a custom
         `Not Found` page::
 
             class Handle404(RequestHandler):
-                def handle_exception(self, exception):
-                    logging.exception(exception)
+                def __call__(self):
+                    logging.exception(self.request.exception)
                     return Response('Oops! I could swear this page was here!',
                         status=404)
 
@@ -207,6 +220,7 @@ class Tipfy(object):
         if not handler:
             raise
 
+        request.exception = exception
         rv = handler(request.app, request)
         if not isinstance(rv, werkzeug.wrappers.BaseResponse):
             if hasattr(rv, '__call__'):
@@ -342,6 +356,9 @@ class Tipfy(object):
         cls = self.config['tipfy']['session_store_class']
         return werkzeug.utils.import_string(cls)
 
+    # Old names
+    wsgi_app = dispatch
+
 
 def redirect(location, code=302, response_class=Response, body=None):
     """Returns a response object that redirects to the given location.
@@ -363,9 +380,10 @@ def redirect(location, code=302, response_class=Response, body=None):
         A :class:`Response` object with headers set for redirection.
     """
     assert code in (301, 302, 303, 305, 307), 'invalid code'
-    # not yet.
-    #if location.startswith(('.', '/')):
-    #    location = urlparse.urljoin(get_request().url, location)
+
+    if location.startswith(('.', '/')):
+        # Make it absolute.
+        location = urlparse.urljoin(local.request.url, location)
 
     display_location = location
     if isinstance(location, unicode):
@@ -381,3 +399,7 @@ def redirect(location, code=302, response_class=Response, body=None):
     response = response_class(body, code, mimetype='text/html')
     response.headers['Location'] = location
     return response
+
+
+# Old names.
+Tipfy = App

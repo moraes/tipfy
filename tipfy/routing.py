@@ -60,11 +60,11 @@ class Router(object):
             arguments.
         """
         # Bind the URL map to the current request
-        request.url_adapter = self.map.bind_to_environ(request.environ,
+        request.rule_adapter = self.map.bind_to_environ(request.environ,
             server_name=self.get_server_name(request))
 
         # Match the path against registered rules.
-        match = request.url_adapter.match(return_rule=True)
+        match = request.rule_adapter.match(return_rule=True)
         request.rule, request.rule_args = match
         return match
 
@@ -130,7 +130,7 @@ class Router(object):
         anchor = kwargs.pop('_anchor', None)
         full = kwargs.pop('_full', False) and not scheme and not netloc
 
-        url = request.url_adapter.build(name, values=kwargs, method=method,
+        url = request.rule_adapter.build(name, values=kwargs, method=method,
                                         force_external=full)
 
         if scheme or netloc:
@@ -399,6 +399,15 @@ class RegexConverter(BaseConverter):
     def __init__(self, map, *items):
         BaseConverter.__init__(self, map)
         self.regex = items[0]
+
+
+def url_for(_name, **kwargs):
+    """A proxy to :meth:`Router.url_for`.
+
+    .. seealso:: :meth:`Router.url_for`.
+    """
+    request = local.request
+    return request.rule_adapter.url_for(request, _name, kwargs)
 
 
 # Add regex converter to the list of converters.

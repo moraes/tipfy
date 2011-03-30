@@ -27,7 +27,8 @@ class Config(dict):
     of the first level one.
 
     The configuration object is available as a ``config`` attribute of
-    :class:`Tipfy`. If is instantiated and populated when the app is built::
+    :class:`tipfy.app.App`. If is instantiated and populated when the app
+    is built::
 
         config = {}
 

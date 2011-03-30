@@ -39,7 +39,7 @@ class BaseRequestHandler(object):
         """Initializes the handler.
 
         :param app:
-            A :class:`Tipfy` instance.
+            A :class:`tipfy.app.App` instance.
         :param request:
             A :class:`Request` instance.
         """
@@ -49,9 +49,10 @@ class BaseRequestHandler(object):
         self.context = {}
 
     def __call__(self):
-        """Executes a handler method. This is called by :class:`Tipfy` and
-        must return a :attr:`response_class` object. If :attr:`middleware` are
-        defined, use their hooks to process the request or handle exceptions.
+        """Executes a handler method. This is called by :class:`tipfy.app.App`
+        and must return a :attr:`response_class` object. If :attr:`middleware`
+        are defined, use their hooks to process the request or handle
+        exceptions.
 
         :returns:
             A :attr:`response_class` instance.
@@ -157,9 +158,10 @@ class BaseRequestHandler(object):
 
     def make_response(self, *rv):
         """Converts the returned value from a :class:`RequestHandler` to a
-        response object that is an instance of :attr:`Tipfy.response_class`.
+        response object that is an instance of
+        :attr:`tipfy.app.App.response_class`.
 
-        .. seealso:: :meth:`Tipfy.make_response`.
+        .. seealso:: :meth:`tipfy.app.App.make_response`.
         """
         return self.app.make_response(self.request, *rv)
 
@@ -192,10 +194,6 @@ class BaseRequestHandler(object):
         ..sealso:: :func:`tipfy.app.redirect`.
         """
         response_class = response_class or self.app.response_class
-
-        if location.startswith(('.', '/')):
-            # Make it absolute.
-            location = urlparse.urljoin(self.request.url, location)
 
         if empty:
             body = ''

@@ -45,8 +45,10 @@ default_config = {
     'enable_debugger':     True,
 }
 
-from tipfy.app import (HTTPException, Request, RequestHandler, Response, Tipfy,
-    abort, current_app, current_handler, APPENGINE, APPLICATION_ID,
-    CURRENT_VERSION_ID, DEV_APPSERVER)
+from tipfy.app import (HTTPException, Request, Response, Tipfy, abort,
+    current_app, current_handler)
+from tipfy.handler import RequestHandler
+from tipfy.appengine import (APPENGINE, APPLICATION_ID, CURRENT_VERSION_ID,
+    DEV_APPSERVER)
 from tipfy.config import DEFAULT_VALUE, REQUIRED_VALUE
 from tipfy.routing import HandlerPrefix, NamePrefix, Rule, Subdomain, Submount

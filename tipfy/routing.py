@@ -13,11 +13,7 @@ from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
     Rule as BaseRule, RuleFactory, Subdomain, Submount)
 from werkzeug.wrappers import BaseResponse
 
-from tipfy.app import local
-
-__all__ = [
-    'HandlerPrefix', 'NamePrefix', 'Rule', 'Subdomain', 'Submount',
-]
+from .local import local
 
 
 class Router(object):

@@ -11,315 +11,32 @@
 import logging
 import os
 import urlparse
-from wsgiref.handlers import CGIHandler
+import wsgiref.handlers
 
 # Werkzeug Swiss knife.
 # Need to import werkzeug first otherwise py_zipimport fails.
 import werkzeug
-from werkzeug import (Local, cached_property, import_string,
-    redirect as base_redirect)
-from werkzeug.exceptions import HTTPException, InternalServerError, abort
-from werkzeug.wrappers import (BaseResponse, Request as WerkzeugRequest,
-    Response as WerkzeugResponse)
+import werkzeug.exceptions
+import werkzeug.urls
+import werkzeug.utils
+import werkzeug.wrappers
 
-#: Context-local.
-local = Local()
-#: A proxy to the active handler for a request. This is intended to be used by
-#: functions called out of a handler context. Usage is generally discouraged:
-#: it is preferable to pass the handler as argument when possible and only use
-#: this as last alternative -- when a proxy is really needed.
-#:
-#: For example, the :func:`tipfy.utils.url_for` function requires the current
-#: request to generate a URL. As its purpose is to be assigned to a template
-#: context or other objects shared between requests, we use `current_handler`
-#: there to dynamically get the currently active handler.
-current_handler = local('current_handler')
-#: Same as current_handler, only for the active WSGI app.
-current_app = local('current_app')
+from . import default_config
+from .config import Config, REQUIRED_VALUE
+from .local import current_app, current_handler, local
+from .json import json_decode
+from .routing import Router, Rule
 
-from tipfy import default_config
-from tipfy.config import Config, REQUIRED_VALUE
-from tipfy.routing import Router, Rule
-from tipfy.utils import json_decode
+#: Public interface.
+HTTPException = werkzeug.exceptions.HTTPException
+abort = werkzeug.exceptions.abort
 
-__all__ = [
-    'HTTPException', 'Request', 'RequestHandler', 'Response', 'Tipfy',
-    'current_handler', 'APPENGINE', 'APPLICATION_ID', 'CURRENT_VERSION_ID',
-    'DEV_APPSERVER',
-]
-
-# App Engine flags.
-SERVER_SOFTWARE = os.environ.get('SERVER_SOFTWARE', '')
-#: The application ID as defined in *app.yaml*.
-APPLICATION_ID = os.environ.get('APPLICATION_ID')
-#: The deployed version ID. Always '1' when using the dev server.
-CURRENT_VERSION_ID = os.environ.get('CURRENT_VERSION_ID', '1')
-#: True if the app is using App Engine dev server, False otherwise.
-DEV_APPSERVER = SERVER_SOFTWARE.startswith('Development')
-#: True if the app is running on App Engine, False otherwise.
-APPENGINE = (APPLICATION_ID is not None and (DEV_APPSERVER or
-    SERVER_SOFTWARE.startswith('Google App Engine')))
+#: TODO: remove from here.
+from tipfy.appengine import (APPENGINE, APPLICATION_ID, CURRENT_VERSION_ID,
+    DEV_APPSERVER)
 
 
-class BaseRequestHandler(object):
-    """Base class to handle requests. This is the central piece for an
-    application and provides access to the current WSGI app and request.
-    Additionally it provides lazy access to auth, i18n and session stores,
-    and several utilities to handle a request.
-
-    Although it is convenient to extend this class (or :class:`RequestHandler`)
-    and some extended functionality like sessions is implemented on top of it,
-    the only required interface by the WSGI app is the following:
-
-        class RequestHandler(object):
-            def __init__(self, app, request):
-                pass
-
-            def __call__(self):
-                return Response()
-
-    A Tipfy-compatible handler can be implemented using only these two methods.
-    """
-    def __init__(self, app, request):
-        """Initializes the handler.
-
-        :param app:
-            A :class:`Tipfy` instance.
-        :param request:
-            A :class:`Request` instance.
-        """
-        self.app = app
-        self.request = request
-        # A context for shared data, e.g., template variables.
-        self.context = {}
-
-    def __call__(self):
-        """Executes a handler method. This is called by :class:`Tipfy` and
-        must return a :attr:`response_class` object. If :attr:`middleware` are
-        defined, use their hooks to process the request or handle exceptions.
-
-        :returns:
-            A :attr:`response_class` instance.
-        """
-        return self.dispatch()
-
-    def dispatch(self):
-        try:
-            request = self.request
-            method_name = request.rule and request.rule.handler_method
-            if not method_name:
-                method_name = request.method.lower()
-
-            method = getattr(self, method_name, None)
-            if not method:
-                # 405 Method Not Allowed.
-                # The response MUST include an Allow header containing a
-                # list of valid methods for the requested resource.
-                # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.6
-                self.abort(405, valid_methods=self.get_valid_methods())
-
-            return self.make_response(method(**request.rule_args))
-        except Exception, e:
-            return self.handle_exception(exception=e)
-
-    @cached_property
-    def auth(self):
-        """The auth store which provides access to the authenticated user and
-        auth related functions.
-
-        :returns:
-            An auth store instance.
-        """
-        return self.app.auth_store_class(self)
-
-    @cached_property
-    def i18n(self):
-        """The internationalization store which provides access to several
-        translation and localization utilities.
-
-        :returns:
-            An i18n store instance.
-        """
-        return self.app.i18n_store_class(self)
-
-    @cached_property
-    def session(self):
-        """A session dictionary using the default session configuration.
-
-        :returns:
-            A dictionary-like object with the current session data.
-        """
-        return self.session_store.get_session()
-
-    @cached_property
-    def session_store(self):
-        """The session store, responsible for managing sessions and flashes.
-
-        :returns:
-            A session store instance.
-        """
-        return self.app.session_store_class(self)
-
-    def abort(self, code, *args, **kwargs):
-        """Raises an :class:`HTTPException`. This stops code execution,
-        leaving the HTTP exception to be handled by an exception handler.
-
-        :param code:
-            HTTP status error code (e.g., 404).
-        :param args:
-            Positional arguments to be passed to the exception class.
-        :param kwargs:
-            Keyword arguments to be passed to the exception class.
-        """
-        abort(code, *args, **kwargs)
-
-    def get_config(self, module, key=None, default=REQUIRED_VALUE):
-        """Returns a configuration value for a module.
-
-        .. seealso:: :meth:`Config.get_config`.
-        """
-        return self.app.config.get_config(module, key=key, default=default)
-
-    def get_valid_methods(self):
-        """Returns a list of methods supported by this handler. By default it
-        will look for HTTP methods this handler implements. For different
-        routing schemes, override this.
-
-        :returns:
-            A list of methods supported by this handler.
-        """
-        return [method for method in self.app.allowed_methods if
-            getattr(self, method.lower().replace('-', '_'), None)]
-
-    def handle_exception(self, exception=None):
-        """Handles an exception. The default behavior is to reraise the
-        exception (no exception handling is implemented).
-
-        :param exception:
-            The exception that was raised.
-        """
-        raise
-
-    def make_response(self, *rv):
-        """Converts the returned value from a :class:`RequestHandler` to a
-        response object that is an instance of :attr:`Tipfy.response_class`.
-
-        .. seealso:: :meth:`Tipfy.make_response`.
-        """
-        return self.app.make_response(self.request, *rv)
-
-    def redirect(self, location, code=302, empty=False):
-        """Returns a response object with headers set for redirection to the
-        given URI. This won't stop code execution, so you must return when
-        calling this method::
-
-            return self.redirect('/some-path')
-
-        :param location:
-            A relative or absolute URI (e.g., '../contacts'). If relative, it
-            will be joined to the current request URL.
-        :param code:
-            The HTTP status code for the redirect.
-        :param empty:
-            If True, returns a response without body. By default Werkzeug sets
-            a standard message in the body.
-        :returns:
-            A :class:`Response` object with headers set for redirection.
-        """
-        if not location.startswith('http'):
-            # Make it absolute.
-            location = urlparse.urljoin(self.request.url, location)
-
-        response = base_redirect(location, code)
-
-        if empty:
-            response.data = ''
-
-        return response
-
-    def redirect_to(self, _name, _code=302, _empty=False, **kwargs):
-        """Convenience method mixing ``werkzeug.redirect`` and :func:`url_for`:
-        returns a response object with headers set for redirection to a URL
-        built using a named :class:`Rule`.
-
-        :param _name:
-            The rule name.
-        :param _code:
-            The HTTP status code for the redirect.
-        :param _empty:
-            If True, returns a response without body. By default Werkzeug sets
-            a standard message in the body.
-        :param kwargs:
-            Keyword arguments to build the URL.
-        :returns:
-            A :class:`Response` object with headers set for redirection.
-        """
-        return self.redirect(self.url_for(_name, _full=kwargs.pop('_full',
-            True), **kwargs), code=_code, empty=_empty)
-
-    def url_for(self, _name, **kwargs):
-        """Returns a URL for a named :class:`Rule`.
-
-        .. seealso:: :meth:`Router.url_for`.
-        """
-        return self.app.router.url_for(self.request, _name, kwargs)
-
-
-class RequestHandler(BaseRequestHandler):
-    #: A list of middleware instances. A middleware can implement three
-    #: methods that are called before and after the current request method
-    #: is executed, or if an exception occurs:
-    #:
-    #: before_dispatch(handler)
-    #:     Called before the requested method is executed. If returns a
-    #:     response, stops the middleware chain and uses that response, not
-    #:     calling the requested method.
-    #:
-    #: after_dispatch(handler, response)
-    #:     Called after the requested method is executed. Must always return
-    #:     a response. These are executed in reverse order.
-    #:
-    #: handle_exception(handler, exception)
-    #:     Called if an exception occurs while executing the requested method.
-    #:     These are executed in reverse order.
-    middleware = None
-
-    def __call__(self):
-        middleware = self.middleware or []
-
-        # Execute before_dispatch middleware.
-        for obj in middleware:
-            func = getattr(obj, 'before_dispatch', None)
-            if func:
-                response = func(self)
-                if response is not None:
-                    break
-        else:
-            try:
-                response = self.dispatch()
-            except Exception, e:
-                # Execute handle_exception middleware.
-                for obj in reversed(middleware):
-                    func = getattr(obj, 'handle_exception', None)
-                    if func:
-                        response = func(self, e)
-                        if response is not None:
-                            break
-                else:
-                    # If a middleware didn't return a response, reraise.
-                    raise
-
-        # Execute after_dispatch middleware.
-        for obj in reversed(middleware):
-            func = getattr(obj, 'after_dispatch', None)
-            if func:
-                response = func(self, response)
-
-        # Done!
-        return response
-
-
-class Request(WerkzeugRequest):
+class Request(werkzeug.wrappers.Request):
     """Provides all environment variables for the current request: GET, POST,
     FILES, cookies and headers.
     """
@@ -332,7 +49,7 @@ class Request(WerkzeugRequest):
     #: Keyword arguments from the matched rule.
     rule_args = None
 
-    @cached_property
+    @werkzeug.utils.cached_property
     def json(self):
         """If the mimetype is `application/json` this will contain the
         parsed JSON data.
@@ -346,7 +63,7 @@ class Request(WerkzeugRequest):
             return json_decode(self.data)
 
 
-class Response(WerkzeugResponse):
+class Response(werkzeug.wrappers.Response):
     """A response object with default mimetype set to ``text/html``."""
     default_mimetype = 'text/html'
 
@@ -437,7 +154,8 @@ class Tipfy(object):
                 # We only log unhandled non-HTTP exceptions. Users should
                 # take care of logging in custom error handlers.
                 logging.exception(e)
-                response = self.make_response(request, InternalServerError())
+                rv = werkzeug.exceptions.InternalServerError()
+                response = self.make_response(request, rv)
         finally:
             if cleanup:
                 local.__release_local__()
@@ -490,9 +208,10 @@ class Tipfy(object):
             raise
 
         rv = handler(request.app, request)
-        if not isinstance(rv, BaseResponse) and hasattr(rv, '__call__'):
-            # If it is a callable but not a response, we call it again.
-            rv = rv()
+        if not isinstance(rv, werkzeug.wrappers.BaseResponse):
+            if hasattr(rv, '__call__'):
+                # If it is a callable but not a response, we call it again.
+                rv = rv()
 
         return rv
 
@@ -585,37 +304,80 @@ class Tipfy(object):
                 main()
 
         """
-        CGIHandler().run(self)
+        wsgiref.handlers.CGIHandler().run(self)
 
-    @cached_property
+    @werkzeug.utils.cached_property
     def _debugged_wsgi_app(self):
         """Returns the WSGI app wrapped by an interactive debugger."""
         from tipfy.debugger import DebuggedApplication
         return DebuggedApplication(self.wsgi_app, evalex=True)
 
-    @cached_property
+    @werkzeug.utils.cached_property
     def auth_store_class(self):
         """Returns the configured auth store class.
 
         :returns:
             An auth store class.
         """
-        return import_string(self.config['tipfy']['auth_store_class'])
+        cls = self.config['tipfy']['auth_store_class']
+        return werkzeug.utils.import_string(cls)
 
-    @cached_property
+    @werkzeug.utils.cached_property
     def i18n_store_class(self):
         """Returns the configured i18n store class.
 
         :returns:
             An i18n store class.
         """
-        return import_string(self.config['tipfy']['i18n_store_class'])
+        cls = self.config['tipfy']['i18n_store_class']
+        return werkzeug.utils.import_string(cls)
 
-    @cached_property
+    @werkzeug.utils.cached_property
     def session_store_class(self):
         """Returns the configured session store class.
 
         :returns:
             A session store class.
         """
-        return import_string(self.config['tipfy']['session_store_class'])
+        cls = self.config['tipfy']['session_store_class']
+        return werkzeug.utils.import_string(cls)
+
+
+def redirect(location, code=302, response_class=Response, body=None):
+    """Returns a response object that redirects to the given location.
+
+    Supported codes are 301, 302, 303, 305, and 307. 300 is not supported
+    because it's not a real redirect and 304 because it's the answer for a
+    request with a request with defined If-Modified-Since headers.
+
+    :param location:
+        A relative or absolute URI (e.g., '/contact'). If relative, it
+        will be merged to the current request URL to form an absolute URL.
+    :param code:
+        The HTTP status code for the redirect. Default is 302.
+    :param response_class:
+        The class used to build the response. Default is :class:`Response`.
+    :body:
+        The response body. If not set uses a body with a standard message.
+    :returns:
+        A :class:`Response` object with headers set for redirection.
+    """
+    assert code in (301, 302, 303, 305, 307), 'invalid code'
+    # not yet.
+    #if location.startswith(('.', '/')):
+    #    location = urlparse.urljoin(get_request().url, location)
+
+    display_location = location
+    if isinstance(location, unicode):
+        location = werkzeug.urls.iri_to_uri(location)
+
+    if body is None:
+        body = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n' \
+            '<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n' \
+            '<p>You should be redirected automatically to target URL: ' \
+            '<a href="%s">%s</a>. If not click the link.' % \
+            (location, display_location)
+
+    response = response_class(body, code, mimetype='text/html')
+    response.headers['Location'] = location
+    return response

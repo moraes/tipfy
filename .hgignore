@@ -5,7 +5,6 @@
 \.bak
 \.swp
 dist
-temp
 docs/build
 docs/project
 tests/project

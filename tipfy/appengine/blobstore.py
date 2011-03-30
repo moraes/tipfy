@@ -17,7 +17,7 @@
 
     :copyright: 2007 Google Inc.
     :copyright: 2009 Accense Technology, Inc. All rights reserved.
-    :copyright: 2010 tipfy.org.
+    :copyright: 2011 tipfy.org.
     :license: Apache 2.0 License, see LICENSE.txt for more details.
 """
 import cgi

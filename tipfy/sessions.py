@@ -7,7 +7,7 @@
     cookies and supports flash messages. For App Engine's datastore and
     memcache based sessions, see tipfy.appengine.sessions.
 
-    :copyright: 2010 by tipfy.org.
+    :copyright: 2011 by tipfy.org.
     :license: Apache Sotware License, see LICENSE for details.
 """
 import hashlib

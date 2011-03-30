@@ -7,7 +7,7 @@
 
     Learn more about Jinja2 at http://jinja.pocoo.org/2/
 
-    :copyright: 2010 by tipfy.org.
+    :copyright: 2011 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 import blinker

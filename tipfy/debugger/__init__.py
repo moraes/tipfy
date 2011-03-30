@@ -8,7 +8,7 @@
     Applies monkeypatch for Werkzeug's interactive debugger to work with
     the development server. See http://dev.pocoo.org/projects/jinja/ticket/349
 
-    :copyright: 2010 by tipfy.org.
+    :copyright: 2011 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 import mimetypes

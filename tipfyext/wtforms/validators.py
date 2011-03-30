@@ -5,8 +5,8 @@
 
     Form validators.
 
-    :copyright: 2010 WTForms authors.
-    :copyright: 2010 tipfy.org.
+    :copyright: 2011 WTForms authors.
+    :copyright: 2011 tipfy.org.
     :copyright: 2009 Plurk Inc.
     :license: BSD, see LICENSE.txt for more details.
 """

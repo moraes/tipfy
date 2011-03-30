@@ -5,7 +5,7 @@
 
     Extra db.Model property classes.
 
-    :copyright: 2010 by tipfy.org.
+    :copyright: 2011 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 import hashlib
@@ -225,5 +225,5 @@ class DecimalProperty(db.Property):
             return value
         elif isinstance(value, basestring):
             return decimal.Decimal(value)
-        raise db.BadValueError("Property %s must be a Decimal or string" 
+        raise db.BadValueError("Property %s must be a Decimal or string"
             % self.name)

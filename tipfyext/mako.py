@@ -7,7 +7,7 @@
 
     Learn more about Mako at http://www.makotemplates.org/
 
-    :copyright: 2010 by tipfy.org.
+    :copyright: 2011 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 from __future__ import absolute_import

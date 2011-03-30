@@ -5,7 +5,7 @@
 
     A general purpose sharded counter implementation for the datastore.
 
-    :copyright: 2010 by tipfy.org.
+    :copyright: 2011 by tipfy.org.
     :license: Apache Software License, see LICENSE.txt for more details.
 """
 import string

@@ -9,7 +9,7 @@
 
     :copyright: 2007 Leah Culver.
     :copyright: 2009 Facebook.
-    :copyright: 2010 tipfy.org.
+    :copyright: 2011 tipfy.org.
     :license: MIT License / Apache License Version 2.0, see LICENSE.txt for
         more details.
 """

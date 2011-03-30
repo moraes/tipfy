@@ -17,7 +17,7 @@
     `Flask-Babel <http://pypi.python.org/pypi/Flask-Babel/>`_ and
     `Kay <http://code.google.com/p/kay-framework/>`_.
 
-    :copyright: 2010 by tipfy.org.
+    :copyright: 2011 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 from datetime import datetime

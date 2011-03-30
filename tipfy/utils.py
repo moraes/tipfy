@@ -128,7 +128,7 @@ def _build_unicode_map():
 def url_for(_name, **kwargs):
     """A proxy to :meth:`RequestHandler.url_for`.
 
-    .. seealso:: :meth:`Router.build`.
+    .. seealso:: :meth:`Router.url_for`.
     """
     return current_handler.url_for(_name, **kwargs)
 

@@ -101,7 +101,7 @@ class Router(object):
 
         return rv
 
-    def build(self, request, name, kwargs):
+    def url_for(self, request, name, kwargs):
         """Returns a URL for a named :class:`Rule`. This is the central place
         to build URLs for an app. It is used by :meth:`RequestHandler.url_for`,
         which conveniently pass the request object so you don't have to.
@@ -177,6 +177,9 @@ class Router(object):
             The server name used to build the URL adapter.
         """
         return self.app.config['tipfy']['server_name']
+
+    # Old name.
+    build = url_for
 
 
 class Rule(BaseRule):
@@ -284,19 +287,28 @@ class Rule(BaseRule):
             the script so don't use a leading slash on the target URL unless
             you really mean root of that domain.
         """
+        # In werkzeug.routing, 'endpoint' defines the name or the callable
+        # depending on the implementation, and an extra map is needed to map
+        # named rules to their callables. We support werkzeug.routing's
+        # 'endpoint' but favor a less ambiguous 'name' keyword, and accept an
+        # extra 'handler' keyword that defines the callable to be executed.
+        # This way a rule always carries both a name and a callable definition,
+        # unambiguously, and no extra map is needed.
         self.name = kwargs.pop('endpoint', name)
-        self.handler = handler or self.name
+        self.handler = handler = handler or self.name
+        # If a handler string has a colon, we take it as the method from a
+        # handler class, e.g., 'my_module.MyClass:my_method', and store it
+        # in the rule as 'handler_method'. Not every rule mapping to a class
+        # must define a method (the request method is used by default), and for
+        # functions 'handler_method' is of course always None.
         self.handler_method = handler_method
-        if isinstance(self.handler, basestring):
-            if handler_method and self.handler.find(':') != -1:
+        if isinstance(handler, basestring) and handler.rfind(':') != -1:
+            if handler_method:
                 raise ValueError(
                     "If handler_method is defined in a Rule, handler "
-                    "can't have a colon (got %r)." % self.handler)
+                    "can't have a colon (got %r)." % handler)
             else:
-                parts = self.handler.rsplit(':', 1)
-                self.handler = parts[0]
-                if len(parts) > 1:
-                    self.handler_method = parts[1]
+                self.handler, self.handler_method = handler.rsplit(':', 1)
 
         super(Rule, self).__init__(path, endpoint=self.name, **kwargs)
 

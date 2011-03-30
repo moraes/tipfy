@@ -260,9 +260,9 @@ class BaseRequestHandler(object):
     def url_for(self, _name, **kwargs):
         """Returns a URL for a named :class:`Rule`.
 
-        .. seealso:: :meth:`Router.build`.
+        .. seealso:: :meth:`Router.url_for`.
         """
-        return self.app.router.build(self.request, _name, kwargs)
+        return self.app.router.url_for(self.request, _name, kwargs)
 
 
 class RequestHandler(BaseRequestHandler):

@@ -11,3 +11,7 @@ docs/build
 docs/project
 tests/project
 
+# Using buildout with tipfy-git as submodule causes the tipfy 
+# git repo to be "dirty". Ignore these files.
+tipfy.egg-info/
+

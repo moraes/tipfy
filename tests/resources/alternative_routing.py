@@ -19,13 +19,13 @@ class OtherHandler(RequestHandler):
         return Response('other-bar')
 
 
-def home(app, request):
+def home(request):
     return 'home'
 
 
-def foo(app, request):
+def foo(request):
     return 'foo'
 
 
-def bar(app, request):
+def bar(request):
     return 'bar'

@@ -13,12 +13,6 @@ import werkzeug.local
 #: Context-local.
 local = werkzeug.local.Local()
 
-#: A proxy to the current :class:`tipfy.app.App` instance.
-app = local('app')
-
-#: A proxy to the current :class:`tipfy.app.Request` instance.
-request = local('request')
-
 
 def get_app():
     """Returns the current WSGI app instance.
@@ -27,6 +21,7 @@ def get_app():
         The current :class:`tipfy.app.App` instance.
     """
     return local.app
+
 
 def get_request():
     """Returns the current request instance.
@@ -48,4 +43,4 @@ def get_request():
 #: there to dynamically get the currently active handler.
 current_handler = local('current_handler')
 #: Same as current_handler, only for the active WSGI app.
-current_app = app
+current_app = local('app')

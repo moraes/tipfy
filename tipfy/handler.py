@@ -35,16 +35,24 @@ class BaseRequestHandler(object):
 
     A Tipfy-compatible handler can be implemented using only these two methods.
     """
-    def __init__(self, app, request):
+    def __init__(self, request, app=None):
         """Initializes the handler.
 
-        :param app:
-            A :class:`tipfy.app.App` instance.
         :param request:
             A :class:`Request` instance.
+        :param app:
+            A :class:`tipfy.app.App` instance.
         """
-        self.app = app
-        self.request = request
+        if app:
+            # App argument is kept for backwards compatibility. Previously we
+            # called passing (app, request) but because view functions are now
+            # supported only request is passed and app is an attribute of the
+            # request object.
+            self.app = request
+            self.request = app
+        else:
+            self.request = request
+
         # A context for shared data, e.g., template variables.
         self.context = {}
 
@@ -77,6 +85,15 @@ class BaseRequestHandler(object):
             return self.make_response(method(**request.rule_args))
         except Exception, e:
             return self.handle_exception(exception=e)
+
+    @werkzeug.utils.cached_property
+    def app(self):
+        """The current WSGI app instance.
+
+        :returns:
+            The current WSGI app instance.
+        """
+        return self.request.app
 
     @werkzeug.utils.cached_property
     def auth(self):

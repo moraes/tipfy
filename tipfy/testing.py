@@ -64,6 +64,8 @@ class CurrentHandlerContext(object):
             self.request = app.request_class.from_values(*args, **kwargs)
 
     def __enter__(self):
+        local.request = self.request
+        local.app = self.request.app = self.app
         if self.handler is not None:
             local.current_handler = self.handler
         else:
@@ -75,7 +77,7 @@ class CurrentHandlerContext(object):
             else:
                 handler_class = self.handler_class
 
-            local.current_handler = handler_class(self.app, self.request)
+            local.current_handler = handler_class(self.request)
 
         return local.current_handler
 

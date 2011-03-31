@@ -8,6 +8,8 @@
     :copyright: 2011 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
+from __future__ import with_statement
+
 import logging
 import os
 import urlparse
@@ -23,7 +25,7 @@ import werkzeug.wrappers
 
 from . import default_config
 from .config import Config, REQUIRED_VALUE
-from .local import current_app, current_handler, local
+from .local import current_app, current_handler, get_request, local
 from .json import json_decode
 from .routing import Router, Rule
 
@@ -81,6 +83,43 @@ class Response(werkzeug.wrappers.Response):
     default_mimetype = 'text/html'
 
 
+class RequestContext(object):
+    """Sets and releases the context locals used during a request.
+
+    User meth:`App.get_test_context` to build a `RequestContext` for
+    testing purposes.
+    """
+    def __init__(self, app, environ):
+        """Initializes the request context.
+
+        :param app:
+            An :class:`App` instance.
+        :param environ:
+            A WSGI environment.
+        """
+        self.app = app
+        self.environ = environ
+
+    def __enter__(self):
+        """Enters the request context.
+
+        :returns:
+            A :class:`Request` instance.
+        """
+        local.request = request = self.app.request_class(self.environ)
+        local.app = request.app = self.app
+        return request
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Exits the request context.
+
+        This will release the context locals except if an exception is caught
+        in debug mode. In this case the locals are kept to be inspected.
+        """
+        if exc_type is None or not self.app.debug:
+            local.__release_local__()
+
+
 class App(object):
     """The WSGI application."""
     # Allowed request methods.
@@ -116,12 +155,11 @@ class App(object):
             logging.getLogger().setLevel(logging.DEBUG)
 
     def __call__(self, environ, start_response):
-        """Shortcut for :meth:`App.wsgi_app`."""
-        local.app = self
+        """Called when a request comes in."""
         if self.debug and self.config['tipfy']['enable_debugger']:
             return self._debugged_wsgi_app(environ, start_response)
 
-        return self.wsgi_app(environ, start_response)
+        return self.dispatch(environ, start_response)
 
     def dispatch(self, environ, start_response):
         """This is the actual WSGI application.  This is not implemented in
@@ -132,7 +170,7 @@ class App(object):
 
         It's a better idea to do this instead::
 
-            app.wsgi_app = MyMiddleware(app.wsgi_app)
+            app.dispatch = MyMiddleware(app.dispatch)
 
         Then you still have the original application object around and
         can continue to call methods on it.
@@ -145,35 +183,28 @@ class App(object):
             A callable accepting a status code, a list of headers and an
             optional exception context to start the response.
         """
-        cleanup = True
-        try:
-            local.request = request = self.request_class(environ)
-            request.app = self
-            if request.method not in self.allowed_methods:
-                abort(501)
-
-            rv = self.router.dispatch(request)
-            response = self.make_response(request, rv)
-        except Exception, e:
+        with RequestContext(self, environ) as request:
             try:
-                response = self.handle_exception(request, e)
-            except HTTPException, e:
-                response = self.make_response(request, e)
-            except Exception, e:
-                if self.debug:
-                    cleanup = not self.config['tipfy']['enable_debugger']
-                    raise
+                if request.method not in self.allowed_methods:
+                    abort(501)
 
-                # We only log unhandled non-HTTP exceptions. Users should
-                # take care of logging in custom error handlers.
-                logging.exception(e)
-                rv = werkzeug.exceptions.InternalServerError()
+                rv = self.router.dispatch(request)
                 response = self.make_response(request, rv)
-        finally:
-            if cleanup:
-                local.__release_local__()
+            except Exception, e:
+                try:
+                    rv = self.handle_exception(request, e)
+                    response = self.make_response(request, rv)
+                except HTTPException, e:
+                    response = self.make_response(request, e)
+                except Exception, e:
+                    if self.debug:
+                        raise
 
-        return response(environ, start_response)
+                    logging.exception(e)
+                    rv = werkzeug.exceptions.InternalServerError()
+                    response = self.make_response(request, rv)
+
+            return response(environ, start_response)
 
     def handle_exception(self, request, exception):
         """Handles an exception. To set app-wide error handlers, define them
@@ -221,7 +252,7 @@ class App(object):
             raise
 
         request.exception = exception
-        rv = handler(request.app, request)
+        rv = handler(request)
         if not isinstance(rv, werkzeug.wrappers.BaseResponse):
             if hasattr(rv, '__call__'):
                 # If it is a callable but not a response, we call it again.
@@ -286,8 +317,22 @@ class App(object):
         :returns:
             A ``werkzeug.Client`` with the WSGI application wrapped for tests.
         """
-        from werkzeug import Client
+        from werkzeug.test import Client
         return Client(self, self.response_class, use_cookies=True)
+
+    def get_test_context(self, *args, **kwargs):
+        """Creates a test client for this application.
+
+        :param args:
+            Positional arguments to construct a `werkzeug.test.EnvironBuilder`.
+        :param kwargs:
+            Keyword arguments to construct a `werkzeug.test.EnvironBuilder`.
+        :returns:
+            A :class:``RequestContext`` instance.
+        """
+        from werkzeug.test import EnvironBuilder
+        builder = EnvironBuilder(*args, **kwargs)
+        return RequestContext(self, builder.get_environ())
 
     def get_test_handler(self, *args, **kwargs):
         """Returns a handler set as a current handler for testing purposes.
@@ -324,7 +369,7 @@ class App(object):
     def _debugged_wsgi_app(self):
         """Returns the WSGI app wrapped by an interactive debugger."""
         from tipfy.debugger import DebuggedApplication
-        return DebuggedApplication(self.wsgi_app, evalex=True)
+        return DebuggedApplication(self.dispatch, evalex=True)
 
     @werkzeug.utils.cached_property
     def auth_store_class(self):
@@ -383,7 +428,7 @@ def redirect(location, code=302, response_class=Response, body=None):
 
     if location.startswith(('.', '/')):
         # Make it absolute.
-        location = urlparse.urljoin(local.request.url, location)
+        location = urlparse.urljoin(get_request().url, location)
 
     display_location = location
     if isinstance(location, unicode):

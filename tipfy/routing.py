@@ -13,7 +13,7 @@ from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
     Rule as BaseRule, RuleFactory, Subdomain, Submount)
 from werkzeug.wrappers import BaseResponse
 
-from .local import local
+from .local import get_request, local
 
 
 class Router(object):
@@ -90,7 +90,7 @@ class Router(object):
 
             rule.handler = handler = self.handlers[handler]
 
-        rv = local.current_handler = handler(request.app, request)
+        rv = local.current_handler = handler(request)
         if not isinstance(rv, BaseResponse) and hasattr(rv, '__call__'):
             # If it is a callable but not a response, we call it again.
             rv = rv()
@@ -406,7 +406,7 @@ def url_for(_name, **kwargs):
 
     .. seealso:: :meth:`Router.url_for`.
     """
-    request = local.request
+    request = get_request()
     return request.rule_adapter.url_for(request, _name, kwargs)
 
 

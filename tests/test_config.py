@@ -2,6 +2,8 @@
 """
 Tests for tipfy config
 """
+from __future__ import with_statement
+
 import unittest
 
 from tipfy import Tipfy, RequestHandler, REQUIRED_VALUE
@@ -259,16 +261,16 @@ class TestLoadConfig(unittest.TestCase):
 
     def test_request_handler_get_config(self):
         app = Tipfy()
+        with app.get_test_context() as request:
+            handler = RequestHandler(request)
 
-        handler = RequestHandler(app, None)
-
-        self.assertEqual(handler.get_config('resources.i18n', 'locale'), 'en_US')
-        self.assertEqual(handler.get_config('resources.i18n', 'locale', 'foo'), 'en_US')
-        self.assertEqual(handler.get_config('resources.i18n'), {
-            'locale': 'en_US',
-            'timezone': 'America/Chicago',
-            'required': REQUIRED_VALUE,
-        })
+            self.assertEqual(handler.get_config('resources.i18n', 'locale'), 'en_US')
+            self.assertEqual(handler.get_config('resources.i18n', 'locale', 'foo'), 'en_US')
+            self.assertEqual(handler.get_config('resources.i18n'), {
+                'locale': 'en_US',
+                'timezone': 'America/Chicago',
+                'required': REQUIRED_VALUE,
+            })
 
 
 class TestLoadConfigGetItem(unittest.TestCase):

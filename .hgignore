@@ -7,7 +7,7 @@
 dist
 docs/build
 docs/project
-tests/project
+tests/env
 
 # ZC buildout; see http://www.buildout.org/docs/dirstruct.html
 project/\.installed.cfg

@@ -14,7 +14,7 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #: Default configuration values for this module. Keys are:
 #:
 #: auth_store_class
-#:     The default auth store class to use in :class:`tipfy.Request`.
+#:     The default auth store class to use in :class:`tipfy.app.Request`.
 #:     Default is `tipfy.appengine.auth.AuthStore`.
 #:
 #: i18n_store_class
@@ -22,7 +22,7 @@ __version_info__ = tuple(int(n) for n in __version__.split('.'))
 #:     Default is `tipfy.i18n.I18nStore`.
 #:
 #: session_store_class
-#:     The default session store class to use in :class:`tipfy.Request`.
+#:     The default session store class to use in :class:`tipfy.app.Request`.
 #:     Default is `tipfy.sessions.SessionStore`.
 #:
 #: server_name

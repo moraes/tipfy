@@ -22,9 +22,9 @@ class CurrentHandlerContext(object):
 
         from __future__ import with_statement
 
-        from tipfy import Tipfy, Rule
+        from tipfy import App, Rule
 
-        app = Tipfy(rules=[
+        app = App(rules=[
             Rule('/about', name='home', handler='handlers.AboutHandler'),
         ])
 
@@ -39,10 +39,10 @@ class CurrentHandlerContext(object):
         """Initializes the handler context.
 
         :param app:
-            A :class:`tipfy.Tipfy` instance.
+            A :class:`tipfy.app.App` instance.
         :param args:
-            Arguments to build a :class:`tipfy.Request` instance if a request
-            is not passed explicitly.
+            Arguments to build a :class:`tipfy.app.Request` instance if a
+            request is not passed explicitly.
         :param kwargs:
             Keyword arguments to build a :class:`Request` instance if a request
             is not passed explicitly. A few keys have special meaning:
@@ -56,6 +56,9 @@ class CurrentHandlerContext(object):
             - `handler`: a handler instance. If passed, the handler is simply
               set and reset as current_handler during the context execution.
         """
+        from warnings import warn
+        warn(DeprecationWarning("CurrentHandlerContext: this class "
+            "is deprecated. Use tipfy.app.RequestContext instead."))
         self.app = app
         self.handler = kwargs.pop('handler', None)
         self.handler_class = kwargs.pop('handler_class', None)

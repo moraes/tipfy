@@ -802,7 +802,7 @@ def _get_request_value(handler, lookup_list, default=None):
     found, returns the default value.
 
     :param request:
-        A :class:`tipfy.Request` instance.
+        A :class:`tipfy.app.Request` instance.
     :param lookup_list:
         A list of `(attribute, key)` tuples to search in request, e.g.,
         ``[('args', 'lang'), ('session', 'locale')]``.

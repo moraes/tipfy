@@ -40,14 +40,16 @@ class BaseRequestHandler(object):
 
         :param request:
             A :class:`Request` instance.
-        :param app:
-            A :class:`tipfy.app.App` instance.
         """
         if app:
             # App argument is kept for backwards compatibility. Previously we
             # called passing (app, request) but because view functions are now
             # supported only request is passed and app is an attribute of the
             # request object.
+            from warnings import warn
+            warn(DeprecationWarning("BaseRequestHandler.__init__(): the "
+                "'app' argument is deprecated. The constructor must receive "
+                "only the Request object."))
             self.app = request
             self.request = app
         else:
@@ -149,8 +151,13 @@ class BaseRequestHandler(object):
     def get_config(self, module, key=None, default=REQUIRED_VALUE):
         """Returns a configuration value for a module.
 
+        .. warning: Deprecated. Use `self.app.config['module']['key']` instead.
+
         .. seealso:: :meth:`Config.get_config`.
         """
+        from warnings import warn
+        warn(DeprecationWarning("BaseRequestHandler.get_config(): this method "
+            "is deprecated. Use self.app.config['module']['key'] instead."))
         return self.app.config.get_config(module, key=key, default=default)
 
     def get_valid_methods(self):
@@ -213,6 +220,10 @@ class BaseRequestHandler(object):
         response_class = response_class or self.app.response_class
 
         if empty:
+            from warnings import warn
+            warn(DeprecationWarning("BaseRequestHandler.redirect(): the "
+                "'empty' keyword argument is deprecated. Use body='' "
+                "instead."))
             body = ''
 
         return redirect(location, code=code, response_class=response_class,

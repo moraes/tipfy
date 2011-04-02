@@ -36,7 +36,7 @@ class Config(dict):
             'foo': 'bar',
         }
 
-        app = Tipfy(rules=[Rule('/', name='home', handler=MyHandler)],
+        app = App(rules=[Rule('/', name='home', handler=MyHandler)],
             config=config)
 
     Then to read configuration values, use :meth:`RequestHandler.get_config`::

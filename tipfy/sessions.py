@@ -148,7 +148,7 @@ class SecureCookieStore(object):
         """Returns the given signed cookie if it validates, or None.
 
         :param request:
-            A :class:`tipfy.Request` object.
+            A :class:`tipfy.app.Request` object.
         :param name:
             Cookie name.
         :param max_age:
@@ -186,7 +186,7 @@ class SecureCookieStore(object):
         To read a cookie set with this method, use get_cookie().
 
         :param response:
-            A :class:`tipfy.Response` instance.
+            A :class:`tipfy.app.Response` instance.
         :param name:
             Cookie name.
         :param value:
@@ -348,7 +348,7 @@ class SessionStore(object):
         """Sets a secure cookie in the response.
 
         :param response:
-            A :class:`tipfy.Response` object.
+            A :class:`tipfy.app.Response` object.
         :param name:
             Cookie name.
         :param value:

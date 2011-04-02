@@ -21,7 +21,7 @@ class Router(object):
         """Initializes the router.
 
         :param app:
-            A :class:`tipfy.Tipfy` instance.
+            A :class:`tipfy.app.App` instance.
         :param rules:
             A list of initial :class:`Rule` instances.
         """
@@ -47,14 +47,14 @@ class Router(object):
         request and returns the matched rule and rule arguments.
 
         The URL adapter, matched rule and rule arguments will be set in the
-        :class:`tipfy.Request` instance.
+        :class:`tipfy.app.Request` instance.
 
         Three exceptions can occur when matching the rules: ``NotFound``,
         ``MethodNotAllowed`` or ``RequestRedirect``. The WSGI app will handle
         raised exceptions.
 
         :param request:
-            A :class:`tipfy.Request` instance.
+            A :class:`tipfy.app.Request` instance.
         :returns:
             A tuple ``(rule, rule_args)`` with the matched rule and rule
             arguments.
@@ -73,14 +73,14 @@ class Router(object):
         :class:`tipfy.RequestHandler` based on the matched :class:`Rule`.
 
         :param request:
-            A :class:`tipfy.Request` instance.
+            A :class:`tipfy.app.Request` instance.
         :param match:
             A tuple ``(rule, rule_args)`` with the matched rule and rule
             arguments.
         :param method:
             A method to be used instead of using the request or handler method.
         :returns:
-            A :class:`tipfy.Response` instance.
+            A :class:`tipfy.app.Response` instance.
         """
         rule, rule_args = self.match(request)
         handler = rule.handler
@@ -168,7 +168,7 @@ class Router(object):
         from multiple domains).
 
         :param request:
-            A :class:`tipfy.Request` instance.
+            A :class:`tipfy.app.Request` instance.
         :returns:
             The server name used to build the URL adapter.
         """

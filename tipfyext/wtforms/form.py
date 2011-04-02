@@ -39,7 +39,7 @@ class Form(BaseForm):
         process them.
 
         :param formdata:
-            A :class:`tipfy.Request` object or a multidict of form data coming
+            A :class:`tipfy.app.Request` object or a multidict of form data coming
             from the enduser, usually `request.form` or equivalent.
         :param obj:
             If `formdata` has no data for a field, the form will try to get it

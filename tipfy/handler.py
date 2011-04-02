@@ -315,3 +315,44 @@ class RequestHandler(BaseRequestHandler):
 
         # Done!
         return response
+
+
+class RequestHandlerMiddleware(object):
+    """Base class for :class:`RequestHandler` middleware."""
+    def before_dispatch(self, handler):
+        """Called before the handler method is executed.
+
+        If the returned value is not None, stops the middleware chain and uses
+        that value to create a response, and doesn't call the handler method.
+
+        :param handler:
+            A :class:`RequestHandler` instance.
+        """
+
+    def after_dispatch(self, handler, response):
+        """Called after the handler method is executed.
+
+        Must always return a response object.
+
+        These are executed in reverse order.
+
+        :param handler:
+            A :class:`RequestHandler` instance.
+        :param response:
+            A :class:`tipfy.app.Response` instance.
+        """
+        return response
+
+    def handle_exception(self, handler, exception):
+        """Called if an exception occurs while executing the handler method.
+
+        If the returned value is not None, stops the middleware chain and uses
+        that value to create a response.
+
+        These are executed in reverse order.
+
+        :param handler:
+            A :class:`RequestHandler` instance.
+        :param exception:
+            An exception.
+        """

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """URL definitions."""
-from tipfy import Rule
+from tipfy.routing import Rule
 
 rules = [
     Rule('/', name='hello-world', handler='hello_world.handlers.HelloWorldHandler'),

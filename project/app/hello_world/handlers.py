@@ -8,7 +8,8 @@
     :copyright: 2009 by tipfy.org.
     :license: BSD, see LICENSE for more details.
 """
-from tipfy import RequestHandler, Response
+from tipfy.app import Response
+from tipfy.handler import RequestHandler
 from tipfyext.jinja2 import Jinja2Mixin
 
 

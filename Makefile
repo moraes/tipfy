@@ -12,6 +12,7 @@ NONTESTS=`find tipfy -name [a-z]\*.py`
 PORT=	8080
 ADDRESS=localhost
 PYTHON= python -Wignore
+failed=0
 
 define run_test
 	PYTHONPATH=$(GAEPATH):. $(PYTHON) -m tests.$1_test $(FLAGS)
@@ -19,10 +20,10 @@ endef
 
 test:
 	for i in $(TESTS); \
-	do \
-	  echo $$i; \
-	  PYTHONPATH=$(GAEPATH):. $(PYTHON) -m tests.`basename $$i .py` $(FLAGS); \
-	done
+    do \
+      echo $$i; \
+      PYTHONPATH=$(GAEPATH):. $(PYTHON) -m tests.`basename $$i .py` $(FLAGS); \
+    done	
 
 # 'app', 'auth', 'config', 'dev', 'ext_jinja2', 'ext_mako', 'gae_acl', 
 # 'gae_blobstore', 'gae_db', 'gae_mail', 'gae_sharded_counter', 

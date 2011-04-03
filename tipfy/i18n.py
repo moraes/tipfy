@@ -33,7 +33,7 @@ except ImportError:
     except ImportError:
         raise RuntimeError('gaepytz or pytz are required.')
 
-from tipfy.app import current_handler
+from tipfy.local import get_request
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -142,20 +142,20 @@ class I18nStore(object):
     #: Current tzinfo.
     tzinfo = None
 
-    def __init__(self, handler):
-        self.config = handler.app.config[__name__]
-        self.loaded_translations = handler.app.registry.setdefault(
+    def __init__(self, request):
+        self.config = request.app.config[__name__]
+        self.loaded_translations = request.app.registry.setdefault(
             'i18n.translations', {})
-        self.set_locale_for_request(handler)
-        self.set_timezone_for_request(handler)
+        self.set_locale_for_request(request)
+        self.set_timezone_for_request(request)
 
-    def set_locale_for_request(self, handler):
-        locale = _get_request_value(handler,
+    def set_locale_for_request(self, request):
+        locale = _get_request_value(request,
             self.config['locale_request_lookup'], self.config['locale'])
         self.set_locale(locale)
 
-    def set_timezone_for_request(self, handler):
-        timezone = _get_request_value(handler,
+    def set_timezone_for_request(self, request):
+        timezone = _get_request_value(request,
             self.config['timezone_request_lookup'], self.config['timezone'])
         self.set_timezone(timezone)
 
@@ -635,109 +635,109 @@ class I18nStore(object):
 
 def set_locale(locale):
     """See :meth:`I18nStore.set_locale`."""
-    return current_handler.i18n.set_locale(locale)
+    return get_request().i18n.set_locale(locale)
 
 
 def set_timezone(timezone):
     """See :meth:`I18nStore.set_timezone`."""
-    return current_handler.i18n.set_timezone(timezone)
+    return get_request().i18n.set_timezone(timezone)
 
 
 def gettext(string, **variables):
     """See :meth:`I18nStore.gettext`."""
-    return current_handler.i18n.gettext(string, **variables)
+    return get_request().i18n.gettext(string, **variables)
 
 
 def ngettext(singular, plural, n, **variables):
     """See :meth:`I18nStore.ngettext`."""
-    return current_handler.i18n.ngettext(singular, plural, n, **variables)
+    return get_request().i18n.ngettext(singular, plural, n, **variables)
 
 
 def to_local_timezone(datetime):
     """See :meth:`I18nStore.to_local_timezone`."""
-    return current_handler.i18n.to_local_timezone(datetime)
+    return get_request().i18n.to_local_timezone(datetime)
 
 
 def to_utc(datetime):
     """See :meth:`I18nStore.to_utc`."""
-    return current_handler.i18n.to_utc(datetime)
+    return get_request().i18n.to_utc(datetime)
 
 
 def format_date(date=None, format=None, rebase=True):
     """See :meth:`I18nStore.format_date`."""
-    return current_handler.i18n.format_date(date, format, rebase)
+    return get_request().i18n.format_date(date, format, rebase)
 
 
 def format_datetime(datetime=None, format=None, rebase=True):
     """See :meth:`I18nStore.format_datetime`."""
-    return current_handler.i18n.format_datetime(datetime, format, rebase)
+    return get_request().i18n.format_datetime(datetime, format, rebase)
 
 
 def format_time(time=None, format=None, rebase=True):
     """See :meth:`I18nStore.format_time`."""
-    return current_handler.i18n.format_time(time, format, rebase)
+    return get_request().i18n.format_time(time, format, rebase)
 
 
 def format_timedelta(datetime_or_timedelta, granularity='second',
     threshold=.85):
     """See :meth:`I18nStore.format_timedelta`."""
-    return current_handler.i18n.format_timedelta(datetime_or_timedelta,
+    return get_request().i18n.format_timedelta(datetime_or_timedelta,
         granularity, threshold)
 
 
 def format_number(number):
     """See :meth:`I18nStore.format_number`."""
-    return current_handler.i18n.format_number(number)
+    return get_request().i18n.format_number(number)
 
 
 def format_decimal(number, format=None):
     """See :meth:`I18nStore.format_decimal`."""
-    return current_handler.i18n.format_decimal(number, format)
+    return get_request().i18n.format_decimal(number, format)
 
 
 def format_currency(number, currency, format=None):
     """See :meth:`I18nStore.format_currency`."""
-    return current_handler.i18n.format_currency(number, currency, format)
+    return get_request().i18n.format_currency(number, currency, format)
 
 
 def format_percent(number, format=None):
     """See :meth:`I18nStore.format_percent`."""
-    return current_handler.i18n.format_percent(number, format)
+    return get_request().i18n.format_percent(number, format)
 
 
 def format_scientific(number, format=None):
     """See :meth:`I18nStore.format_scientific`."""
-    return current_handler.i18n.format_scientific(number, format)
+    return get_request().i18n.format_scientific(number, format)
 
 
 def parse_date(string):
     """See :meth:`I18nStore.parse_date`"""
-    return current_handler.i18n.parse_date(string)
+    return get_request().i18n.parse_date(string)
 
 
 def parse_datetime(string):
     """See :meth:`I18nStore.parse_datetime`."""
-    return current_handler.i18n.parse_datetime(string)
+    return get_request().i18n.parse_datetime(string)
 
 
 def parse_time(string):
     """See :meth:`I18nStore.parse_time`."""
-    return current_handler.i18n.parse_time(string)
+    return get_request().i18n.parse_time(string)
 
 
 def parse_number(string):
     """See :meth:`I18nStore.parse_number`."""
-    return current_handler.i18n.parse_number(string)
+    return get_request().i18n.parse_number(string)
 
 
 def parse_decimal(string):
     """See :meth:`I18nStore.parse_decimal`."""
-    return current_handler.i18n.parse_decimal(string)
+    return get_request().i18n.parse_decimal(string)
 
 
 def get_timezone_location(dt_or_tzinfo):
     """See :meth:`I18nStore.get_timezone_location`."""
-    return current_handler.i18n.get_timezone_location(dt_or_tzinfo)
+    return get_request().i18n.get_timezone_location(dt_or_tzinfo)
 
 
 def list_translations(dirname='locale'):
@@ -793,7 +793,7 @@ def lazy_ngettext(singular, plural, n, **variables):
     return support.LazyProxy(ngettext, singular, plural, n, **variables)
 
 
-def _get_request_value(handler, lookup_list, default=None):
+def _get_request_value(request, lookup_list, default=None):
     """Returns a locale code or timezone for the current request.
 
     It will use the configuration for ``locale_request_lookup`` or
@@ -811,18 +811,19 @@ def _get_request_value(handler, lookup_list, default=None):
     :returns:
         A locale code or timezone setting.
     """
-    request = handler.request
+    value = None
+    attrs = ('args', 'form', 'cookies', 'session', 'rule_args')
     for method, key in lookup_list:
-        if method in ('session', 'context'):
-            # Get from session or handler context.
-            obj = getattr(handler, method)
-        else:
+        if method in attrs:
             # Get from GET, POST, cookies or rule_args.
             obj = getattr(request, method)
+        else:
+            obj = None
 
-        value = obj.get(key, None)
+        if obj:
+            value = obj.get(key, None)
 
-        if value is not None:
+        if value:
             break
     else:
         value = default

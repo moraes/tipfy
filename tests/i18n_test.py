@@ -13,18 +13,19 @@ from babel.numbers import NumberFormatError
 
 from pytz.gae import pytz
 
-from tipfy import (Tipfy, RequestHandler, Request, Response, Rule,
-    current_handler)
-from tipfy.app import local
-import tipfy.i18n as i18n
+from tipfy.app import App, Request, Response
+from tipfy.handler import RequestHandler
+from tipfy.routing import Rule
+from tipfy.local import local, get_request
 from tipfy.sessions import SessionMiddleware
+import tipfy.i18n as i18n
 
 import test_utils
 
 
 class BaseTestCase(test_utils.BaseTestCase):
     def setUp(self):
-        app = Tipfy(rules=[
+        app = App(rules=[
             Rule('/', name='home', handler=RequestHandler)
         ], config={
             'tipfy.sessions': {
@@ -34,14 +35,14 @@ class BaseTestCase(test_utils.BaseTestCase):
                 'timezone': 'UTC'
             },
         })
-        local.current_handler = RequestHandler(app, Request.from_values('/'))
+        local.request = request = Request.from_values('/')
+        request.app = app
         test_utils.BaseTestCase.setUp(self)
 
+    #==========================================================================
+    # I18nMiddleware
+    #==========================================================================
 
-#==============================================================================
-# I18nMiddleware
-#==============================================================================
-class TestI18nMiddleware(BaseTestCase):
     def test_middleware_multiple_changes(self):
         class MyHandler(RequestHandler):
             middleware = [SessionMiddleware(), i18n.I18nMiddleware()]
@@ -50,7 +51,7 @@ class TestI18nMiddleware(BaseTestCase):
                 locale = self.i18n.locale
                 return Response(locale)
 
-        app = Tipfy(rules=[
+        app = App(rules=[
             Rule('/', name='home', handler=MyHandler)
         ], config={
             'tipfy.sessions': {
@@ -77,15 +78,14 @@ class TestI18nMiddleware(BaseTestCase):
         response = client.get('/')
         self.assertEqual(response.data, 'en_US')
 
+    #==========================================================================
+    # _(), gettext(), ngettext(), lazy_gettext(), lazy_ngettext()
+    #==========================================================================
 
-#==============================================================================
-# _(), gettext(), ngettext(), lazy_gettext(), lazy_ngettext()
-#==============================================================================
-class TestGettext(BaseTestCase):
     def test_translations_not_set(self):
-        # TODO: shouldn't need to release local here
+        # We release it here because it is set on setUp()
         local.__release_local__()
-        self.assertRaises(RuntimeError, i18n.gettext, 'foo')
+        self.assertRaises(AttributeError, i18n.gettext, 'foo')
 
     def test_gettext(self):
         self.assertEqual(i18n.gettext('foo'), u'foo')
@@ -117,13 +117,12 @@ class TestGettext(BaseTestCase):
         self.assertEqual(i18n.lazy_ngettext('One foo', 'Many foos', 1), u'One foo')
         self.assertEqual(i18n.lazy_ngettext('One foo', 'Many foos', 2), u'Many foos')
 
+    #==========================================================================
+    # I18nStore.get_store_for_request()
+    #==========================================================================
 
-#==============================================================================
-# I18nStore.get_store_for_request()
-#==============================================================================
-class TestStoreForRequest(BaseTestCase):
     def get_app(self):
-        return Tipfy(rules=[
+        return App(rules=[
             Rule('/', name='home', handler=RequestHandler)
         ], config={
             'tipfy.sessions': {
@@ -180,11 +179,10 @@ class TestStoreForRequest(BaseTestCase):
             handler.request.rule_args = {'locale': 'es_ES'}
             self.assertEqual(handler.i18n.locale, 'es_ES')
 
+    #==========================================================================
+    # Date formatting
+    #==========================================================================
 
-#==============================================================================
-# Date formatting
-#==============================================================================
-class TestDates(BaseTestCase):
     def test_format_date(self):
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
 
@@ -198,7 +196,7 @@ class TestDates(BaseTestCase):
         self.assertEqual(i18n.format_date(value), u'Nov 10, 2009')
 
     def test_format_date_no_format_but_configured(self):
-        app = Tipfy(config={
+        app = App(config={
             'tipfy.sessions': {
                 'secret_key': 'secret',
             },
@@ -223,7 +221,8 @@ class TestDates(BaseTestCase):
                 }
             }
         })
-        local.current_handler = RequestHandler(app, Request.from_values('/'))
+        local.request = request = Request.from_values('/')
+        request.app = app
 
         value = datetime.datetime(2009, 11, 10, 16, 36, 05)
         self.assertEqual(i18n.format_date(value), u'Tuesday, November 10, 2009')
@@ -333,22 +332,24 @@ class TestDates(BaseTestCase):
         self.assertEqual(i18n.format_time(value, format='iso'), u'16:36:05')
         self.assertEqual(i18n.format_datetime(value, format='iso'), u'2009-11-10T16:36:05+0000')
 
-#==============================================================================
-# Timezones
-#==============================================================================
-class TestTimezones(BaseTestCase):
+    #==========================================================================
+    # Timezones
+    #==========================================================================
+
     def test_set_timezone(self):
-        current_handler.i18n.set_timezone('UTC')
-        self.assertEqual(current_handler.i18n.tzinfo.zone, 'UTC')
+        request = get_request()
+        request.i18n.set_timezone('UTC')
+        self.assertEqual(request.i18n.tzinfo.zone, 'UTC')
 
-        current_handler.i18n.set_timezone('America/Chicago')
-        self.assertEqual(current_handler.i18n.tzinfo.zone, 'America/Chicago')
+        request.i18n.set_timezone('America/Chicago')
+        self.assertEqual(request.i18n.tzinfo.zone, 'America/Chicago')
 
-        current_handler.i18n.set_timezone('America/Sao_Paulo')
-        self.assertEqual(current_handler.i18n.tzinfo.zone, 'America/Sao_Paulo')
+        request.i18n.set_timezone('America/Sao_Paulo')
+        self.assertEqual(request.i18n.tzinfo.zone, 'America/Sao_Paulo')
 
     def test_to_local_timezone(self):
-        current_handler.i18n.set_timezone('US/Eastern')
+        request = get_request()
+        request.i18n.set_timezone('US/Eastern')
 
         format = '%Y-%m-%d %H:%M:%S %Z%z'
 
@@ -365,7 +366,8 @@ class TestTimezones(BaseTestCase):
         self.assertEqual(result, '2002-10-27 01:00:00 EST-0500')
 
     def test_to_utc(self):
-        current_handler.i18n.set_timezone('US/Eastern')
+        request = get_request()
+        request.i18n.set_timezone('US/Eastern')
 
         format = '%Y-%m-%d %H:%M:%S'
 
@@ -390,11 +392,10 @@ class TestTimezones(BaseTestCase):
         i18n.set_locale('de_DE')
         self.assertEqual(i18n.get_timezone_location(pytz.timezone('Europe/Berlin')), u'Deutschland')
 
+    #==========================================================================
+    # Number formatting
+    #==========================================================================
 
-#==============================================================================
-# Number formatting
-#==============================================================================
-class TestNumberFormatting(BaseTestCase):
     def test_format_number(self):
         i18n.set_locale('en_US')
         self.assertEqual(i18n.format_number(1099), u'1,099')
@@ -459,11 +460,10 @@ class TestNumberFormatting(BaseTestCase):
         i18n.set_locale('de')
         self.assertRaises(NumberFormatError, i18n.parse_decimal, '2,109,998')
 
+    #==========================================================================
+    # Miscelaneous
+    #==========================================================================
 
-#==============================================================================
-# Miscelaneous
-#==============================================================================
-class TestMiscelaneous(BaseTestCase):
     def test_list_translations(self):
         cwd = os.getcwd()
         os.chdir(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'resources'))

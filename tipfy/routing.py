@@ -407,7 +407,7 @@ def url_for(_name, **kwargs):
     .. seealso:: :meth:`Router.url_for`.
     """
     request = get_request()
-    return request.rule_adapter.url_for(request, _name, kwargs)
+    return request.app.router.url_for(request, _name, kwargs)
 
 
 # Add regex converter to the list of converters.

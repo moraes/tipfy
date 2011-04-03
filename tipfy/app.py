@@ -53,6 +53,16 @@ class Request(werkzeug.wrappers.Request):
     rule_args = None
 
     @werkzeug.utils.cached_property
+    def auth(self):
+        """The auth store which provides access to the authenticated user and
+        auth related functions.
+
+        :returns:
+            An auth store instance.
+        """
+        return self.app.auth_store_class(self)
+
+    @werkzeug.utils.cached_property
     def json(self):
         """If the mimetype is `application/json` this will contain the
         parsed JSON data.
@@ -65,6 +75,34 @@ class Request(werkzeug.wrappers.Request):
         if self.mimetype == 'application/json':
             from tipfy.json import json_decode
             return json_decode(self.data)
+
+    @werkzeug.utils.cached_property
+    def i18n(self):
+        """The internationalization store which provides access to several
+        translation and localization utilities.
+
+        :returns:
+            An i18n store instance.
+        """
+        return self.app.i18n_store_class(self)
+
+    @werkzeug.utils.cached_property
+    def session(self):
+        """A session dictionary using the default session configuration.
+
+        :returns:
+            A dictionary-like object with the current session data.
+        """
+        return self.session_store.get_session()
+
+    @werkzeug.utils.cached_property
+    def session_store(self):
+        """The session store, responsible for managing sessions and flashes.
+
+        :returns:
+            A session store instance.
+        """
+        return self.app.session_store_class(self)
 
     def _get_rule_adapter(self):
         from warnings import warn

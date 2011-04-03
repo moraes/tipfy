@@ -105,7 +105,7 @@ class BaseRequestHandler(object):
         :returns:
             An auth store instance.
         """
-        return self.app.auth_store_class(self)
+        return self.request.auth
 
     @werkzeug.utils.cached_property
     def i18n(self):
@@ -115,7 +115,7 @@ class BaseRequestHandler(object):
         :returns:
             An i18n store instance.
         """
-        return self.app.i18n_store_class(self)
+        return self.request.i18n
 
     @werkzeug.utils.cached_property
     def session(self):
@@ -133,7 +133,7 @@ class BaseRequestHandler(object):
         :returns:
             A session store instance.
         """
-        return self.app.session_store_class(self)
+        return self.request.session_store
 
     def abort(self, code, *args, **kwargs):
         """Raises an :class:`HTTPException`. This stops code execution,

@@ -235,10 +235,10 @@ class SessionStore(object):
         'securecookie': SecureCookieSession,
     }
 
-    def __init__(self, handler, backends=None):
-        self.request = handler.request
+    def __init__(self, request, backends=None):
+        self.request = request
         # Base configuration.
-        self.config = handler.app.config[__name__]
+        self.config = request.app.config[__name__]
         # A dictionary of support backend classes.
         self.backends = backends or self.default_backends
         # The default backend to use when none is provided.

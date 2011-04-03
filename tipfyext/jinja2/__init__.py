@@ -16,8 +16,8 @@ from jinja2 import Environment, FileSystemLoader, ModuleLoader
 
 from werkzeug import cached_property, import_string
 
-from tipfy import current_handler
-from tipfy.utils import url_for
+from tipfy.local import get_request
+from tipfy.routing import url_for
 
 #: Default configuration values for this module. Keys are:
 #:
@@ -88,8 +88,8 @@ class Jinja2(object):
             # Install i18n.
             from tipfy import i18n
             env.install_gettext_callables(
-                lambda x: current_handler.i18n.translations.ugettext(x),
-                lambda s, p, n: current_handler.i18n.translations.ungettext(s,
+                lambda x: get_request().i18n.translations.ugettext(x),
+                lambda s, p, n: get_request().i18n.translations.ungettext(s,
                     p, n),
                 newstyle=True)
             format_functions = {

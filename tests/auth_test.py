@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 import os
 import unittest
 
@@ -60,39 +62,34 @@ class TestAuthStore(test_utils.BaseTestCase):
 		app = get_app()
 		app.router.add(Rule('/', name='home', handler=HomeHandler))
 
-		request = Request.from_values('/')
-		local.current_handler = RequestHandler(app, request)
-		app.router.match(request)
+		with app.get_test_context() as request:
+			request.app.router.match(request)
 
-		store = AuthStore(local.current_handler)
-		self.assertEqual(store.login_url(), local.current_handler.url_for('auth/login', redirect='/'))
+			store = AuthStore(request)
+			self.assertEqual(store.login_url(), request.app.router.url_for(request, 'auth/login', dict(redirect='/')))
 
-		tipfy.auth.DEV_APPSERVER_APPSERVER = False
-		store.config['secure_urls'] = True
-		self.assertEqual(store.login_url(), local.current_handler.url_for('auth/login', redirect='/', _scheme='https'))
-		tipfy.auth.DEV_APPSERVER_APPSERVER = True
+			tipfy.auth.DEV_APPSERVER_APPSERVER = False
+			store.config['secure_urls'] = True
+			self.assertEqual(store.login_url(), request.app.router.url_for(request, 'auth/login', dict(redirect='/', _scheme='https')))
+			tipfy.auth.DEV_APPSERVER_APPSERVER = True
 
 	def test_logout_url(self):
 		app = get_app()
 		app.router.add(Rule('/', name='home', handler=HomeHandler))
 
-		request = Request.from_values('/')
-		local.current_handler = RequestHandler(app, request)
-		app.router.match(request)
-
-		store = AuthStore(local.current_handler)
-		self.assertEqual(store.logout_url(), local.current_handler.url_for('auth/logout', redirect='/'))
+		with app.get_test_context() as request:
+			request.app.router.match(request)
+			store = AuthStore(request)
+			self.assertEqual(store.logout_url(), request.app.router.url_for(request, 'auth/logout', dict(redirect='/')))
 
 	def test_signup_url(self):
 		app = get_app()
 		app.router.add(Rule('/', name='home', handler=HomeHandler))
 
-		request = Request.from_values('/')
-		local.current_handler = RequestHandler(app, request)
-		app.router.match(request)
-
-		store = AuthStore(local.current_handler)
-		self.assertEqual(store.signup_url(), local.current_handler.url_for('auth/signup', redirect='/'))
+		with app.get_test_context() as request:
+			request.app.router.match(request)
+			store = AuthStore(request)
+			self.assertEqual(store.signup_url(), request.app.router.url_for(request, 'auth/signup', dict(redirect='/')))
 
 
 class TestMiddleware(test_utils.BaseTestCase):
@@ -615,122 +612,98 @@ class TestMultiAuthStore(test_utils.BaseTestCase):
 		app = Tipfy(config={'tipfy.sessions': {
 			'secret_key': 'secret',
 		}})
-		local.current_handler = RequestHandler(app, Request.from_values('/'))
 		return app
 
 	def test_login_with_form_invalid(self):
-		app = self.get_app()
-		request = Request.from_values('/')
-		local.current_handler = RequestHandler(app, request)
-
-		store = MultiAuthStore(local.current_handler)
-		res = store.login_with_form('foo', 'bar', remember=True)
-
-		self.assertEqual(res, False)
+		with self.get_app().get_test_context() as request:
+			store = MultiAuthStore(request)
+			res = store.login_with_form('foo', 'bar', remember=True)
+			self.assertEqual(res, False)
 
 	def test_login_with_form(self):
 		user = User.create('foo', 'foo_id', password='bar')
-		app = self.get_app()
-		request = Request.from_values('/')
-		local.current_handler = RequestHandler(app, request)
+		with self.get_app().get_test_context() as request:
+			store = MultiAuthStore(request)
+			res = store.login_with_form('foo', 'bar', remember=True)
+			self.assertEqual(res, True)
 
-		store = MultiAuthStore(local.current_handler)
-		res = store.login_with_form('foo', 'bar', remember=True)
-		self.assertEqual(res, True)
-
-		res = store.login_with_form('foo', 'bar', remember=False)
-		self.assertEqual(res, True)
+			res = store.login_with_form('foo', 'bar', remember=False)
+			self.assertEqual(res, True)
 
 	def test_login_with_auth_id(self):
-		app = self.get_app()
-		request = Request.from_values('/')
-		local.current_handler = RequestHandler(app, request)
+		with self.get_app().get_test_context() as request:
+			store = MultiAuthStore(request)
+			store.login_with_auth_id('foo_id', remember=False)
 
-		store = MultiAuthStore(local.current_handler)
-		store.login_with_auth_id('foo_id', remember=False)
-
-		user = User.create('foo', 'foo_id', password='bar')
-		app = self.get_app()
-		store.login_with_auth_id('foo_id', remember=True)
+			user = User.create('foo', 'foo_id', password='bar')
+			app = self.get_app()
+			store.login_with_auth_id('foo_id', remember=True)
 
 	def test_real_login(self):
 		user = User.create('foo', 'foo_id', auth_remember=True)
-		app = self.get_app()
-		request = Request.from_values('/')
-		local.current_handler = RequestHandler(app, request)
+		with self.get_app().get_test_context() as request:
+			store = MultiAuthStore(request)
+			store.login_with_auth_id('foo_id', remember=False)
 
-		store = MultiAuthStore(local.current_handler)
-		store.login_with_auth_id('foo_id', remember=False)
+			response = Response()
+			request.session_store.save(response)
 
-		response = Response()
-		local.current_handler.session_store.save(response)
-
-		request = Request.from_values('/', headers={
+		with self.get_app().get_test_context('/', headers={
 			'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
-		})
-		local.current_handler = RequestHandler(app, request)
-		store = MultiAuthStore(local.current_handler)
-		self.assertNotEqual(store.user, None)
-		self.assertEqual(store.user.username, 'foo')
-		self.assertEqual(store.user.auth_id, 'foo_id')
+		}) as request:
+			store = MultiAuthStore(request)
+			self.assertNotEqual(store.user, None)
+			self.assertEqual(store.user.username, 'foo')
+			self.assertEqual(store.user.auth_id, 'foo_id')
 
 	def test_real_logout(self):
 		user = User.create('foo', 'foo_id', auth_remember=True)
-		app = self.get_app()
-		request = Request.from_values('/')
-		local.current_handler = RequestHandler(app, request)
+		with self.get_app().get_test_context() as request:
+			store = MultiAuthStore(request)
+			store.login_with_auth_id('foo_id', remember=False)
 
-		store = MultiAuthStore(local.current_handler)
-		store.login_with_auth_id('foo_id', remember=False)
+			response = Response()
+			request.session_store.save(response)
 
-		response = Response()
-		local.current_handler.session_store.save(response)
-
-		request = Request.from_values('/', headers={
+		with self.get_app().get_test_context('/', headers={
 			'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
-		})
-		local.current_handler = RequestHandler(app, request)
-		store = MultiAuthStore(local.current_handler)
-		self.assertNotEqual(store.user, None)
-		self.assertEqual(store.user.username, 'foo')
-		store.logout()
+		}) as request:
+			store = MultiAuthStore(request)
+			self.assertNotEqual(store.user, None)
+			self.assertEqual(store.user.username, 'foo')
+			store.logout()
 
-		response = Response()
-		local.current_handler.session_store.save(response)
+			response = Response()
+			request.session_store.save(response)
 
-		request = Request.from_values('/', headers={
+		with self.get_app().get_test_context('/', headers={
 			'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
-		})
-		local.current_handler = RequestHandler(app, request)
-		store = MultiAuthStore(local.current_handler)
-
-		#self.assertEqual(store.user, None)
-		self.assertEqual(store.session, None)
+		}) as request:
+			store = MultiAuthStore(request)
+			self.assertEqual(store.session, None)
 
 	def test_real_login_no_user(self):
-		app = self.get_app()
-		store = MultiAuthStore(local.current_handler)
-		user = store.create_user('foo', 'foo_id')
-		store.login_with_auth_id('foo_id', remember=False)
+		with self.get_app().get_test_context() as request:
+			store = MultiAuthStore(request)
+			user = store.create_user('foo', 'foo_id')
+			store.login_with_auth_id('foo_id', remember=False)
 
-		response = Response()
-		local.current_handler.session_store.save(response)
+			response = Response()
+			request.session_store.save(response)
+			user.delete()
 
-		user.delete()
-
-		request = Request.from_values('/', headers={
+		with self.get_app().get_test_context('/', headers={
 			'Cookie': '\n'.join(response.headers.getlist('Set-Cookie')),
-		})
-		local.current_handler = RequestHandler(app, request)
-		store = MultiAuthStore(local.current_handler)
-		self.assertEqual(store.session['id'], 'foo_id')
-		self.assertEqual(store.user, None)
+		}) as request:
+			store = MultiAuthStore(request)
+			self.assertEqual(store.session['id'], 'foo_id')
+			self.assertEqual(store.user, None)
 
 	def test_real_login_invalid(self):
-		app = self.get_app()
-		store = MultiAuthStore(local.current_handler)
-		self.assertEqual(store.user, None)
-		self.assertEqual(store.session, None)
+		with self.get_app().get_test_context() as request:
+			store = MultiAuthStore(request)
+			self.assertEqual(store.user, None)
+			self.assertEqual(store.session, None)
 
 
 if __name__ == '__main__':

@@ -45,11 +45,10 @@ default_config = {
 
 
 class BaseAuthStore(object):
-    def __init__(self, handler):
-        self.handler = handler
-        self.app = handler.app
-        self.request = handler.request
-        self.config = handler.app.config[__name__]
+    def __init__(self, request):
+        self.request = request
+        self.app = request.app
+        self.config = request.app.config[__name__]
 
     @cached_property
     def user_model(self):
@@ -68,14 +67,14 @@ class BaseAuthStore(object):
     @cached_property
     def _session_base(self):
         cookie_name = self.config['cookie_name']
-        return self.handler.session_store.get_session(cookie_name)
+        return self.request.session_store.get_session(cookie_name)
 
     def _url(self, _name, **kwargs):
         kwargs.setdefault('redirect', self.request.path)
         if not DEV_APPSERVER and self.config['secure_urls']:
             kwargs['_scheme'] = 'https'
 
-        return self.handler.url_for(_name, **kwargs)
+        return self.app.router.url_for(self.request, _name, kwargs)
 
     def login_url(self, **kwargs):
         """Returns a URL that, when visited, prompts the user to sign in.
@@ -206,7 +205,7 @@ class SessionAuthStore(BaseAuthStore):
             kwargs['max_age'] = None
 
         self._session_base['_auth'] = self._session = session
-        self.handler.session_store.update_session_args(
+        self.request.session_store.update_session_args(
             self.config['cookie_name'], **kwargs)
 
 

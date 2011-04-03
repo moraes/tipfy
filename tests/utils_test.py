@@ -2,6 +2,8 @@
 """
 	Tests for tipfy utils
 """
+from __future__ import with_statement
+
 import unittest
 
 import werkzeug
@@ -152,12 +154,12 @@ class TestRenderJson(test_utils.BaseTestCase):
 	# render_json_response()
 	#===========================================================================
 	def test_render_json_response(self):
-		local.current_handler = HomeHandler(Tipfy(), Request.from_values())
-		response = render_json_response({'foo': 'bar'})
+		with Tipfy().get_test_context() as request:
+			response = render_json_response({'foo': 'bar'})
 
-		self.assertEqual(isinstance(response, Response), True)
-		self.assertEqual(response.mimetype, 'application/json')
-		self.assertEqual(response.data, '{"foo":"bar"}')
+			self.assertEqual(isinstance(response, Response), True)
+			self.assertEqual(response.mimetype, 'application/json')
+			self.assertEqual(response.data, '{"foo":"bar"}')
 
 
 class TestUtils(test_utils.BaseTestCase):

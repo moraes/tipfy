@@ -8,6 +8,7 @@ dist
 docs/build
 docs/project
 tests/env
+htmlcov
 
 # ZC buildout; see http://www.buildout.org/docs/dirstruct.html
 project/\.installed.cfg

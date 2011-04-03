@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-	Tests for tipfy.appengine.mail
+    Tests for tipfy.appengine.mail
 """
 import os
 import sys
@@ -22,29 +22,29 @@ Test message!"""
 
 
 def get_app():
-	return Tipfy(rules=[
-		Rule('/', name='xmpp-test', handler='resources.mail_handlers.MailHandler'),
-		Rule('/test2', name='xmpp-test', handler='resources.mail_handlers.MailHandler2'),
-	], debug=True)
+    return Tipfy(rules=[
+        Rule('/', name='xmpp-test', handler='resources.mail_handlers.MailHandler'),
+        Rule('/test2', name='xmpp-test', handler='resources.mail_handlers.MailHandler2'),
+    ], debug=True)
 
 
 class TestInboundMailHandler(test_utils.BaseTestCase):
-	def test_mail(self):
-		app = get_app()
-		client = app.get_test_client()
+    def test_mail(self):
+        app = get_app()
+        client = app.get_test_client()
 
-		response = client.open(method='POST', path='/', data=MESSAGE, content_type='text/plain')
+        response = client.open(method='POST', path='/', data=MESSAGE, content_type='text/plain')
 
-		self.assertEqual(response.status_code, 200)
-		self.assertEqual(response.data, 'Test message!')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, 'Test message!')
 
-	def test_not_implemented(self):
-		app = get_app()
-		app.config['tipfy']['enable_debugger'] = False
-		client = app.get_test_client()
+    def test_not_implemented(self):
+        app = get_app()
+        app.config['tipfy']['enable_debugger'] = False
+        client = app.get_test_client()
 
-		self.assertRaises(NotImplementedError, client.open, method='POST', path='/test2', data=MESSAGE, content_type='text/plain')
+        self.assertRaises(NotImplementedError, client.open, method='POST', path='/test2', data=MESSAGE, content_type='text/plain')
 
 
 if __name__ == '__main__':
-	test_utils.main()
+    test_utils.main()

@@ -1,4 +1,4 @@
-Version 1.0 - Not yet released
+Version 1.0b1 - April 03, 2011
 ==============================
 *This change log is a work in progress*
 
@@ -30,7 +30,7 @@ tipfy's core design. Here's an overview of what is new:
   - APPENGINE: True is the app is running on App Engine, False otherwise.
   - APPLICATION_ID: the application ID as defined in *app.yaml*.
   - CURRENT_VERSION_ID: the deployed version ID. Always '1' when using
-    the dev server.
+	the dev server.
 
 - NEW: auth, debugger, i18n and sessions are now part of tipfy core. They are
   all optional, lazily loaded, default and overridable implementations.
@@ -41,9 +41,9 @@ Auth
 - NEW: Auth is now part of tipfy core. The auth store is configured in tipfy
   module and uses an App Engine store by default::
 
-      config['tipfy'] = {
-          'auth_store_class': 'tipfy.appengine.auth.AuthStore',
-      }
+	  config['tipfy'] = {
+		  'auth_store_class': 'tipfy.appengine.auth.AuthStore',
+	  }
 
   Then it is available through lazy loading in the RequestHandler:
 
@@ -51,13 +51,13 @@ Auth
 
   Example::
 
-      class MyHandler(RequestHandler):
-          def get(self, **kwargs):
-              # Get the current user, if any.
-              current_user = self.auth.user
+	  class MyHandler(RequestHandler):
+		  def get(self, **kwargs):
+			  # Get the current user, if any.
+			  current_user = self.auth.user
 
-              # Generate a login URL.
-              login_url = self.auth.login_url()
+			  # Generate a login URL.
+			  login_url = self.auth.login_url()
 
 - NEW: AppEngineMixedAuthStore, which allows login using App Engine Auth
   across subdomains. It mixes App Engine auth with own sessions to achieve
@@ -73,9 +73,9 @@ I18n
 - NEW: i18n is now part of tipfy core. The i18n store is configured in
   tipfy module and uses the shipped store by default::
 
-      config['tipfy'] = {
-          'i18n_store_class': 'tipfy.i18n.I18nStore',
-      }
+	  config['tipfy'] = {
+		  'i18n_store_class': 'tipfy.i18n.I18nStore',
+	  }
 
   Then it is available through lazy loading in the RequestHandler:
 
@@ -83,10 +83,10 @@ I18n
 
   Example::
 
-      class MyHandler(RequestHandler):
-          def get(self, **kwargs):
-              # Get a translated string.
-              message = self.i18n.gettext('Translate me')
+	  class MyHandler(RequestHandler):
+		  def get(self, **kwargs):
+			  # Get a translated string.
+			  message = self.i18n.gettext('Translate me')
 
   Global i18n functions are still available in tipfy.i18n.
 
@@ -96,34 +96,34 @@ Sessions
 - NEW: Sessions are now part of tipfy core. The auth store is configured in
   tipfy module and uses the shipped store by default::
 
-      config['tipfy'] = {
-          'session_store_class': 'tipfy.sessions.SessionStore',
-      }
+	  config['tipfy'] = {
+		  'session_store_class': 'tipfy.sessions.SessionStore',
+	  }
 
   Then it is available through lazy loading in the RequestHandler:
 
   - RequestHandler.session provides access to the session using the configured
-    backend and session key.
+	backend and session key.
   - RequestHandler.session_store provides session related utilities such as
-    getting sessions from different backends and setting/deleting cookies.
+	getting sessions from different backends and setting/deleting cookies.
 
   Example::
 
-      class MyHandler(RequestHandler):
-          middleware = [SessionMiddleware()]
+	  class MyHandler(RequestHandler):
+		  middleware = [SessionMiddleware()]
 
-          def get(self, **kwargs):
-              # Set a value in the current session.
-              self.session['foo'] = 'bar'
+		  def get(self, **kwargs):
+			  # Set a value in the current session.
+			  self.session['foo'] = 'bar'
 
-              # Get a list of flash messages.
-              flashes = self.session.get_flashes()
+			  # Get a list of flash messages.
+			  flashes = self.session.get_flashes()
 
-              # Add a flash message.
-              self.session.flash('Hello, world!')
+			  # Add a flash message.
+			  self.session.flash('Hello, world!')
 
-              # Get a session from a different backend.
-              session = self.session_store.get_session(backend='memcache')
+			  # Get a session from a different backend.
+			  session = self.session_store.get_session(backend='memcache')
 
 - NEW: secure cookie has a faster and easier to use implementation. See
   tipfy.sessions.SecureCookieStore.
@@ -138,9 +138,9 @@ Debugger
   template engine. The debugger is enabled by default when in development mode,
   and can be disabled with a configuration:
 
-      config['tipfy'] = {
-          'enable_debugger': False,
-      }
+	  config['tipfy'] = {
+		  'enable_debugger': False,
+	  }
 
 - IMPROVED: the debugger now works even if the libraries are imported using
   zipimport.
@@ -152,17 +152,17 @@ Routing
   method is defined using a 'Handler:method' notation in the Rule
   definition. Example:
 
-      # handlers.py
+	  # handlers.py
 
-      class MyHandler(RequestHandler):
-          def my_method(self, **kwargs):
-              return Response('I am not coming from a get() method!')
+	  class MyHandler(RequestHandler):
+		  def my_method(self, **kwargs):
+			  return Response('I am not coming from a get() method!')
 
-      # main.py
+	  # main.py
 
-      app = Tipfy(rules=[
-          Rule('/', name='home', handler='handlers.MyHandler:my_method')
-      ])
+	  app = Tipfy(rules=[
+		  Rule('/', name='home', handler='handlers.MyHandler:my_method')
+	  ])
 
   This opens a whole new set of possibilities for routing and handler
   definitions, as you can match the HTTP method scheme and custom method
@@ -170,43 +170,43 @@ Routing
   a single class can handle listing, viewing, inserting, editting and
   deleting::
 
-      rules = [
-          HandlerPrefix('handlers.ImageHandler', [
-              # List images is handled by ImageHandler.index()
-              Rule('/images/', name='images/index', handler=':index'),
-              # Adding an image is handled by ImageHandler.new()
-              Rule('/images/new', name='images/edit', handler=':new'),
-              # Displaying an image is handled by ImageHandler.get()
-              Rule('/image/<key>', name='images/view', handler=''),
-              # Editting an image is handled by ImageHandler.edit()
-              Rule('/images/<key>/edit', name='images/edit', handler=':edit'),
-              # Deleting an image is handled by ImageHandler.delete()
-              Rule('/images/<key>/delete', name='images/delete', handler=':delete'),
-          ],
-      ]
+	  rules = [
+		  HandlerPrefix('handlers.ImageHandler', [
+			  # List images is handled by ImageHandler.index()
+			  Rule('/images/', name='images/index', handler=':index'),
+			  # Adding an image is handled by ImageHandler.new()
+			  Rule('/images/new', name='images/edit', handler=':new'),
+			  # Displaying an image is handled by ImageHandler.get()
+			  Rule('/image/<key>', name='images/view', handler=''),
+			  # Editting an image is handled by ImageHandler.edit()
+			  Rule('/images/<key>/edit', name='images/edit', handler=':edit'),
+			  # Deleting an image is handled by ImageHandler.delete()
+			  Rule('/images/<key>/delete', name='images/delete', handler=':delete'),
+		  ],
+	  ]
 
 - NEW: added a router object that centralizes URL matching, dispatching and
   building URLs. It makes it more flexible to implement alternative routing
   schemes. Some implications:
 
   - Moved methods from Tipfy that are now part of the router functionality:
-    get_url_map(), add_url_rule(), match_url(), pre_dispatch(), dispatch() and
-    post_dispatch(). If you extended them in some way, you must now extend
-    the router.
+	get_url_map(), add_url_rule(), match_url(), pre_dispatch(), dispatch() and
+	post_dispatch(). If you extended them in some way, you must now extend
+	the router.
   - URL building is centralized in the router, so url_for() methods
-    (from RequestHandler or Tipfy) call router.build().
+	(from RequestHandler or Tipfy) call router.build().
 
 - NEW: added a new rule converter, RegexConverter, which can be usefull
   specially to match subdomains excluding some default ones (e.g., 'www').
   For example, here we define a rule for the root URL of all non-www
   subdomains, and a different one for www::
 
-      rules = [
-          Rule('/', endpoint='index', handler='IndexHandler'),
-          Subdomain(r'<regex("(?!www\\b)\\w+"):namespace>', [
-              Rule('/', endpoint='index', handler='SubdomainIndexHandler'),
-          ]),
-      ]
+	  rules = [
+		  Rule('/', endpoint='index', handler='IndexHandler'),
+		  Subdomain(r'<regex("(?!www\\b)\\w+"):namespace>', [
+			  Rule('/', endpoint='index', handler='SubdomainIndexHandler'),
+		  ]),
+	  ]
 
   In this example, the request method is ignored since the Rule defines which
   handler method will handle all requests.
@@ -216,88 +216,88 @@ Routing
 
   - **_full**: If True, builds an absolute URL.
   - **_method**: Uses a rule defined to handle specific request
-    methods, if any are defined.
+	methods, if any are defined.
   - **_scheme**: URL scheme, e.g., `http` or `https`. If defined,
-    an absolute URL is always returned.
+	an absolute URL is always returned.
   - **_netloc**: Network location, e.g., `www.google.com`. If
-    defined, an absolute URL is always returned.
+	defined, an absolute URL is always returned.
   - **_anchor**: If set, appends an anchor to generated URL.
 
 - IMPROVED: Rule now accepts 'name' as keyword argument. It is an alias to
   'endpoint'. This is just for semantic correctness in tipfy context and
   'endpoint' will still work::
 
-      Rule('/', name='home', handler='handlers.HomeHandler')
-      # is the same as...
-      Rule('/', endpoint='home', handler='handlers.HomeHandler')
+	  Rule('/', name='home', handler='handlers.HomeHandler')
+	  # is the same as...
+	  Rule('/', endpoint='home', handler='handlers.HomeHandler')
 
 - CHANGED: URL rules are not automatically loaded from urls.py. Instead tipfy
   is instantiated passing the URL rules, like webapp. Later other rules can
   be added to the router. For example:
 
-      app = Tipfy(rules=[
-          Rule('/', name='home', handler='handlers.HomeHandler'),
-          Rule('/about', name='about', handler='handlers.AboutHandler'),
-      ])
+	  app = Tipfy(rules=[
+		  Rule('/', name='home', handler='handlers.HomeHandler'),
+		  Rule('/about', name='about', handler='handlers.AboutHandler'),
+	  ])
 
-      # Add an extra rule.
-      app.router.add(Rule('/contact', name='contact', handler='handlers.ContactHandler'))
+	  # Add an extra rule.
+	  app.router.add(Rule('/contact', name='contact', handler='handlers.ContactHandler'))
 
-      # Or add a list of rules.
-      app.router.add([
-          Rule('/products', name='products', handler='handlers.ProductsHandler'),
-          Rule('/history', name='history', handler='handlers.HistorytHandler'),
-      ])
+	  # Or add a list of rules.
+	  app.router.add([
+		  Rule('/products', name='products', handler='handlers.ProductsHandler'),
+		  Rule('/history', name='history', handler='handlers.HistorytHandler'),
+	  ])
 
   The previous behavior using urls.py is easy to reproduce. For example,
   given a urls.py like the following:
 
-      from tipfy import Rule
+	  from tipfy import Rule
 
-      def get_rules(app):
-          rules = [
-              Rule('/', name='home', handler='handlers.HomeHandler'),
-              Rule('/about', name='about', handler='handlers.AboutHandler'),
-              Rule('/contact', name='contact', handler='handlers.ContactHandler'),
-          ]
+	  def get_rules(app):
+		  rules = [
+			  Rule('/', name='home', handler='handlers.HomeHandler'),
+			  Rule('/about', name='about', handler='handlers.AboutHandler'),
+			  Rule('/contact', name='contact', handler='handlers.ContactHandler'),
+		  ]
 
-          return rules
+		  return rules
 
   You can still import and use it in main.py:
 
-      from urls import get_rules
+	  from urls import get_rules
 
-      app = Tipfy()
+	  app = Tipfy()
 
-      # Add a list of rules.
-      app.router.add(get_rules(app))
+	  # Add a list of rules.
+	  app.router.add(get_rules(app))
 
   Or you can simply have a list of rules defined in urls.py, outside of a
   function, and import it:
 
-      from urls import rules
+	  from urls import rules
 
-      app = Tipfy(rules=rules)
+	  app = Tipfy(rules=rules)
 
 - IMPROVED: redirect() (or self.redirect() in handlers) now accepts relative
   URLs. If a relative URL is passed, it'll be joined to the current request
   URL. This is mostly useful to redirect to the result of url_for() without
   needing to build a full URL::
 
-      # current URL is http://localhost/foo/bar
+	  # current URL is http://localhost/foo/bar
 
-      # redirects to http://localhost/baz
-      return redirect('/baz')
+	  # redirects to http://localhost/baz
+	  return redirect('/baz')
 
   ...but it also allows curious results for relative paths:
 
-      # current URL is http://localhost/foo/bar
+	  # current URL is http://localhost/foo/bar
 
-      # redirects to http://localhost/foo/baz
-      return redirect('./baz')
+	  # redirects to http://localhost/foo/baz
+	  return redirect('./baz')
 
-      # redirects to http://localhost/baz
-      return redirect('../baz')
+	  # redirects to http://localhost/baz
+	  return redirect('../baz')
 
 
 Config
@@ -306,15 +306,15 @@ Config
   auto-loading configuration values when needed and honoring required configs.
   For example, we always used this::
 
-      secret_key = self.app.get_config('tipfy.sessions', 'secret_key')
+	  secret_key = self.app.get_config('tipfy.sessions', 'secret_key')
 
   Now it is also possible to use direct access and dict methods::
 
-      secret_key = self.app.config['tipfy.sessions']['secret_key']
-      # or...
-      secret_key = self.app.config['tipfy.sessions'].get('secret_key')
-      # or...
-      secret_key = self.app.config.get('tipfy.sessions').get('secret_key')
+	  secret_key = self.app.config['tipfy.sessions']['secret_key']
+	  # or...
+	  secret_key = self.app.config['tipfy.sessions'].get('secret_key')
+	  # or...
+	  secret_key = self.app.config.get('tipfy.sessions').get('secret_key')
 
   The previous get_config() method works as always.
 
@@ -327,32 +327,32 @@ WSGI App
   build a response. HTTPExceptions are also converted to a proper response
   when returned. Example:
 
-      class MyHandler(RequestHandler):
-          def get(self, **kwargs):
-              # Returns a simple string.
-              return 'Hello, World'
+	  class MyHandler(RequestHandler):
+		  def get(self, **kwargs):
+			  # Returns a simple string.
+			  return 'Hello, World'
 
-              # Returns a tuple of values to create a response.
-              return 'Not Found', 404
+			  # Returns a tuple of values to create a response.
+			  return 'Not Found', 404
 
-              # Return an HTTPException which will be converted to a response.
-              return MethodNotAllowed()
+			  # Return an HTTPException which will be converted to a response.
+			  return MethodNotAllowed()
 
 - NEW: added Tipfy.get_test_handler(). This provides a context to test a
   handler, matching it from a custom request if needed. This is intended to be
   used with a `with` statement::
 
-      from __future__ import with_statement
+	  from __future__ import with_statement
 
-      from tipfy import Tipfy, Rule
+	  from tipfy import Tipfy, Rule
 
-      app = Tipfy(rules=[
-          Rule('/about', name='home', handler='handlers.AboutHandler'),
-      ])
+	  app = Tipfy(rules=[
+		  Rule('/about', name='home', handler='handlers.AboutHandler'),
+	  ])
 
-      with app.get_test_handler('/about') as handler:
-          self.assertEqual(handler.url_for('/', _full=True),
-              'http://localhost/about')
+	  with app.get_test_handler('/about') as handler:
+		  self.assertEqual(handler.url_for('/', _full=True),
+			  'http://localhost/about')
 
 - NEW: app has now a debug attribute, set when it is initialized with
   debug=True.
@@ -419,19 +419,19 @@ Version 0.6.1 - August 19, 2010
 - Added HandlerPrefix, a rule factory to prefix handler definition in rules.
   For example, take these rules::
 
-      rules = [
-          HandlerPrefix('my_app.handlers.', [
-              Rule('/', endpoint='index', handler='IndexHandler'),
-              Rule('/entry/<entry_slug>', endpoint='show', handler='ShowHandler'),
-          ]),
-      ]
+	  rules = [
+		  HandlerPrefix('my_app.handlers.', [
+			  Rule('/', endpoint='index', handler='IndexHandler'),
+			  Rule('/entry/<entry_slug>', endpoint='show', handler='ShowHandler'),
+		  ]),
+	  ]
 
   These are the same as::
 
-      rules = [
-          Rule('/', endpoint='index', handler='my_app.handlers.IndexHandler'),
-          Rule('/entry/<entry_slug>', endpoint='show', handler='my_app.handlers.ShowHandler'),
-      ]
+	  rules = [
+		  Rule('/', endpoint='index', handler='my_app.handlers.IndexHandler'),
+		  Rule('/entry/<entry_slug>', endpoint='show', handler='my_app.handlers.ShowHandler'),
+	  ]
 
 - If the requested method is not in ALLOWED_METHODS, a NotImplemented exception
   ("501 Not Implemented") is raised, instead of MethodNotAllowed ("405 Method
@@ -458,56 +458,56 @@ Version 0.6 - July 25, 2010
   defined in a single file mapped in app.yaml, without the need for a separate
   urls.py::
 
-      import sys
-      sys.path.insert(0, 'distlib')
+	  import sys
+	  sys.path.insert(0, 'distlib')
 
-      from tipfy import RequestHandler, Rule, make_wsgi_app, run_wsgi_app
+	  from tipfy import RequestHandler, Rule, make_wsgi_app, run_wsgi_app
 
-      class HelloWorldHandler(RequestHandler):
-          def get(self, **kwargs):
-              return 'Hello, World!'
+	  class HelloWorldHandler(RequestHandler):
+		  def get(self, **kwargs):
+			  return 'Hello, World!'
 
-      class ByeWorldHandler(RequestHandler):
-          def get(self, **kwargs):
-              return 'Bye, World!'
+	  class ByeWorldHandler(RequestHandler):
+		  def get(self, **kwargs):
+			  return 'Bye, World!'
 
-      app = make_wsgi_app(rules=[
-          Rule('/', endpoint='hello', handler=HelloWorldHandler),
-          Rule('/bye', endpoint='bye', handler=ByeWorldHandler),
-      ])
+	  app = make_wsgi_app(rules=[
+		  Rule('/', endpoint='hello', handler=HelloWorldHandler),
+		  Rule('/bye', endpoint='bye', handler=ByeWorldHandler),
+	  ])
 
-      def main():
-          run_wsgi_app(app)
+	  def main():
+		  run_wsgi_app(app)
 
-      if __name__ == '__main__':
-          main()
+	  if __name__ == '__main__':
+		  main()
 
   This also helps to test handlers defined in a test file::
 
-      import unittest
+	  import unittest
 
-      from tipfy import RequestHandler, Rule, Tipfy, redirect
+	  from tipfy import RequestHandler, Rule, Tipfy, redirect
 
-      class TestHandler(unittest.TestCase):
-          def test_redirect(self):
-              class Handler1(RequestHandler):
-                  def get(self, **kwargs):
-                      return redirect_to('test2')
+	  class TestHandler(unittest.TestCase):
+		  def test_redirect(self):
+			  class Handler1(RequestHandler):
+				  def get(self, **kwargs):
+					  return redirect_to('test2')
 
-              class Handler2(RequestHandler):
-                  def get(self, **kwargs):
-                      return 'Hello, World!'
+			  class Handler2(RequestHandler):
+				  def get(self, **kwargs):
+					  return 'Hello, World!'
 
-              rules = [
-                  Rule('/1', endpoint='test1', handler=Handler1),
-                  Rule('/2', endpoint='test2', handler=Handler2),
-              ]
+			  rules = [
+				  Rule('/1', endpoint='test1', handler=Handler1),
+				  Rule('/2', endpoint='test2', handler=Handler2),
+			  ]
 
-              app = Tipfy(rules=rules)
-              client = app.get_test_client()
-              response = client.get('/1', follow_redirects=True)
+			  app = Tipfy(rules=rules)
+			  client = app.get_test_client()
+			  response = client.get('/1', follow_redirects=True)
 
-              assert response.data == 'Hello, World!'
+			  assert response.data == 'Hello, World!'
 
 - Added get_url_map() and add_url_rule() methods to the WSGI app.
 
@@ -515,11 +515,11 @@ Version 0.6 - July 25, 2010
   object if needed. So a simple string can also be returned, among other
   options::
 
-      from tipfy import RequestHandler, Response
+	  from tipfy import RequestHandler, Response
 
-      class HelloWorldHandler(RequestHandler):
-          def get(self):
-              return 'Hello, World!'
+	  class HelloWorldHandler(RequestHandler):
+		  def get(self):
+			  return 'Hello, World!'
 
 
 Backwards compatibility warnings
@@ -532,7 +532,7 @@ Backwards compatibility warnings
   * request, local.request: Tipfy.request, a class attribute in the WSGI app.
   * app, local.app: Tipfy.app, a class attribute in the WSGI app.
   * local: request.context and request.registry, dictionaries set for a
-    request.
+	request.
 
 - REMOVED: old aliases: WSGIApplication (Tipfy) and REQUIRED_CONFIG
   (REQUIRED_VALUE)
@@ -580,16 +580,16 @@ Version 0.5.6 - June 22, 2010
   my_middleware = MyMiddleware(foo='bar')
 
   class MyRequestHandler(RequestHandler):
-      middleware = [my_middleware]
+	  middleware = [my_middleware]
 
-      # ...
+	  # ...
 
   my_middleware2 = MyMiddleware(foo='zing')
 
   class MyRequestHandler2(RequestHandler):
-      middleware = [my_middleware2]
+	  middleware = [my_middleware2]
 
-      # ...
+	  # ...
 
 - Fixed using tipfy with zipimport. For whatever reason py_zipimport fails to
   load werkzeug modules if werkzeug package is not imported first. This is
@@ -609,11 +609,11 @@ Bug fix release following 0.5.3.
 
 - REMOVED 'pre_run_app' hook. Use post_make_app instead:
 
-    def post_make_app(self, app):
-        # Wrap the callable, so we keep a reference to the app...
-        app.wsgi_app = my_middleware(app.wsgi_app)
-        # ...and return the original app.
-        return app
+	def post_make_app(self, app):
+		# Wrap the callable, so we keep a reference to the app...
+		app.wsgi_app = my_middleware(app.wsgi_app)
+		# ...and return the original app.
+		return app
 
 - IMPROVED tipfy.ext.appstatts and tipfy.ext.debugger: middleware is set on
   'post_make_app'.
@@ -629,10 +629,10 @@ Backwards compatibility warnings
   WSGIApplication and Request in the handler. If you implemented __init__() on
   RequestHandler, please update it to accept these arguments:
 
-    class MyRequestHandler(RequestHandler):
-        def __init__(self, app, request):
-            super(MyRequestHandler, self).__init__(app, request)
-            ...
+	class MyRequestHandler(RequestHandler):
+		def __init__(self, app, request):
+			super(MyRequestHandler, self).__init__(app, request)
+			...
 
   We now have access to the URL rule and rule arguments that matched on
   __init__(), and can read app configuration without relying on local.
@@ -660,24 +660,24 @@ Backwards compatibility warnings
   So an application using Tipfy outside of App Engine needs to setup a proxy on
   these attributes pointing to a thread local. This monkeypatch covers it all:
 
-    from werkzeug import Local
+	from werkzeug import Local
 
-    local = Local()
+	local = Local()
 
-    def set_wsgi_app(self):
-        local.app = self
+	def set_wsgi_app(self):
+		local.app = self
 
-    def set_request(self, request):
-        local.request = request
+	def set_request(self, request):
+		local.request = request
 
-    def cleanup(self):
-        local.__release_local__()
+	def cleanup(self):
+		local.__release_local__()
 
-    Tipfy.set_wsgi_app = set_wsgi_app
-    Tipfy.set_request = set_request
-    Tipfy.cleanup = cleanup
-    Tipfy.app = local('app')
-    Tipfy.request = local('request')
+	Tipfy.set_wsgi_app = set_wsgi_app
+	Tipfy.set_request = set_request
+	Tipfy.cleanup = cleanup
+	Tipfy.app = local('app')
+	Tipfy.request = local('request')
 
   This makes Tipfy.app and Tipfy.request thread-safe outside of App Engine.
 
@@ -688,8 +688,8 @@ tipfy.routing
   append an anchor to the generated URL. Also keyword arguments in these two
   functions are now prefixed with a '_':
 
-    url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs)
-    redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs)
+	url_for(endpoint, _full=False, _method=None, _anchor=None, **kwargs)
+	redirect_to(endpoint, _method=None, _anchor=None, _code=302, **kwargs)
 
   This is just a sanity measure to avoid collisions with variables set in
   rules. The old, non-prefixed keywords are still accepted, but they should
@@ -727,22 +727,22 @@ tipfy.application
 
 - ADDED some ideas from Flask:
   - Local variables are not cleaned when in development and an exception is
-    raised. This allows the debugger to still access request and other
-    variables from local in the interactive shell.
+	raised. This allows the debugger to still access request and other
+	variables from local in the interactive shell.
   - Added a wsgi_app() function to WSGIApplication, wrapping __call__().
   - Added a make_response() method to WSGIApplication, so that handlers
-    can return not only a Response object.
+	can return not only a Response object.
   - Refactoring: split pre_dispatch/dispatch/post_dispatch into separate
-    functions. Makes it easier to override these methods in a middleware.
+	functions. Makes it easier to override these methods in a middleware.
   - Added function get_test_client() to return a werkzeug.Client for the wsgi
-    app.
+	app.
   - Added function ext.jinja2.get_template_attribute().
   - ADDED: a Response object that extends werkzeug's Response, with default
-    mimetype set to 'text/html'.
+	mimetype set to 'text/html'.
 
 - REMOVED:
   - tipfy.response and 'extensions' configuration key. They were deprecated
-    since 0.5 and not useful at all since then.
+	since 0.5 and not useful at all since then.
   - tipfy.local_manager. No longer needed since latest Werkzeug.
 
 

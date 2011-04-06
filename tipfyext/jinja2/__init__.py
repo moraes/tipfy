@@ -207,6 +207,21 @@ class Jinja2Mixin(object):
         return self.jinja2.render_response(self, _filename, **context)
 
 
+"""
+# Example of using signals.
+
+from tipfyext.jinja2 import environment_created
+
+def setup_environment(jinja2, environment):
+    environment.globals.update({
+        # ... custom globals ...
+    })
+    environment.filters.update({
+        # ... custom filters ...
+    })
+
+environment_created.connect(setup_environment)
+"""
 _signals = blinker.Namespace()
 environment_created = _signals.signal('environment-created')
 template_rendered = _signals.signal('template-rendered')

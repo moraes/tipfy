@@ -22,12 +22,11 @@ class BaseRequestHandler(object):
     Additionally it provides lazy access to auth, i18n and session stores,
     and several utilities to handle a request.
 
-    Although it is convenient to extend this class (or :class:`RequestHandler`)
-    and some extended functionality like sessions is implemented on top of it,
-    the only required interface by the WSGI app is the following:
+    Although it is convenient to extend this class or :class:`RequestHandler`,
+    the only interface required by the WSGI app is the following:
 
         class RequestHandler(object):
-            def __init__(self, app, request):
+            def __init__(self, request):
                 pass
 
             def __call__(self):

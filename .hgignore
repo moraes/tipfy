@@ -4,24 +4,25 @@
 \.egg-info
 \.bak
 \.swp
-dist
-docs/build
-docs/project
-tests/env
-htmlcov
+dist/
+docs/build/
+docs/project/
+tests/env/
+htmlcov/
+temp/
 
 # ZC buildout; see http://www.buildout.org/docs/dirstruct.html
 project/\.installed.cfg
-project/var/parts
-project/var/develop-eggs
-project/bin
-project/eggs
-project/var/downloads
+project/var/parts/
+roject/var/develop-eggs/
+project/bin/
+project/eggs/
+project/var/downloads/
 
 # Examples
 examples/auth/\.installed.cfg
-examples/auth/var/parts
-examples/auth/var/develop-eggs
-examples/auth/bin
-examples/auth/eggs
-examples/auth/var/downloads
+examples/auth/var/parts/
+examples/auth/var/develop-eggs/
+examples/auth/bin/
+examples/auth/eggs/
+examples/auth/var/downloads/

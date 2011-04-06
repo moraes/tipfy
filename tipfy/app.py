@@ -3,7 +3,7 @@
     tipfy.app
     ~~~~~~~~~
 
-    WSGI Application and RequestHandler.
+    WSGI Application.
 
     :copyright: 2011 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
@@ -26,7 +26,7 @@ import werkzeug.wrappers
 from . import default_config
 from .config import Config, REQUIRED_VALUE
 from .local import current_app, current_handler, get_request, local
-from .routing import Router, Rule
+from .routing import Router
 
 #: Public interface.
 HTTPException = werkzeug.exceptions.HTTPException
@@ -279,11 +279,10 @@ class App(object):
         exception is reraised.
 
         .. note::
-           Although being a :class:`RequestHandler`, the error handler will
-           execute the ``handle_exception`` method after instantiation, instead
-           of the method corresponding to the current request.
+           The exception is stored in the request object and accessible
+           through `request.exception`.
 
-           Also, the error handler is responsible for setting the response
+           The error handler is responsible for setting the response
            status code and logging the exception, as shown in the example
            above.
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-import ConfigParser
 import os
 import runpy
 import shutil
-import re
 import sys
 import textwrap
 
 import argparse
+
+from config import Config
 
 
 # Be a good neighbour.
@@ -51,126 +51,6 @@ def import_string(import_name, silent=False):
     except (ImportError, AttributeError):
         if not silent:
             raise
-
-
-class Config(ConfigParser.RawConfigParser):
-    """Wraps RawConfigParser `get*()` functions to allow a default to be
-    returned instead of throwing errors. Also adds `getlist()` to split
-    multi-line values into a list.
-    """
-    _interpolate_re = re.compile(r"%\(([^)]*)\)s")
-
-    _boolean_states = {
-        '1':     True,
-        'yes':   True,
-        'true':  True,
-        'on':    True,
-        '0':     False,
-        'no':    False,
-        'false': False,
-        'off':   False,
-    }
-
-    def get(self, section, option, default=None, raw=False):
-        return self._get_wrapper(section, option, unicode, default, raw)
-
-    def getboolean(self, section, option, default=None, raw=False):
-        return self._get_wrapper(section, option, self._to_boolean, default,
-            raw)
-
-    def getfloat(self, section, option, default=None, raw=False):
-        return self._get_wrapper(section, option, self._to_float, default, raw)
-
-    def getint(self, section, option, default=None, raw=False):
-        return self._get_wrapper(section, option, self._to_int, default, raw)
-
-    def getlist(self, section, option, default=None, raw=False, unique=True):
-        res = self._get_wrapper(section, option, self._to_list, default, raw)
-        if unique:
-            return get_unique_sequence(res)
-
-        return res
-
-    def _get(self, section, option):
-        return ConfigParser.RawConfigParser.get(self, section, option)
-
-    def _to_boolean(self, value):
-        key = value.lower()
-        if key not in self._boolean_states:
-            raise ValueError('Not a boolean: %r. Booleans must be '
-                'one of %s.' % (value, ', '.join(self._boolean_states.keys())))
-
-        return self._boolean_states[key]
-
-    def _to_float(self, value):
-        return float(value)
-
-    def _to_int(self, value):
-        return int(value)
-
-    def _to_list(self, value):
-        value = [line.strip() for line in value.splitlines()]
-        return [v for v in value if v]
-
-    def _get_wrapper(self, sections, option, converter, default, raw):
-        """Wraps get functions allowing default values and a list of sections
-        looked up in order until a value is found.
-        """
-        if isinstance(sections, basestring):
-            sections = [sections]
-
-        for section in sections:
-            try:
-                value = self._get(section, option)
-                if not raw:
-                    value = self._interpolate(section, option, value)
-
-                return converter(value)
-            except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
-                pass
-            except ValueError:
-                # Failed conversion?
-                pass
-
-        return default
-
-    def _interpolate(self, section, option, value, tried=None):
-        if not '%(' in value:
-            return value
-
-        matches = self._interpolate_re.findall(value)
-        if not matches:
-            return value
-
-        if tried is None:
-            tried = [(section, option)]
-
-        variables = {}
-        matches = get_unique_sequence(matches)
-        for match in matches:
-            parts = tuple(match.split('|', 1))
-            if len(parts) == 1:
-                new_section, new_option = section, match
-            else:
-                new_section, new_option = parts
-
-            if parts in tried:
-                continue
-
-            tried.append(parts)
-            try:
-                found = self._get(new_section, new_option)
-                tried.append(('DEFAULT', new_option))
-                variables[match] = self._interpolate(new_section, new_option,
-                    found, tried)
-            except Exception:
-                pass
-
-        if len(matches) == len(variables):
-            return value % variables
-
-        raise ConfigParser.InterpolationError(section, option,
-            'Cound not replace %r.' % value)
 
 
 class Action(object):

@@ -113,46 +113,74 @@ class Config(ConfigParser.RawConfigParser):
                 return converter(value)
             except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
                 pass
-            except ValueError:
-                # Failed conversion?
-                pass
 
         return default
 
-    def _interpolate(self, section, option, value, tried=None):
-        """Replaces variables avoiding infinite recursion."""
-        if not '%(' in value:
-            return value
+    def _find_variables(self, section, option, raw_value):
+        """Adapted from SafeConfigParser._interpolate_some()."""
+        result = set()
+        while raw_value:
+            pos = raw_value.find('%')
+            if pos < 0:
+                return result
+            if pos > 0:
+                raw_value = raw_value[pos:]
 
-        matches = set(self._interpolate_re.findall(value))
-        if not matches:
-            return value
+            char = raw_value[1:2]
+            if char == '%':
+                raw_value = raw_value[2:]
+            elif char == '(':
+                match = self._interpolate_re.match(raw_value)
+                if match is None:
+                    raise ConfigParser.InterpolationSyntaxError(option,
+                        section, 'Bad interpolation variable reference: %r.' %
+                        raw_value)
+
+                result.add(match.group(1))
+                raw_value = raw_value[match.end():]
+            else:
+                raise ConfigParser.InterpolationSyntaxError(
+                    option, section,
+                    "'%%' must be followed by '%%' or '(', "
+                    "found: %r." % raw_value)
+
+        return result
+
+    def _interpolate(self, section, option, raw_value, tried=None):
+        variables = self._find_variables(section, option, raw_value)
+        if not variables:
+            return raw_value
 
         if tried is None:
             tried = [(section, option)]
 
-        variables = {}
-        for match in matches:
-            parts = tuple(match.split('|', 1))
+        values = {}
+        for var in variables:
+            parts = var.split('|', 1)
             if len(parts) == 1:
-                new_section, new_option = section, match
+                new_section, new_option = section, var
             else:
                 new_section, new_option = parts
 
             if parts in tried:
                 continue
 
-            tried.append(parts)
             try:
                 found = self._get(new_section, new_option)
+            except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+                raise ConfigParser.InterpolationError(section, option,
+                    'Could not find section %r and option %r.' %
+                    (new_section, new_option))
+
+            tried.append((new_section, new_option))
+            if not self.has_option(new_section, new_option):
                 tried.append(('DEFAULT', new_option))
-                variables[match] = self._interpolate(new_section, new_option,
-                    found, tried)
-            except Exception:
-                pass
+            values[var] = self._interpolate(new_section, new_option,
+                found, tried)
 
-        if len(matches) == len(variables):
-            return value % variables
-
-        raise ConfigParser.InterpolationError(section, option,
-            'Cound not replace %r.' % value)
+        try:
+            return raw_value % values
+        except KeyError, e:
+            raise ConfigParser.InterpolationError(section, option,
+                'Cound not replace %r: variable %r is missing.' %
+                (raw_value, e.args[0]))

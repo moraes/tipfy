@@ -3,6 +3,10 @@ import re
 
 
 class Converter(object):
+    """Converts config values to several types.
+
+    Supported types are boolean, float, int, list and unicode.
+    """
     _boolean_states = {
         '1':     True,
         'yes':   True,
@@ -37,15 +41,23 @@ class Converter(object):
 
 
 class Config(ConfigParser.RawConfigParser):
-    """Wraps RawConfigParser `get*()` functions to allow a default to be
-    returned instead of throwing errors. Also adds `getlist()` to split
-    multi-line values into a list.
+    """Extended RawConfigParser with the following extra features:
 
-    It also implements the magical interpolation behavior similar to the one
-    from `SafeConfigParser`, but also supports references to sections.
-    This means that values can contain format strings which refer to other
-    values in the config file. These variables are replaced on the fly.
-    The most basic example is::
+    - All `get*()` functions allow a default to be returned. Instead
+      of throwing errors when no section or option is found, it returns the
+      default value or None.
+
+    - The `get*()` functions can receive a list of sections to be searched in
+      order.
+
+    - A `getlist()` method splits multi-line values into a list.
+
+    - It also implements the magical interpolation behavior similar to the one
+      from `SafeConfigParser`, but also supports references to sections.
+      This means that values can contain format strings which refer to other
+      values in the config file. These variables are replaced on the fly.
+
+    An example of variable substituition is::
 
         [my_section]
         app_name = my_app
@@ -74,27 +86,60 @@ class Config(ConfigParser.RawConfigParser):
 
     _interpolate_re = re.compile(r"%\(([^)]*)\)s")
 
-    def get(self, section, option, default=None, raw=False):
+    def get(self, sections, option, default=None, raw=False):
+        """Returns a config value from a given section, converted to unicode.
+
+        :param sections:
+            The config section name, or a list of config section names to be
+            searched in order.
+        :param option:
+            The config option name.
+        :param default:
+            A default value to return in case the section or option are not
+            found. Default is None.
+        :param raw:
+            If True, doesn't perform variable substitution if the value
+            has placeholders. Default is False.
+        :returns:
+            A config value.
+        """
         converter = self.converter.to_unicode
-        return self._get_wrapper(section, option, converter, default, raw)
+        return self._get_wrapper(sections, option, converter, default, raw)
 
-    def getboolean(self, section, option, default=None, raw=False):
+    def getboolean(self, sections, option, default=None, raw=False):
+        """Returns a config value from a given section, converted to boolean.
+
+        See :methd:`get` for a description of the parameters.
+        """
         converter = self.converter.to_boolean
-        return self._get_wrapper(section, option, converter, default, raw)
+        return self._get_wrapper(sections, option, converter, default, raw)
 
-    def getfloat(self, section, option, default=None, raw=False):
+    def getfloat(self, sections, option, default=None, raw=False):
+        """Returns a config value from a given section, converted to float.
+
+        See :methd:`get` for a description of the parameters.
+        """
         converter = self.converter.to_float
-        return self._get_wrapper(section, option, converter, default, raw)
+        return self._get_wrapper(sections, option, converter, default, raw)
 
-    def getint(self, section, option, default=None, raw=False):
+    def getint(self, sections, option, default=None, raw=False):
+        """Returns a config value from a given section, converted to int.
+
+        See :methd:`get` for a description of the parameters.
+        """
         converter = self.converter.to_int
-        return self._get_wrapper(section, option, converter, default, raw)
+        return self._get_wrapper(sections, option, converter, default, raw)
 
-    def getlist(self, section, option, default=None, raw=False):
+    def getlist(self, sections, option, default=None, raw=False):
+        """Returns a config value from a given section, converted to boolean.
+
+        See :methd:`get` for a description of the parameters.
+        """
         converter = self.converter.to_list
-        return self._get_wrapper(section, option, converter, default, raw)
+        return self._get_wrapper(sections, option, converter, default, raw)
 
     def _get(self, section, option):
+        """Wrapper for `RawConfigParser.get`."""
         return ConfigParser.RawConfigParser.get(self, section, option)
 
     def _get_wrapper(self, sections, option, converter, default, raw):
@@ -116,38 +161,9 @@ class Config(ConfigParser.RawConfigParser):
 
         return default
 
-    def _find_variables(self, section, option, raw_value):
-        """Adapted from SafeConfigParser._interpolate_some()."""
-        result = set()
-        while raw_value:
-            pos = raw_value.find('%')
-            if pos < 0:
-                return result
-            if pos > 0:
-                raw_value = raw_value[pos:]
-
-            char = raw_value[1:2]
-            if char == '%':
-                raw_value = raw_value[2:]
-            elif char == '(':
-                match = self._interpolate_re.match(raw_value)
-                if match is None:
-                    raise ConfigParser.InterpolationSyntaxError(option,
-                        section, 'Bad interpolation variable reference: %r.' %
-                        raw_value)
-
-                result.add(match.group(1))
-                raw_value = raw_value[match.end():]
-            else:
-                raise ConfigParser.InterpolationSyntaxError(
-                    option, section,
-                    "'%%' must be followed by '%%' or '(', "
-                    "found: %r." % raw_value)
-
-        return result
-
     def _interpolate(self, section, option, raw_value, tried=None):
-        variables = self._find_variables(section, option, raw_value)
+        """Performs variable substituition in a config value."""
+        variables = self._get_variable_names(section, option, raw_value)
         if not variables:
             return raw_value
 
@@ -184,3 +200,36 @@ class Config(ConfigParser.RawConfigParser):
             raise ConfigParser.InterpolationError(section, option,
                 'Cound not replace %r: variable %r is missing.' %
                 (raw_value, e.args[0]))
+
+    def _get_variable_names(self, section, option, raw_value):
+        """Returns a list of placeholder names in a config value, if any.
+
+        Adapted from SafeConfigParser._interpolate_some().
+        """
+        result = set()
+        while raw_value:
+            pos = raw_value.find('%')
+            if pos < 0:
+                return result
+            if pos > 0:
+                raw_value = raw_value[pos:]
+
+            char = raw_value[1:2]
+            if char == '%':
+                raw_value = raw_value[2:]
+            elif char == '(':
+                match = self._interpolate_re.match(raw_value)
+                if match is None:
+                    raise ConfigParser.InterpolationSyntaxError(option,
+                        section, 'Bad interpolation variable reference: %r.' %
+                        raw_value)
+
+                result.add(match.group(1))
+                raw_value = raw_value[match.end():]
+            else:
+                raise ConfigParser.InterpolationSyntaxError(
+                    option, section,
+                    "'%%' must be followed by '%%' or '(', "
+                    "found: %r." % raw_value)
+
+        return result

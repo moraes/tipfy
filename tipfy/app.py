@@ -384,7 +384,10 @@ class App(object):
         """
         from werkzeug.test import EnvironBuilder
         builder = EnvironBuilder(*args, **kwargs)
-        return self.request_context_class(self, builder.get_environ())
+        try:
+            return self.request_context_class(self, builder.get_environ())
+        finally:
+            builder.close()
 
     def get_test_handler(self, *args, **kwargs):
         """Returns a handler set as a current handler for testing purposes.

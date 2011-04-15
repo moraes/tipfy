@@ -5,7 +5,7 @@
 
     App Engine session backends.
 
-    :copyright: 2011 by tipfy.org.
+    :copyright: 2010 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
 import re
@@ -14,8 +14,8 @@ import uuid
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
-from tipfy.sessions import BaseSession
-
+from tipfy.config import DEFAULT_VALUE
+from tipfy.sessions import BaseSessionFactory, SessionDict
 from tipfy.appengine.db import (PickleProperty, get_protobuf_from_entity,
     get_entity_from_protobuf)
 
@@ -101,76 +101,73 @@ class SessionModel(db.Model):
         db.delete(self)
 
 
-class AppEngineBaseSession(BaseSession):
-    __slots__ = BaseSession.__slots__ + ('sid',)
+class AppEngineSessionFactory(BaseSessionFactory):
+    session_class = SessionDict
+    sid = None
 
-    def __init__(self, data=None, sid=None, new=False):
-        BaseSession.__init__(self, data, new)
-        if new:
-            self.sid = self.__class__._get_new_sid()
-        elif sid is None:
-            raise ValueError('A session id is required for existing sessions.')
-        else:
-            self.sid = sid
+    def get_session(self, max_age=DEFAULT_VALUE):
+        if self.session is None:
+            data = self.session_store.get_secure_cookie(self.name,
+                                                        max_age=max_age)
+            if data is not None:
+                self.sid = data.get('_sid')
+                if _is_valid_key(self.sid):
+                    self.session = self._get_by_sid(self.sid)
 
-    @classmethod
-    def _get_new_sid(cls):
-        # Force a namespace in the key, to not pollute the namespace in case
-        # global namespaces are in use.
-        return cls.__module__ + '.' + cls.__name__ + '.' + uuid.uuid4().hex
+            if self.session is None:
+                self.sid = self._get_new_sid()
+                self.session = self.session_class(self, new=True)
 
-    @classmethod
-    def get_session(cls, store, name=None, **kwargs):
-        if name:
-            cookie = store.get_secure_cookie(name)
-            if cookie is not None:
-                sid = cookie.get('_sid')
-                if sid and _is_valid_key(sid):
-                    return cls._get_by_sid(sid, **kwargs)
+        return self.session
 
-        return cls(new=True)
+    def _get_new_sid(self):
+        return uuid.uuid4().hex
 
 
-class DatastoreSession(AppEngineBaseSession):
-    """A session that stores data serialized in the datastore."""
+class DatastoreSessionFactory(AppEngineSessionFactory):
     model_class = SessionModel
 
-    @classmethod
-    def _get_by_sid(cls, sid, **kwargs):
+    def _get_by_sid(self, sid):
         """Returns a session given a session id."""
-        entity = cls.model_class.get_by_sid(sid)
+        entity = self.model_class.get_by_sid(sid)
         if entity is not None:
-            return cls(entity.data, sid)
+            return self.session_class(self, data=entity.data)
 
-        return cls(new=True)
+        self.sid = self._get_new_sid()
+        return self.session_class(self, new=True)
 
-    def save_session(self, response, store, name, **kwargs):
-        if not self.modified:
+    def save_session(self, response):
+        if self.session is None or not self.session.modified:
             return
 
-        self.model_class.create(self.sid, dict(self)).put()
-        store.set_secure_cookie(response, name, {'_sid': self.sid}, **kwargs)
+        self.model_class.create(self.sid, dict(self.session)).put()
+        self.session_store.set_secure_cookie(
+            response, self.name, {'_sid': self.sid}, **self.session_args)
 
 
-class MemcacheSession(AppEngineBaseSession):
+class MemcacheSessionFactory(AppEngineSessionFactory):
     """A session that stores data serialized in memcache."""
-    @classmethod
-    def _get_by_sid(cls, sid, **kwargs):
+    def _get_by_sid(self, sid):
         """Returns a session given a session id."""
         data = memcache.get(sid)
         if data is not None:
-            return cls(data, sid)
+            return self.session_class(self, data=data)
 
-        return cls(new=True)
+        self.sid = self._get_new_sid()
+        return self.session_class(self, new=True)
 
-    def save_session(self, response, store, name, **kwargs):
-        if not self.modified:
+    def save_session(self, response):
+        if self.session is None or not self.session.modified:
             return
 
-        memcache.set(self.sid, dict(self))
-        store.set_secure_cookie(response, name, {'_sid': self.sid}, **kwargs)
+        memcache.set(self.sid, dict(self.session))
+        self.session_store.set_secure_cookie(
+            response, self.name, {'_sid': self.sid}, **self.session_args)
 
 
 def _is_valid_key(key):
     """Check if a session key has the correct format."""
+    if not key:
+        return False
+
     return _UUID_RE.match(key.split('.')[-1]) is not None

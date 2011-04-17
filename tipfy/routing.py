@@ -8,12 +8,20 @@
     :copyright: 2011 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-from werkzeug import import_string, url_quote
-from werkzeug.routing import (BaseConverter, EndpointPrefix, Map,
-    Rule as BaseRule, RuleFactory, Subdomain, Submount)
-from werkzeug.wrappers import BaseResponse
+from werkzeug import routing
+from werkzeug import urls
+from werkzeug import utils
+from werkzeug import wrappers
 
 from .local import get_request, local
+
+# For export.
+BaseConverter = routing.BaseConverter
+EndpointPrefix = routing.EndpointPrefix
+Map = routing.Map
+RuleFactory = routing.RuleFactory
+Subdomain = routing.Subdomain
+Submount = routing.Submount
 
 
 class Router(object):
@@ -86,12 +94,13 @@ class Router(object):
         handler = rule.handler
         if isinstance(handler, basestring):
             if handler not in self.handlers:
-                self.handlers[handler] = import_string(handler)
+                self.handlers[handler] = utils.import_string(handler)
 
             rule.handler = handler = self.handlers[handler]
 
         rv = local.current_handler = handler(request)
-        if not isinstance(rv, BaseResponse) and hasattr(rv, '__call__'):
+        if not isinstance(rv, wrappers.BaseResponse) and \
+            hasattr(rv, '__call__'):
             # If it is a callable but not a response, we call it again.
             rv = rv()
 
@@ -137,7 +146,7 @@ class Router(object):
             url = '%s://%s%s' % (scheme or 'http', netloc or request.host, url)
 
         if anchor:
-            url += '#%s' % url_quote(anchor)
+            url += '#%s' % urls.url_quote(anchor)
 
         return url
 
@@ -178,7 +187,7 @@ class Router(object):
     build = url_for
 
 
-class Rule(BaseRule):
+class Rule(routing.Rule):
     """A Rule represents one URL pattern. Tipfy extends Werkzeug's Rule
     to support handler and name definitions. Handler is the
     :class:`tipfy.RequestHandler` class that will handle the request and name
@@ -300,7 +309,7 @@ class Rule(BaseRule):
         self.handler_method = handler_method
         if isinstance(handler, basestring) and handler.rfind(':') != -1:
             if handler_method:
-                raise ValueError(
+                raise BadArgumentError(
                     "If handler_method is defined in a Rule, handler "
                     "can't have a colon (got %r)." % handler)
             else:

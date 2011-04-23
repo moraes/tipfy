@@ -33,4 +33,5 @@ def main():
     app.run()
 
 if __name__ == '__main__':
+    set_sys_path.set_path()
     main()

@@ -8,8 +8,8 @@
     :copyright: 2011 by tipfy.org.
     :license: BSD, see LICENSE.txt for more details.
 """
-__version__ = '0.7'
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
+__version__ = '1.0b'
+__version_info__ = (1, 0)
 
 #: Default configuration values for this module. Keys are:
 #:

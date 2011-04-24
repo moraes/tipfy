@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Sets sys.path for the library directories.
 
-The purpose of this file is to define extra paths in a single place. This is
-convenient in case many entry points are used instead of a single main.py.
+The purpose of this file is to have a single place to define extra paths.
+This is convenient in case many entry points are used instead of a single
+main.py.
 """
 import os
 import sys

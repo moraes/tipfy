@@ -30,8 +30,8 @@ enable_appstats(app)
 enable_jinja2_debugging()
 
 def main():
+    set_sys_path.set_path()
     app.run()
 
 if __name__ == '__main__':
-    set_sys_path.set_path()
     main()

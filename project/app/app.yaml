@@ -5,6 +5,7 @@ api_version: 1
 
 builtins:
 - appstats: on
+- deferred: on
 - datastore_admin: on
 - remote_api: on
 

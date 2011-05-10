@@ -1,0 +1,29 @@
+{% extends 'layout.html' %}
+
+{% from '_form_macros.html' import form_field %}
+
+{% block body %}
+    <h1>Sign in</h1>
+    <form method="post" action="{{ current_url }}" enctype="multipart/form-data" class="tipfy-form">
+        <ol>
+            <li>{{ form_field(form.username, class='medium') }}</li>
+            <li>{{ form_field(form.password, class='medium') }}</li>
+            <li>{{ form_field(form.remember) }}</li>
+        </ol>
+        <fieldset class="submit">
+            <input type="submit" name="submit" value="{{ _('Sign in') }}">
+        </fieldset>
+    </form>
+
+    <p>Don't have an account? <a href="{{ url_for('auth/register') }}">Create a new one</a>.</p>
+
+    <p>Or select a service to sign in with:</p>
+    <p>
+        <a href="{{ facebook_login_url }}" title="Sign in with Facebook"><img src="/static/images/facebook.png" width="60" height="60" alt="Sign in with Facebook"></a>
+        <a href="{{ friendfeed_login_url }}" title="Sign in with FriendFeed"><img src="/static/images/friendfeed.png" width="60" height="60" alt="Sign in with FriendFeed"></a>
+        <a href="{{ google_login_url }}" title="Sign in with Google"><img src="/static/images/google.png" width="60" height="60" alt="Sign in with Google"></a>
+        <a href="{{ twitter_login_url }}" title="Sign in with Twitter"><img src="/static/images/twitter.png" width="60" height="60" alt="Sign in with Twitter"></a>
+        {#<a href="{{ yahoo_login_url }}" title="Sign in with Yahoo!"><img src="/static/images/yahoo.png" width="60" height="60" alt="Sign in with Yahoo!"></a>#}
+    </p>
+{% endblock %}
+

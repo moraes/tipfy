@@ -1,0 +1,9 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    <p>This is a <a href="http://www.tipfy.org/">tipfy</a> example for
+    authentication using multi-auth users system.</p>
+
+    <p>Users are required to save an account record to access <a href="{{ url_for('content/index') }}">protected content</a>.</p>
+{% endblock %}
+

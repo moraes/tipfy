@@ -1,0 +1,81 @@
+{%- macro form_field_label(field) -%}
+    <label for="{{ field.id }}">{{ field.label.text }}
+    {%- if field.flags.required -%}
+        <abbr title="{{ _('This field is required.') }}">*</abbr>
+    {%- endif %}</label>
+{% endmacro %}
+
+{%- macro form_field_description(field) -%}
+    {% if field.description %}
+        <span class="descr">{{ field.description }}</span>
+    {% endif %}
+{%- endmacro -%}
+
+{%- macro form_field_errors(field) -%}
+    {% if field.errors %}
+    <ul class="errors">
+        {%- for error in field.errors -%}
+        <li>{{ error }}</li>
+        {%- endfor -%}
+    </ul>
+    {% endif %}
+{%- endmacro -%}
+
+{%- macro form_field_boolean(field) -%}
+    {{ field(**kwargs) }}
+    {{ form_field_label(field) }}
+    {{ form_field_description(field) }}
+    {{ form_field_errors(field) }}
+{%- endmacro -%}
+
+{%- macro form_field(field) -%}
+    {% if field.type == 'BooleanField' %}
+        {{ form_field_boolean(field, **kwargs) }}
+    {% else%}
+        {{ form_field_label(field) }}
+        {% if field.type == 'RadioField' %}
+            {{ field(class='radio-group', **kwargs) }}
+        {% else %}
+            {{ field(**kwargs) }}
+        {% endif %}
+        {{ form_field_description(field) }}
+        {{ form_field_errors(field) }}
+    {% endif %}
+{%- endmacro -%}
+
+{%- macro form_field_td(field) -%}
+    {% if field.type == 'BooleanField' %}
+        <td class="label"></td>
+        <td class="field">
+            {{ form_field_boolean(field, **kwargs) }}
+        </td>
+    {% else %}
+        <td class="label">
+            {{ form_field_label(field) }}
+        </td>
+        <td class="field">
+        {% if field.type == 'RadioField' %}
+            {{ field(class='radio-group', **kwargs) }}
+        {% else %}
+            {{ field(**kwargs) }}
+        {% endif %}
+        {{ form_field_description(field) }}
+        {{ form_field_errors(field) }}
+        </td>
+    {% endif %}
+{%- endmacro -%}
+
+{%- macro form_fields(fields) -%}
+    {% for field in fields %}
+        {% if field.type == 'HiddenField' %}
+            {{ field() }}
+        {% endif %}
+    {% endfor %}
+    <ol>
+    {% for field in fields %}
+        {% if field.type != 'HiddenField' %}
+            <li>{{ form_field(field) }}</li>
+        {% endif %}
+    {% endfor %}
+    </ol>
+{%- endmacro -%}

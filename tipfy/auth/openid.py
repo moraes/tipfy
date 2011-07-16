@@ -203,8 +203,11 @@ class OpenIdMixin(object):
 
         user = {}
         name_parts = []
+        
+        openid_signed_params = self.request.args.get("openid.signed", u'').split(',')
+        
         for name, uri in _ax_args:
-            value = self._get_ax_arg(uri, ax_ns)
+            value = self._get_ax_arg(uri, ax_ns, openid_signed_params)
             if value:
                 user[name] = value
                 if name in ('first_name', 'last_name'):
@@ -221,7 +224,7 @@ class OpenIdMixin(object):
 
         return callback(user)
 
-    def _get_ax_arg(self, uri, ax_ns):
+    def _get_ax_arg(self, uri, ax_ns, openid_signed_params):
         """Returns an Attribute Exchange value from request.
 
         :param uri:
@@ -237,12 +240,17 @@ class OpenIdMixin(object):
         prefix = 'openid.' + ax_ns + '.type.'
         ax_name = None
         for name, values in self.request.args.iterlists():
+            if not name[len("openid."):] in openid_signed_params:
+                continue
             if values[-1] == uri and name.startswith(prefix):
                 part = name[len(prefix):]
                 ax_name = 'openid.' + ax_ns + '.value.' + part
                 break
 
         if not ax_name:
+            return u''
+        
+        if not ax_name[len("openid."):] in openid_signed_params: 
             return u''
 
         return self.request.args.get(ax_name, u'')

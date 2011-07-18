@@ -35,7 +35,7 @@ from setuptools import setup
 
 setup(
     name = 'tipfy',
-    version = '1.0b2',
+    version = '1.0b3',
     license = 'BSD',
     url = 'http://www.tipfy.org/',
     download_url = 'http://www.tipfy.org/tipfy.tar.gz',
@@ -63,7 +63,7 @@ setup(
     ],
     include_package_data = True,
     install_requires = [
-        'werkzeug>=0.6.1',
+        'Werkzeug>=0.6.1',
         'blinker>=1.1',
         # This is only required because a namespaced package is declared.
         'setuptools',

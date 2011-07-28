@@ -78,7 +78,7 @@ class OpenIdMixin(object):
 
         # Verify the OpenID response via direct request to the OP
         url = openid_endpoint or self._OPENID_ENDPOINT
-        args = dict((k, v[-1]) for k, v in self.request.args.lists())
+        args = dict((k, v[-1].encode('utf8')) for k, v in self.request.args.lists())
         args['openid.mode'] = u'check_authentication'
 
         try:
